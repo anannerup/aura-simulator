@@ -43,7 +43,49 @@ const TEXT: Record<string, LuaValue> = {
   alpha: 1,
 };
 
-const REGIONS: Record<string, Record<string, LuaValue>> = { icon: ICON, aurabar: AURABAR, text: TEXT };
+/** RegionTypes/Texture.lua:9-26 (condition properties :32-83). */
+const TEXTURE: Record<string, LuaValue> = {
+  texture: "Interface\\Addons\\WeakAuras\\PowerAurasMedia\\Auras\\Aura3",
+  color: [1, 1, 1, 1],
+  desaturate: false,
+  mirror: false,
+  rotation: 0,
+  alpha: 1,
+};
+
+/** RegionTypes/ProgressTexture.lua:27-64 (condition properties :72-169). */
+const PROGRESS_TEXTURE: Record<string, LuaValue> = {
+  foregroundColor: [1, 1, 1, 1],
+  backgroundColor: [0.5, 0.5, 0.5, 0.5],
+  desaturateForeground: false,
+  desaturateBackground: false,
+  orientation: "VERTICAL",
+  inverse: false,
+  mirror: false,
+  rotation: 0,
+  auraRotation: 0,
+  crop_x: 0.41,
+  crop_y: 0.41,
+  alpha: 1,
+};
+
+/** RegionTypes/StopMotion.lua:27-65 (condition properties :71-114). */
+const STOP_MOTION: Record<string, LuaValue> = {
+  foregroundColor: [1, 1, 1, 1],
+  backgroundColor: [0.5, 0.5, 0.5, 0.5],
+  desaturateForeground: false,
+  desaturateBackground: false,
+  alpha: 1,
+};
+
+const REGIONS: Record<string, Record<string, LuaValue>> = {
+  icon: ICON,
+  aurabar: AURABAR,
+  text: TEXT,
+  texture: TEXTURE,
+  progresstexture: PROGRESS_TEXTURE,
+  stopmotion: STOP_MOTION,
+};
 
 export function regionDefaults(regionType: LuaValue | undefined): Record<string, LuaValue> {
   return REGIONS[String(regionType)] ?? { alpha: 1 };
@@ -58,6 +100,12 @@ const SUB: Record<string, Record<string, LuaValue>> = {
   subglow: { glow: false },
   subborder: { border_visible: true, border_color: [1, 1, 1, 1] },
   subtick: { tick_visible: true, tick_color: [1, 1, 1, 1] },
+  // SubRegionTypes/Texture.lua:9-38, LinearProgressTexture.lua, CircularProgressTexture.lua, StopMotion.lua, Model.lua.
+  subtexture: { textureVisible: true, textureColor: [1, 1, 1, 1], textureDesaturate: false, textureMirror: false, textureRotation: 0 },
+  sublineartexture: { linearTextureVisible: true, linearTextureColor: [1, 1, 1, 1], linearTextureDesaturate: false },
+  subcirculartexture: { circularTextureVisible: true, circularTextureColor: [1, 1, 1, 1], circularTextureDesaturate: false },
+  substopmotion: { stopmotionVisible: true, stopmotionColor: [1, 1, 1, 1], stopmotionDesaturate: false },
+  submodel: { model_visible: true, model_alpha: 1 },
 };
 
 export function subRegionDefaults(type: LuaValue | undefined): Record<string, LuaValue> {

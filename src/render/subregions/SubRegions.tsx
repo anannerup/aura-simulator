@@ -9,9 +9,12 @@ import { Border } from "./Border";
 import type { SubRegionHost } from "./host";
 import { SubGlow } from "./SubGlow";
 import { SubText } from "./SubText";
+import { SubCircularTexture, SubLinearTexture, SubModel, SubStopMotion, SubTexture } from "./SubTextures";
 import { Ticks } from "./Ticks";
 
-export type SubRegionKind = "background" | "foreground" | "subtext" | "subborder" | "subtick" | "subglow" | "other";
+const DRAWN = ["subtext", "subborder", "subtick", "subglow", "subtexture", "sublineartexture", "subcirculartexture", "substopmotion", "submodel"] as const;
+
+export type SubRegionKind = "background" | "foreground" | (typeof DRAWN)[number] | "other";
 
 /**
  * Draw order of a region's parts (WeakAuras.lua:4775-4801 ApplyFrameLevel): every sub-region gets frame level
@@ -33,8 +36,8 @@ export function drawOrder(aura: AuraDocument): { kind: SubRegionKind; position: 
       if (!order.some((o) => o.kind === "background")) order.push({ kind: "background", position });
     } else if (type === "subforeground") {
       if (needsForeground && !order.some((o) => o.kind === "foreground")) order.push({ kind: "foreground", position });
-    } else if (type === "subtext" || type === "subborder" || type === "subtick" || type === "subglow") {
-      order.push({ kind: type, position });
+    } else if ((DRAWN as readonly string[]).includes(type)) {
+      order.push({ kind: type as SubRegionKind, position });
     } else order.push({ kind: "other", position });
   });
   return order;
@@ -42,8 +45,7 @@ export function drawOrder(aura: AuraDocument): { kind: SubRegionKind; position: 
 
 /**
  * A region's parts and sub-regions in the game's draw order. `background` and `foreground` are the region's
- * own drawing; sub-regions are drawn here. Texture, progress texture, stop motion and model sub-regions are
- * left to ticket 15.
+ * own drawing; sub-regions are drawn here.
  */
 export function SubRegions({
   aura,
@@ -80,6 +82,16 @@ export function SubRegions({
             const glow = state.glows.find((g) => g.index === position);
             return glow ? <SubGlow key={key} glow={glow} properties={state.properties} host={host} /> : null;
           }
+          case "subtexture":
+            return <SubTexture key={key} element={element} position={position} state={state} host={host} />;
+          case "sublineartexture":
+            return <SubLinearTexture key={key} element={element} position={position} state={state} host={host} />;
+          case "subcirculartexture":
+            return <SubCircularTexture key={key} element={element} position={position} state={state} host={host} />;
+          case "substopmotion":
+            return <SubStopMotion key={key} element={element} position={position} state={state} host={host} />;
+          case "submodel":
+            return <SubModel key={key} element={element} position={position} state={state} host={host} />;
           default:
             return null;
         }

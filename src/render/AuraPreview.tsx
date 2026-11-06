@@ -1,10 +1,12 @@
 import type { CSSProperties } from "react";
 import type { AuraDocument, LuaValue } from "@/core";
+import { AnimatedAuraRegion } from "./AnimatedAuraRegion";
 import { evaluateAura, type AuraRenderState } from "./conditions";
 import { anchorFraction } from "./anchor";
 import { regionType } from "./regions";
 import { placeAura, strataZIndex, uiParent, type Rect, type UiParent } from "./screen/geometry";
 import type { Situation } from "./situation";
+import type { RegionAnim } from "./TextureRegion";
 import styles from "./AuraPreview.module.css";
 
 export interface AuraPreviewProps {
@@ -12,6 +14,8 @@ export interface AuraPreviewProps {
   situation: Situation;
   /** UIParent in UI units; the mock screen (`src/render/screen`) scales the whole preview to the window. */
   screen?: UiParent;
+  /** Changing it replays the aura's start animation (and restarts its stop motion). */
+  replay?: number;
 }
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
@@ -19,7 +23,7 @@ const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number
 /** Draws an aura on a plain screen at its anchor, offset and size. Pure: props in, markup out. */
 const DEFAULT_SCREEN = uiParent({ width: 1920, height: 1080, useUiScale: false, uiScale: 1 });
 
-export function AuraPreview({ aura, situation, screen = DEFAULT_SCREEN }: AuraPreviewProps) {
+export function AuraPreview({ aura, situation, screen = DEFAULT_SCREEN, replay = 0 }: AuraPreviewProps) {
   const state = evaluateAura(aura, situation);
   const type = regionType(aura.regionType);
   const width = num(aura.width, 64);
@@ -49,7 +53,7 @@ export function AuraPreview({ aura, situation, screen = DEFAULT_SCREEN }: AuraPr
           <span className={styles.standInLabel}>{frame.label} (stand-in)</span>
         </div>
       )}
-      {state.shown && <AuraRegion aura={aura} rect={rect} state={state} />}
+      <AnimatedAuraRegion aura={aura} rect={rect} state={state} replay={replay} />
       {state.problem && (
         <p className={styles.problem} data-testid="condition-problem">
           Condition {state.problem.condition}: {state.problem.message}
@@ -68,10 +72,17 @@ export interface AuraRegionProps {
   /** Marks the selected region (the stage outlines it). */
   selected?: boolean;
   onSelect?: () => void;
+  /** Animation scale of the region's size (Scale), absolute values; the rect is already scaled. */
+  scale?: [number, number];
+  /** Animation state the region draws itself (`AnimatedAuraRegion`). */
+  anim?: RegionAnim;
+  /** The running animation phase and its progress, for tests and tools. */
+  animPhase?: string;
+  animProgress?: number;
 }
 
 /** One aura's region at a given rect: the part of the preview the workspace stage repeats for every aura. */
-export function AuraRegion({ aura, rect, state, selected, onSelect }: AuraRegionProps) {
+export function AuraRegion({ aura, rect, state, selected, onSelect, scale = [1, 1], anim, animPhase, animProgress }: AuraRegionProps) {
   const type = regionType(aura.regionType);
   const [sx, sy] = anchorFraction(aura.selfPoint);
   const alpha = num(state.properties.alpha, 1);
@@ -95,10 +106,19 @@ export function AuraRegion({ aura, rect, state, selected, onSelect }: AuraRegion
       data-aura-id={name}
       data-selected={selected ? "true" : undefined}
       data-frozen={state.frozenMarker ? "true" : "false"}
+      data-anim-phase={animPhase}
+      data-anim-progress={animProgress === undefined ? undefined : animProgress.toFixed(3)}
       onClick={onSelect}
     >
       {type ? (
-        <type.render aura={aura} state={state} name={name} width={num(aura.width, 64)} height={num(aura.height, 64)} />
+        <type.render
+          aura={aura}
+          state={state}
+          name={name}
+          width={num(aura.width, 64) * scale[0]}
+          height={num(aura.height, 64) * scale[1]}
+          anim={anim}
+        />
       ) : (
         <div className={styles.unsupported}>{String(aura.regionType)}</div>
       )}
