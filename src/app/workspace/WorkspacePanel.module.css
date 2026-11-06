@@ -33,6 +33,27 @@
   font-weight: 600;
 }
 
+.buttons,
+.file {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.paste .buttons {
+  flex-direction: column;
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
 .error {
   color: #e5484d;
   font-size: 13px;

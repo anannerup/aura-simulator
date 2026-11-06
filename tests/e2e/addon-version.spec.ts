@@ -45,11 +45,11 @@ test("a branch loads by name; an unknown ref shows an error and keeps the previo
 
   const input = page.getByLabel("Branch or commit");
   await input.fill("main");
-  await page.getByRole("button", { name: "Load" }).click();
+  await page.getByRole("region", { name: "Addon version picker" }).getByRole("button", { name: "Load" }).click();
   await expect(loaded(page)).toContainText(/Musca Auras main \([0-9a-f]{7}\)/, { timeout: 60_000 });
 
   await input.fill("no-such-branch");
-  await page.getByRole("button", { name: "Load" }).click();
+  await page.getByRole("region", { name: "Addon version picker" }).getByRole("button", { name: "Load" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Could not load" })).toContainText('no release, branch or commit called "no-such-branch"');
   await expect(page.getByRole("alert").filter({ hasText: "Could not load" })).toContainText("Still using main");
   await expect(loaded(page)).toContainText("Musca Auras main");

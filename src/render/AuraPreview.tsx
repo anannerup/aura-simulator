@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { AuraDocument, LuaValue } from "@/core";
-import { placeAura, strataZIndex, uiParent, type UiParent } from "./screen/geometry";
+import { placeAura, strataZIndex, uiParent, type Rect, type UiParent } from "./screen/geometry";
 import type { Situation } from "./situation";
 import { useAuraIconUrl } from "./textures";
 import styles from "./AuraPreview.module.css";
@@ -31,15 +31,6 @@ export function AuraPreview({ aura, situation, screen = DEFAULT_SCREEN }: AuraPr
     },
     screen,
   );
-  const regionStyle: CSSProperties = {
-    left: rect.x,
-    top: rect.y,
-    width: rect.width,
-    height: rect.height,
-    zIndex: strataZIndex(aura.frameStrata),
-  };
-  const name = typeof aura.id === "string" ? aura.id : "aura";
-
   return (
     <div className={styles.screen} style={{ width: screen.width, height: screen.height }} data-testid="aura-preview">
       {frame.label && (
@@ -51,14 +42,43 @@ export function AuraPreview({ aura, situation, screen = DEFAULT_SCREEN }: AuraPr
           <span className={styles.standInLabel}>{frame.label} (stand-in)</span>
         </div>
       )}
-      {situation.active && (
-        <div className={styles.region} style={regionStyle} data-region-type={String(aura.regionType)}>
-          {aura.regionType === "icon" ? (
-            <IconRegion aura={aura} name={name} />
-          ) : (
-            <div className={styles.unsupported}>{String(aura.regionType)}</div>
-          )}
-        </div>
+      {situation.active && <AuraRegion aura={aura} rect={rect} />}
+    </div>
+  );
+}
+
+export interface AuraRegionProps {
+  aura: AuraDocument;
+  /** Where the region goes, in UIParent units (`placeAura`, or `group/layout.ts` inside groups). */
+  rect: Rect;
+  /** Marks the selected region (the stage outlines it). */
+  selected?: boolean;
+  onSelect?: () => void;
+}
+
+/** One aura's region at a given rect: the part of the preview the workspace stage repeats for every aura. */
+export function AuraRegion({ aura, rect, selected, onSelect }: AuraRegionProps) {
+  const regionStyle: CSSProperties = {
+    left: rect.x,
+    top: rect.y,
+    width: rect.width,
+    height: rect.height,
+    zIndex: strataZIndex(aura.frameStrata),
+  };
+  const name = typeof aura.id === "string" ? aura.id : "aura";
+  return (
+    <div
+      className={styles.region}
+      style={regionStyle}
+      data-region-type={String(aura.regionType)}
+      data-aura-id={name}
+      data-selected={selected ? "true" : undefined}
+      onClick={onSelect}
+    >
+      {aura.regionType === "icon" ? (
+        <IconRegion aura={aura} name={name} />
+      ) : (
+        <div className={styles.unsupported}>{String(aura.regionType)}</div>
       )}
     </div>
   );
