@@ -1,6 +1,6 @@
 import { useMemo, type CSSProperties } from "react";
 import type { AuraDocument, LuaValue } from "@/core";
-import { AuraRegion } from "../AuraPreview";
+import { AnimatedAuraRegion } from "../AnimatedAuraRegion";
 import { uiParent, type Rect, type UiParent } from "../screen/geometry";
 import { evaluateAura } from "../conditions";
 import type { Situation } from "../situation";
@@ -72,19 +72,18 @@ export function WorkspaceStage({ items, situation, screen = DEFAULT_SCREEN, sele
             <div key={`border:${g.id}`} className={styles.border} style={borderStyle(g.aura, g.border, g.scale)} data-group-border={g.id} />
           ),
       )}
-      {layout.auras.map(
-        (a) =>
-          a.visible && (
-            <AuraRegion
-              key={a.id}
-              aura={a.aura}
-              rect={a.rect}
-              state={evaluateAura(a.aura, situation)}
-              selected={a.id === selectedId}
-              onSelect={onSelect ? () => onSelect(a.id) : undefined}
-            />
-          ),
-      )}
+      {/* Hidden auras stay mounted: their finish animation plays out before they go (AnimatedAuraRegion). */}
+      {layout.auras.map((a) => (
+        <AnimatedAuraRegion
+          key={a.id}
+          aura={a.aura}
+          rect={a.rect}
+          state={evaluateAura(a.aura, situation)}
+          shown={a.visible}
+          selected={a.id === selectedId}
+          onSelect={onSelect ? () => onSelect(a.id) : undefined}
+        />
+      ))}
       {selection && (
         <div
           className={styles.selection}
