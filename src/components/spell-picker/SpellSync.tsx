@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getSpellStatus, syncSpells, type SpellCacheStatus } from "./spell-api";
+import { Button, Callout, RefreshIcon, WarningIcon } from "@/components/ui";
 import styles from "./SpellPicker.module.css";
 
 /**
@@ -37,33 +38,33 @@ export function SpellSync({ onSynced }: { onSynced?: () => void }) {
     }
   }
 
-  const button = (
-    <button type="button" className={styles.syncButton} onClick={sync} disabled={syncing}>
-      {syncing ? "Syncing…" : "Sync spells"}
-    </button>
-  );
-
   if (status && !status.synced) {
     return (
-      <div className={styles.syncPrompt} role="region" aria-label="Spell list not downloaded">
+      <Callout tone="warn" icon={<WarningIcon size={14} />} role="region" aria-label="Spell list not downloaded">
         <p>
           The spell list hasn&apos;t been downloaded yet. Sync once to search WoW Forever&apos;s spells by name and
           show their icons.
         </p>
-        {button}
+        <span>
+          <Button variant="primary" size="sm" icon={<RefreshIcon size={14} />} onClick={sync} disabled={syncing}>
+            {syncing ? "Syncing…" : "Sync spells"}
+          </Button>
+        </span>
         {error && <p className={styles.error}>{error}</p>}
-      </div>
+      </Callout>
     );
   }
 
   return (
     <div className={styles.syncLine} data-testid="spell-sync">
-      <span>
+      <span className={styles.syncText}>
         {status?.synced
           ? `Spells: build ${status.build}, ${status.spellCount.toLocaleString()} spells, synced ${new Date(status.syncedAt!).toLocaleString()}`
           : "Spells: …"}
       </span>
-      {button}
+      <Button variant="ghost" size="sm" icon={<RefreshIcon size={13} />} onClick={sync} disabled={syncing}>
+        {syncing ? "Syncing…" : "Sync spells"}
+      </Button>
       {error && <span className={styles.error}>{error}</span>}
     </div>
   );

@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const loaded = (page: Page) => page.getByTestId("addon-loaded");
+/** The version picker lives in a popover under the top bar's version button. */
+const openPicker = (page: Page) => page.getByRole("button", { name: /^Musca Auras / }).click();
 
 async function expectAuraRendered(page: Page) {
   const icon = page.getByTestId("aura-preview").locator('[data-region-type="icon"] img');
@@ -25,6 +27,7 @@ test("switching version reloads the core, keeps the aura and reports what change
   await page.goto("/");
   await expect(loaded(page)).toContainText("v1.15.0", { timeout: 60_000 });
 
+  await openPicker(page);
   await page.getByLabel("Musca Auras version").selectOption("v1.10.0");
   await expect(loaded(page)).toContainText("Musca Auras v1.10.0", { timeout: 60_000 });
   await expect(loaded(page)).toContainText("internal version 91");
@@ -43,13 +46,14 @@ test("a branch loads by name; an unknown ref shows an error and keeps the previo
   await page.goto("/");
   await expect(loaded(page)).toContainText("v1.15.0", { timeout: 60_000 });
 
+  await openPicker(page);
   const input = page.getByLabel("Branch or commit");
   await input.fill("main");
-  await page.getByRole("button", { name: "Load" }).click();
+  await page.getByRole("button", { name: "Switch" }).click();
   await expect(loaded(page)).toContainText(/Musca Auras main \([0-9a-f]{7}\)/, { timeout: 60_000 });
 
   await input.fill("no-such-branch");
-  await page.getByRole("button", { name: "Load" }).click();
+  await page.getByRole("button", { name: "Switch" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Could not load" })).toContainText('no release, branch or commit called "no-such-branch"');
   await expect(page.getByRole("alert").filter({ hasText: "Could not load" })).toContainText("Still using main");
   await expect(loaded(page)).toContainText("Musca Auras main");

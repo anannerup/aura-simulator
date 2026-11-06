@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { Button, Callout, ChevronDownIcon, Field, Input, Popover, Select, WarningIcon } from "@/components/ui";
 import type { AddonCoreState } from "./useAddonCore";
 import styles from "./AddonVersionPicker.module.css";
 
@@ -19,45 +20,44 @@ export function AddonVersionPicker({ addon }: { addon: AddonCoreState }) {
 
   return (
     <section className={styles.picker} aria-label="Addon version picker">
-      <div className={styles.row}>
-        <div className={styles.field}>
-          <label htmlFor="addon-release">Musca Auras version</label>
-          <select
-            id="addon-release"
-            value={selectedTag ?? ""}
-            disabled={busy || releases.length === 0}
-            onChange={(e) => e.target.value && load(e.target.value)}
-          >
-            {!selectedTag && <option value="">{core ? `${core.ref} (branch or commit)` : "…"}</option>}
-            {releases.map((r) => (
-              <option key={r.tag} value={r.tag}>
-                {r.tag}
-                {r.prerelease ? " (pre-release)" : ""}
-                {r.tag === versions?.defaultRef ? " (newest)" : ""}
-              </option>
-            ))}
-          </select>
-        </div>
-        <form className={styles.field} onSubmit={submit}>
-          <label htmlFor="addon-custom-ref">Branch or commit</label>
+      <Field label="Musca Auras version" htmlFor="addon-release">
+        <Select
+          id="addon-release"
+          value={selectedTag ?? ""}
+          disabled={busy || releases.length === 0}
+          onChange={(e) => e.target.value && load(e.target.value)}
+        >
+          {!selectedTag && <option value="">{core ? `${core.ref} (branch or commit)` : "…"}</option>}
+          {releases.map((r) => (
+            <option key={r.tag} value={r.tag}>
+              {r.tag}
+              {r.prerelease ? " (pre-release)" : ""}
+              {r.tag === versions?.defaultRef ? " (newest)" : ""}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <form onSubmit={submit}>
+        <Field label="Branch or commit" htmlFor="addon-custom-ref">
           <span className={styles.inline}>
-            <input
+            <Input
               id="addon-custom-ref"
               value={custom}
               onChange={(e) => setCustom(e.target.value)}
               placeholder="main, forever-spell-ids, 448b7b3…"
               list="addon-branches"
               spellCheck={false}
+              mono
             />
             <datalist id="addon-branches">
               {versions?.branches.map((b) => <option key={b} value={b} />)}
             </datalist>
-            <button type="submit" disabled={busy || !custom.trim()}>
-              Load
-            </button>
+            <Button type="submit" disabled={busy || !custom.trim()}>
+              Switch
+            </Button>
           </span>
-        </form>
-      </div>
+        </Field>
+      </form>
 
       <p className={styles.status} data-testid="addon-loaded">
         {core ? (
@@ -72,10 +72,10 @@ export function AddonVersionPicker({ addon }: { addon: AddonCoreState }) {
         {loadingRef && core && <span className={styles.loading}> · loading {loadingRef}…</span>}
       </p>
       {error && (
-        <p className={styles.error} role="alert">
+        <Callout tone="danger" icon={<WarningIcon size={14} />} role="alert">
           {error}
           {core && ` Still using ${core.ref}.`}
-        </p>
+        </Callout>
       )}
       {versions && !versions.tagsConfirmed && (
         <p className={styles.note}>GitHub didn&apos;t answer, so release names may lack their &quot;v&quot; prefix.</p>
@@ -106,5 +106,32 @@ export function AddonVersionPicker({ addon }: { addon: AddonCoreState }) {
         </details>
       )}
     </section>
+  );
+}
+
+/**
+ * The version picker for the top bar: a compact button showing the loaded version that opens the picker below it.
+ * It opens by itself when no version could be loaded at all.
+ */
+export function AddonVersionMenu({ addon }: { addon: AddonCoreState }) {
+  const [open, setOpen] = useState(false);
+  const { core, loadingRef, error } = addon;
+  const forcedOpen = !core && !!error;
+  return (
+    <Popover
+      open={open || forcedOpen}
+      onOpenChange={setOpen}
+      label="Choose the addon version"
+      trigger={(props) => (
+        <button type="button" className={styles.trigger} {...props} title="Addon version">
+          <span className={styles.triggerLabel}>Musca Auras</span>
+          <span className={styles.triggerValue}>{core?.ref ?? "…"}</span>
+          {loadingRef ? <span className={styles.spinner} aria-hidden /> : error ? <WarningIcon size={13} className={styles.triggerWarn} /> : null}
+          <ChevronDownIcon size={14} className={styles.triggerChevron} />
+        </button>
+      )}
+    >
+      <AddonVersionPicker addon={addon} />
+    </Popover>
   );
 }

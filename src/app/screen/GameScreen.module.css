@@ -1,0 +1,9 @@
+.dim {
+  color: var(--text-3);
+}
+
+@media (max-width: 480px) {
+  .dim {
+    display: none;
+  }
+}

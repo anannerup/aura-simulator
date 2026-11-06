@@ -1,0 +1,186 @@
+/* ---- Brand ---- */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  padding: 4px 6px 4px 2px;
+  border-radius: var(--radius);
+}
+
+.mark {
+  flex: none;
+  filter: drop-shadow(0 0 6px rgb(255 209 0 / 0.25));
+}
+
+.brandName {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-1);
+  white-space: nowrap;
+}
+
+/* ---- Top bar parts ---- */
+.group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.divider {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: var(--text-sm);
+  color: var(--text-1);
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.chip code {
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chipLabel {
+  color: var(--text-3);
+}
+
+@media (max-width: 1099px) {
+  .hideBelowDesktop {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .hideBelowTablet {
+    display: none;
+  }
+  .brandName {
+    display: none;
+  }
+}
+
+/* ---- Sidebar helpers ---- */
+.empty {
+  font-size: var(--text-md);
+  color: var(--text-3);
+}
+
+/* ---- Stage ---- */
+.stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgb(40 52 72 / 0.35), transparent 70%),
+    radial-gradient(circle, rgb(255 255 255 / 0.045) 1px, transparent 1.2px) 0 0 / 20px 20px,
+    var(--surface-sunken);
+}
+
+.toolbarDock {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-3) var(--space-4) 0;
+}
+
+.canvas {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-4) var(--space-5) var(--space-5);
+}
+
+@media (max-width: 767px) {
+  .canvas {
+    padding: var(--space-3);
+  }
+}
+
+.stageMessage {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.stageMessageText {
+  max-width: 420px;
+  font-size: var(--text-base);
+  color: var(--text-2);
+}
+
+.danger {
+  color: var(--danger);
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--surface-4);
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Stage toolbar ---- */
+.toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 40px;
+  padding: 0 4px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface-overlay);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-2);
+  max-width: 100%;
+}
+
+.toolbarSeparator {
+  width: 1px;
+  height: 18px;
+  margin: 0 6px;
+  background: var(--border);
+}
+
+.toolbarText {
+  padding: 0 var(--space-2);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

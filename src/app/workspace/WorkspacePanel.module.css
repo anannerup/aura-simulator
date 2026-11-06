@@ -1,48 +1,31 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
-.paste {
+.actions {
   display: flex;
-  gap: 8px;
-  align-items: stretch;
-}
-
-.input {
-  flex: 1;
-  min-width: 0;
-  font-family: var(--font-geist-mono);
-  font-size: 12px;
-  padding: 8px;
-  resize: vertical;
-  background: transparent;
-  color: inherit;
-  border: 1px solid #555;
-  border-radius: 6px;
-}
-
-.button {
-  padding: 6px 16px;
-  border-radius: 6px;
-  border: 1px solid #555;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.error {
-  color: #e5484d;
-  font-size: 13px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
 .meta {
-  color: #888;
-  font-size: 13px;
+  color: var(--text-3);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.meta code {
+  font-size: var(--text-xs);
+  color: var(--text-2);
 }
 
 .meta a {
+  color: var(--cool);
   text-decoration: underline;
+  text-underline-offset: 2px;
 }

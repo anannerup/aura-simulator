@@ -4,12 +4,20 @@
   justify-content: center;
 }
 
+/* Fills its container and centres the window in it (letterboxed). */
+.fill {
+  height: 100%;
+  align-items: center;
+}
+
 .window {
   position: relative;
   overflow: hidden;
   flex: none;
   background: radial-gradient(ellipse at center, #2a3340 0%, #12161c 100%);
-  box-shadow: 0 0 0 1px #333;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.1),
+    0 18px 50px rgb(0 0 0 / 0.55);
 }
 
 .background {

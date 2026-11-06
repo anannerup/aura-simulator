@@ -11,6 +11,8 @@ export interface MockScreenProps {
   backgroundUrl?: string | null;
   /** Largest height the screen may take, as a fraction of the browser window's height. */
   maxViewportHeight?: number;
+  /** Fit into the container's own width and height instead (the container must have a definite height). */
+  fill?: boolean;
   /** Draws the UI inside UIParent; everything inside is laid out in UIParent units. */
   children: (ui: UiParent) => ReactNode;
 }
@@ -22,7 +24,7 @@ const GRID_STEP = 50;
  * The game window, scaled to fit the browser area with its aspect ratio kept. Its child layer is UIParent: sized in
  * UI units and scaled by CSS so that one unit takes as many CSS pixels as it takes window pixels in game, times the fit.
  */
-export function MockScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, children }: MockScreenProps) {
+export function MockScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, fill = false, children }: MockScreenProps) {
   const container = useRef<HTMLDivElement>(null);
   const [area, setArea] = useState({ width: 800, height: 600 });
 
@@ -30,7 +32,10 @@ export function MockScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, c
     const el = container.current;
     if (!el) return;
     const measure = () =>
-      setArea({ width: el.clientWidth, height: Math.max(100, window.innerHeight * maxViewportHeight) });
+      setArea({
+        width: el.clientWidth,
+        height: fill ? Math.max(50, el.clientHeight) : Math.max(100, window.innerHeight * maxViewportHeight),
+      });
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     window.addEventListener("resize", measure);
@@ -38,7 +43,7 @@ export function MockScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, c
       observer.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [maxViewportHeight]);
+  }, [maxViewportHeight, fill]);
 
   const ui = uiParent(settings);
   const fit = fitScale(settings, area);
@@ -54,7 +59,7 @@ export function MockScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, c
   } as CSSProperties;
 
   return (
-    <div ref={container} className={styles.fit}>
+    <div ref={container} className={fill ? `${styles.fit} ${styles.fill}` : styles.fit}>
       <div
         className={styles.window}
         style={display}

@@ -94,8 +94,8 @@
 
   /* Shell layout. */
   --topbar-h: 52px;
-  --sidebar-w: 288px;
-  --inspector-w: 336px;
+  --sidebar-w: clamp(256px, 19vw, 300px);
+  --inspector-w: clamp(288px, 22vw, 352px);
   --drawer-bar-h: 40px;
 
   /* Kept for modules written before the tokens. */

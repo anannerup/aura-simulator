@@ -1,97 +1,133 @@
 .picker {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: flex-end;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
-  color: #888;
+  gap: var(--space-3);
+  font-size: var(--text-md);
 }
 
 .inline {
   display: flex;
-  gap: 6px;
-}
-
-.picker select,
-.picker input,
-.picker button {
-  font: inherit;
-  font-size: 14px;
-  padding: 5px 8px;
-  border-radius: 6px;
-  border: 1px solid #555;
-  background: transparent;
-  color: var(--foreground);
-}
-
-.picker select option {
-  background: var(--background);
-}
-
-.picker button {
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.picker button:disabled,
-.picker select:disabled {
-  opacity: 0.5;
-  cursor: default;
+  gap: var(--space-2);
 }
 
 .status {
-  font-size: 13px;
-  color: #888;
+  font-size: var(--text-sm);
+  color: var(--text-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .loading {
-  font-style: italic;
+  color: var(--accent-text);
 }
 
 .error {
-  color: #e5484d;
-  font-size: 13px;
+  color: var(--danger);
+  font-size: var(--text-sm);
 }
 
 .note {
-  color: #888;
-  font-size: 13px;
+  color: var(--text-3);
+  font-size: var(--text-sm);
 }
 
 .diff {
-  border: 1px solid #555;
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
 }
 
 .diff > summary {
   cursor: pointer;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
+  color: var(--text-1);
 }
 
 .diff ul {
-  margin: 8px 0 0 18px;
+  margin: var(--space-2) 0 0 18px;
+  color: var(--text-2);
   word-break: break-word;
+}
+
+.diff details summary {
+  margin-top: var(--space-2);
+  cursor: pointer;
+  color: var(--text-2);
 }
 
 .changelog {
   white-space: pre-wrap;
-  font-family: var(--font-geist-mono);
-  font-size: 12px;
-  max-height: 300px;
+  font-size: var(--text-xs);
+  max-height: 260px;
   overflow: auto;
+  margin-top: var(--space-2);
+  color: var(--text-2);
+}
+
+/* ---- Top-bar trigger ---- */
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 var(--space-2) 0 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.trigger:hover,
+.trigger[aria-expanded="true"] {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+}
+
+.triggerLabel {
+  color: var(--text-3);
+}
+
+.triggerValue {
+  font-family: var(--font-mono);
+  color: var(--text-1);
+}
+
+.triggerChevron {
+  color: var(--text-3);
+}
+
+.triggerWarn {
+  color: var(--danger);
+}
+
+.spinner {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid var(--surface-4);
+  border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 767px) {
+  /* Still read out, just not shown. */
+  .triggerLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
