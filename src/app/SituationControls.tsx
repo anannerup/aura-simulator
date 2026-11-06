@@ -1,0 +1,83 @@
+"use client";
+
+import type { AuraDocument } from "@/core";
+import {
+  auraTriggers,
+  setInCombat,
+  triggerSituation,
+  withTrigger,
+  type Situation,
+  type TriggerKind,
+} from "@/render/situation";
+import styles from "./SituationControls.module.css";
+
+const KIND_LABELS: Record<TriggerKind, { title: string; present: string; remaining: string; duration: string; stacks: string }> = {
+  secretAura: { title: "Aura (Modern)", present: "Aura present", remaining: "Time left", duration: "Duration", stacks: "Stacks" },
+  aura2: { title: "Aura", present: "Aura present", remaining: "Time left", duration: "Duration", stacks: "Stacks" },
+  spellCooldown: { title: "Spell cooldown", present: "On cooldown", remaining: "Cooldown left", duration: "Cooldown", stacks: "Charges" },
+  other: { title: "Trigger", present: "Active", remaining: "Time left", duration: "Duration", stacks: "Stacks" },
+};
+
+const fmt = (s: number) => (s >= 60 ? `${Math.floor(s / 60)}m ${String(Math.round(s % 60)).padStart(2, "0")}s` : `${s.toFixed(1)}s`);
+
+/** The situation controls: per trigger present/time left/stacks, plus target and combat. */
+export function SituationControls({ aura, situation, onChange }: { aura: AuraDocument; situation: Situation; onChange: (next: Situation) => void }) {
+  const triggers = auraTriggers(aura);
+  return (
+    <section className={styles.panel} aria-label="Situation">
+      <h2 className={styles.heading}>Situation</h2>
+      <div className={styles.world}>
+        <label className={styles.toggle}>
+          <input type="checkbox" checked={situation.targetExists} onChange={(e) => onChange({ ...situation, targetExists: e.target.checked })} />
+          Target exists
+        </label>
+        <label className={styles.toggle}>
+          <input type="checkbox" role="switch" checked={situation.inCombat} onChange={(e) => onChange(setInCombat(situation, e.target.checked))} />
+          In combat
+        </label>
+      </div>
+      {triggers.map(({ index, kind }) => {
+        const t = triggerSituation(situation, index);
+        const labels = KIND_LABELS[kind];
+        const set = (patch: Parameters<typeof withTrigger>[2]) => onChange(withTrigger(situation, index, patch));
+        return (
+          <fieldset key={index} className={styles.trigger}>
+            <legend>
+              Trigger {index}: {labels.title}
+            </legend>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                checked={t.present}
+                onChange={(e) => set(kind === "spellCooldown" && e.target.checked && t.remaining <= 0 ? { present: true, remaining: t.duration } : { present: e.target.checked })}
+              />
+              {labels.present}
+            </label>
+            <label className={styles.row}>
+              <span>{labels.remaining}</span>
+              <input
+                type="range"
+                min={0}
+                max={Math.max(t.duration, 0.1)}
+                step={0.1}
+                value={t.remaining}
+                disabled={!t.present || t.duration <= 0}
+                onChange={(e) => set({ remaining: Number(e.target.value) })}
+              />
+              <output>{fmt(t.remaining)}</output>
+            </label>
+            <label className={styles.row}>
+              <span>{labels.duration}</span>
+              <input type="number" min={0} step={1} value={t.duration} onChange={(e) => set({ duration: Number(e.target.value) || 0 })} />
+              <span className={styles.unit}>s</span>
+            </label>
+            <label className={styles.row}>
+              <span>{labels.stacks}</span>
+              <input type="number" min={0} step={1} value={t.stacks} onChange={(e) => set({ stacks: Number(e.target.value) || 0 })} />
+            </label>
+          </fieldset>
+        );
+      })}
+    </section>
+  );
+}
