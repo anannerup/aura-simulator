@@ -1,0 +1,188 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.muted {
+  color: #888;
+  font-size: 13px;
+}
+
+.error {
+  color: #e5484d;
+  font-size: 13px;
+}
+
+.syncLine {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #888;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.syncPrompt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid #b08a2e;
+  border-radius: 6px;
+  background: rgba(176, 138, 46, 0.12);
+}
+
+.syncPrompt p {
+  flex: 1;
+  min-width: 200px;
+}
+
+.syncButton {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid #555;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.syncButton:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 24px;
+}
+
+.triggerSelect select {
+  background: transparent;
+  color: inherit;
+  border: 1px solid #555;
+  border-radius: 4px;
+}
+
+.name {
+  font-weight: 600;
+}
+
+.icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.flags {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.flag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #f5c451;
+  border: 1px solid #b08a2e;
+  background: rgba(176, 138, 46, 0.15);
+  cursor: help;
+}
+
+.search {
+  position: relative;
+}
+
+.input {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #555;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.list {
+  list-style: none;
+  flex: 1;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: var(--background);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.option[aria-selected="true"] {
+  background: rgba(127, 127, 127, 0.2);
+}
+
+.tooltip {
+  width: 300px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #3a4a6a;
+  border-radius: 6px;
+  background: #0b0f1c;
+  color: #fff;
+  font-size: 12px;
+}
+
+.tooltipHead {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.tooltipIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 3px;
+}
+
+.tooltipText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #ffd100;
+}
+
+@media (max-width: 640px) {
+  .dropdown {
+    flex-direction: column;
+  }
+  .tooltip {
+    width: 100%;
+  }
+}

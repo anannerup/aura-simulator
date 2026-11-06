@@ -71,6 +71,12 @@ export interface Spell {
   flags: SpellFlag[];
 }
 
+/** Icon names by FileDataID / spell ID (null when unknown). Keys are the requested IDs. */
+export interface IconLookupResult {
+  files: Record<string, string | null>;
+  spells: Record<string, string | null>;
+}
+
 export interface SpellCacheStatus {
   synced: boolean;
   product: string;
@@ -110,6 +116,11 @@ export interface SpellCache {
   search(query: string, options?: { limit?: number }): SpellSearchResult;
   /** Full spell info. Fetches and caches Wowhead's tooltip on first lookup. */
   lookup(id: number, options?: LookupOptions): Promise<Spell>;
+  /**
+   * Icon names (lower case, no extension) for Interface\\ICONS FileDataIDs and for spell IDs.
+   * Spells use Forever's icon, else a cached Wowhead icon. No network.
+   */
+  icons(request: { files?: number[]; spells?: number[] }): IconLookupResult;
   status(): SpellCacheStatus;
   close(): void;
 }
@@ -138,6 +149,10 @@ CREATE TABLE IF NOT EXISTS wowhead (
   tooltip TEXT,
   buff TEXT,
   fetched_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS icons (
+  file_id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL
 );
 `;
 
@@ -213,8 +228,12 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
     let spellsWithIcon = 0;
     const syncedAt = now().toISOString();
 
+    const insertIcon = db.prepare("INSERT OR REPLACE INTO icons (file_id, name) VALUES (?, ?)");
+
     db.exec("BEGIN");
     try {
+      db.exec("DELETE FROM icons");
+      for (const [fileId, name] of iconByFileId) insertIcon.run(fileId, name);
       db.exec("DELETE FROM spells");
       for (const r of names) {
         const id = Number(r.ID);
@@ -357,6 +376,30 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
     };
   }
 
+  const getIconByFile = db.prepare(
+    // Databases synced before the icons table existed still know the icons their spells use.
+    `SELECT coalesce((SELECT name FROM icons WHERE file_id = :id),
+                     (SELECT icon FROM spells WHERE icon_file_id = :id AND icon IS NOT NULL LIMIT 1)) AS name`,
+  );
+  const getIconBySpell = db.prepare(
+    `SELECT coalesce((SELECT icon FROM spells WHERE id = :id),
+                     (SELECT lower(icon) FROM wowhead WHERE id = :id AND status = 'found')) AS name`,
+  );
+
+  function icons(request: { files?: number[]; spells?: number[] }): IconLookupResult {
+    const result: IconLookupResult = { files: {}, spells: {} };
+    const valid = (id: number) => Number.isSafeInteger(id) && id > 0;
+    for (const id of request.files ?? []) {
+      if (!valid(id)) continue;
+      result.files[id] = (getIconByFile.get({ id }) as { name: string | null }).name;
+    }
+    for (const id of request.spells ?? []) {
+      if (!valid(id)) continue;
+      result.spells[id] = (getIconBySpell.get({ id }) as { name: string | null }).name;
+    }
+    return result;
+  }
+
   function status(): SpellCacheStatus {
     const counts = db
       .prepare("SELECT count(*) AS spells, count(icon) AS icons FROM spells")
@@ -386,6 +429,7 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
     },
     search,
     lookup,
+    icons,
     status,
     close: () => db.close(),
   };

@@ -263,3 +263,28 @@ describe("lookup", () => {
     await expect(cache.lookup(1.5)).rejects.toThrow(RangeError);
   });
 });
+
+describe("icons", () => {
+  it("maps Interface\\ICONS FileDataIDs and spell IDs to icon names", async () => {
+    const cache = open();
+    expect(cache.icons({ files: [135932], spells: [1459] })).toEqual({ files: { 135932: null }, spells: { 1459: null } });
+    await cache.sync();
+    expect(cache.icons({ files: [135932, 304287, 130646, 5588107, 0], spells: [1459, 116, 431567, 1215498] })).toEqual({
+      files: { 135932: "spell_holy_magicalsentry", 304287: "inv_staff_99", 130646: null, 5588107: null },
+      spells: { 1459: "spell_holy_magicalsentry", 116: "spell_frost_frostbolt02", 431567: null, 1215498: null },
+    });
+  });
+
+  it("falls back to a cached Wowhead icon for spells outside Forever", async () => {
+    const cache = open(
+      createFixtureFetch({
+        "https://nether.wowhead.com/classic/tooltip/spell/424242": () =>
+          new Response(JSON.stringify({ name: "X", icon: "Spell_Holy_MagicalSentry", tooltip: "x" })),
+      }).fetch,
+    );
+    await cache.sync();
+    expect(cache.icons({ spells: [424242] }).spells[424242]).toBeNull();
+    await cache.lookup(424242);
+    expect(cache.icons({ spells: [424242] }).spells[424242]).toBe("spell_holy_magicalsentry");
+  });
+});
