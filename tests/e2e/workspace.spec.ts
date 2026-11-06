@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 
 /** A variant of the sample icon aura (see src/core/samples.ts). */
@@ -34,7 +35,7 @@ const uniqueId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math
 
 /** Encodes an aura through the push API on a scratch workspace no page follows. */
 async function encode(request: APIRequestContext, aura: object): Promise<string> {
-  const res = await request.post(`/api/workspaces/${uniqueId("scratch")}/aura`, { data: { aura } });
+  const res = await request.post(`/api/workspaces/${uniqueId("scratch")}/aura?validate=false`, { data: { aura } });
   expect(res.ok()).toBe(true);
   return (await res.json()).code as string;
 }
@@ -55,6 +56,20 @@ async function openWorkspaceMenu(page: Page) {
   if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
 }
 
+/** The selected item's state code and file exports live behind the list's Export button. */
+async function openExport(page: Page) {
+  const button = page.getByRole("button", { name: "Export", exact: true });
+  if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
+}
+
+/** Saves the selected aura as a .txt file from the Export popover. */
+async function saveAuraFile(page: Page) {
+  await openExport(page);
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Save as file" }).click();
+  return download;
+}
+
 /** The workspace panel's Load button. */
 const loadButton = (page: Page) =>
   page.getByRole("region", { name: "Workspace", exact: true }).getByRole("button", { name: "Load" });
@@ -63,7 +78,40 @@ async function expectIconSize(page: Page, size: number, id?: string) {
   await expect.poll(() => iconSize(page, id), { timeout: 60_000 }).toBe(size);
 }
 
-test("paste a state code, reload, and the same aura comes back; bad codes change nothing", async ({ page, request }) => {
+/** The page's stored workspace JSON (IndexedDB), or null while nothing is stored. */
+async function stored(page: Page, workspace: string): Promise<string | null> {
+  return page.evaluate(
+    (key) =>
+      new Promise<string | null>((resolve) => {
+        // Open at the app's version so a missing database is created exactly as the app would.
+        const open = indexedDB.open("aura-simulator-workspaces", 1);
+        open.onupgradeneeded = () => open.result.createObjectStore("workspaces");
+        open.onerror = () => resolve(null);
+        open.onsuccess = () => {
+          const db = open.result;
+          const get = db.transaction("workspaces").objectStore("workspaces").get(key);
+          get.onsuccess = () => {
+            resolve(typeof get.result === "string" ? get.result : null);
+            db.close();
+          };
+          get.onerror = () => resolve(null);
+        };
+      }),
+    `aura-simulator:workspace:${workspace}`,
+  );
+}
+
+/** Asserts the address names the workspace and nothing else. */
+function expectAddress(page: Page, workspace: string) {
+  const url = new URL(page.url());
+  expect(url.pathname).toBe("/");
+  expect(url.search).toBe(`?w=${workspace}`);
+}
+
+test("paste a state code, reload, and the same aura comes back from browser storage; bad codes change nothing", async ({
+  page,
+  request,
+}) => {
   const workspace = uniqueId("paste");
   const code = await encode(request, iconAura("Pasted", 40));
 
@@ -76,8 +124,7 @@ test("paste a state code, reload, and the same aura comes back; bad codes change
   await loadButton(page).click();
   await expectIconSize(page, 40);
   await expect(page.getByLabel("State code")).toHaveValue(code);
-  await expect(page).toHaveURL(new RegExp(`\\?w=${workspace}&code=!WA:2!`));
-  expect(new URL(page.url()).searchParams.get("code")).toBe(code);
+  expectAddress(page, workspace);
 
   await openWorkspaceMenu(page);
   await page.getByLabel("Paste a code to load").fill("!WA:2!garbage");
@@ -86,19 +133,49 @@ test("paste a state code, reload, and the same aura comes back; bad codes change
   await expect(page.getByLabel("State code")).toHaveValue(code);
   await expect(page.getByLabel("Paste a code to load")).toHaveValue("!WA:2!garbage");
 
+  await expect.poll(async () => JSON.parse((await stored(page, workspace)) ?? "{}")).toMatchObject({
+    version: 2,
+    items: [{ aura: { id: "Pasted", width: 40 }, code }],
+  });
   await page.reload();
   await expectIconSize(page, 40);
   await expect(page.getByLabel("State code")).toHaveValue(code);
-
-  // Without a code in the address, the workspace comes back from browser storage.
-  const stored = await page.evaluate((w) => localStorage.getItem(`aura-simulator:workspace:${w}`), workspace);
-  expect(JSON.parse(stored!)).toMatchObject({ version: 2, items: [{ aura: { id: "Pasted", width: 40 } }] });
-  await page.goto(`/?w=${workspace}`);
-  await expectIconSize(page, 40);
-  await expect(page.getByLabel("State code")).toHaveValue(code);
+  expectAddress(page, workspace);
 });
 
-test("an agent pushes a document over HTTP and the open page shows it", async ({ page, request }) => {
+test("a workspace saved in localStorage by an older version moves to IndexedDB", async ({ page, request }) => {
+  const workspace = uniqueId("migrate");
+  const code = await encode(request, iconAura("Old", 36));
+  const key = `aura-simulator:workspace:${workspace}`;
+  const old = JSON.stringify({ format: "aura-simulator/workspace", version: 1, updatedAt: new Date().toISOString(), items: [{ code }] });
+  await page.addInitScript(([k, v]) => {
+    if (!sessionStorage.getItem("seeded")) {
+      localStorage.setItem(k, v);
+      sessionStorage.setItem("seeded", "1");
+    }
+  }, [key, old] as const);
+  await page.goto(`/?w=${workspace}`);
+  await expectIconSize(page, 36);
+  await expect.poll(() => page.evaluate((k) => localStorage.getItem(k), key)).toBeNull();
+  expect(JSON.parse((await stored(page, workspace))!)).toMatchObject({ version: 2, items: [{ aura: { id: "Old" } }] });
+});
+
+test("an old ?code= link is imported once and stripped from the address", async ({ page, request }) => {
+  const workspace = uniqueId("legacy");
+  const code = await encode(request, iconAura("Linked", 42));
+  await page.goto(`/?w=${workspace}&code=${encodeURIComponent(code)}`);
+  await expectIconSize(page, 42);
+  await expect(page.getByLabel("State code")).toHaveValue(code);
+  await expect.poll(() => new URL(page.url()).search).toBe(`?w=${workspace}`);
+
+  // Short links are gone: the page says so and carries on.
+  await page.goto(`/?w=${workspace}&s=Ab12Cd34`);
+  await expect(page.getByText("Short links are no longer supported")).toBeVisible({ timeout: 60_000 });
+  await expectIconSize(page, 42);
+  await expect.poll(() => new URL(page.url()).search).toBe(`?w=${workspace}`);
+});
+
+test("an agent pushes a document over HTTP and the open page shows it", async ({ page, request, baseURL }) => {
   const workspace = uniqueId("push");
   await page.goto(`/?w=${workspace}`);
   await expectIconSize(page, 64);
@@ -110,17 +187,14 @@ test("an agent pushes a document over HTTP and the open page shows it", async ({
   const body = await res.json();
   expect(body.workspace).toBe(workspace);
   expect(body.code).toMatch(/^!WA:2![A-Za-z0-9()]+$/);
-  expect(body.url).toContain(`?w=${workspace}&code=`);
+  expect(body.url).toBe(`${baseURL}/?w=${workspace}`);
+  expect(body.validation).toBeTruthy();
 
-  // The pushed aura joins the workspace beside the sample and is selected.
+  // The pushed aura joins the workspace beside the sample and is selected; the address stays the workspace.
   await expectIconSize(page, 52, "Pushed");
   await expectIconSize(page, 64, "Arcane Intellect");
   await expect(page.getByLabel("State code")).toHaveValue(body.code);
-  // Two top-level items: the address is a short link to the bundle of both codes.
-  await expect.poll(() => new URL(page.url()).searchParams.get("s")).toMatch(/^[A-Za-z0-9]{8}$/);
-  const link = await (await request.get(`/api/short-links/${new URL(page.url()).searchParams.get("s")}`)).json();
-  expect(link.codes).toHaveLength(2);
-  expect(link.codes[1]).toBe(body.code);
+  expectAddress(page, workspace);
   expect((await (await request.get(`/api/workspaces/${workspace}`)).json()).code).toBe(body.code);
 
   // Pushing the same id again replaces it instead of adding another.
@@ -134,32 +208,98 @@ test("an agent pushes a document over HTTP and the open page shows it", async ({
   expect((await bad.json()).error).toBeTruthy();
 });
 
-test("a code too long for the address becomes a short link that restores it exactly", async ({ page, request, browser }) => {
-  const noise = Array.from({ length: 3000 }, () => Math.random().toString(36)[2]).join("");
-  const code = await encode(request, iconAura("Long", 44, { desc: noise }));
-  expect(code.length).toBeGreaterThan(2000);
-
-  await page.goto(`/?w=${uniqueId("long")}`);
+test("export an aura as a .txt file holding exactly its code, and import it into a fresh workspace", async ({ page, browser }) => {
+  await page.goto(`/?w=${uniqueId("export")}`);
   await expectIconSize(page, 64);
-  await openWorkspaceMenu(page);
-  await page.getByLabel("Paste a code to load").fill(code);
-  await loadButton(page).click();
-  await expectIconSize(page, 44);
-  await expect.poll(() => new URL(page.url()).searchParams.get("s")).toMatch(/^[A-Za-z0-9]{8}$/);
-  const url = new URL(page.url());
-  expect(url.searchParams.has("code")).toBe(false);
-  expect(page.url().length).toBeLessThan(200);
+  const code = await page.getByLabel("State code").inputValue();
 
-  const shortId = url.searchParams.get("s")!;
-  expect((await (await request.get(`/api/short-links/${shortId}`)).json()).code).toBe(code);
+  const file = await saveAuraFile(page);
+  expect(file.suggestedFilename()).toBe("Arcane Intellect.txt");
+  const path = await file.path();
+  expect(await readFile(path, "utf8")).toBe(code);
 
-  // A fresh browser (no storage) opening the short link.
   const other = await browser.newContext();
   const fresh = await other.newPage();
-  await fresh.goto(`/?w=${uniqueId("fresh")}&s=${shortId}`);
-  await expectIconSize(fresh, 44);
+  const workspace = uniqueId("import");
+  await fresh.goto(`/?w=${workspace}`);
+  await expectIconSize(fresh, 64);
+  await openWorkspaceMenu(fresh);
+  await fresh.getByLabel("Import files").setInputFiles(path);
+  await expect(fresh.getByRole("treeitem", { name: "Arcane Intellect 2", exact: true })).toBeVisible();
+  await expect(fresh.getByRole("treeitem", { name: "Arcane Intellect 2", exact: true })).toHaveAttribute("aria-selected", "true");
+  // The same aura (only its id made unique): the file's code decodes to the sample's document.
+  await fresh.getByRole("treeitem", { name: "Arcane Intellect", exact: true }).click();
   await expect(fresh.getByLabel("State code")).toHaveValue(code);
+  expectAddress(fresh, workspace);
   await other.close();
+});
+
+test("drop text files with codes (several per file) on the window to import them", async ({ page, request }) => {
+  const workspace = uniqueId("drop");
+  const a = await encode(request, iconAura("Dropped A", 30));
+  const b = await encode(request, iconAura("Dropped B", 34, { uid: "E2eDropB" }));
+  await page.goto(`/?w=${workspace}`);
+  await expectIconSize(page, 64);
+
+  const dataTransfer = await page.evaluateHandle(
+    ([text, bad]) => {
+      const dt = new DataTransfer();
+      dt.items.add(new File([text], "two auras.txt", { type: "text/plain" }));
+      dt.items.add(new File([bad], "notes.txt", { type: "text/plain" }));
+      return dt;
+    },
+    [`${a}\n${b}\n`, "no codes here"] as const,
+  );
+  // Dropped anywhere on the window.
+  const optionsWindow = page.getByRole("region", { name: "Musca Auras options" });
+  await optionsWindow.dispatchEvent("dragenter", { dataTransfer });
+  await optionsWindow.dispatchEvent("dragover", { dataTransfer });
+  await optionsWindow.dispatchEvent("drop", { dataTransfer });
+
+  await expectIconSize(page, 30, "Dropped A");
+  await expectIconSize(page, 34, "Dropped B");
+  await expect(page.getByRole("treeitem")).toHaveCount(3);
+  await expect(page.getByText("Could not read notes.txt")).toBeVisible();
+  expectAddress(page, workspace);
+});
+
+test("a 3 MB aura round-trips through push, storage and export without touching the address", async ({ page, request }) => {
+  test.setTimeout(300_000);
+  const workspace = uniqueId("big");
+  await page.goto(`/?w=${workspace}`);
+  await expectIconSize(page, 64);
+  await expect.poll(async () => (await (await request.get(`/api/workspaces/${workspace}`)).json()).code).toMatch(/^!WA:2!/);
+
+  // Incompressible custom text, so the state code itself stays megabytes.
+  const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let desc = "";
+  for (let i = 0; i < 3_000_000; i++) desc += alphabet[Math.floor(Math.random() * alphabet.length)];
+  const res = await request.post(`/api/workspaces/${workspace}/aura`, {
+    data: { aura: iconAura("Big", 46, { uid: "E2eBig", desc }) },
+    timeout: 120_000,
+  });
+  expect(res.status()).toBe(200);
+  const { code } = (await res.json()) as { code: string };
+  expect(code.length).toBeGreaterThan(2_000_000);
+
+  await expectIconSize(page, 46, "Big");
+  await openExport(page);
+  await expect(page.getByRole("heading", { name: "State code of Big" })).toBeVisible({ timeout: 120_000 });
+  expect(await page.getByLabel("State code").inputValue()).toBe(code);
+  expectAddress(page, workspace);
+
+  // Stored in IndexedDB (well past localStorage's ~5 MB once the document is included).
+  await expect
+    .poll(async () => (await stored(page, workspace))?.includes(code) ?? false, { timeout: 60_000 })
+    .toBe(true);
+
+  expect(await readFile(await (await saveAuraFile(page)).path(), "utf8")).toBe(code);
+
+  // And it comes back after a reload, from storage.
+  await page.reload();
+  await expectIconSize(page, 46, "Big");
+  await expect.poll(() => page.getByLabel("State code").inputValue(), { timeout: 120_000 }).toBe(code);
+  expectAddress(page, workspace);
 });
 
 test("agent docs explain the document, the push API and the worked examples, as a page and as Markdown", async ({ page, request }) => {

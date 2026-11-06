@@ -449,7 +449,9 @@ curl -s -X POST ${o}/api/workspaces/${d}/aura \\
 
 Answer (200): \`{"workspace", "revision", "updatedAt", "validation": {...}}\` (and the import string, which you don't
 need). Errors: \`{"error": "..."}\` with 400 (malformed request), 413 (too large), 422 (the addon rejects the aura),
-503 (the addon couldn't be loaded; retry).
+503 (the addon couldn't be loaded; retry). Bodies may be up to 32 MB. Add \`?validate=false\` to skip validation
+(it takes seconds for very large auras); \`validation\` is then null. The answer's \`url\` is the page that follows
+this workspace (\`?w=\`): if no page is open, hand it to the player and the pushed aura is waiting there.
 
 Merge rules: the pushed item, with a group's whole subtree, **replaces the top-level item with the same \`uid\`,
 else the same \`id\`**, keeping its place, or is added at the end; it becomes selected. So keep the \`id\` while you
@@ -459,11 +461,13 @@ iterate on an aura, and use a new \`id\` for another aura. Ids are unique across
 
 ### Reading the workspace
 
-- \`GET /api/workspaces/<id>\` → \`{"id", "code", "updatedAt", "revision"}\`: the top-level item pushed or changed
-  last, as an import string (\`code\` is null until something was pushed or changed since the server started). The
-  page reports every top-level item the player changes, so read this to see their edits.
+- \`GET /api/workspaces/<id>\` → \`{"id", "code", "updatedAt", "revision", "source", "url"}\`: the top-level item
+  pushed or changed last, as an import string (\`code\` is null until something was pushed or changed since the
+  server started). The page reports every top-level item the player changes, so read this to see their edits.
+  \`?revision=<n>\` gives one of the last few revisions instead (404 once it is no longer kept).
 - \`GET /api/workspaces/<id>/events\` → Server-Sent Events: \`event: snapshot\` on connect, then \`event: state\` on
-  every change, each with that same JSON.
+  every change, each a notice \`{"id", "revision", "updatedAt", "source"}\` without the code (codes can be
+  megabytes); fetch \`GET /api/workspaces/<id>?revision=<n>\` for the code.
 
 ### The workspace file
 
