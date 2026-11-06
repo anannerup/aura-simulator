@@ -8,6 +8,7 @@ import { DEFAULT_SITUATION } from "@/render/situation";
 import { AddonVersionPicker } from "./_addon/AddonVersionPicker";
 import { useAddonCore } from "./_addon/useAddonCore";
 import { GameScreen } from "./screen/GameScreen";
+import { SituationControls } from "./SituationControls";
 import styles from "./page.module.css";
 import { useWorkspace } from "./workspace/useWorkspace";
 import { WorkspacePanel } from "./workspace/WorkspacePanel";
@@ -17,6 +18,7 @@ export function Workbench() {
   const addon = useAddonCore();
   const { core } = addon;
   const [copied, setCopied] = useState(false);
+  const [situation, setSituation] = useState(DEFAULT_SITUATION);
 
   // The sample aura is only the fallback when nothing else (address, storage, server) has an aura.
   const fallbackCode = useMemo(() => {
@@ -57,8 +59,9 @@ export function Workbench() {
     <>
       {picker}
       <section className={styles.previewArea}>
-        <GameScreen>{(ui) => <AuraPreview aura={workspace.aura!} situation={DEFAULT_SITUATION} screen={ui} />}</GameScreen>
+        <GameScreen>{(ui) => <AuraPreview aura={workspace.aura!} situation={situation} screen={ui} />}</GameScreen>
       </section>
+      <SituationControls aura={workspace.aura} situation={situation} onChange={setSituation} />
       <SpellPicker aura={workspace.aura} onAuraChange={changeAura} />
       <section className={styles.export}>
         <div className={styles.exportHeader}>

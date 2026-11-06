@@ -1,8 +1,9 @@
 import type { CSSProperties } from "react";
 import type { AuraDocument, LuaValue } from "@/core";
+import { evaluateAura } from "./conditions";
+import { IconRegion } from "./IconRegion";
 import { placeAura, strataZIndex, uiParent, type UiParent } from "./screen/geometry";
 import type { Situation } from "./situation";
-import { useAuraIconUrl } from "./textures";
 import styles from "./AuraPreview.module.css";
 
 export interface AuraPreviewProps {
@@ -18,6 +19,7 @@ const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number
 const DEFAULT_SCREEN = uiParent({ width: 1920, height: 1080, useUiScale: false, uiScale: 1 });
 
 export function AuraPreview({ aura, situation, screen = DEFAULT_SCREEN }: AuraPreviewProps) {
+  const state = evaluateAura(aura, situation);
   const { rect, frame } = placeAura(
     {
       anchorFrameType: aura.anchorFrameType,
@@ -37,6 +39,7 @@ export function AuraPreview({ aura, situation, screen = DEFAULT_SCREEN }: AuraPr
     width: rect.width,
     height: rect.height,
     zIndex: strataZIndex(aura.frameStrata),
+    opacity: num(state.properties.alpha, 1),
   };
   const name = typeof aura.id === "string" ? aura.id : "aura";
 
@@ -51,32 +54,25 @@ export function AuraPreview({ aura, situation, screen = DEFAULT_SCREEN }: AuraPr
           <span className={styles.standInLabel}>{frame.label} (stand-in)</span>
         </div>
       )}
-      {situation.active && (
-        <div className={styles.region} style={regionStyle} data-region-type={String(aura.regionType)}>
+      {state.shown && (
+        <div
+          className={styles.region}
+          style={regionStyle}
+          data-region-type={String(aura.regionType)}
+          data-frozen={state.frozenMarker ? "true" : "false"}
+        >
           {aura.regionType === "icon" ? (
-            <IconRegion aura={aura} name={name} />
+            <IconRegion aura={aura} state={state} name={name} width={rect.width} height={rect.height} />
           ) : (
             <div className={styles.unsupported}>{String(aura.regionType)}</div>
           )}
         </div>
       )}
+      {state.problem && (
+        <p className={styles.problem} data-testid="condition-problem">
+          Condition {state.problem.condition}: {state.problem.message}
+        </p>
+      )}
     </div>
-  );
-}
-
-function IconRegion({ aura, name }: { aura: AuraDocument; name: string }) {
-  const desaturate = aura.desaturate === true;
-  const src = useAuraIconUrl(aura);
-  if (!src) return <span className={styles.icon} data-icon-loading />;
-  return (
-    // Blizzard art comes from Wowhead's image server at runtime; next/image would proxy it.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      className={styles.icon}
-      src={src}
-      alt={name}
-      style={desaturate ? { filter: "grayscale(1)" } : undefined}
-      draggable={false}
-    />
   );
 }
