@@ -1,0 +1,89 @@
+.page {
+  min-height: 100vh;
+  padding: 24px;
+  background: #15171c;
+  color: #e6e6e6;
+  font-family: var(--font-geist-sans), sans-serif;
+}
+
+.page h1 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+.note {
+  margin: 0 0 16px;
+  color: #a0a4ad;
+  font-size: 14px;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px 20px;
+  margin-bottom: 24px;
+  font-size: 13px;
+}
+
+.controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.controls input[type="range"] {
+  flex: 1;
+}
+
+.controls output {
+  min-width: 3ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 24px;
+}
+
+.cell {
+  min-width: 0;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid #2a2e37;
+  border-radius: 6px;
+  background: #0d0e11;
+}
+
+.cell h2 {
+  margin: 0 0 40px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 72px;
+  padding: 24px 40px 48px;
+}
+
+.target {
+  position: relative;
+  flex: none;
+}
+
+.icon,
+.bar {
+  position: absolute;
+  inset: 0;
+}
+
+.icon {
+  background-size: 100% 100%;
+}
+
+.bar {
+  background: linear-gradient(#3c8d3c, #1f5f1f);
+}
