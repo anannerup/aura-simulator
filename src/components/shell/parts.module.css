@@ -109,6 +109,13 @@
   padding: var(--space-3) var(--space-4) 0;
 }
 
+.banner {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-3) var(--space-5) 0;
+}
+
 .canvas {
   flex: 1;
   min-height: 0;

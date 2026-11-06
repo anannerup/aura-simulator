@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { DEFAULT_ADDON_REF, loadAddon, sampleIconAura, type AuraCore } from "@/core";
 import { createShortLinkStore, createWorkspaceHub, parsePushBody, PushError, toStateCode } from "@/server/workspaces";
+import { nodeFromState } from "@/workspace";
 import { cachedAddonFetcher } from "../support/addon-source";
 
 describe("short links", () => {
@@ -53,6 +54,17 @@ describe("push", () => {
     const code = toStateCode(core, { aura, children: [] });
     expect(code).toMatch(/^!WA:2!/);
     expect(core.decode(code).aura).toEqual(aura);
+    expect(toStateCode(core, { code })).toBe(code);
+  });
+
+  it("encodes a pushed group (document plus flattened children) to a code that rebuilds the same subtree", () => {
+    const icon = (id: string) => ({ ...sampleIconAura(core.internalVersion), id, uid: `u${id}` });
+    // Pushed loosely: no controlledChildren/parent, as an agent may send it; the addon's import nests every child.
+    const group = { id: "Buffs", uid: "uBuffs", regionType: "group", internalVersion: core.internalVersion };
+    const code = toStateCode(core, parsePushBody(JSON.stringify({ aura: group, children: [icon("A"), icon("B")] }), "application/json"));
+    const node = nodeFromState(core.decode(code));
+    expect(node.aura.controlledChildren).toEqual(["A", "B"]);
+    expect(node.items!.map((n) => n.aura.parent)).toEqual(["Buffs", "Buffs"]);
     expect(toStateCode(core, { code })).toBe(code);
   });
 

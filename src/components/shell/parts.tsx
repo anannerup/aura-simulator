@@ -68,10 +68,22 @@ export function EmptyNote({ children }: { children: ReactNode }) {
  * The centre stage: a dark surround with the game screen letterboxed in it, and a floating toolbar above it.
  * `children` must size itself to the canvas (the mock screen does with `fill`).
  */
-export function Stage({ toolbar, children, overlay }: { toolbar?: ReactNode; children: ReactNode; overlay?: ReactNode }) {
+export function Stage({
+  toolbar,
+  banner,
+  children,
+  overlay,
+}: {
+  toolbar?: ReactNode;
+  /** A message between the toolbar and the canvas (notices). */
+  banner?: ReactNode;
+  children: ReactNode;
+  overlay?: ReactNode;
+}) {
   return (
     <div className={styles.stage}>
       {toolbar && <div className={styles.toolbarDock}>{toolbar}</div>}
+      {banner && <div className={styles.banner}>{banner}</div>}
       <div className={styles.canvas}>{children}</div>
       {overlay}
     </div>

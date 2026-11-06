@@ -6,9 +6,9 @@ import {
   needsShortLink,
   newerWorkspace,
   parseAddress,
+  encodeBundle,
+  parseBundle,
   parseWorkspace,
-  serializeWorkspace,
-  workspaceWithCode,
 } from "@/workspace";
 
 const CODE = "!WA:2!Tr1ox(TnqKa)pL9";
@@ -42,6 +42,14 @@ describe("address", () => {
     expect(needsShortLink(`!WA:2!${"a".repeat(MAX_ADDRESS_CODE_LENGTH)}`)).toBe(true);
   });
 
+  it("bundles several codes one per line, and reads a lone code as a one-item bundle", () => {
+    const other = "!WA:2!abc";
+    expect(parseBundle(encodeBundle([CODE, other]))).toEqual([CODE, other]);
+    expect(parseBundle(CODE)).toEqual([CODE]);
+    expect(parseBundle(`${CODE}\nnope`)).toBeNull();
+    expect(parseBundle("")).toBeNull();
+  });
+
   it("builds absolute page URLs", () => {
     expect(buildPageUrl("http://localhost:3000/", { workspaceId: "default" })).toBe("http://localhost:3000/");
     expect(buildPageUrl("http://x", { workspaceId: "w1", shortId: "Ab12Cd34" })).toBe("http://x/?w=w1&s=Ab12Cd34");
@@ -49,23 +57,22 @@ describe("address", () => {
 });
 
 describe("stored workspace", () => {
-  it("round-trips", () => {
-    const ws = workspaceWithCode(CODE, "2026-11-06T10:00:00.000Z");
-    expect(parseWorkspace(serializeWorkspace(ws))).toEqual(ws);
-  });
-
   it("ignores junk, other formats and non-codes", () => {
+    const decode = () => {
+      throw new Error("not reached");
+    };
     expect(parseWorkspace(null)).toBeNull();
     expect(parseWorkspace("{not json")).toBeNull();
     expect(parseWorkspace(JSON.stringify({ format: "other", version: 1, items: [{ code: CODE }] }))).toBeNull();
     expect(
-      parseWorkspace(JSON.stringify({ format: "aura-simulator/workspace", version: 1, items: [{ code: "hello" }] })),
+      parseWorkspace(JSON.stringify({ format: "aura-simulator/workspace", version: 1, items: [{ code: "hello" }] }), decode),
     ).toBeNull();
+    expect(parseWorkspace(JSON.stringify({ format: "aura-simulator/workspace", version: 3, items: [] }))).toBeNull();
   });
 
   it("picks the newer of two", () => {
-    const a = workspaceWithCode("!WA:2!a", "2026-01-01T00:00:00Z");
-    const b = workspaceWithCode("!WA:2!b", "2026-01-02T00:00:00Z");
+    const a = { items: [], updatedAt: "2026-01-01T00:00:00Z" };
+    const b = { items: [], updatedAt: "2026-01-02T00:00:00Z" };
     expect(newerWorkspace(a, b)).toBe(b);
     expect(newerWorkspace(b, a)).toBe(b);
     expect(newerWorkspace(null, a)).toBe(a);

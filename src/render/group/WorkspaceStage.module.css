@@ -1,0 +1,14 @@
+.border {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* The selected item: outlined so it stands out among the other auras on the screen. */
+.selection {
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+  outline: calc(2px / var(--css-per-unit, 1)) solid rgb(255 209 0 / 0.9);
+  outline-offset: calc(2px / var(--css-per-unit, 1));
+}

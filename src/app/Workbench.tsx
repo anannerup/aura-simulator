@@ -15,22 +15,12 @@ import {
   TopBarSpacer,
 } from "@/components/shell";
 import { SpellPicker } from "@/components/spell-picker/SpellPicker";
-import {
-  Button,
-  CopyIcon,
-  IconButton,
-  LayersIcon,
-  RedoIcon,
-  ShieldIcon,
-  SparkIcon,
-  ToastProvider,
-  UndoIcon,
-} from "@/components/ui";
-import { AuraPreview } from "@/render/AuraPreview";
+import { WorkspaceTree } from "@/components/workspace-tree/WorkspaceTree";
+import { Button, CopyIcon, IconButton, LayersIcon, RedoIcon, ShieldIcon, SparkIcon, ToastProvider, UndoIcon } from "@/components/ui";
+import { WorkspaceStage } from "@/render/group/WorkspaceStage";
 import { DEFAULT_SITUATION } from "@/render/situation";
 import { AddonVersionMenu } from "./_addon/AddonVersionPicker";
 import { useAddonCore } from "./_addon/useAddonCore";
-import { AuraList } from "./AuraList";
 import { GameScreenStage, useGameScreen } from "./screen/GameScreen";
 import { SituationControls } from "./SituationControls";
 import { CopyCodeButton, STATE_CODE_TAB, StateCodeDrawer, StateCodePill } from "./StateCode";
@@ -38,7 +28,8 @@ import { ValidationPanel } from "./validation/ValidationPanel";
 import type { LoadResult } from "./workspace/session";
 import { useUndo } from "./workspace/useUndo";
 import { useWorkspace } from "./workspace/useWorkspace";
-import { WorkspaceBadge, WorkspacePanel } from "./workspace/WorkspacePanel";
+import { WorkspaceBadge, WorkspaceMenu, WorkspaceNotice } from "./workspace/WorkspacePanel";
+import styles from "./Workbench.module.css";
 
 /**
  * The composition root: loads the chosen addon version, follows the workspace, and wires each feature's panel into
@@ -58,24 +49,34 @@ export function Workbench() {
   }, [core]);
   const workspace = useWorkspace(core, fallbackCode);
 
-  // Edits (e.g. picking a spell, the raw table) go through the workspace, so the address, storage,
-  // server and undo history follow.
-  const { load, children } = workspace;
-  const changeAura = useCallback(
-    (aura: AuraDocument): LoadResult => {
-      if (!core) return { ok: false, error: "The addon is still loading" };
-      try {
-        return load(core.encode({ aura, children }));
-      } catch (e) {
-        return { ok: false, error: e instanceof Error ? e.message : String(e) };
-      }
+  // Edits (spell picker, raw table) replace the selected item's document; address, storage and server follow.
+  const updateSelected = workspace.updateSelected;
+  const changeAura = useCallback((aura: AuraDocument): LoadResult => updateSelected(aura), [updateSelected]);
+  // Undo/redo over whole-workspace snapshots (tree + selection), whatever made the change: editors, tree, paste, push.
+  const { items, selectedId, setItems } = workspace;
+  const snapshot = useMemo(() => (items.length ? JSON.stringify({ items, selectedId }) : null), [items, selectedId]);
+  const restore = useCallback(
+    (text: string): LoadResult => {
+      const s = JSON.parse(text) as { items: typeof items; selectedId: string | null };
+      return setItems(s.items, s.selectedId);
     },
-    [core, load, children],
+    [setItems],
   );
-  const history = useUndo(workspace.code, load);
+  const history = useUndo(snapshot, restore);
+  // Auras hidden in the preview only (as if their trigger were inactive), e.g. to see a dynamic group close up.
+  const [hiddenIds, setHiddenIds] = useState<ReadonlySet<string>>(new Set());
+  const toggleHidden = useCallback((id: string) => {
+    setHiddenIds((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  }, []);
 
-  const aura = core ? workspace.aura : null;
-  const code = core ? workspace.code : null;
+  const ready = !!core && workspace.ready;
+  const aura = ready ? workspace.aura : null;
+  const code = ready ? workspace.code : null;
+  const selectedIsGroup = aura?.regionType === "group" || aura?.regionType === "dynamicgroup";
 
   return (
     <ToastProvider>
@@ -99,6 +100,7 @@ export function Workbench() {
                 disabled={!history.canRedo}
               />
               <TopBarDivider />
+              <WorkspaceMenu workspace={workspace} />
               {code ? (
                 <>
                   <StateCodePill code={code} />
@@ -109,30 +111,46 @@ export function Workbench() {
                   Copy
                 </Button>
               )}
-              {/* Slot: an Export/Import menu (workspace file, ticket 12) goes here, after Copy. */}
             </TopBarGroup>
           </>
         }
         left={
           <>
-            <InspectorSection title="Auras" icon={<LayersIcon size={14} />}>
-              {/* Slot: the workspace tree (groups, ticket 12) replaces this list. */}
-              {aura ? <AuraList auras={[aura]} /> : <EmptyNote>Loading…</EmptyNote>}
+            <InspectorSection title="Workspace" icon={<LayersIcon size={14} />}>
+              {ready && core ? (
+                <WorkspaceTree
+                  items={workspace.items}
+                  selectedId={workspace.selectedId}
+                  onSelect={workspace.select}
+                  onChange={workspace.setItems}
+                  internalVersion={core.internalVersion}
+                  hiddenIds={hiddenIds}
+                  onToggleHidden={toggleHidden}
+                />
+              ) : (
+                <EmptyNote>Loading…</EmptyNote>
+              )}
             </InspectorSection>
-            {aura && (
+            {aura && !selectedIsGroup && (
               <InspectorSection title="Trigger spell">
                 <SpellPicker aura={aura} onAuraChange={changeAura} />
               </InspectorSection>
             )}
-            <InspectorSection title="Paste a code">
-              <WorkspacePanel workspace={workspace} />
-            </InspectorSection>
           </>
         }
         stage={
-          aura && code ? (
-            <GameScreenStage screen={screen}>
-              {(ui) => <AuraPreview aura={aura} situation={situation} screen={ui} />}
+          ready ? (
+            <GameScreenStage screen={screen} notice={<WorkspaceNotice workspace={workspace} />}>
+              {(ui) => (
+                <WorkspaceStage
+                  items={workspace.items}
+                  situation={situation}
+                  screen={ui}
+                  selectedId={workspace.selectedId}
+                  hiddenIds={hiddenIds}
+                  onSelect={workspace.select}
+                />
+              )}
             </GameScreenStage>
           ) : (
             <Stage>
@@ -164,17 +182,26 @@ export function Workbench() {
             {/* The game screen's settings are in the stage toolbar's popover (set once, then left alone). */}
           </>
         }
-        drawerMeta={core && <span>Musca Auras {core.ref} · WeakAuras {core.addonVersion}</span>}
+        drawerMeta={
+          core && (
+            <>
+              <h2 className={styles.codeHeading}>State code{workspace.selectedId ? ` of ${workspace.selectedId}` : ""}</h2>
+              <span className={styles.version}>
+                Musca Auras {core.ref} · WeakAuras {core.addonVersion}
+              </span>
+            </>
+          )
+        }
         drawerTabs={[
           {
             id: STATE_CODE_TAB,
-            label: "State code",
-            content: code ? <StateCodeDrawer code={code} /> : <EmptyNote>Loading…</EmptyNote>,
+            label: "Full code",
+            content: <StateCodeDrawer code={code ?? ""} />,
           },
           {
             id: "raw",
             label: "Raw table",
-            content: aura ? <RawEditor value={aura} onChange={changeAura} /> : <EmptyNote>Loading…</EmptyNote>,
+            content: aura ? <RawEditor value={aura} onChange={changeAura} /> : <EmptyNote>No aura selected.</EmptyNote>,
           },
         ]}
       />

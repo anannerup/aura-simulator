@@ -39,22 +39,28 @@ async function encode(request: APIRequestContext, aura: object): Promise<string>
   return (await res.json()).code as string;
 }
 
-/** The previewed icon's width in UI units: the mock screen scales UIParent to the browser (as in smoke.spec.ts). */
-async function iconSize(page: Page): Promise<number> {
-  const preview = page.getByTestId("aura-preview");
-  const icon = preview.locator('[data-region-type="icon"] img');
+async function iconSize(page: Page, id?: string): Promise<number> {
+  const which = id ? `[data-aura-id="${id}"]` : "";
+  const icon = page.getByTestId("aura-preview").locator(`[data-region-type="icon"]${which} img`);
   await expect(icon).toBeVisible({ timeout: 60_000 });
-  const screenBox = (await preview.boundingBox())!;
-  const iconBox = (await icon.boundingBox())!;
+  // In UI units: the mock screen scales UI units to the browser.
+  const screen = (await page.getByTestId("aura-preview").boundingBox())!;
   const uiHeight = Number(await page.getByTestId("mock-screen").getAttribute("data-ui-height"));
-  return Math.round((iconBox.width * uiHeight) / screenBox.height);
+  return Math.round(((await icon.boundingBox())!.width * uiHeight) / screen.height);
 }
 
-/** The workspace panel's Load button (the addon version picker has one too). */
-const loadCode = (page: Page) => page.getByRole("region", { name: "Workspace" }).getByRole("button", { name: "Load" });
+/** Paste, Load/Add and the workspace file live in the top bar's Import / Export menu. */
+async function openWorkspaceMenu(page: Page) {
+  const button = page.getByRole("button", { name: "Import / Export" });
+  if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
+}
 
-async function expectIconSize(page: Page, size: number) {
-  await expect.poll(() => iconSize(page), { timeout: 60_000 }).toBe(size);
+/** The workspace panel's Load button. */
+const loadButton = (page: Page) =>
+  page.getByRole("region", { name: "Workspace", exact: true }).getByRole("button", { name: "Load" });
+
+async function expectIconSize(page: Page, size: number, id?: string) {
+  await expect.poll(() => iconSize(page, id), { timeout: 60_000 }).toBe(size);
 }
 
 test("paste a state code, reload, and the same aura comes back; bad codes change nothing", async ({ page, request }) => {
@@ -65,15 +71,17 @@ test("paste a state code, reload, and the same aura comes back; bad codes change
   await expectIconSize(page, 64); // the sample
   await expect(page.getByTestId("workspace-id")).toHaveText(workspace);
 
+  await openWorkspaceMenu(page);
   await page.getByLabel("Paste a code to load").fill(code);
-  await loadCode(page).click();
+  await loadButton(page).click();
   await expectIconSize(page, 40);
   await expect(page.getByLabel("State code")).toHaveValue(code);
   await expect(page).toHaveURL(new RegExp(`\\?w=${workspace}&code=!WA:2!`));
   expect(new URL(page.url()).searchParams.get("code")).toBe(code);
 
+  await openWorkspaceMenu(page);
   await page.getByLabel("Paste a code to load").fill("!WA:2!garbage");
-  await loadCode(page).click();
+  await loadButton(page).click();
   await expect(page.getByText("Could not load that state code")).toBeVisible();
   await expect(page.getByLabel("State code")).toHaveValue(code);
   await expect(page.getByLabel("Paste a code to load")).toHaveValue("!WA:2!garbage");
@@ -84,7 +92,7 @@ test("paste a state code, reload, and the same aura comes back; bad codes change
 
   // Without a code in the address, the workspace comes back from browser storage.
   const stored = await page.evaluate((w) => localStorage.getItem(`aura-simulator:workspace:${w}`), workspace);
-  expect(JSON.parse(stored!).items[0].code).toBe(code);
+  expect(JSON.parse(stored!)).toMatchObject({ version: 2, items: [{ aura: { id: "Pasted", width: 40 } }] });
   await page.goto(`/?w=${workspace}`);
   await expectIconSize(page, 40);
   await expect(page.getByLabel("State code")).toHaveValue(code);
@@ -104,10 +112,22 @@ test("an agent pushes a document over HTTP and the open page shows it", async ({
   expect(body.code).toMatch(/^!WA:2![A-Za-z0-9()]+$/);
   expect(body.url).toContain(`?w=${workspace}&code=`);
 
-  await expectIconSize(page, 52);
+  // The pushed aura joins the workspace beside the sample and is selected.
+  await expectIconSize(page, 52, "Pushed");
+  await expectIconSize(page, 64, "Arcane Intellect");
   await expect(page.getByLabel("State code")).toHaveValue(body.code);
-  expect(new URL(page.url()).searchParams.get("code")).toBe(body.code);
+  // Two top-level items: the address is a short link to the bundle of both codes.
+  await expect.poll(() => new URL(page.url()).searchParams.get("s")).toMatch(/^[A-Za-z0-9]{8}$/);
+  const link = await (await request.get(`/api/short-links/${new URL(page.url()).searchParams.get("s")}`)).json();
+  expect(link.codes).toHaveLength(2);
+  expect(link.codes[1]).toBe(body.code);
   expect((await (await request.get(`/api/workspaces/${workspace}`)).json()).code).toBe(body.code);
+
+  // Pushing the same id again replaces it instead of adding another.
+  const again = await request.post(`/api/workspaces/${workspace}/aura`, { data: { aura: iconAura("Pushed", 30) } });
+  expect(again.status()).toBe(200);
+  await expectIconSize(page, 30, "Pushed");
+  await expect(page.getByRole("treeitem")).toHaveCount(2);
 
   const bad = await request.post(`/api/workspaces/${workspace}/aura`, { data: { code: "!WA:2!nope" } });
   expect(bad.status()).toBe(422);
@@ -121,8 +141,9 @@ test("a code too long for the address becomes a short link that restores it exac
 
   await page.goto(`/?w=${uniqueId("long")}`);
   await expectIconSize(page, 64);
+  await openWorkspaceMenu(page);
   await page.getByLabel("Paste a code to load").fill(code);
-  await loadCode(page).click();
+  await loadButton(page).click();
   await expectIconSize(page, 44);
   await expect.poll(() => new URL(page.url()).searchParams.get("s")).toMatch(/^[A-Za-z0-9]{8}$/);
   const url = new URL(page.url());

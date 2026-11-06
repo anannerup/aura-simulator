@@ -25,12 +25,22 @@ export type GameScreenState = ReturnType<typeof useGameScreen>;
  * resolution, and a settings popover; screen settings are set once and then left alone, so they stay out of the way).
  * Draws `children` inside UIParent at the configured resolution and scale.
  */
-export function GameScreenStage({ screen, children }: { screen: GameScreenState; children: (ui: UiParent) => ReactNode }) {
+export function GameScreenStage({
+  screen,
+  notice,
+  children,
+}: {
+  screen: GameScreenState;
+  /** A message shown above the screen (e.g. a broken link). */
+  notice?: ReactNode;
+  children: (ui: UiParent) => ReactNode;
+}) {
   const { settings, update, screenshot } = screen;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const backgroundOn = settings.showBackground && !!screenshot;
   return (
     <Stage
+      banner={notice}
       toolbar={
         <StageToolbar label="Game screen">
           <IconButton

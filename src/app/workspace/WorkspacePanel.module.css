@@ -1,21 +1,47 @@
 .panel {
   display: flex;
   flex-direction: column;
+  gap: var(--space-4);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-2);
 }
 
-.actions {
+.group + .group {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.heading {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-1);
+}
+
+.buttons {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: var(--text-md);
 }
 
 .meta {
   color: var(--text-3);
-  font-size: var(--text-xs);
-  line-height: 1.4;
-  min-width: 0;
+  font-size: var(--text-sm);
+  line-height: 1.45;
   overflow-wrap: anywhere;
 }
 
@@ -28,4 +54,23 @@
   color: var(--cool);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.menuButton {
+  gap: 6px;
+}
+
+/* Phones: icon and chevron only; the label is still read out. */
+@media (max-width: 767px) {
+  .menuButton {
+    padding: 0 var(--space-2);
+  }
+  .menuLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }

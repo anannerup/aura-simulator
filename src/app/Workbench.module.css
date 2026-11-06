@@ -1,0 +1,22 @@
+/* The drawer bar: which item's code this is, then the addon version. */
+.codeHeading {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+
+.version {
+  white-space: nowrap;
+}
+
+@media (max-width: 1099px) {
+  .version {
+    display: none;
+  }
+}
