@@ -7,14 +7,17 @@ import { AuraPreview } from "@/render/AuraPreview";
 import { DEFAULT_SITUATION } from "@/render/situation";
 import { GameScreen } from "./screen/GameScreen";
 import styles from "./page.module.css";
+import { useWorkspace } from "./workspace/useWorkspace";
+import { WorkspacePanel } from "./workspace/WorkspacePanel";
 
 type Loaded = { core: AuraCore; aura: AuraDocument; code: string };
 
-/** The app shell: loads the aura core in the browser, previews the sample aura, offers its state code. */
+/** The app shell: loads the aura core in the browser, previews the workspace's aura, offers its state code. */
 export function Workbench() {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const workspace = useWorkspace(loaded?.core ?? null, loaded?.code ?? null);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,25 +36,31 @@ export function Workbench() {
   }, []);
 
   async function copy() {
-    if (!loaded) return;
-    await navigator.clipboard.writeText(loaded.code);
+    if (!workspace.code) return;
+    await navigator.clipboard.writeText(workspace.code);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
 
-  const changeAura = useCallback((aura: AuraDocument) => {
-    setLoaded((l) => l && { ...l, aura, code: l.core.encode({ aura, children: [] }) });
-  }, []);
+  // Edits (e.g. picking a spell) go through the workspace, so the address, storage and server follow.
+  const load = workspace.load;
+  const core = loaded?.core;
+  const changeAura = useCallback(
+    (aura: AuraDocument) => {
+      if (core) load(core.encode({ aura, children: [] }));
+    },
+    [core, load],
+  );
 
   if (error) return <p className={styles.error}>Could not load Musca Auras: {error}</p>;
-  if (!loaded) return <p className={styles.status}>Loading Musca Auras…</p>;
+  if (!loaded || !workspace.aura || !workspace.code) return <p className={styles.status}>Loading Musca Auras…</p>;
 
   return (
     <>
       <section className={styles.previewArea}>
-        <GameScreen>{(ui) => <AuraPreview aura={loaded.aura} situation={DEFAULT_SITUATION} screen={ui} />}</GameScreen>
+        <GameScreen>{(ui) => <AuraPreview aura={workspace.aura!} situation={DEFAULT_SITUATION} screen={ui} />}</GameScreen>
       </section>
-      <SpellPicker aura={loaded.aura} onAuraChange={changeAura} />
+      <SpellPicker aura={workspace.aura} onAuraChange={changeAura} />
       <section className={styles.export}>
         <div className={styles.exportHeader}>
           <h2>State code</h2>
@@ -62,8 +71,9 @@ export function Workbench() {
             {copied ? "Copied" : "Copy"}
           </button>
         </div>
-        <textarea className={styles.code} readOnly value={loaded.code} aria-label="State code" rows={4} />
+        <textarea className={styles.code} readOnly value={workspace.code} aria-label="State code" rows={4} />
       </section>
+      <WorkspacePanel workspace={workspace} />
     </>
   );
 }

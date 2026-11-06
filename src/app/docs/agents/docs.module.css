@@ -1,0 +1,52 @@
+.docs {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family: var(--font-geist-sans);
+  line-height: 1.55;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.docs h1 {
+  font-size: 26px;
+}
+
+.docs h2 {
+  font-size: 20px;
+  margin-top: 16px;
+}
+
+.docs h3 {
+  font-size: 16px;
+  margin-top: 8px;
+}
+
+.docs ul {
+  padding-left: 20px;
+}
+
+.docs code {
+  font-family: var(--font-geist-mono);
+  font-size: 0.9em;
+}
+
+.docs pre {
+  padding: 12px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.alt {
+  color: #888;
+  font-size: 13px;
+}
+
+.alt a {
+  text-decoration: underline;
+}
