@@ -162,11 +162,11 @@ test("a code too long for the address becomes a short link that restores it exac
   await other.close();
 });
 
-test("agent docs explain the document, state codes and the push API, as a page and as Markdown", async ({ page, request }) => {
+test("agent docs explain the document, the push API and the worked examples, as a page and as Markdown", async ({ page, request }) => {
   const md = await (await request.get("/llms.txt")).text();
   expect(md).toContain("POST /api/workspaces/<id>/aura");
   expect(md).toContain("curl -s -X POST");
-  expect(md).toMatch(/!WA:2![A-Za-z0-9()]+/); // the sample, encoded by the addon
+  expect(md).toContain("## Worked examples");
   expect(await (await request.get("/docs/agents.md")).text()).toBe(md);
 
   await page.goto("/docs/agents");

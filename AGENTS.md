@@ -44,7 +44,9 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   Pure, shared by page and server. The page's restore/sync logic is in `src/app/workspace/`; push API, SSE hub,
   short links (SQLite) and the server-side aura core are in `src/server/workspaces/`.
 - `src/docs/`: the agent docs (one Markdown source, served at `/docs/agents`, `/llms.txt`, `/docs/agents.md`).
-  Update it when an API or format changes.
+  Update it when an API or format changes. Lists of types, triggers, condition variables and defaults are generated
+  from the addon version (`addon-facts.ts`); the worked examples (`worked-examples.ts`) are the documents in
+  `src/render/examples.ts` (also shown on `/lab`) and tests push every example block of the served docs.
 - `src/app/`: Next.js routes and pages. Thin; delegates to the modules above.
 - Tests: unit/seam A with Vitest (`npm test`), browser/HTTP seam B with Playwright (`npm run test:e2e`,
   `E2E_PORT` picks the port so parallel worktrees don't clash). Network-dependent tests use recorded

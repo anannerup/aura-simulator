@@ -1,8 +1,10 @@
 /**
- * Example auras for the situation lab page (`/lab`) and the renderer tests: one per trigger kind and
- * combat behaviour. Plain aura documents, as the addon stores them.
+ * Example auras for the situation lab page (`/lab`), the renderer tests and the agent docs' worked examples
+ * (`src/docs/worked-examples.ts`): one per trigger kind and combat behaviour, including the four v1 acceptance
+ * auras. Plain aura documents, as the addon stores them. The docs push these exact documents in their tests,
+ * so what the lab shows, what the docs teach and what is tested can't drift apart.
  */
-import type { AuraDocument, LuaObject } from "@/core";
+import type { AuraDocument, AuraState, LuaObject } from "@/core";
 
 const ICON_BASE = {
   regionType: "icon",
@@ -286,6 +288,29 @@ export const cooldownText: AuraDocument = {
   },
   conditions: [{ check: { trigger: 1, variable: "onCooldown", value: 1 }, changes: [{ property: "color", value: [0.6, 0.6, 0.6, 1] }] }],
 };
+
+/**
+ * v1 acceptance aura 4: a group holding the other three (four auras). The two buff auras share a spot (one shows
+ * while the buff is up, the other while it is missing), the cooldown sits to the right and the bar below.
+ */
+export const v1Group: AuraState = (() => {
+  const place = (aura: AuraDocument, xOffset: number, yOffset: number): AuraDocument => ({ ...aura, parent: "v1 auras", xOffset, yOffset });
+  const children = [place(buffRunningLow, 0, 0), place(buffMissing, 0, 0), place(cooldownIcon, 72, 0), place(targetDebuffBar, 36, -56)];
+  return {
+    aura: {
+      id: "v1 auras",
+      regionType: "group",
+      anchorPoint: "CENTER",
+      selfPoint: "CENTER",
+      xOffset: 0,
+      yOffset: -200,
+      controlledChildren: children.map((c) => c.id as string),
+      load: {},
+      actions: { start: {}, finish: {}, init: {} },
+    },
+    children,
+  };
+})();
 
 export const EXAMPLES: Record<string, AuraDocument> = {
   "buff-running-low": buffRunningLow,
