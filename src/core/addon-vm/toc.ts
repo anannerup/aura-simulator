@@ -1,5 +1,8 @@
 import type { AddonSourceFetcher } from "../addon-source";
 
+/** The addons the full VM loads, in load order. */
+export const FULL_VM_ADDONS = ["WeakAuras", "WeakAurasOptions"] as const;
+
 export interface Toc {
   /** `## Key: Value` lines. */
   meta: Record<string, string>;
