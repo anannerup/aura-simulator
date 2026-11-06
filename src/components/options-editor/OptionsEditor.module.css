@@ -39,7 +39,7 @@
 }
 
 /* A narrow window: tighter tabs, so "Conditions" and "Animations" still fit. */
-@container options (max-width: 560px) {
+@container options (max-width: 480px) {
   .tabs {
     column-gap: 3px;
     padding-left: 0;
