@@ -1,4 +1,4 @@
-import { DEFAULT_WORKSPACE_ID, MAX_ADDRESS_CODE_LENGTH } from "@/workspace";
+import { DEFAULT_WORKSPACE_ID } from "@/workspace";
 
 /** Facts the docs take from the running code, so examples stay true. */
 export interface AgentDocsFacts {
@@ -78,16 +78,15 @@ set them (the state code is then transmission version 2000).
 
 A **state code** is the addon's own import string (\`!WA:2!...\`, plain, not encrypted): the whole aura
 encoded, the way a chess FEN is a whole position. The player pastes it into Musca Auras' import dialog.
-A group's state code holds the whole group with everything in it. The page address always holds the
-workspace, so a link is a saved workspace:
+A group's state code holds the whole group with everything in it. Codes can be megabytes, so they never go
+in the page address: the address only names the workspace (\`${o}/?w=<workspace id>\`; plain \`${o}/\`
+follows \`${d}\`). Auras move as **files**, over the push API, or by copy and paste:
 
-- \`${o}/?code=<state code>\` when the workspace holds one top-level item (an aura or a group) and the code
-  fits (encoded value up to ${MAX_ADDRESS_CODE_LENGTH} characters); percent-encode it (\`(\` → \`%28\`, \`)\` → \`%29\`).
-  Opening it makes that item the whole workspace.
-- \`${o}/?s=<short id>\` otherwise: the server stores the code, or for several top-level items a **bundle**
-  (their codes, one per line), under a short ID.
-- \`w=<workspace id>\` (optional, e.g. \`?w=abc&code=...\`) picks the workspace the page follows; without it
-  the page follows \`${d}\`.
+- An **aura file** is a \`.txt\` file holding exactly one state code (UTF-8, nothing else), named after the
+  aura. The player opens it and pastes the code into the game, or drops the file on the page to import it.
+  To hand the player an aura without a running app connection, write its state code to such a file.
+- The page imports any text file holding \`!WA:\` strings (several, e.g. one per line, are each added) and
+  workspace files (\`.json\`, below), picked or dropped on the page.
 ${f.sampleCode ? `\nThe sample above as a state code:\n\n\`\`\`text\n${f.sampleCode}\n\`\`\`\n` : ""}
 ## Pushing to the open page
 
@@ -116,30 +115,31 @@ curl -s -X POST ${o}/api/workspaces/${d}/aura --data-binary @aura.txt   # a stat
 Answer (200):
 
 \`\`\`json
-{"workspace": "${d}", "code": "!WA:2!...", "url": "${o}/?code=...", "updatedAt": "...", "revision": 3}
+{"workspace": "${d}", "code": "!WA:2!...", "url": "${o}/", "updatedAt": "...", "revision": 3,
+ "validation": {...}}
 \`\`\`
 
-\`url\` opens exactly this aura (a short link when the code is long): hand it to the player if no page is
-open. Errors answer \`{"error": "..."}\`: 400 malformed request, 413 too large, 422 the addon rejects
-it, 503 the addon couldn't be loaded.
+\`url\` is the page that follows this workspace (\`?w=\`): if no page is open, hand it to the player, and the
+pushed aura is waiting there. Bodies may be up to 32 MB. Errors answer \`{"error": "..."}\`: 400 malformed
+request, 413 too large, 422 the addon rejects it, 503 the addon couldn't be loaded. Add \`?validate=false\`
+to skip validation (it takes seconds for very large auras); \`validation\` is then null.
 
 ### Other workspace endpoints
 
-- \`GET /api/workspaces/<id>\` → \`{"id", "code", "updatedAt", "revision", "url"}\`: the top-level item
-  pushed or changed last (\`code\` is null until a page or agent has set it since the server started; the
-  page sends every top-level item the player changes). Read this to see the player's changes.
-- \`GET /api/workspaces/<id>/events\` → Server-Sent Events: \`event: snapshot\` with that snapshot on
-  connect, then \`event: state\` with it on every change.
-- \`POST /api/short-links\` with \`{"code"}\` or \`{"codes": [...]}\` (a bundle) → \`{"id", "url"}\`;
-  \`GET /api/short-links/<id>\` → \`{"id", "code", "codes"}\` (\`codes\`: every top-level item's code;
-  \`code\`: the first).
+- \`GET /api/workspaces/<id>\` → \`{"id", "code", "updatedAt", "revision", "source", "url"}\`: the
+  top-level item pushed or changed last (\`code\` is null until a page or agent has set it since the server
+  started; the page sends every top-level item the player changes). Read this to see the player's changes.
+  \`?revision=<n>\` gives one of the last few revisions instead (404 once it is no longer kept).
+- \`GET /api/workspaces/<id>/events\` → Server-Sent Events: \`event: snapshot\` on connect, then
+  \`event: state\` on every change, each a notice \`{"id", "revision", "updatedAt", "source"}\` without the
+  code (codes can be megabytes); fetch \`GET /api/workspaces/<id>?revision=<n>\` for the code.
 
 Workspace IDs are 1-64 characters of \`A-Z a-z 0-9 _ -\`.
 
 ## The workspace file
 
-The page exports and imports the whole workspace as JSON (the player can hand it to you, or you can write
-one for them to import). Each \`aura\` is the canonical document; spells and icons are their IDs, no images:
+The page exports and imports the whole workspace as a \`.json\` file (the player can hand it to you, or you
+can write one for them to import; importing it asks whether to replace the workspace or add to it). Each \`aura\` is the canonical document; spells and icons are their IDs, no images:
 
 \`\`\`json
 {"format": "aura-simulator/workspace", "version": 2, "updatedAt": "2026-11-06T10:00:00.000Z",

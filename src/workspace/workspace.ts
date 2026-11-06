@@ -1,7 +1,7 @@
 /**
  * The workspace: what the player is working on, a list of top-level items (auras and groups, see `tree.ts`).
  *
- * Stored form (browser storage, and the workspace file the player exports/imports), JSON:
+ * Stored form (browser storage in IndexedDB, and the workspace file the player exports/imports), JSON:
  *
  *   { "format": "aura-simulator/workspace", "version": 2, "updatedAt": "<ISO time>",
  *     "selected": "<id>"?,                       // the selected item (optional)
@@ -34,7 +34,7 @@ export function looksLikeStateCode(text: string): boolean {
 export const WORKSPACE_FORMAT = "aura-simulator/workspace";
 export const WORKSPACE_VERSION = 2;
 
-/** Browser-storage key of a workspace. */
+/** Browser-storage key of a workspace (the IndexedDB record key, and the old localStorage key it migrates from). */
 export function storageKey(workspaceId: string): string {
   return `aura-simulator:workspace:${workspaceId}`;
 }

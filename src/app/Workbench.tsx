@@ -28,7 +28,7 @@ export function Workbench() {
   const [copied, setCopied] = useState(false);
   const [situation, setSituation] = useState(DEFAULT_SITUATION);
 
-  // The sample aura is only the fallback when nothing else (address, storage, server) has an aura.
+  // The sample aura is only the fallback when nothing else (browser storage, server) has an aura.
   const fallbackCode = useMemo(() => {
     if (!core) return null;
     const aura: AuraDocument = sampleIconAura(core.internalVersion);
@@ -37,13 +37,12 @@ export function Workbench() {
   const workspace = useWorkspace(core, fallbackCode);
 
   async function copy() {
-    if (!workspace.code) return;
-    await navigator.clipboard.writeText(workspace.code);
+    if (!(await workspace.copyCode()).ok) return;
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
 
-  // Edits (spell picker, raw table) replace the selected item's document; address, storage and server follow.
+  // Edits (spell picker, raw table) replace the selected item's document; storage and server follow.
   const updateSelected = workspace.updateSelected;
   const changeAura = useCallback((aura: AuraDocument): LoadResult => updateSelected(aura), [updateSelected]);
   // Undo/redo over whole-workspace snapshots (tree + selection), whatever made the change: editors, tree, paste, push.

@@ -145,7 +145,7 @@ test("workspace file export and import round trip", async ({ page, browser }) =>
   const other = await browser.newContext();
   const fresh = await other.newPage();
   await openFresh(fresh, "file-import");
-  await fresh.getByLabel("Workspace file").setInputFiles(file);
+  await fresh.getByLabel("Import files").setInputFiles(file);
   await fresh.getByRole("button", { name: "Replace workspace" }).click();
   await expect.poll(() => treeShape(fresh)).toEqual(shape);
 
@@ -156,7 +156,7 @@ test("workspace file export and import round trip", async ({ page, browser }) =>
   expect(again.items).toEqual(exported.items);
 
   // A broken file changes nothing and says why.
-  await fresh.getByLabel("Workspace file").setInputFiles({
+  await fresh.getByLabel("Import files").setInputFiles({
     name: "broken.json",
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify({ format: "aura-simulator/workspace", version: 2, items: [{ aura: { regionType: "icon" } }] })),

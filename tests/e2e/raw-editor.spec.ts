@@ -40,7 +40,8 @@ test("edit the raw table: preview and state code follow; invalid text keeps the 
   await expect(page.getByTestId("raw-editor-state")).toHaveText("In sync");
   await expect(stateCode(page)).not.toHaveValue(original);
   const edited = await stateCode(page).inputValue();
-  expect(new URL(page.url()).searchParams.get("code")).toBe(edited);
+  expect(edited).toMatch(/^!WA:2!/);
+  expect(new URL(page.url()).searchParams.has("code")).toBe(false); // auras never go in the address
 
   // Break the text: a missing comma on line 2.
   await editRaw(page, (t) => t.replace(/^( {2}actions = .*),$/m, "$1"));
