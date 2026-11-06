@@ -43,6 +43,179 @@ local function setup()
     if not r.ok then setupErrors[#setupErrors + 1] = "registerRegions[" .. i .. "]: " .. r.error:sub(1, 300) end
   end
   O.installWindow()
+  O.installDialogs()
+end
+
+---------------------------------------------------------------------------------------------------
+-- Dialogs. Some buttons open one of the window's dialogs (icon, texture and model pickers, the code
+-- editor). Headless, opening one records what it was opened for; the page shows its own dialog and
+-- sends the choice back with the same button, which is then applied the way the dialog's own Pick/
+-- Close applies it (IconPicker.lua group.Pick, TexturePicker.lua SetAll, ModelPicker.lua group.Pick,
+-- TextEditor.lua group.Close).
+---------------------------------------------------------------------------------------------------
+O.dialog = nil -- { kind, ... } while a button's func runs
+
+local function leafs(base)
+  local out = {}
+  if P.TraverseLeafsOrAura then
+    for child in P.TraverseLeafsOrAura(base) do out[#out + 1] = child end
+  else
+    out[1] = base
+  end
+  return out
+end
+
+local function plainList(t)
+  -- category -> { path -> name } (or a function returning it), as the texture picker takes it
+  local categories = {}
+  for name, category in pairs(t or {}) do
+    local cat = type(category) == "function" and select(2, pcall(category)) or category
+    if type(cat) == "table" then
+      local list = {}
+      for path, label in pairs(cat) do
+        if type(path) == "string" or type(path) == "number" then
+          list[#list + 1] = { tostring(path), type(label) == "string" and label or tostring(path) }
+        end
+      end
+      table.sort(list, function(a, b) return a[2] < b[2] end)
+      categories[#categories + 1] = { name = tostring(name), textures = list }
+    end
+  end
+  table.sort(categories, function(a, b) return a.name < b.name end)
+  return categories
+end
+
+local dialogs = {
+  icon = {
+    open = function(base, paths, groupIcon)
+      local first = groupIcon and base or leafs(base)[1]
+      local current = first and paths[first.id] and P.ValueFromPath(first, paths[first.id])
+      return { kind = "icon", current = current }, { base = base, paths = paths, groupIcon = groupIcon }
+    end,
+    apply = function(s, value)
+      if s.groupIcon then
+        P.ValueToPath(s.base, s.paths[s.base.id], value)
+        WeakAuras.Add(s.base)
+      else
+        for _, child in ipairs(leafs(s.base)) do
+          if s.paths[child.id] then
+            P.ValueToPath(child, s.paths[child.id], value)
+            WeakAuras.Add(child)
+          end
+        end
+      end
+    end,
+  },
+  texture = {
+    open = function(base, paths, properties, textures)
+      local first = leafs(base)[1]
+      local object = first and paths[first.id] and P.ValueFromPath(first, paths[first.id])
+      local property = properties and properties.texture
+      return { kind = "texture", property = property, current = object and property and object[property],
+        categories = plainList(textures) }, { base = base, paths = paths, property = property }
+    end,
+    apply = function(s, value)
+      for _, child in ipairs(leafs(s.base)) do
+        local object = s.paths[child.id] and P.ValueFromPath(child, s.paths[child.id])
+        if object and s.property then
+          object[s.property] = value
+          WeakAuras.Add(child)
+        end
+      end
+    end,
+  },
+  model = {
+    open = function(base, path)
+      local first = leafs(base)[1]
+      local object = first and P.ValueFromPath(first, path)
+      return { kind = "model", current = object and object.model_fileId }, { base = base, path = path }
+    end,
+    apply = function(s, value)
+      for _, child in ipairs(leafs(s.base)) do
+        local object = P.ValueFromPath(child, s.path)
+        if object then
+          object.model_fileId = tostring(value)
+          WeakAuras.Add(child)
+        end
+      end
+    end,
+  },
+  text = {
+    open = function(data, path, enclose, multipath, reloadOptions, setOnParent, url)
+      local current
+      if setOnParent then
+        current = P.ValueFromPath(data, path)
+      else
+        for _, child in ipairs(leafs(data)) do
+          local p = multipath and path[child.id] or (not multipath and path)
+          current = current or (p and P.ValueFromPath(child, p))
+        end
+      end
+      local title
+      if not multipath and type(path) == "table" then
+        local parts = {}
+        for _, field in ipairs(path) do
+          parts[#parts + 1] = type(field) == "number" and ("Trigger " .. field) or (tostring(field):gsub("^%l", string.upper))
+        end
+        title = table.concat(parts, " ")
+      end
+      return { kind = "text", current = type(current) == "string" and current or "", title = title, url = url,
+        lua = enclose ~= nil },
+        { data = data, path = path, multipath = multipath, setOnParent = setOnParent }
+    end,
+    apply = function(s, value)
+      if s.setOnParent then
+        P.ValueToPath(s.data, s.path, value)
+        WeakAuras.Add(s.data)
+      else
+        for _, child in ipairs(leafs(s.data)) do
+          local p = s.multipath and s.path[child.id] or (not s.multipath and s.path)
+          if p then
+            P.ValueToPath(child, p, value)
+            WeakAuras.Add(child)
+          end
+        end
+      end
+    end,
+  },
+}
+
+-- The dialogs the page can't show: the button reports that instead of failing.
+local unsupported = {
+  OpenTriggerTemplate = "Premade auras (the WeakAurasTemplates addon) aren't available in the simulator",
+  OpenCodeReview = "The code review dialog isn't available in the simulator; see the Raw table",
+  ToggleTextReplacements = "text replacements",
+  OpenDebugLog = "The debug log isn't available in the simulator",
+  ExportToString = "Use Export in the window to get the state code",
+  ExportToTable = "Use the Raw table to see the aura as a table",
+  ImportFromString = "Use Import in the window's toolbar",
+  OpenUpdate = "Updates from wago.io aren't available in the simulator",
+}
+
+function O.installDialogs()
+  local opens = { icon = "OpenIconPicker", texture = "OpenTexturePicker", model = "OpenModelPicker", text = "OpenTextEditor" }
+  for kind, fnName in pairs(opens) do
+    if type(OP[fnName]) == "function" then
+      OP[fnName] = function(...)
+        local info, state = dialogs[kind].open(...)
+        O.dialog = { info = info, state = state, kind = kind }
+      end
+    end
+  end
+  for fnName, why in pairs(unsupported) do
+    -- (ToggleTextReplacements is only defined once the window exists.)
+    if type(OP[fnName]) == "function" or fnName == "ToggleTextReplacements" then
+      OP[fnName] = function()
+        if fnName == "ToggleTextReplacements" then
+          O.dialog = { info = { kind = "textReplacements" }, kind = "textReplacements" }
+        else
+          O.dialog = { info = { kind = "unsupported", message = why }, kind = "unsupported" }
+        end
+      end
+    end
+  end
+  -- The aura list (display buttons, its search box) doesn't exist headless.
+  if type(OP.SortDisplayButtons) == "function" then OP.SortDisplayButtons = function() end end
 end
 
 -- A headless options window. Option set()/func() code refreshes the window after an edit
@@ -108,9 +281,15 @@ end
 function O.load(input, children)
   setup()
   deleteCurrent()
+  local kids = {}
   for _, child in ipairs(children or {}) do
     local c = X.prepare(child)
+    if type(c.uid) ~= "string" then
+      uidCounter = uidCounter + 1
+      c.uid = "__aurasimE" .. uidCounter
+    end
     pcall(WeakAuras.Add, c)
+    kids[#kids + 1] = { uid = c.uid, input = deepcopy(child) }
   end
   local data = X.prepare(input)
   if type(data.uid) ~= "string" then
@@ -118,7 +297,7 @@ function O.load(input, children)
     data.uid = "__aurasimE" .. uidCounter
   end
   local r = B.try(WeakAuras.Add, data)
-  session = { uid = data.uid, input = deepcopy(input) }
+  session = { uid = data.uid, input = deepcopy(input), children = kids }
   if not currentData() then
     session = nil
     return { ok = false, error = r.error or "The addon did not register the aura" }
@@ -396,6 +575,12 @@ function O.edit(tabKey, ids, value)
   if not node then return { ok = false, error = "This option no longer exists: " .. table.concat(ids, " / ") } end
   local info = makeInfo(root, keys, node, inh)
   local before = deepcopy(data)
+  -- Group options edit the group's children too (the Display and Trigger tabs of a group are its children's).
+  local childrenBefore = {}
+  for i, kid in ipairs(session.children) do
+    local d = P.GetDataByUID(kid.uid)
+    childrenBefore[i] = d and deepcopy(d)
+  end
   local kind = node.type == "execute" and "run" or "set"
   local args, n = { value }, 1
   if (node.type == "color" or node.type == "multiselect") and type(value) == "table" then
@@ -418,27 +603,148 @@ function O.edit(tabKey, ids, value)
       return { ok = false, error = type(v) == "string" and v or "The addon rejected this value" }
     end
   end
-  local r = B.try(fn, info, unpack(args, 1, n))
+  O.dialog = nil
+  local r
+  if kind == "run" then r = B.try(fn, info) else r = B.try(fn, info, unpack(args, 1, n)) end
+  local dialog = O.dialog
+  O.dialog = nil
+  if dialog and r.ok and value ~= nil and dialogs[dialog.kind] then
+    -- The page's dialog answered: apply the choice the way the game's dialog does.
+    r = B.try(dialogs[dialog.kind].apply, dialog.state, value)
+  end
   local after = currentData()
   if not after then
     -- The edit replaced the data table (e.g. a rename): take whatever the addon registered under the uid.
     return { ok = false, error = r.error and shortError(r.error) or "The aura disappeared after this edit" }
   end
   local changed = not equal(before, after)
-  if not r.ok and not changed then return { ok = false, error = shortError(r.error) } end
-  local result
-  if session.input.internalVersion ~= nil and session.input.internalVersion ~= WeakAuras.InternalVersion() then
-    -- Migrated on load: the document as written no longer matches the addon's shape.
-    result = deepcopy(after)
-  else
-    result = deepcopy(session.input)
-    applyDiff(result, before, after)
+  local function written(input, b, a)
+    if input.internalVersion ~= nil and input.internalVersion ~= WeakAuras.InternalVersion() then
+      -- Migrated on load: the document as written no longer matches the addon's shape.
+      return deepcopy(a)
+    end
+    local out = deepcopy(input)
+    applyDiff(out, b, a)
+    return out
   end
+  local childrenChanged = false
+  local childResults = {}
+  for i, kid in ipairs(session.children) do
+    local a = P.GetDataByUID(kid.uid)
+    local b = childrenBefore[i]
+    if a and b and not equal(a, b) then
+      childrenChanged = true
+      kid.input = written(kid.input, b, a)
+    end
+    childResults[i] = kid.input
+  end
+  if not r.ok and not changed and not childrenChanged then return { ok = false, error = shortError(r.error) } end
+  local result = written(session.input, before, after)
   if changed then
     session.input = deepcopy(result)
   end
+  changed = changed or childrenChanged
   return { ok = true, changed = changed, aura = AuraCore.toJSON(result),
-    warning = not r.ok and shortError(r.error) or nil }
+    children = childrenChanged and AuraCore.toJSON(childResults) or nil,
+    warning = not r.ok and shortError(r.error) or nil,
+    dialog = dialog and (value == nil or not dialogs[dialog.kind]) and AuraCore.toJSON(dialog.info) or nil }
+end
+
+---------------------------------------------------------------------------------------------------
+-- The New Aura page: display types, new auras and packs, the way the window builds them
+---------------------------------------------------------------------------------------------------
+local function translate(s)
+  if type(s) ~= "string" then return s end
+  return WeakAuras.L and rawget(WeakAuras.L, s) or s
+end
+
+-- The display types the New Aura page lists (OptionsFrame.lua frame.NewAura): the registered region
+-- options, group and dynamic group first, then by display name. icon: a texture path when the type
+-- registered one (the others draw their thumbnail with frames).
+function O.newAuraTypes()
+  setup()
+  local list = {}
+  for regionType, ro in pairs(P.regionOptions or {}) do
+    if P.regionTypes[regionType] then
+      local entry = { regionType = regionType, displayName = ro.displayName, description = ro.description }
+      if type(ro.icon) == "string" then entry.icon = ro.icon end
+      list[#list + 1] = entry
+    end
+  end
+  table.sort(list, function(a, b)
+    if a.regionType == "group" then return b.regionType ~= "group" end
+    if b.regionType == "group" then return false end
+    if a.regionType == "dynamicgroup" then return true end
+    if b.regionType == "dynamicgroup" then return false end
+    return tostring(a.displayName) < tostring(b.displayName)
+  end)
+  return {
+    types = list,
+    -- The Modern Aura Group button: a group with these flow settings (frame.NewAura).
+    modernGroup = {
+      name = translate("Modern Aura Group"),
+      description = translate("New group for Aura (Modern) displays: laid out left to right, 2 pixels apart, with the layout kept in combat."),
+      sourceData = { blizzardFlow = true, blizzardFlowGrowth = "RIGHT", blizzardFlowSpacing = 2 },
+    },
+    packs = { name = translate("Packs"), description = translate("Ready-made auras for your class, and utility packs"),
+      icon = "Interface\\Icons\\INV_Misc_Bag_08" },
+    premade = { name = translate("Premade Auras"), description = translate("Offer a guided way to create auras for your character"),
+      icon = "Interface\\Icons\\Inv_misc_book_09" },
+  }
+end
+
+-- A new aura of regionType, built by WeakAuras.NewAura (data stub, region defaults, default
+-- sub elements, Aura (Modern) trigger where supported). The data is taken where NewAura hands it
+-- to WeakAuras.Add, so nothing is registered. sourceData: e.g. the Modern Aura Group's flow settings.
+function O.newAura(regionType, sourceData)
+  setup()
+  if type(WeakAuras.NewAura) ~= "function" then return { ok = false, error = "WeakAuras.NewAura is missing in this addon version" } end
+  if not P.regionTypes[regionType] then return { ok = false, error = "Unknown display type " .. tostring(regionType) } end
+  local captured
+  local add = WeakAuras.Add
+  WeakAuras.Add = function(data)
+    captured = deepcopy(data)
+    error("__aurasim_new_aura_captured", 0)
+  end
+  local r = B.try(WeakAuras.NewAura, sourceData, regionType, nil)
+  WeakAuras.Add = add
+  if not captured then return { ok = false, error = shortError(r.error or "WeakAuras.NewAura made no aura") } end
+  return { ok = true, aura = AuraCore.toJSON(captured) }
+end
+
+-- The Packs page (frame.OpenPacks): utility packs, and the class HUD packs (whole HUD and blocks)
+-- for every class, each with its import data (a state code, or a transmit table { d, c } as JSON).
+function O.packs()
+  setup()
+  local out = { utility = {}, classes = {} }
+  for _, pack in ipairs(OP.utilityPacks or {}) do
+    out.utility[#out.utility + 1] = { name = translate(pack.name), description = translate(pack.description),
+      category = translate(pack.category), icon = pack.icon, code = type(pack.data) == "string" and pack.data or nil }
+  end
+  local classes = {}
+  for class in pairs(OP.classPacks or {}) do classes[#classes + 1] = class end
+  table.sort(classes)
+  for _, class in ipairs(classes) do
+    local classPack = OP.classPacks[class]
+    local entry = { class = class, icon = "Interface\\Icons\\ClassIcon_" .. class, blocks = {},
+      name = translate("Whole HUD"),
+      description = translate("Full UI pack for your class: rotation, cooldowns, buffs and resources, ready to play"),
+      code = type(classPack) == "string" and classPack or nil }
+    if OP.GetClassPackBlocks and OP.BuildClassPackBlockImport then
+      local blocks = B.try(OP.GetClassPackBlocks, classPack)
+      for _, block in ipairs(blocks.ok and blocks.value or {}) do
+        local texts = OP.classPackBlockTexts and OP.classPackBlockTexts[block.label]
+        local data = B.try(OP.BuildClassPackBlockImport, classPack, block.label)
+        if data.ok and type(data.value) == "table" then
+          entry.blocks[#entry.blocks + 1] = { label = block.label,
+            name = texts and translate(texts[1]) or block.label, description = texts and translate(texts[2]) or "",
+            transmit = AuraCore.toJSON(data.value) }
+        end
+      end
+    end
+    out.classes[#out.classes + 1] = entry
+  end
+  return out
 end
 
 function O.setupErrors() return setupErrors end

@@ -38,6 +38,12 @@ async function handle(msg: Exclude<ToWorker, { type: "fetched" }>): Promise<unkn
       return loaded.options(msg.args[0] as VMState, msg.args[1] as { tab?: string } | undefined);
     case "setOption":
       return loaded.setOption(msg.args[0] as VMState, msg.args[1] as OptionAddress, msg.args[2]);
+    case "newAuraPage":
+      return loaded.newAuraPage();
+    case "newAura":
+      return loaded.newAura(msg.args[0] as string, msg.args[1] as Parameters<AddonVM["newAura"]>[1]);
+    case "packs":
+      return loaded.packs();
   }
 }
 

@@ -111,6 +111,12 @@ export const FOREVER_CLIENT_PROFILE: readonly ProfileEntry[] = [
     verified: false,
   },
   {
+    api: "PowerBarColor (FrameXML)",
+    answer: "MANA, RAGE, FOCUS, ENERGY, RUNIC_POWER with the modern client's UI-HUD-UnitFrame-Player-PortraitOff-Bar-* atlases",
+    why: "Types.lua registers these atlases as statusbar_atlas media; without any, the Progress Bar's Display tab fails to build.",
+    verified: false,
+  },
+  {
     api: "InCombatLockdown()",
     answer: "false (also during the combat checks)",
     why: "WeakAuras.Add defers work in combat lockdown; the combat checks only need the C_Secrets answers.",
@@ -132,6 +138,21 @@ Enum.DurationTextBindingProperty = { RemainingDuration = 0, RemainingPercent = 1
 Enum.StatusBarRenderMode = S.stubFallback({}, "Enum.StatusBarRenderMode")
 
 S.loadedAddons.Blizzard_AuraContainer = true
+
+-- FrameXML's power bar colours with the modern client's bar atlases (Types.lua registers them as
+-- statusbar_atlas media; the Progress Bar options need that media type to exist).
+PowerBarColor = {
+  MANA = { r = 0, g = 0, b = 1, atlas = "UI-HUD-UnitFrame-Player-PortraitOff-Bar-Mana" },
+  RAGE = { r = 1, g = 0, b = 0, atlas = "UI-HUD-UnitFrame-Player-PortraitOff-Bar-Rage" },
+  FOCUS = { r = 1, g = 0.5, b = 0.25, atlas = "UI-HUD-UnitFrame-Player-PortraitOff-Bar-Focus" },
+  ENERGY = { r = 1, g = 1, b = 0, atlas = "UI-HUD-UnitFrame-Player-PortraitOff-Bar-Energy" },
+  RUNIC_POWER = { r = 0, g = 0.82, b = 1, atlas = "UI-HUD-UnitFrame-Player-PortraitOff-Bar-RunicPower" },
+}
+PowerBarColor[0] = PowerBarColor.MANA
+PowerBarColor[1] = PowerBarColor.RAGE
+PowerBarColor[2] = PowerBarColor.FOCUS
+PowerBarColor[3] = PowerBarColor.ENERGY
+PowerBarColor[6] = PowerBarColor.RUNIC_POWER
 
 local function inCombat() return PR.combat end
 local function contextual() return Enum.SecrecyLevel.ContextuallySecret end
