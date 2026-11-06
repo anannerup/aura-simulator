@@ -31,6 +31,11 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   Pure props in (aura document + situation), nothing fetched inside except textures via `src/render/textures`.
 - `src/server/`: server-only code (SQLite via built-in `node:sqlite`, wago/Wowhead sync, addon source cache).
   Database file lives in `/data/` (gitignored).
+- `src/workspace/`: the workspace model, its browser-storage format and the page address format (`?code=`, `?s=`, `?w=`).
+  Pure, shared by page and server. The page's restore/sync logic is in `src/app/workspace/`; push API, SSE hub,
+  short links (SQLite) and the server-side aura core are in `src/server/workspaces/`.
+- `src/docs/`: the agent docs (one Markdown source, served at `/docs/agents`, `/llms.txt`, `/docs/agents.md`).
+  Update it when an API or format changes.
 - `src/app/`: Next.js routes and pages. Thin; delegates to the modules above.
 - Tests: unit/seam A with Vitest (`npm test`), browser/HTTP seam B with Playwright (`npm run test:e2e`,
   `E2E_PORT` picks the port so parallel worktrees don't clash). Network-dependent tests use recorded

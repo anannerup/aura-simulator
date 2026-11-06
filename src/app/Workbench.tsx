@@ -5,14 +5,17 @@ import type { AuraCore, AuraDocument } from "@/core";
 import { AuraPreview } from "@/render/AuraPreview";
 import { DEFAULT_SITUATION } from "@/render/situation";
 import styles from "./page.module.css";
+import { useWorkspace } from "./workspace/useWorkspace";
+import { WorkspacePanel } from "./workspace/WorkspacePanel";
 
 type Loaded = { core: AuraCore; aura: AuraDocument; code: string };
 
-/** The app shell: loads the aura core in the browser, previews the sample aura, offers its state code. */
+/** The app shell: loads the aura core in the browser, previews the workspace's aura, offers its state code. */
 export function Workbench() {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const workspace = useWorkspace(loaded?.core ?? null, loaded?.code ?? null);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,19 +34,19 @@ export function Workbench() {
   }, []);
 
   async function copy() {
-    if (!loaded) return;
-    await navigator.clipboard.writeText(loaded.code);
+    if (!workspace.code) return;
+    await navigator.clipboard.writeText(workspace.code);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
 
   if (error) return <p className={styles.error}>Could not load Musca Auras: {error}</p>;
-  if (!loaded) return <p className={styles.status}>Loading Musca Auras…</p>;
+  if (!loaded || !workspace.aura || !workspace.code) return <p className={styles.status}>Loading Musca Auras…</p>;
 
   return (
     <>
       <section className={styles.previewArea}>
-        <AuraPreview aura={loaded.aura} situation={DEFAULT_SITUATION} />
+        <AuraPreview aura={workspace.aura} situation={DEFAULT_SITUATION} />
       </section>
       <section className={styles.export}>
         <div className={styles.exportHeader}>
@@ -55,8 +58,9 @@ export function Workbench() {
             {copied ? "Copied" : "Copy"}
           </button>
         </div>
-        <textarea className={styles.code} readOnly value={loaded.code} aria-label="State code" rows={4} />
+        <textarea className={styles.code} readOnly value={workspace.code} aria-label="State code" rows={4} />
       </section>
+      <WorkspacePanel workspace={workspace} />
     </>
   );
 }
