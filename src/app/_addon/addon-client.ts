@@ -2,7 +2,15 @@
  * Browser side of the addon version picker: talks to /api/addon/* and builds the source fetcher the
  * aura core loads through (the server's cache first, jsDelivr directly if the server can't answer).
  */
-import { bundleFetcher, jsDelivrFetcher, type AddonBundle, type AddonBundleSet, type AddonSourceFetcher } from "@/core";
+import {
+  bundleFetcher,
+  jsDelivrFetcher,
+  type AddonBundle,
+  type AddonBundleSet,
+  type AddonSourceFetcher,
+  type ClientSpell,
+  type SpellInfoSource,
+} from "@/core";
 
 export interface AddonReleaseInfo {
   version: string;
@@ -136,6 +144,17 @@ export function serverAddonFetcher(ref: string, set: AddonBundleSet = "full"): A
     return (await fetcher)(path);
   };
 }
+
+/** What the Forever client knows about spells, from the server's spell cache (for the addon VM). */
+export const fetchClientSpells: SpellInfoSource = async (ids) => {
+  const out: Record<number, ClientSpell | null> = {};
+  for (let i = 0; i < ids.length; i += 500) {
+    const res = await fetch(`/api/addon/spells?ids=${ids.slice(i, i + 500).join(",")}`);
+    if (!res.ok) throw new Error(await errorText(res));
+    Object.assign(out, await res.json());
+  }
+  return out;
+};
 
 export async function fetchDiff(from: string, to: string): Promise<DiffInfo> {
   const res = await fetch(`/api/addon/diff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);

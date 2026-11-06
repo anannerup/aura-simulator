@@ -24,6 +24,8 @@ export type { LuaArray, LuaKey, LuaObject, LuaTable, LuaValue } from "./lua-valu
 export { sampleIconAura } from "./samples";
 export { ADDON_CONTRACT, AddonContractError } from "./addon-vm/contract";
 export { FOREVER_CLIENT_PROFILE } from "./addon-vm/profile";
+export { collectSpellIds } from "./addon-vm/spells";
+export type { ClientSpell, SpellInfoSource } from "./addon-vm/spells";
 export type { ProfileEntry } from "./addon-vm/profile";
 export type { AddonVMReport, Registries } from "./addon-vm/vm";
 export { OptionEditError } from "./addon-vm/options";
