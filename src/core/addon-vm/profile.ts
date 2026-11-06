@@ -111,6 +111,12 @@ export const FOREVER_CLIENT_PROFILE: readonly ProfileEntry[] = [
     verified: false,
   },
   {
+    api: "C_Spell.GetSpellInfo / GetSpellName / GetSpellTexture, GetSpellInfo, GetSpellTexture",
+    answer: "name and icon FileDataID from the spell cache's Forever spell list (spells.ts preloads the IDs the aura refers to); nil for any other spell or a name",
+    why: 'Spell inputs read "1459 (Arcane Intellect)" instead of "(Unknown Spell)", and validation sees which spells exist. Names resolve only for spells the player knows in the game; the simulated player knows none.',
+    verified: false,
+  },
+  {
     api: "InCombatLockdown()",
     answer: "false (also during the combat checks)",
     why: "WeakAuras.Add defers work in combat lockdown; the combat checks only need the C_Secrets answers.",

@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { DEFAULT_ADDON_REF, jsDelivrFetcher, loadAddon, type AddonSourceFetcher, type AuraCore } from "@/core";
+import { clientSpells } from "@/server/addon/client-spells";
+import { getSpellCache } from "@/server/spells";
 
 /**
  * The aura core in Node, for the push API and the agent docs.
@@ -34,6 +36,7 @@ export function getServerAuraCore(ref: string = DEFAULT_ADDON_REF): Promise<Aura
     core = loadAddon(ref, {
       fetchSource: diskCachedFetcher(ref),
       wasmUri: path.join(process.cwd(), "node_modules/wasmoon-lua5.1/dist/liblua5.1.wasm"),
+      spellInfo: (ids) => clientSpells(getSpellCache(), ids),
     });
     core.catch(() => cores.delete(ref));
     cores.set(ref, core);

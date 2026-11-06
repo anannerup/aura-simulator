@@ -38,6 +38,8 @@ async function handle(msg: Exclude<ToWorker, { type: "fetched" }>): Promise<unkn
       return loaded.options(msg.args[0] as VMState, msg.args[1] as { tab?: string } | undefined);
     case "setOption":
       return loaded.setOption(msg.args[0] as VMState, msg.args[1] as OptionAddress, msg.args[2]);
+    case "setSpells":
+      return loaded.setSpells(msg.args[0] as Parameters<AddonVM["setSpells"]>[0]);
   }
 }
 

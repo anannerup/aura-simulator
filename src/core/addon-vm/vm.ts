@@ -8,6 +8,7 @@ import { EXTRACT_LUA } from "./lua/extract";
 import { OPTIONS_LUA } from "./lua/options";
 import { OPTIONS_FRAME_FILE, OptionEditError, normalizeOptionNode, parseOptionTabs, type OptionAddress, type OptionEdit, type OptionNode, type OptionsTree, type OptionTab } from "./options";
 import { SHIM_LUA } from "./lua/shim";
+import { spellsToLua, type ClientSpell } from "./spells";
 import { PROFILE_LUA } from "./profile";
 import { FULL_VM_ADDONS as ADDONS, addonLoadOrder } from "./toc";
 import { interpretValidation, mergeValidation, type RawValidation, type ValidationResult } from "./validation";
@@ -45,6 +46,8 @@ export interface AddonVM {
   options(state: VMState, request?: { tab?: string }): OptionsTree;
   /** Applies an edit through the option's own set() (or runs an execute option's func()). */
   setOption(state: VMState, address: OptionAddress, value: unknown): OptionEdit<LuaObject>;
+  /** Adds spells the client knows (C_Spell.GetSpellInfo and friends answer them; any other ID is nil). */
+  setSpells(spells: Record<number, ClientSpell>): void;
 }
 
 export interface LoadAddonVMOptions {
@@ -219,6 +222,9 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
       const aura = toAura(JSON.parse(r.aura));
       if (r.changed) loadedKey = JSON.stringify({ aura, children: state.children.map(toAura) });
       return { aura, changed: r.changed === true, warning: r.warning ?? undefined };
+    },
+    setSpells(spells) {
+      if (Object.keys(spells).length > 0) lua.doStringSync(spellsToLua(spells));
     },
     registries() {
       registriesCache ??= json<Registries>("__extract.registries()");

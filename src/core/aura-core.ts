@@ -6,6 +6,7 @@ import { loadInlineAddonVM, loadWorkerAddonVM, type AsyncAddonVM } from "./addon
 import type { AddonVMReport, Registries } from "./addon-vm/vm";
 import type { ValidationResult } from "./addon-vm/validation";
 import type { OptionAddress, OptionEdit, OptionsTree } from "./addon-vm/options";
+import { createSpellPreloader, type SpellInfoSource } from "./addon-vm/spells";
 
 /** One aura's table, as the addon stores it (see lua-value.ts for the JS representation). */
 export type AuraDocument = LuaObject;
@@ -76,6 +77,12 @@ export interface LoadAddonOptions {
   wasmUri?: string;
   /** Where the full addon VM runs. Default: "worker" where Web Workers exist (browser), else "inline". */
   fullAddon?: "worker" | "inline";
+  /**
+   * What the game client knows about spells (name, icon), for C_Spell.GetSpellInfo and friends in the
+   * full addon VM: the options editor's "1459 (Arcane Intellect)" and validation. Asked for the spell IDs
+   * an aura refers to before each full-VM call. Without it every spell is unknown (nil).
+   */
+  spellInfo?: SpellInfoSource;
 }
 
 const STATE_CODE_PREFIX = "!WA:2!";
@@ -131,6 +138,14 @@ export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAd
     fullVM.catch(() => (fullVM = undefined));
     return fullVM;
   };
+  const spells = createSpellPreloader(options.spellInfo);
+  /** The full VM, with the spells `state` refers to loaded into it. */
+  const fullFor = async (state: AuraState) => {
+    const auras = [state.aura, ...state.children];
+    const [vm] = await Promise.all([full(), spells.fetch(auras)]);
+    await vm.setSpells(spells.take(vm, auras));
+    return vm;
+  };
 
   return {
     ref,
@@ -138,11 +153,11 @@ export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAd
     internalVersion,
 
     async fillDefaults(state) {
-      return (await full()).fillDefaults({ aura: state.aura, children: state.children });
+      return (await fullFor(state)).fillDefaults({ aura: state.aura, children: state.children });
     },
 
     async validate(state) {
-      return (await full()).validate({ aura: state.aura, children: state.children });
+      return (await fullFor(state)).validate({ aura: state.aura, children: state.children });
     },
 
     async registries() {
@@ -154,11 +169,11 @@ export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAd
     },
 
     async options(state, request) {
-      return (await full()).options({ aura: state.aura, children: state.children }, request);
+      return (await fullFor(state)).options({ aura: state.aura, children: state.children }, request);
     },
 
     async setOption(state, address, value) {
-      return (await full()).setOption({ aura: state.aura, children: state.children }, address, value ?? null);
+      return (await fullFor(state)).setOption({ aura: state.aura, children: state.children }, address, value ?? null);
     },
 
     encode(state) {

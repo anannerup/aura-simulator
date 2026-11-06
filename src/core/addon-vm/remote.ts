@@ -3,6 +3,7 @@ import type { OptionAddress, OptionEdit, OptionsTree } from "./options";
 import type { AddonVMReport, Registries, VMState } from "./vm";
 import type { LuaObject } from "../lua-value";
 import type { ValidationResult } from "./validation";
+import type { ClientSpell } from "./spells";
 
 /** The full addon VM seen from outside: the same calls as AddonVM, asynchronous (inline or in a Web Worker). */
 export interface AsyncAddonVM {
@@ -12,11 +13,13 @@ export interface AsyncAddonVM {
   registries(): Promise<Registries>;
   options(state: VMState, request?: { tab?: string }): Promise<OptionsTree>;
   setOption(state: VMState, address: OptionAddress, value: unknown): Promise<OptionEdit<LuaObject>>;
+  /** Adds spells the client knows (see AddonVM.setSpells). */
+  setSpells(spells: Record<number, ClientSpell>): Promise<void>;
   /** Stops the VM (terminates the worker). */
   dispose(): void;
 }
 
-type Method = "fillDefaults" | "validate" | "registries" | "options" | "setOption";
+type Method = "fillDefaults" | "validate" | "registries" | "options" | "setOption" | "setSpells";
 
 /** Messages between the page and the worker. */
 export type ToWorker =
@@ -43,6 +46,7 @@ export async function loadInlineAddonVM(
     registries: async () => vm.registries(),
     options: async (state, request) => vm.options(state, request),
     setOption: async (state, address, value) => vm.setOption(state, address, value),
+    setSpells: async (spells) => vm.setSpells(spells),
     dispose() {},
   };
 }
@@ -113,6 +117,7 @@ export async function loadWorkerAddonVM(
     registries: () => call<Registries>("registries"),
     options: (state, request) => call<OptionsTree>("options", state, request),
     setOption: (state, address, value) => call<OptionEdit<LuaObject>>("setOption", state, address, value),
+    setSpells: (spells) => call<void>("setSpells", spells),
     dispose: () => worker.terminate(),
   };
 }

@@ -48,7 +48,9 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
 - `src/app/`: Next.js routes and pages. Thin; delegates to the modules above.
 - Tests: unit/seam A with Vitest (`npm test`), browser/HTTP seam B with Playwright (`npm run test:e2e`,
   `E2E_PORT` picks the port so parallel worktrees don't clash). Network-dependent tests use recorded
-  fixtures in `tests/fixtures/`.
+  fixtures in `tests/fixtures/`. The e2e dev server gets addon versions/refs from recorded GitHub/jsDelivr
+  answers (`ADDON_UPSTREAM_FIXTURES`; addon files are cached in `.cache/e2e/addon`); `LIVE=1 npm test -- addon-live`
+  checks the real upstream.
 - Musca Auras source: GitHub `dldvlpr-addons-wow/Musca-Auras`, per file via
   `https://cdn.jsdelivr.net/gh/dldvlpr-addons-wow/Musca-Auras@<ref>/<path>`. A local install of v1.15.0 is at
   `~/Games/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns/WeakAuras*` (read only).
