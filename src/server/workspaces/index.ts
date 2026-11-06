@@ -4,6 +4,8 @@ import { createWorkspaceHub, type WorkspaceHub, type WorkspaceSnapshot } from ".
 import { createShortLinkStore, type ShortLinkStore } from "./short-links";
 import { getServerAuraCore } from "./aura-core";
 import { toStateCode, type PushInput } from "./push";
+import { validateCode } from "../validation";
+import type { ValidationResult } from "@/core";
 
 export { createWorkspaceHub, type WorkspaceHub, type WorkspaceSnapshot } from "./hub";
 export { createShortLinkStore, type ShortLinkStore } from "./short-links";
@@ -42,6 +44,8 @@ export interface PushResult {
   url: string;
   updatedAt: string;
   revision: number;
+  /** The addon's own checks and combat warnings for the pushed aura. Export is never blocked. */
+  validation: ValidationResult;
 }
 
 /** Validates and encodes a push, stores it as the workspace's state and notifies open pages. */
@@ -55,5 +59,6 @@ export async function pushToWorkspace(workspaceId: string, input: PushInput, ori
     url: pageUrlFor(origin, workspaceId, code),
     updatedAt: snap.updatedAt!,
     revision: snap.revision,
+    validation: await validateCode(code, { core }),
   };
 }

@@ -126,10 +126,26 @@ curl -s '${o}/api/spells/search?q=arcane%20intellect'
 An icon aura's \`displayIcon\` is the icon's file ID; spell IDs go in the trigger as strings
 (\`"auraspellids": ["1459"]\`).
 
-## Coming soon
+## Validation and combat warnings
 
-Validation results and **combat warnings** (which options stop working in combat on Forever, and the
-closest version that does work) will be added to the push answer and documented here. Until then: for
-the player's own buffs and debuffs, use the "Aura (Modern)" trigger (\`"type": "secretAura"\`).
+Every push answer has a \`validation\` field with the addon's own checks, run by the real Musca Auras
+code:
+
+\`\`\`json
+{ "errors": [], "warnings": [], "combat": { "status": "ok" | "limited" | "broken", "messages": [] } }
+\`\`\`
+
+Each message has a \`code\`, a \`severity\`, the addon's own \`text\`, and where possible a \`pointer\`
+(tab, trigger/condition/change index, \`path\` of Lua keys and a readable \`label\` such as
+"Condition 1, change 1 (desaturate)"). Export is never blocked: when the status is \`limited\` or
+\`broken\`, tell the player what stops working in combat and offer the closest version that works.
+
+Rules of thumb for WoW Forever:
+- For the player's own buffs and debuffs, use the "Aura (Modern)" trigger (\`"type": "secretAura"\`).
+  The classic "Aura" trigger (\`aura2\`) with names or spell IDs freezes in combat.
+- An Aura (Modern) remaining-time condition may only turn on a glow or change the \`%p\` text colour or
+  visibility. Desaturate and colour are allowed on the "missing" state (\`faAuraMissing\`), which needs
+  Show On \`showOnMissing\` or \`showAlways\`.
+- If one Aura (Modern) condition is invalid, none of the aura's conditions run.
 `;
 }
