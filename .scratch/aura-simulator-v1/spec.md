@@ -19,8 +19,10 @@ faithfully in a browser, adjust it, and only then take it into the game.
 A Next.js web app that runs locally first (a public domain later). It holds a **workspace** of
 **auras** and groups. Each aura is a document (the same Lua table the addon stores), and its
 **state code** is the addon's own `!WA:2!` import string, the way a FEN string is the state of a
-chess position: paste or link a state code and the preview shows that aura; edit the aura and the
-state code updates; copy the state code into the game's import dialog.
+chess position: paste or import a state code and the preview shows that aura; edit the aura and the
+state code updates; copy the state code into the game's import dialog. Auras (historically up to megabytes)
+travel as **files**: an aura's state code as a `.txt` file, the whole workspace as a `.json` file. The page
+address only names the workspace, never holds auras.
 
 - An agent (Claude, Codex, ...) reads the app's **agent docs page**, builds an aura, and either
   **pushes** it to the running app over HTTP (the open page updates live) or drives the page in
@@ -45,7 +47,7 @@ state code updates; copy the state code into the game's import dialog.
 3. As an agent, I want to push an aura or group to the running app over HTTP, so that I can deliver it without browser automation.
 4. As a player, I want the open page to update live when my agent pushes an aura, so that I see the result immediately.
 5. As an agent attached to a browser tab, I want a documented in-page command to load an aura document or state code, so that I don't have to click through forms.
-6. As an agent without a running app connection, I want to hand the player a link that contains the state code, so that they can open the aura in one click.
+6. As an agent without a running app connection, I want to hand the player a `.txt` file with the state code, so that they can drop it on the page or paste it into the game.
 7. As an agent, I want to look up spells by name through the app's API, so that I use Forever's real spell IDs.
 8. As an agent, I want the app to return validation results and combat warnings for an aura I push, so that I can fix problems before the player looks at it.
 9. As an agent, I want the agent docs to include worked examples (buff reminder, cooldown icon, debuff bar, group), so that I can pattern-match common requests.
@@ -87,14 +89,14 @@ state code updates; copy the state code into the game's import dialog.
 
 34. As a player, I want a workspace holding several auras, so that related auras (like a two-aura buff reminder) live together.
 35. As a player, I want to create groups and dynamic groups and nest auras in them, so that I can build full setups.
-36. As a player, I want to copy one aura's or one group's state code, so that I can import it in the game.
+36. As a player, I want to copy one aura's or one group's state code to the clipboard, so that I can paste it into the game's import dialog.
 37. As a player, I want the state code to be accepted by Musca Auras' import dialog, so that import just works.
-38. As a player, I want the page address to contain the current state code, so that a reload or a shared link restores it.
-39. As a player, I want a short link for state codes too long for an address, so that big groups can still be shared.
+38. As a player, I want to export one aura or group as a `.txt` file named after it that holds exactly its state code, so that I can keep or share it however large it is, and open it to paste into the game.
+39. As a player, I want to import `.txt` files (one or several state codes each) by picking or dropping them on the page, so that auras from others or from agents join my workspace.
 40. As a player, I want to paste any state code into the app, so that I can open auras from others or from agents.
 41. As a player, I want to export the whole workspace (auras, groups, nesting, spell IDs and icon IDs) as a JSON file, so that I can keep it or hand it over.
-42. As a player, I want to load a workspace JSON file back in, so that I can continue later.
-43. As a player, I want my current workspace kept in the browser, so that closing the tab doesn't lose work.
+42. As a player, I want to load a workspace JSON file back in (replacing the workspace or adding to it), so that I can continue later.
+43. As a player, I want my current workspace kept in the browser, even when it is megabytes, so that closing the tab doesn't lose work.
 
 ### Addon versions
 
@@ -117,7 +119,7 @@ state code updates; copy the state code into the game's import dialog.
 
 ## Implementation Decisions
 
-- **One Next.js app.** Pages for the editor and preview; server routes for the push API, short links, spell search, sync, and addon source caching. Runs on localhost first.
+- **One Next.js app.** Pages for the editor and preview; server routes for the push API, spell search, sync, and addon source caching. Runs on localhost first.
 - **Aura document and state code.** The aura document is the addon's own aura table (as the addon stores it), represented in JS. The state code is the addon's import string. Encoding and decoding use the addon's own LibSerialize and LibDeflate, run in the Lua engine, producing plain (unencrypted) `!WA:2!` strings, which Musca Auras' import accepts. Musca's own exports are deliberately encrypted; the app doesn't decode them.
 - **Lua engine.** Real Lua 5.1 compiled to WASM (`wasmoon-lua5.1`), chosen because the addon depends on 5.1 features (`setfenv`, `loadstring`, global `unpack`). A thin shim supplies the WoW globals the loaded files need (string aliases, `bit`, `LibStub`, build info, frame stubs). Research verified a full encode/decode round trip with the addon's libraries.
 - **Aura core module (deep module, primary seam).** One interface, roughly: load an addon version; encode a document to a state code; decode a state code to a document; fill defaults; validate (including combat rules); describe the options schema. Everything Lua-related hides behind it.
@@ -129,10 +131,10 @@ state code updates; copy the state code into the game's import dialog.
 - **Spell cache on the server, SQLite.** Sync downloads Forever's spell list (build product `wowf`) from wago.tools for name search and IDs, and fills icons and tooltips from Wowhead's tooltip endpoint. Searching by name is served from SQLite.
 - **Push API (contract sketch).**
   - Send a document or state code to a workspace; the response returns the state code, validation results and combat warnings.
-  - Open pages subscribed to that workspace update live (server-sent events or similar).
-  - Short links: store a state code, get a short ID; resolve an ID back to the state code.
+  - Open pages subscribed to that workspace update live (server-sent events announce a revision; pages fetch it, so megabyte codes aren't broadcast).
+  - Bodies up to tens of megabytes (auras have historically been MB).
   - Spell search by name; spell lookup by ID; trigger a sync.
-- **Workspace.** Held in the browser (local storage) and mirrored to the page address as state codes. Exported and imported as JSON: auras, groups, nesting, spell IDs and icon IDs (no embedded images).
+- **Workspace.** Held in the browser (IndexedDB; localStorage's ~5 MB is too small) and never mirrored to the page address, which only names the workspace (`?w=`). Exported and imported as JSON: auras, groups, nesting, spell IDs and icon IDs (no embedded images). Single auras or groups are exported as `.txt` files holding exactly the state code, and any text file with state codes imports. No links carry auras and there are no short links (decided 2026-11-06: auras can be megabytes).
 - **Editor.** Mirrors the in-game options tabs and names. Form fields are driven by the options schema from the aura core, so new addon options appear automatically; the raw-table view and agent pushes share the same document state.
 - **Agent docs page.** Generated where possible from the same schema and validation rules, so it stays current with the addon version.
 
@@ -156,7 +158,7 @@ state code updates; copy the state code into the game's import dialog.
 - Editing or reading auras already in the player's game (no reading the saved settings file, no decrypting Musca exports).
 - Writing to the game's saved settings. The player always imports the state code by hand.
 - Running the addon's rendering code in an emulated WoW in the browser (option (a)); rendering is hand-written.
-- Accounts, server-side workspace storage beyond short links, and multi-user features.
+- Accounts, server-side workspace storage (the server only keeps recent pushes in memory), share links, and multi-user features.
 - Custom Lua code in auras beyond preserving and exporting it (no executing custom triggers in the preview).
 - Hosting on the public domain (planned later; v1 must not prevent it).
 - Other addons, and WeakAuras for retail or Classic clients.

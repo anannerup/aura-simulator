@@ -1,17 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { DEFAULT_WORKSPACE_ID } from "@/workspace";
-import type { UseWorkspace } from "./useWorkspace";
+import { useFileDrop } from "./useFileDrop";
+import type { PendingWorkspaceFile, UseWorkspace } from "./useWorkspace";
 import styles from "./WorkspacePanel.module.css";
 
-/** Paste a state code, save/load the workspace file, and see which workspace agents push to. */
+/**
+ * Fallback workspace UI: paste a state code, export the selected aura or the workspace as a file, import files
+ * (picked or dropped anywhere on the page), and see which workspace agents push to.
+ */
 export function WorkspacePanel({ workspace }: { workspace: UseWorkspace }) {
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
-  const [pendingFile, setPendingFile] = useState<{ name: string; text: string; count: number } | null>(null);
+  const [fileErrors, setFileErrors] = useState<string[]>([]);
+  const [pending, setPending] = useState<PendingWorkspaceFile[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
 
   function paste(action: "load" | "add") {
@@ -24,47 +28,37 @@ export function WorkspacePanel({ workspace }: { workspace: UseWorkspace }) {
     }
   }
 
-  function exportFile() {
-    const json = workspace.exportFile();
-    const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `aura-workspace-${workspace.workspaceId ?? DEFAULT_WORKSPACE_ID}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
+  const { importFiles } = workspace;
+  const chooseFiles = useCallback(
+    async (files: File[]) => {
+      if (!files.length) return;
+      const result = await importFiles(files);
+      setFileErrors(result.errors);
+      setPending((p) => [...p, ...result.pending]);
+    },
+    [importFiles],
+  );
+  const dragging = useFileDrop(chooseFiles);
 
-  async function chooseFile(file: File | undefined) {
-    if (!file) return;
-    const content = await file.text();
-    const checked = workspace.checkFile(content);
-    if (!checked.ok) {
-      setFileError(`Could not read ${file.name}: ${checked.error}`);
-      setPendingFile(null);
-      return;
+  function finishImport(file: PendingWorkspaceFile, mode: "replace" | "merge" | "cancel") {
+    if (mode !== "cancel") {
+      const result = workspace.importFile(file.text, mode);
+      setFileErrors(result.ok ? [] : [`Could not read ${file.name}: ${result.error}`]);
     }
-    setFileError(null);
-    if (workspace.items.length === 0) {
-      finishImport(content, "replace");
-      return;
-    }
-    // Something is already here: ask whether to replace it or add the file's items.
-    setPendingFile({ name: file.name, text: content, count: checked.items.length });
-  }
-
-  function finishImport(content: string, mode: "replace" | "merge") {
-    const result = workspace.importFile(content, mode);
-    setFileError(result.ok ? null : result.error);
-    setPendingFile(null);
+    setPending((p) => p.filter((x) => x !== file));
   }
 
   const id = workspace.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  const next = pending[0];
 
   return (
     <section className={styles.panel} aria-label="Workspace">
       {workspace.notice && <p className={styles.error}>{workspace.notice}</p>}
+      {workspace.warning && (
+        <p className={styles.error} role="status">
+          {workspace.warning}
+        </p>
+      )}
       <div className={styles.paste}>
         <textarea
           className={styles.input}
@@ -89,48 +83,58 @@ export function WorkspacePanel({ workspace }: { workspace: UseWorkspace }) {
         </p>
       )}
       <div className={styles.file}>
-        <button type="button" className={styles.button} onClick={exportFile}>
+        <button
+          type="button"
+          className={styles.button}
+          onClick={() => workspace.exportAura()}
+          disabled={!workspace.selectedId}
+          title="Save the selected aura's import string as a .txt file"
+        >
+          Export aura file
+        </button>
+        <button type="button" className={styles.button} onClick={() => workspace.exportWorkspace()}>
           Export workspace file
         </button>
-        <button type="button" className={styles.button} onClick={() => fileInput.current?.click()}>
-          Import workspace file
+        <button type="button" className={styles.button} onClick={() => fileInput.current?.click()} title="Aura .txt files or a workspace .json; you can also drop them on the page">
+          Import files
         </button>
         <input
           ref={fileInput}
           type="file"
-          accept="application/json,.json"
+          accept=".txt,.json,text/plain,application/json"
+          multiple
           hidden
-          aria-label="Workspace file"
+          aria-label="Import files"
           onChange={(e) => {
-            void chooseFile(e.target.files?.[0]);
+            void chooseFiles(Array.from(e.target.files ?? []));
             e.target.value = "";
           }}
         />
       </div>
-      {pendingFile && (
+      {dragging && <p className={styles.meta}>Drop aura .txt or workspace .json files to import them.</p>}
+      {next && (
         <div className={styles.confirm} role="dialog" aria-label="Import workspace file">
           <p>
-            {pendingFile.name} holds {pendingFile.count} item{pendingFile.count === 1 ? "" : "s"}. Replace this workspace, or add
-            them to it?
+            {next.name} holds {next.count} item{next.count === 1 ? "" : "s"}. Replace this workspace, or add them to it?
           </p>
           <div className={styles.buttons}>
-            <button type="button" className={styles.button} onClick={() => finishImport(pendingFile.text, "replace")}>
+            <button type="button" className={styles.button} onClick={() => finishImport(next, "replace")}>
               Replace workspace
             </button>
-            <button type="button" className={styles.button} onClick={() => finishImport(pendingFile.text, "merge")}>
+            <button type="button" className={styles.button} onClick={() => finishImport(next, "merge")}>
               Add items
             </button>
-            <button type="button" className={styles.button} onClick={() => setPendingFile(null)}>
+            <button type="button" className={styles.button} onClick={() => finishImport(next, "cancel")}>
               Cancel
             </button>
           </div>
         </div>
       )}
-      {fileError && (
-        <p className={styles.error} role="alert">
-          {fileError}
+      {fileErrors.map((message) => (
+        <p key={message} className={styles.error} role="alert">
+          {message}
         </p>
-      )}
+      ))}
       <p className={styles.meta}>
         Workspace <code data-testid="workspace-id">{id}</code>. Agents push to{" "}
         <code>POST /api/workspaces/{id}/aura</code> and this page updates live; see{" "}
