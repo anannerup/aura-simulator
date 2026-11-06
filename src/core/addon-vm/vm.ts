@@ -5,6 +5,8 @@ import { canonicalize, isLuaTable, toLuaLiteral, type LuaObject, type LuaValue }
 import { ADDON_CONTRACT, AddonContractError } from "./contract";
 import { BRIDGE_LUA } from "./lua/bridge";
 import { EXTRACT_LUA } from "./lua/extract";
+import { OPTIONS_LUA } from "./lua/options";
+import { OPTIONS_FRAME_FILE, OptionEditError, normalizeOptionNode, parseOptionTabs, type OptionAddress, type OptionEdit, type OptionNode, type OptionsTree, type OptionTab } from "./options";
 import { SHIM_LUA } from "./lua/shim";
 import { PROFILE_LUA } from "./profile";
 import { FULL_VM_ADDONS as ADDONS, addonLoadOrder } from "./toc";
@@ -39,6 +41,10 @@ export interface AddonVM {
   fillDefaults(state: VMState): VMState;
   validate(state: VMState): ValidationResult;
   registries(): Registries;
+  /** The options window's tabs and one tab's evaluated option tree for the aura (first tab by default). */
+  options(state: VMState, request?: { tab?: string }): OptionsTree;
+  /** Applies an edit through the option's own set() (or runs an execute option's func()). */
+  setOption(state: VMState, address: OptionAddress, value: unknown): OptionEdit<LuaObject>;
 }
 
 export interface LoadAddonVMOptions {
@@ -106,6 +112,17 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
 
   lua.doStringSync(AURA_CORE);
   lua.doStringSync(EXTRACT_LUA);
+  lua.doStringSync(OPTIONS_LUA);
+  const optionsAddon = plans.find((p) => p.addon === "WeakAurasOptions");
+  const frameIndex = optionsAddon?.files.indexOf(OPTIONS_FRAME_FILE) ?? -1;
+  const tabSources = frameIndex >= 0 ? parseOptionTabs(optionsAddon!.sources[frameIndex]) : undefined;
+  if (tabSources) {
+    lua.doStringSync(
+      `__options.tabOrder = ${toLuaLiteral(tabSources.map((t) => t.key))}; __options.tabs = ${toLuaLiteral(
+        Object.fromEntries(tabSources.map((t) => [t.key, { label: t.label, fn: t.fn, groupOnly: t.groupOnly }])),
+      )}`,
+    );
+  }
   // What WeakAuras.ToggleOptions does the first time, minus opening the window.
   lua.doStringSync("if __shim.private.WeakAurasOptions then __shim.private.WeakAurasOptions.Private = __shim.private.WeakAuras end");
 
@@ -148,6 +165,25 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
   };
   const validateOne = (aura: LuaObject): RawValidation => json<RawValidation>(`__extract.validate(${toLuaLiteral(toAura(aura))})`);
   let registriesCache: Registries | undefined;
+  const fullWidth = Number(lua.doStringSync("return WeakAuras.doubleWidth or 2.6")) || 2.6;
+
+  // The aura the options editor works on stays registered in the VM between calls; it is loaded
+  // again only when the page sends a different document.
+  let loadedKey: string | undefined;
+  const ensureSession = (state: VMState) => {
+    const aura = toAura(state.aura);
+    const children = state.children.map(toAura);
+    const key = JSON.stringify({ aura, children });
+    if (key === loadedKey) return;
+    const r = json<{ ok: boolean; error?: string }>(
+      `__options.load(${toLuaLiteral(aura)}, ${toLuaLiteral(children as unknown as LuaValue)})`,
+    );
+    if (!r.ok) {
+      loadedKey = undefined;
+      throw new OptionEditError(r.error ?? "The addon could not load this aura into the editor");
+    }
+    loadedKey = key;
+  };
 
   return {
     ref,
@@ -161,6 +197,28 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
       const isGroup = state.children.length > 0;
       const results = auras.map((aura, i) => interpretValidation(validateOne(aura), isGroup ? ids[i] : undefined));
       return mergeValidation(results, ids);
+    },
+    options(state, request) {
+      ensureSession(state);
+      const tabs = json<OptionTab[]>("__options.tabList()");
+      const tab = request?.tab ?? tabs[0]?.key ?? "region";
+      const base = { tabs, tab, fullWidth };
+      if (tabSources === undefined) {
+        return { ...base, error: `This addon version's options window (${OPTIONS_FRAME_FILE}) no longer has the tab list the editor reads` };
+      }
+      const r = json<{ tree?: OptionNode; error?: string }>(`__options.tree(${toLuaLiteral(tab)})`);
+      return { ...base, error: r.error, tree: r.tree && normalizeOptionNode(r.tree) };
+    },
+    setOption(state, address, value) {
+      ensureSession(state);
+      const v = value === undefined || value === null ? "nil" : toLuaLiteral(value as LuaValue);
+      const r = json<{ ok: boolean; error?: string; changed?: boolean; aura?: string; warning?: string }>(
+        `__options.edit(${toLuaLiteral(address.tab)}, ${toLuaLiteral(address.path)}, ${v})`,
+      );
+      if (!r.ok || r.aura === undefined) throw new OptionEditError(r.error ?? "The edit failed");
+      const aura = toAura(JSON.parse(r.aura));
+      if (r.changed) loadedKey = JSON.stringify({ aura, children: state.children.map(toAura) });
+      return { aura, changed: r.changed === true, warning: r.warning ?? undefined };
     },
     registries() {
       registriesCache ??= json<Registries>("__extract.registries()");

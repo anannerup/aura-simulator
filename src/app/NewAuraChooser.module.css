@@ -1,0 +1,203 @@
+.chooser {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  border: 1px solid var(--border);
+  background: #0e0e0e;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 6px;
+}
+
+.heading {
+  font-family: var(--font-title);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--accent);
+  margin: 2px 0 4px;
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 46px;
+  padding: 2px;
+  border: 0;
+  background: linear-gradient(to right, #262626, #1c1c1c);
+  text-align: left;
+  cursor: pointer;
+}
+
+.entry:hover:not(:disabled) {
+  background: linear-gradient(to right, #34302a, #222);
+}
+
+.entry:disabled {
+  cursor: default;
+}
+
+.entry:disabled .name,
+.entry:disabled .description,
+.entry:disabled .thumb {
+  opacity: 0.45;
+}
+
+.thumb {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  background: #000;
+  border: 1px solid #2a2a2a;
+  overflow: hidden;
+}
+
+.thumbImg {
+  width: 40px;
+  height: 40px;
+}
+
+/* The game draws group thumbnails from coloured squares; so do we. */
+.thumbGroup {
+  position: relative;
+  width: 34px;
+  height: 34px;
+}
+
+.thumbGroup i {
+  position: absolute;
+  width: 20px;
+  height: 14px;
+}
+
+.thumbGroup i:nth-child(1) {
+  left: 0;
+  top: 2px;
+  background: #b11;
+}
+
+.thumbGroup i:nth-child(2) {
+  left: 12px;
+  top: 10px;
+  background: #1a1;
+}
+
+.thumbGroup i:nth-child(3) {
+  left: 4px;
+  top: 18px;
+  width: 26px;
+  background: #23c;
+}
+
+.thumbDynamic {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-left: 0;
+}
+
+.thumbDynamic::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #ddd;
+}
+
+.thumbDynamic i {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 6px;
+}
+
+.thumbDynamic i:nth-child(1) {
+  top: 9px;
+  background: #d11;
+}
+
+.thumbDynamic i:nth-child(2) {
+  top: 17px;
+  background: #23c;
+}
+
+.thumbBar {
+  width: 34px;
+  height: 12px;
+  background: linear-gradient(to right, #c00 60%, #222 60%);
+}
+
+.thumbText {
+  font-family: var(--font-title);
+  font-size: 12px;
+  color: #ff0;
+}
+
+.thumbEmpty {
+  width: 30px;
+  height: 30px;
+  border: 1px dashed #444;
+  border-radius: 50%;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--accent);
+}
+
+.description {
+  font-size: var(--text-sm);
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.error {
+  color: var(--danger);
+  font-size: var(--text-sm);
+  padding: 4px;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.cancel {
+  height: 22px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--accent);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}

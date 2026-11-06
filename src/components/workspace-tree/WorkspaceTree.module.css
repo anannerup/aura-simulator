@@ -5,7 +5,11 @@
   font-size: var(--text-md);
 }
 
-.toolbar,
+/* New items come from the window's New Aura button, as in game. */
+.toolbar {
+  display: none;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -61,13 +65,15 @@
   border-left: 1px solid var(--border-subtle);
 }
 
+/* Each aura as the game's list button: a dark bar, the name in white. Groups get the gold header bar. */
 .row {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 32px;
-  padding: 4px var(--space-2);
-  border-radius: var(--radius);
+  min-height: 30px;
+  margin-bottom: 2px;
+  padding: 3px var(--space-2);
+  background: linear-gradient(to right, #262626, #1a1a1a);
   cursor: pointer;
   user-select: none;
   border: 1px solid transparent;
@@ -75,7 +81,16 @@
 }
 
 .row:hover {
-  background: var(--surface-3);
+  background: linear-gradient(to right, #30302e, #222);
+}
+
+.row[aria-expanded] {
+  background: linear-gradient(to right, #3a3a3a, #262626);
+}
+
+.row[aria-expanded] .name {
+  color: var(--accent);
+  font-weight: var(--weight-semibold);
 }
 
 .row:focus-visible {
@@ -83,13 +98,14 @@
 }
 
 .selected,
-.selected:hover {
-  background: var(--accent-soft);
-  border-color: var(--accent-border);
+.selected:hover,
+.selected[aria-expanded] {
+  background: linear-gradient(to right, #3b3f8a, #23255a);
+  border-color: #8f93e6;
 }
 
 .selected .name {
-  color: var(--accent-text);
+  color: var(--text-1);
   font-weight: var(--weight-semibold);
 }
 

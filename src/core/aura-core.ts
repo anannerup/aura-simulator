@@ -5,6 +5,7 @@ import { canonicalize, isLuaTable, toLuaLiteral, type LuaObject, type LuaValue }
 import { loadInlineAddonVM, loadWorkerAddonVM, type AsyncAddonVM } from "./addon-vm/remote";
 import type { AddonVMReport, Registries } from "./addon-vm/vm";
 import type { ValidationResult } from "./addon-vm/validation";
+import type { OptionAddress, OptionEdit, OptionsTree } from "./addon-vm/options";
 
 /** One aura's table, as the addon stores it (see lua-value.ts for the JS representation). */
 export type AuraDocument = LuaObject;
@@ -53,6 +54,19 @@ export interface AuraCore {
   registries(): Promise<Registries>;
   /** Loads the full addon VM now instead of on first use. Resolves with its load report (timings). */
   loadFullAddon(): Promise<AddonVMReport>;
+  /**
+   * The in-game options window for `state.aura`: its tabs (same order and names as the game) and
+   * the requested tab's option tree (default: the first tab), built by WeakAurasOptions' own
+   * option generators and evaluated for this aura: names, values, ranges, hidden, disabled and
+   * each option's current value. Collapsible sections start the way the game starts them.
+   */
+  options(state: AuraState, request?: { tab?: string }): Promise<OptionsTree>;
+  /**
+   * Changes one option through its own set() (an execute option: runs its func(), e.g. "Add
+   * Condition", "Delete", expanding a section). Returns the aura as given plus what the edit
+   * changed. Throws OptionEditError when the addon refuses the value or the option can't run here.
+   */
+  setOption(state: AuraState, address: OptionAddress, value?: unknown): Promise<OptionEdit<AuraDocument>>;
 }
 
 export interface LoadAddonOptions {
@@ -137,6 +151,14 @@ export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAd
 
     async loadFullAddon() {
       return (await full()).report;
+    },
+
+    async options(state, request) {
+      return (await full()).options({ aura: state.aura, children: state.children }, request);
+    },
+
+    async setOption(state, address, value) {
+      return (await full()).setOption({ aura: state.aura, children: state.children }, address, value ?? null);
     },
 
     encode(state) {

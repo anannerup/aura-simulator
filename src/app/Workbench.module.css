@@ -1,22 +1,63 @@
-/* The drawer bar: which item's code this is, then the addon version. */
-.codeHeading {
-  flex: 1;
-  min-width: 0;
+/* The title bar's dark-red guide button ("Guide: learn WeakAuras" in game). */
+.guide {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 10px;
+  border: 1px solid var(--red-border);
+  background: linear-gradient(var(--red-1), var(--red-2));
+  color: var(--accent);
+  font-family: var(--font-title);
   font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.guide:hover {
+  color: var(--accent-hover);
+}
+
+.exportRow {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 0 6px;
+}
+
+.emptyOptions {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: #0e0e0e;
+  padding: var(--space-3);
+}
+
+.footerLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+}
+
+.footerLink:hover {
+  color: var(--text-1);
+}
+
+.footerSpacer {
+  flex: 1;
+}
+
+.workspace {
+  color: var(--text-3);
+  font-weight: 400;
+}
+
+.workspace code {
   color: var(--text-2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: right;
+  font-size: var(--text-xs);
 }
 
-.version {
-  white-space: nowrap;
-}
-
-@media (max-width: 1099px) {
-  .version {
-    display: none;
-  }
+.notice {
+  padding: 6px var(--space-3);
+  border: 1px solid var(--warn-border);
+  background: rgb(20 16 0 / 0.9);
+  color: var(--text-1);
+  font-size: var(--text-sm);
 }

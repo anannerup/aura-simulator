@@ -1,6 +1,7 @@
 /** Web Worker that hosts the full addon VM (see remote.ts for the page side). */
 import type { FromWorker, ToWorker } from "./remote";
-import { loadAddonVM, type AddonVM } from "./vm";
+import type { OptionAddress } from "./options";
+import { loadAddonVM, type AddonVM, type VMState } from "./vm";
 
 const scope = self as unknown as {
   postMessage(message: FromWorker): void;
@@ -33,6 +34,10 @@ async function handle(msg: Exclude<ToWorker, { type: "fetched" }>): Promise<unkn
       return loaded.validate(msg.args[0] as Parameters<AddonVM["validate"]>[0]);
     case "registries":
       return loaded.registries();
+    case "options":
+      return loaded.options(msg.args[0] as VMState, msg.args[1] as { tab?: string } | undefined);
+    case "setOption":
+      return loaded.setOption(msg.args[0] as VMState, msg.args[1] as OptionAddress, msg.args[2]);
   }
 }
 

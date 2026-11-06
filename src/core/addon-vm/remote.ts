@@ -1,5 +1,7 @@
 import type { AddonSourceFetcher } from "../addon-source";
+import type { OptionAddress, OptionEdit, OptionsTree } from "./options";
 import type { AddonVMReport, Registries, VMState } from "./vm";
+import type { LuaObject } from "../lua-value";
 import type { ValidationResult } from "./validation";
 
 /** The full addon VM seen from outside: the same calls as AddonVM, asynchronous (inline or in a Web Worker). */
@@ -8,11 +10,13 @@ export interface AsyncAddonVM {
   fillDefaults(state: VMState): Promise<VMState>;
   validate(state: VMState): Promise<ValidationResult>;
   registries(): Promise<Registries>;
+  options(state: VMState, request?: { tab?: string }): Promise<OptionsTree>;
+  setOption(state: VMState, address: OptionAddress, value: unknown): Promise<OptionEdit<LuaObject>>;
   /** Stops the VM (terminates the worker). */
   dispose(): void;
 }
 
-type Method = "fillDefaults" | "validate" | "registries";
+type Method = "fillDefaults" | "validate" | "registries" | "options" | "setOption";
 
 /** Messages between the page and the worker. */
 export type ToWorker =
@@ -37,6 +41,8 @@ export async function loadInlineAddonVM(
     fillDefaults: async (state) => vm.fillDefaults(state),
     validate: async (state) => vm.validate(state),
     registries: async () => vm.registries(),
+    options: async (state, request) => vm.options(state, request),
+    setOption: async (state, address, value) => vm.setOption(state, address, value),
     dispose() {},
   };
 }
@@ -105,6 +111,8 @@ export async function loadWorkerAddonVM(
     fillDefaults: (state) => call<VMState>("fillDefaults", state),
     validate: (state) => call<ValidationResult>("validate", state),
     registries: () => call<Registries>("registries"),
+    options: (state, request) => call<OptionsTree>("options", state, request),
+    setOption: (state, address, value) => call<OptionEdit<LuaObject>>("setOption", state, address, value),
     dispose: () => worker.terminate(),
   };
 }

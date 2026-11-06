@@ -49,9 +49,9 @@ async function iconSize(page: Page, id?: string): Promise<number> {
   return Math.round(((await icon.boundingBox())!.width * uiHeight) / screen.height);
 }
 
-/** Paste, Load/Add and the workspace file live in the top bar's Import / Export menu. */
+/** Paste and workspace-file import live behind the window's Import button. */
 async function openWorkspaceMenu(page: Page) {
-  const button = page.getByRole("button", { name: "Import / Export" });
+  const button = page.getByRole("button", { name: "Import", exact: true });
   if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
 }
 
