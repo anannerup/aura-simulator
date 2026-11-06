@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { sampleIconAura, type AuraDocument } from "@/core";
+import { OptionsEditor } from "@/components/options-editor/OptionsEditor";
 import { RawEditor } from "@/components/raw-editor/RawEditor";
 import { SpellPicker } from "@/components/spell-picker/SpellPicker";
 import { AuraPreview } from "@/render/AuraPreview";
@@ -83,6 +84,7 @@ export function Workbench() {
       <SituationControls aura={workspace.aura} situation={situation} onChange={setSituation} />
       <ValidationPanel core={core} code={workspace.code} aura={workspace.aura} childAuras={workspace.children} />
       <SpellPicker aura={workspace.aura} onAuraChange={changeAura} />
+      <OptionsEditor core={core} aura={workspace.aura} childAuras={workspace.children} onChange={changeAura} />
       <RawEditor value={workspace.aura} onChange={changeAura} />
       <section className={styles.export}>
         <div className={styles.exportHeader}>

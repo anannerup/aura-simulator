@@ -30,6 +30,9 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   `fillDefaults`/`validate`/`registries` run the whole addon in a lazily loaded second VM (`src/core/addon-vm/`,
   a Web Worker in the browser). Client answers that change validation belong in its Forever client profile
   (`profile.ts`), and every addon internal it uses in its contract (`contract.ts`).
+  The options editor (`options`/`setOption`) builds the in-game options tabs in that VM with WeakAurasOptions' own
+  generators and applies edits through each option's own `set()` (`addon-vm/options.ts`, `lua/options.ts`); its form
+  is `src/components/options-editor/`.
 - `src/render/`: hand-written renderers (React components + CSS) per region and sub-region type.
   Pure props in (aura document + situation), nothing fetched inside except textures via `src/render/textures`.
 - `src/server/`: server-only code (SQLite via built-in `node:sqlite`, wago/Wowhead sync, addon source cache).

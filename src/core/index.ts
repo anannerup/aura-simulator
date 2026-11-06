@@ -24,6 +24,8 @@ export { ADDON_CONTRACT, AddonContractError } from "./addon-vm/contract";
 export { FOREVER_CLIENT_PROFILE } from "./addon-vm/profile";
 export type { ProfileEntry } from "./addon-vm/profile";
 export type { AddonVMReport, Registries } from "./addon-vm/vm";
+export { OptionEditError } from "./addon-vm/options";
+export type { OptionAddress, OptionEdit, OptionNode, OptionPath, OptionsTree, OptionTab } from "./addon-vm/options";
 export type {
   CombatReport,
   CombatStatus,
