@@ -1,8 +1,69 @@
 .tree {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 4px;
   font-size: var(--text-md);
+}
+
+/* The list's search box (the game's edit box with a magnifier). */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid #4a4a4a;
+  border-radius: 3px;
+  background: #0c0c0c;
+  color: var(--text-3);
+}
+
+.search:focus-within {
+  border-color: var(--accent-border);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-1);
+  font-size: var(--text-sm);
+}
+
+.search input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.search input::placeholder {
+  color: var(--text-3);
+}
+
+/* "Loaded/Standby": the game's brown list header bar with gold text. */
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 22px;
+  margin-top: 4px;
+  padding: 0 6px;
+  background: linear-gradient(#4a4236, #2f2a22);
+  border: 1px solid #000;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  color: var(--accent);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.listCount {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / 0.5);
+  color: var(--text-2);
+  font-size: var(--text-xs);
+  text-align: center;
 }
 
 /* New items come from the window's New Aura button, as in game. */
@@ -13,7 +74,7 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 2px;
   align-items: center;
 }
 
@@ -51,8 +112,21 @@
 }
 
 .actions {
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--border-subtle);
+  padding-top: 4px;
+}
+
+/* The selected aura's tools: the addon's own icons on dark square buttons. */
+.actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  padding: 0;
+  background: #141414;
+}
+
+.actions .moveTo {
+  margin-left: auto;
 }
 
 .list {
@@ -60,32 +134,78 @@
 }
 
 .list .list {
-  margin-left: 14px;
-  padding-left: 6px;
-  border-left: 1px solid var(--border-subtle);
+  margin-left: 0;
 }
 
-/* Each aura as the game's list button: a dark bar, the name in white. Groups get the gold header bar. */
+/* Each aura as the game's list button: its icon, then the name on a dark bar; selected, the bar turns blue. */
 .row {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  min-height: 30px;
-  margin-bottom: 2px;
-  padding: 3px var(--space-2);
-  background: linear-gradient(to right, #262626, #1a1a1a);
+  gap: 4px;
+  min-height: 40px;
+  margin: 2px 0;
+  padding: 2px 4px 2px 3px;
+  background: transparent;
   cursor: pointer;
   user-select: none;
   border: 1px solid transparent;
-  transition: background-color var(--dur-fast) var(--ease);
 }
 
-.row:hover {
-  background: linear-gradient(to right, #30302e, #222);
+.row:hover .label {
+  border-color: #6a6a6a;
 }
 
-.row[aria-expanded] {
-  background: linear-gradient(to right, #3a3a3a, #262626);
+.row:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+/* The aura's icon, as the game's list draws it: a square thumbnail in a thin dark border. */
+.thumb {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  border: 1px solid #000;
+  outline: 1px solid #3c3c3c;
+  background: #1a1a1a;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  /* Crop the icon border off, like the game's 0.07 texture inset. */
+  transform: scale(1.14);
+}
+
+.thumb[data-group] {
+  outline-color: #8d6d2b;
+}
+
+.thumbGlyph {
+  color: var(--text-3);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid #3a3a3a;
+  border-radius: 3px;
+  background: linear-gradient(#1d1d1d, #121212);
+}
+
+.row[aria-expanded] .label {
+  background: linear-gradient(#2a261f, #191612);
 }
 
 .row[aria-expanded] .name {
@@ -97,11 +217,15 @@
   box-shadow: var(--focus-ring);
 }
 
-.selected,
-.selected:hover,
-.selected[aria-expanded] {
-  background: linear-gradient(to right, #3b3f8a, #23255a);
-  border-color: #8f93e6;
+.selected {
+  background: linear-gradient(to right, rgb(70 82 170 / 0.55), rgb(40 46 110 / 0.25));
+  border-color: rgb(143 147 230 / 0.6);
+}
+
+.selected .label,
+.selected[aria-expanded] .label {
+  border-color: #9a9a9a;
+  background: linear-gradient(#262a45, #171a2c);
 }
 
 .selected .name {
@@ -119,12 +243,6 @@
 
 .dropAfter {
   box-shadow: inset 0 -2px 0 var(--cool);
-}
-
-.kind {
-  width: 14px;
-  color: var(--text-3);
-  text-align: center;
 }
 
 .name {
@@ -154,18 +272,23 @@
 }
 
 .eye {
-  width: 22px;
-  height: 22px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
   border: none;
-  border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-3);
   cursor: pointer;
+}
+
+.eye[aria-pressed="true"] {
+  opacity: 0.5;
 }
 
 .eye:hover {
   background: var(--surface-4);
-  color: var(--text-1);
 }
 
 .moveTo {

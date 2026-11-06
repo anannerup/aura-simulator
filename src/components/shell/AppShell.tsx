@@ -57,6 +57,8 @@ export function useShell(): ShellState {
 export function AppShell(props: AppShellProps) {
   const [drawerTab, setDrawerTab] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  // Minimised, the window is only its title bar and the game screen takes the whole browser window (as in game).
+  const [minimized, setMinimized] = useState(false);
   const drawerId = useId();
   const state = useMemo<ShellState>(() => ({ drawerTab, setDrawerTab }), [drawerTab]);
   const tabs = props.drawerTabs ?? [];
@@ -83,26 +85,37 @@ export function AppShell(props: AppShellProps) {
 
   return (
     <ShellContext.Provider value={state}>
-      <div className={styles.shell}>
-        <section className={styles.window} aria-label="Musca Auras options" data-dragging={dragging} {...dropHandlers}>
+      <div className={styles.shell} data-minimized={minimized} {...dropHandlers}>
+        <section className={styles.window} aria-label="Musca Auras options" data-dragging={dragging}>
           {props.portrait && <div className={styles.portrait}>{props.portrait}</div>}
           <header className={styles.titleBar}>
             <div className={styles.title}>{props.title}</div>
-            {props.titleActions && <div className={styles.titleActions}>{props.titleActions}</div>}
-          </header>
-          <div className={styles.toolbar}>{props.toolbar}</div>
-          <div className={styles.body}>
-            <aside className={styles.list} aria-label="Auras">
-              {props.list}
-            </aside>
-            <div className={styles.options}>{props.options}</div>
-          </div>
-          {props.footer && <footer className={styles.footer}>{props.footer}</footer>}
-          {dragging && (
-            <div className={styles.dropHint} aria-hidden>
-              Drop a workspace file or a state code file to import it
+            <div className={styles.titleActions}>
+              {props.titleActions}
+              <button
+                type="button"
+                className={styles.frameButton}
+                aria-label={minimized ? "Restore window" : "Minimize window"}
+                title={minimized ? "Restore window" : "Minimize window"}
+                aria-expanded={!minimized}
+                onClick={() => setMinimized(!minimized)}
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden focusable={false}>
+                  {minimized ? <path d="M3 11 11 3M5 3h6v6" /> : <path d="M11 3 3 11M3 5v6h6" />}
+                </svg>
+              </button>
             </div>
-          )}
+          </header>
+          <div className={styles.windowBody} hidden={minimized}>
+            <div className={styles.toolbar}>{props.toolbar}</div>
+            <div className={styles.body}>
+              <aside className={styles.list} aria-label="Auras">
+                {props.list}
+              </aside>
+              <div className={styles.options}>{props.options}</div>
+            </div>
+            {props.footer && <footer className={styles.footer}>{props.footer}</footer>}
+          </div>
         </section>
 
         <main className={styles.main}>
@@ -151,6 +164,12 @@ export function AppShell(props: AppShellProps) {
             </section>
           )}
         </main>
+        {/* The whole page takes dropped files, the game screen included. */}
+        {dragging && (
+          <div className={styles.dropHint} aria-hidden>
+            Drop a workspace file or a state code file to import it
+          </div>
+        )}
       </div>
     </ShellContext.Provider>
   );

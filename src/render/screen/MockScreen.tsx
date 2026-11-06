@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { fitScale, uiParent, type UiParent } from "./geometry";
 import type { ScreenSettings } from "./settings";
 import styles from "./MockScreen.module.css";
@@ -46,10 +46,25 @@ export function MockScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, f
   }, [maxViewportHeight, fill]);
 
   const ui = uiParent(settings);
-  const fit = fitScale(settings, area);
+  // In the stage (`fill`), the zoom setting picks the size; "fill" and "actual" may overflow, and the stage scrolls.
+  const zoom = fill ? (settings.zoom ?? "fit") : "fit";
+  const fit =
+    zoom === "fill"
+      ? Math.max(area.width / settings.width, area.height / settings.height)
+      : zoom === "actual"
+        ? 1
+        : fitScale(settings, area);
   const cssPerUnit = fit * ui.pixelsPerUnit;
   const display = { width: settings.width * fit, height: settings.height * fit };
   const showBackground = settings.showBackground && !!backgroundUrl;
+
+  // Zoomed in, start at the screen's centre, where auras usually are; keep it there when the stage resizes.
+  useLayoutEffect(() => {
+    const el = container.current;
+    if (!el || !fill) return;
+    el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
+    el.scrollTop = (el.scrollHeight - el.clientHeight) / 2;
+  }, [fill, zoom, fit]);
 
   const layerStyle = {
     width: ui.width,
@@ -59,7 +74,7 @@ export function MockScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, f
   } as CSSProperties;
 
   return (
-    <div ref={container} className={fill ? `${styles.fit} ${styles.fill}` : styles.fit}>
+    <div ref={container} className={fill ? `${styles.fit} ${styles.fill}` : styles.fit} data-zoom={zoom}>
       <div
         className={styles.window}
         style={display}

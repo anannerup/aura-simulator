@@ -5,6 +5,7 @@ import { Stage, StageToolbar, ToolbarSeparator, ToolbarText } from "@/components
 import { GridIcon, IconButton, ImageIcon, Popover, SlidersIcon } from "@/components/ui";
 import type { UiParent } from "@/render/screen/geometry";
 import { MockScreen } from "@/render/screen/MockScreen";
+import type { ScreenZoom } from "@/render/screen/settings";
 import { ScreenSettingsPanel } from "./ScreenSettingsPanel";
 import { useScreenSettings } from "./screen-settings-store";
 import { useScreenshot } from "./screenshot-store";
@@ -19,6 +20,12 @@ export function useGameScreen() {
 }
 
 export type GameScreenState = ReturnType<typeof useGameScreen>;
+
+const ZOOMS: { zoom: ScreenZoom; label: string; title: string }[] = [
+  { zoom: "fit", label: "Fit", title: "Show the whole game screen" },
+  { zoom: "fill", label: "Fill", title: "Fill the stage with the game screen (scroll to see its edges)" },
+  { zoom: "actual", label: "1:1", title: "One browser pixel per game pixel" },
+];
 
 /**
  * The stage: the mock game screen as large as the centre allows, with a floating toolbar (grid, background,
@@ -67,6 +74,22 @@ export function GameScreenStage({
               onClick={() => document.getElementById(screen.fileInputId)?.click()}
             />
           )}
+          <ToolbarSeparator />
+          <div role="radiogroup" aria-label="Zoom" className={styles.zoom}>
+            {ZOOMS.map((z) => (
+              <button
+                key={z.zoom}
+                type="button"
+                role="radio"
+                aria-checked={settings.zoom === z.zoom}
+                title={z.title}
+                className={styles.zoomButton}
+                onClick={() => update({ zoom: z.zoom })}
+              >
+                {z.label}
+              </button>
+            ))}
+          </div>
           <ToolbarSeparator />
           <ToolbarText>
             {settings.width} × {settings.height}

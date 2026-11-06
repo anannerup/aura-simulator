@@ -1,5 +1,7 @@
-import type { HTMLAttributes, ReactNode } from "react";
-import { Section, type SectionProps } from "@/components/ui";
+"use client";
+
+import { useId, useState, type HTMLAttributes, type ReactNode } from "react";
+import { ChevronDownIcon } from "@/components/ui";
 import styles from "./parts.module.css";
 
 const cx = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(" ");
@@ -54,9 +56,26 @@ export function TopBarChip({ label, children, className, ...rest }: HTMLAttribut
   );
 }
 
-/** A section of the right inspector (or the left sidebar): a collapsible titled block. */
-export function InspectorSection(props: SectionProps) {
-  return <Section {...props} />;
+/**
+ * A tool block in the aura list pane (Spell, Situation, Combat check), under the auras: a collapsible header bar in
+ * the list's own header style, so it reads as part of the list and stays below the auras in weight.
+ */
+export function InspectorSection({ title, defaultOpen = true, children }: { title: ReactNode; defaultOpen?: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const bodyId = useId();
+  return (
+    <section className={styles.inspector}>
+      <h2 className={styles.inspectorHeading}>
+        <button type="button" className={styles.inspectorToggle} aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen(!open)}>
+          <ChevronDownIcon className={styles.inspectorChevron} size={12} />
+          {title}
+        </button>
+      </h2>
+      <div id={bodyId} className={styles.inspectorBody} hidden={!open}>
+        {children}
+      </div>
+    </section>
+  );
 }
 
 /** A note in a sidebar section that has nothing to show yet. */

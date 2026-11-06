@@ -100,32 +100,42 @@
     var(--surface-sunken);
 }
 
+/* The toolbar and notices float over the screen, so the screen can take the whole stage. */
 .toolbarDock {
-  position: relative;
+  position: absolute;
   z-index: 5;
-  flex: none;
+  top: var(--space-3);
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
-  padding: var(--space-3) var(--space-4) 0;
+  padding: 0 var(--space-4);
+  pointer-events: none;
+}
+
+.toolbarDock > * {
+  pointer-events: auto;
 }
 
 .banner {
-  flex: none;
+  position: absolute;
+  z-index: 5;
+  top: 64px;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
-  padding: var(--space-3) var(--space-5) 0;
+  padding: 0 var(--space-5);
+  pointer-events: none;
+}
+
+.banner > * {
+  pointer-events: auto;
 }
 
 .canvas {
   flex: 1;
   min-height: 0;
-  padding: var(--space-4) var(--space-5) var(--space-5);
-}
-
-@media (max-width: 767px) {
-  .canvas {
-    padding: var(--space-3);
-  }
 }
 
 .stageMessage {
@@ -192,4 +202,58 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ---- Tool blocks in the aura list pane ---- */
+.inspector {
+  margin-top: 6px;
+}
+
+.inspectorHeading {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.inspectorToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid #000;
+  background: linear-gradient(#2c2c2c, #1c1c1c);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-align: left;
+  cursor: pointer;
+}
+
+.inspectorToggle:hover {
+  color: var(--accent);
+}
+
+.inspectorChevron {
+  flex: none;
+  stroke-width: 2.4;
+  transform: rotate(-90deg);
+  transition: transform var(--dur) var(--ease);
+}
+
+.inspectorToggle[aria-expanded="true"] .inspectorChevron {
+  transform: none;
+}
+
+.inspectorBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 6px 2px 4px;
+  font-size: var(--text-sm);
+}
+
+.inspectorBody[hidden] {
+  display: none;
 }

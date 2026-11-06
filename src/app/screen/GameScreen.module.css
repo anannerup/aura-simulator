@@ -24,3 +24,33 @@
     display: none;
   }
 }
+
+/* Fit / Fill / 1:1: a small segmented control in the game's tab style. */
+.zoom {
+  display: inline-flex;
+}
+
+.zoomButton {
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(#1f1f1f, #121212);
+  color: var(--accent);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.zoomButton + .zoomButton {
+  border-left: 0;
+}
+
+.zoomButton:hover {
+  color: var(--accent-hover);
+}
+
+.zoomButton[aria-checked="true"] {
+  background: linear-gradient(#5a5650, #3e3b36);
+  border-color: #b9ac86;
+  color: var(--text-1);
+}
