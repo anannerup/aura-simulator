@@ -1,0 +1,17 @@
+.subText {
+  position: absolute;
+  white-space: pre;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.layer {
+  position: absolute;
+  pointer-events: none;
+}
+
+.tile {
+  position: absolute;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}

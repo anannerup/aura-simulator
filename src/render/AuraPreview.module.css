@@ -85,21 +85,26 @@
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-family: "Friz Quadrata TT", "Friz Quadrata", Georgia, serif;
   text-shadow: -1px 0 0 #000, 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000;
 }
 
-.glowHook {
+.barFrame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* The fgMask: clips the full-bar foreground texture to the filled part. */
+.barFill {
   position: absolute;
-  inset: 0;
+  overflow: hidden;
   pointer-events: none;
 }
 
-.subText {
+.barIcon {
   position: absolute;
-  white-space: pre;
-  line-height: 1;
-  pointer-events: none;
+  overflow: hidden;
+  isolation: isolate;
 }
 
 .frozen {

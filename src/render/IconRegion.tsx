@@ -1,9 +1,13 @@
+"use client";
+
 import type { CSSProperties } from "react";
-import { getField, isLuaTable, type AuraDocument, type LuaTable, type LuaValue } from "@/core";
-import { anchorFraction } from "./anchor";
+import { isLuaTable, type AuraDocument, type LuaValue } from "@/core";
 import type { AuraRenderState } from "./conditions";
 import { frozenMarkerSize } from "./conditions/forever-rules";
-import { formatSubText, formatTime } from "./text-format";
+import { useWowFont } from "./fonts";
+import { iconHost } from "./subregions/host";
+import { SubRegions } from "./subregions/SubRegions";
+import { formatTime, type TextValues } from "./text-format";
 import { useAuraIconUrl } from "./textures";
 import styles from "./AuraPreview.module.css";
 
@@ -22,9 +26,16 @@ export const css = ([r, g, b, a]: [number, number, number, number]) =>
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
+/** %-replacement inputs: each trigger's state, and the dynamic (activeTriggerMode) one as trigger 0. */
+export function textValues(state: AuraRenderState, name: string): TextValues {
+  const states = new Map<number, (typeof state.triggers)[number] | undefined>(state.triggers.map((t) => [t.index, t]));
+  states.set(0, state.dynamic);
+  return { states, name };
+}
+
 /**
  * The icon region (RegionTypes/Icon.lua): the texture with zoom, desaturation and colour, the cooldown
- * swipe, sub-region texts, the glow hook and the frozen marker.
+ * swipe, its sub-regions in draw order (texts, border, glow) and the frozen marker.
  */
 export function IconRegion({ aura, state, name, width, height }: { aura: AuraDocument; state: AuraRenderState; name: string; width: number; height: number }) {
   const p = state.properties;
@@ -51,15 +62,9 @@ export function IconRegion({ aura, state, name, width, height }: { aura: AuraDoc
   const showCooldown =
     p.cooldown !== false && !state.missing && dynamic?.remaining !== undefined && dynamic.duration > 0;
 
-  const states = new Map<number, (typeof state.triggers)[number] | undefined>(state.triggers.map((t) => [t.index, t]));
-  states.set(0, dynamic);
-
-  return (
-    <div
-      className={styles.iconFrame}
-      data-desaturated={desaturate ? "true" : "false"}
-      data-missing={state.missing ? "true" : "false"}
-    >
+  // The icon texture and the cooldown belong to the region's own frame: drawn at the subbackground position.
+  const background = (
+    <>
       <div className={styles.iconClip}>
         {/* Blizzard art comes from Wowhead's image server at runtime; next/image would proxy it. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -80,31 +85,19 @@ export function IconRegion({ aura, state, name, width, height }: { aura: AuraDoc
           size={Math.min(width, height)}
         />
       )}
-      {state.glows.map((glow) => (
-        // Glow hook (ticket 08): `glow.visible` is sub.N.glow after conditions; `glow.element` its settings.
-        // The <Glow> renderer replaces this placeholder.
-        <div key={glow.index} className={styles.glowHook} data-subregion="subglow" data-index={glow.index} data-glow={glow.visible ? "on" : "off"} />
-      ))}
-      {list(aura.subRegions).map((element, i) =>
-        isLuaTable(element) && getField(element, "type") === "subtext" ? (
-          <SubText
-            key={i}
-            element={element}
-            position={i + 1}
-            state={state}
-            text={formatSubText(element, { states, name, stackText: state.nativeStackText[i + 1] })}
-            width={width}
-            height={height}
-          />
-        ) : null,
-      )}
+    </>
+  );
+
+  return (
+    <div
+      className={styles.iconFrame}
+      data-desaturated={desaturate ? "true" : "false"}
+      data-missing={state.missing ? "true" : "false"}
+    >
+      <SubRegions aura={aura} state={state} host={iconHost(width, height)} values={textValues(state, name)} background={background} />
       {state.frozenMarker && <FrozenMarker size={frozenMarkerSize(width, height)} />}
     </div>
   );
-}
-
-function list(value: LuaValue | undefined): LuaValue[] {
-  return Array.isArray(value) ? value : [];
 }
 
 /**
@@ -123,6 +116,7 @@ export function CooldownSwipe({ remaining, duration, reverse, swipe, edge, numbe
   numbers: boolean;
   size: number;
 }) {
+  const font = useWowFont(undefined);
   const elapsed = Math.min(1, Math.max(0, 1 - remaining / duration));
   const angle = elapsed * 360;
   const dark = "rgba(0, 0, 0, 0.8)";
@@ -136,7 +130,7 @@ export function CooldownSwipe({ remaining, duration, reverse, swipe, edge, numbe
         <div className={styles.edge} style={{ transform: `rotate(${angle}deg)` }} data-testid="cooldown-edge" />
       )}
       {numbers && (
-        <span className={styles.countdown} style={{ fontSize: Math.max(10, Math.round(size * 0.4)) }} data-testid="cooldown-text">
+        <span className={styles.countdown} style={{ fontSize: Math.max(10, Math.round(size * 0.4)), fontFamily: font.family }} data-testid="cooldown-text">
           {formatTime(remaining, { format: 1, threshold: 0 })}
         </span>
       )}
@@ -144,89 +138,8 @@ export function CooldownSwipe({ remaining, duration, reverse, swipe, edge, numbe
   );
 }
 
-const FONT_FAMILIES: Record<string, string> = {
-  "Friz Quadrata TT": '"Friz Quadrata TT", "Friz Quadrata", Georgia, serif',
-  "Arial Narrow": '"Arial Narrow", Arial, sans-serif',
-  Morpheus: "Morpheus, Georgia, serif",
-  Skurri: "Skurri, Georgia, serif",
-};
-
-/**
- * A text sub-region on an icon (SubRegionTypes/SubText.lua). Anchors: INNER_ points use a box 80% of the
- * icon, OUTER_ points 110% (Icon.lua:220-241); AUTO self point per resolveSelfPoint (SubText.lua:510-537).
- */
-function SubText({ element, position, state, text, width, height }: {
-  element: LuaTable;
-  position: number;
-  state: AuraRenderState;
-  text: string;
-  width: number;
-  height: number;
-}) {
-  const p = state.properties;
-  const g = (k: string) => getField(element, k);
-  const visible = p[`sub.${position}.text_visible`] !== false;
-  const color = rgba(p[`sub.${position}.text_color`] ?? g("text_color"));
-  const alpha = num(p[`sub.${position}.text_alpha`], 1);
-  let anchor = typeof g("anchor_point") === "string" ? String(g("anchor_point")) : "CENTER";
-  let box = { left: 0, top: 0, width, height };
-  let selfPoint = typeof g("text_selfPoint") === "string" ? String(g("text_selfPoint")) : "AUTO";
-  if (anchor.startsWith("INNER_")) {
-    anchor = anchor.slice(6);
-    box = { left: 0.1 * width, top: 0.1 * height, width: 0.8 * width, height: 0.8 * height };
-    if (selfPoint === "AUTO") selfPoint = anchor;
-  } else if (anchor.startsWith("OUTER_")) {
-    anchor = anchor.slice(6);
-    box = { left: -0.05 * width, top: -0.05 * height, width: 1.1 * width, height: 1.1 * height };
-    if (selfPoint === "AUTO") selfPoint = INVERSE_POINTS[anchor] ?? "CENTER";
-  } else if (selfPoint === "AUTO") selfPoint = "CENTER";
-  const [ax, ay] = anchorFraction(anchor);
-  const [sx, sy] = anchorFraction(selfPoint);
-  const x = num(g("text_anchorXOffset") ?? g("anchorXOffset"), 0);
-  const y = num(g("text_anchorYOffset") ?? g("anchorYOffset"), 0);
-  const outline = String(g("text_fontType") ?? "OUTLINE");
-  const shadow = rgba(g("text_shadowColor"), [0, 0, 0, 1]);
-  const shadows: string[] = [];
-  if (outline === "OUTLINE" || outline === "THICKOUTLINE") {
-    const w = outline === "THICKOUTLINE" ? 2 : 1;
-    for (const [dx, dy] of [[-w, 0], [w, 0], [0, -w], [0, w], [-w, -w], [w, w], [-w, w], [w, -w]]) shadows.push(`${dx}px ${dy}px 0 #000`);
-  }
-  const shx = num(g("text_shadowXOffset"), 0);
-  const shy = num(g("text_shadowYOffset"), 0);
-  if (shx !== 0 || shy !== 0) shadows.push(`${shx}px ${-shy}px 0 ${css(shadow)}`);
-  const font = String(g("text_font") ?? "Friz Quadrata TT");
-  const style: CSSProperties = {
-    left: box.left + box.width * ax + x,
-    top: box.top + box.height * ay - y,
-    transform: `translate(${-sx * 100}%, ${-sy * 100}%)`,
-    color: css(color),
-    opacity: visible ? alpha : 0,
-    fontSize: num(p[`sub.${position}.text_fontSize`] ?? g("text_fontSize"), 12),
-    fontFamily: FONT_FAMILIES[font] ?? `"${font}", ${FONT_FAMILIES["Friz Quadrata TT"]}`,
-    textShadow: shadows.join(", ") || undefined,
-    textAlign: (String(g("text_justify") ?? "CENTER").toLowerCase() as CSSProperties["textAlign"]) ?? "center",
-  };
-  return (
-    <span className={styles.subText} style={style} data-subregion="subtext" data-index={position} data-visible={visible ? "true" : "false"}>
-      {text}
-    </span>
-  );
-}
-
-const INVERSE_POINTS: Record<string, string> = {
-  TOPLEFT: "BOTTOMRIGHT",
-  TOP: "BOTTOM",
-  TOPRIGHT: "BOTTOMLEFT",
-  LEFT: "RIGHT",
-  CENTER: "CENTER",
-  RIGHT: "LEFT",
-  BOTTOMLEFT: "TOPRIGHT",
-  BOTTOM: "TOP",
-  BOTTOMRIGHT: "TOPLEFT",
-};
-
 /** FrozenMarker.lua:30-38: a padlock at the region's top right, offset (2, 2). */
-function FrozenMarker({ size }: { size: number }) {
+export function FrozenMarker({ size }: { size: number }) {
   return (
     <svg className={styles.frozen} width={size} height={size} viewBox="0 0 16 16" style={{ right: -2, top: -2 }} data-testid="frozen-marker" aria-label="Frozen value">
       <path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2" fill="none" stroke="#d9b45a" strokeWidth="1.8" />

@@ -39,24 +39,32 @@ export interface TextValues {
 export function formatSubText(element: LuaTable, values: TextValues): string {
   const text = getField(element, "text_text");
   if (typeof text !== "string") return "";
-  const num = (key: string) => {
-    const v = getField(element, key);
+  return formatText(text, (key) => {
+    const v = getField(element, `text_text_format_${key}`);
     return typeof v === "number" ? v : undefined;
-  };
+  }, values);
+}
+
+/**
+ * Replaces %p, %t, %s, %n (optionally %N.p / %{p}) and %% in a text. `option(key)` reads a formatter option,
+ * e.g. `p_time_format` or `2.p_time_precision` (stored as `text_text_format_<key>` on sub-texts and
+ * `displayText_format_<key>` on the text region). Unknown symbols give "".
+ */
+export function formatText(text: string, option: (key: string) => number | undefined, values: TextValues): string {
   return text.replace(/%(?:\{(?:(\d+)\.)?([^}]*)\}|(?:(\d+)\.)?([a-zA-Z]+)|(%))/g, (_m, bTrig, bSym, trig, sym, pct) => {
     if (pct) return "%";
     const symbol: string = bSym ?? sym;
     const triggerNum = Number(bTrig ?? trig ?? 0);
     const state = values.states.get(triggerNum);
-    const prefix = `text_text_format_${triggerNum ? `${triggerNum}.` : ""}${symbol}_`;
+    const prefix = `${triggerNum ? `${triggerNum}.` : ""}${symbol}_`;
     switch (symbol) {
       case "p":
       case "t": {
         const value = symbol === "p" ? state?.remaining : state?.duration;
         return formatTime(value, {
-          format: num(`${prefix}time_format`),
-          threshold: num(`${prefix}time_dynamic_threshold`),
-          precision: num(`${prefix}time_precision`),
+          format: option(`${prefix}time_format`),
+          threshold: option(`${prefix}time_dynamic_threshold`),
+          precision: option(`${prefix}time_precision`),
         });
       }
       case "s":

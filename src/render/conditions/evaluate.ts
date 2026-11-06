@@ -24,6 +24,7 @@ import {
   HIGHLIGHT_PROPERTIES,
   compare,
 } from "./forever-rules";
+import { regionDefaults, subRegionDefaults } from "./region-defaults";
 import { triggerState, type TriggerState } from "./triggers";
 
 export interface GlowState {
@@ -61,26 +62,6 @@ export interface AuraRenderState {
   glows: GlowState[];
 }
 
-/** Region defaults (RegionTypes/Icon.lua:16-40, RegionPrototype AddAlphaToDefault). */
-const ICON_DEFAULTS: Record<string, LuaValue> = {
-  desaturate: false,
-  inverse: false,
-  color: [1, 1, 1, 1],
-  zoom: 0,
-  keepAspectRatio: false,
-  cooldown: true,
-  cooldownTextDisabled: false,
-  cooldownSwipe: true,
-  cooldownEdge: false,
-  alpha: 1,
-};
-
-/** Sub-region defaults (SubRegionTypes/SubText.lua:16-40 for icons; subglow `glow` false). */
-const SUB_DEFAULTS: Record<string, Record<string, LuaValue>> = {
-  subtext: { text_color: [1, 1, 1, 1], text_visible: true, text_fontSize: 12, text_alpha: 1 },
-  subglow: { glow: false },
-};
-
 /** Conditions.lua:504-522 GetBaseProperty, with the region defaults for unset values. */
 export function baseProperty(aura: AuraDocument, path: string): LuaValue | undefined {
   const sub = parseSubPath(path);
@@ -88,9 +69,9 @@ export function baseProperty(aura: AuraDocument, path: string): LuaValue | undef
     const element = subRegion(aura, sub.position);
     if (!element) return undefined;
     const value = getField(element, sub.key);
-    return value ?? SUB_DEFAULTS[String(getField(element, "type"))]?.[sub.key];
+    return value ?? subRegionDefaults(getField(element, "type"))[sub.key];
   }
-  return aura[path] ?? ICON_DEFAULTS[path];
+  return aura[path] ?? regionDefaults(aura.regionType)[path];
 }
 
 interface CheckContext {
@@ -235,9 +216,9 @@ export function evaluateAura(aura: AuraDocument, situation: Situation): AuraRend
   const set = (path: string, value: LuaValue) => {
     properties[path] = value;
   };
-  for (const key of Object.keys(ICON_DEFAULTS)) set(key, baseProperty(aura, key)!);
+  for (const key of Object.keys(regionDefaults(aura.regionType))) set(key, baseProperty(aura, key)!);
   list(aura.subRegions).forEach((element, i) => {
-    for (const key of Object.keys(SUB_DEFAULTS[String(field(element, "type"))] ?? {})) {
+    for (const key of Object.keys(subRegionDefaults(field(element, "type")))) {
       const value = baseProperty(aura, `sub.${i + 1}.${key}`);
       if (value !== undefined) set(`sub.${i + 1}.${key}`, value);
     }
