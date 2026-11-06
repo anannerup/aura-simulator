@@ -204,3 +204,19 @@ describe("deeper", () => {
     report("after adding", out);
   });
 });
+
+describe("Load tab lists from Forever's client data", () => {
+  test("Instance Type, Item Type Equipped and Talent offer the client's entries", async () => {
+    const tree = (await core.options(await newState("icon"), { tab: "load" })).tree!;
+    const labels = (t: OptionNode, key: string) => (walkOptions(t).find((n) => n.key === key)?.values ?? []).map(([, l]) => l);
+    expect(labels(tree, "multiselect_instance_type").length).toBeGreaterThan(5);
+    expect(labels(tree, "multiselect_itemtypeequipped")).toContain("Two-Handed Swords");
+    expect(labels(tree, "multiselect_talent").join()).toMatch(/Improved Heroic Strike/);
+    // With a single class chosen, that class's talents.
+    const base = await newState("icon");
+    const used = await core.setOption(base, { tab: "load", path: ["use_class"] }, true);
+    const mage = await core.setOption({ aura: used.aura, children: [] }, { tab: "load", path: ["class"] }, "MAGE");
+    const t2 = (await core.options({ aura: mage.aura, children: [] }, { tab: "load" })).tree!;
+    expect(labels(t2, "multiselect_talent").join()).toMatch(/Arcane Subtlety/);
+  });
+});

@@ -23,7 +23,7 @@ import {
 } from "./options";
 import { SHIM_LUA } from "./lua/shim";
 import { spellsToLua, type ClientSpell } from "./spells";
-import { PROFILE_LUA } from "./profile";
+import { CLIENT_DATA_LUA, PROFILE_LUA } from "./profile";
 import { FULL_VM_ADDONS as ADDONS, addonLoadOrder } from "./toc";
 import { interpretValidation, mergeValidation, type RawValidation, type ValidationResult } from "./validation";
 
@@ -100,6 +100,7 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
   const tVm = now();
   lua.doStringSync(SHIM_LUA);
   lua.doStringSync(BRIDGE_LUA);
+  lua.doStringSync(CLIENT_DATA_LUA);
   lua.doStringSync(PROFILE_LUA);
 
   const json = <T>(expr: string): T => JSON.parse(lua.doStringSync(`return __bridge.json(${expr})`) as string) as T;
@@ -134,6 +135,7 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
   }
 
   lua.doStringSync(AURA_CORE);
+  lua.doStringSync("__profile.afterLoad()");
   lua.doStringSync(EXTRACT_LUA);
   lua.doStringSync(OPTIONS_LUA);
   const optionsAddon = plans.find((p) => p.addon === "WeakAurasOptions");
