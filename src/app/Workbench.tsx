@@ -9,6 +9,7 @@ import { AddonVersionPicker } from "./_addon/AddonVersionPicker";
 import { useAddonCore } from "./_addon/useAddonCore";
 import { GameScreen } from "./screen/GameScreen";
 import { SituationControls } from "./SituationControls";
+import { ValidationPanel } from "./validation/ValidationPanel";
 import styles from "./page.module.css";
 import { useWorkspace } from "./workspace/useWorkspace";
 import { WorkspacePanel } from "./workspace/WorkspacePanel";
@@ -62,6 +63,7 @@ export function Workbench() {
         <GameScreen>{(ui) => <AuraPreview aura={workspace.aura!} situation={situation} screen={ui} />}</GameScreen>
       </section>
       <SituationControls aura={workspace.aura} situation={situation} onChange={setSituation} />
+      <ValidationPanel core={core} code={workspace.code} aura={workspace.aura} childAuras={workspace.children} />
       <SpellPicker aura={workspace.aura} onAuraChange={changeAura} />
       <section className={styles.export}>
         <div className={styles.exportHeader}>

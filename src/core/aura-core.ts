@@ -2,6 +2,9 @@ import { Lua } from "wasmoon-lua5.1";
 import { ADDON_FILES, DEFAULT_ADDON_REF, jsDelivrFetcher, type AddonSourceFetcher } from "./addon-source";
 import { AURA_CORE, LOAD_LIBRARY, LOAD_TRANSMISSION, WOW_SHIM } from "./lua-glue";
 import { canonicalize, isLuaTable, toLuaLiteral, type LuaObject, type LuaValue } from "./lua-value";
+import { loadInlineAddonVM, loadWorkerAddonVM, type AsyncAddonVM } from "./addon-vm/remote";
+import type { AddonVMReport, Registries } from "./addon-vm/vm";
+import type { ValidationResult } from "./addon-vm/validation";
 
 /** One aura's table, as the addon stores it (see lua-value.ts for the JS representation). */
 export type AuraDocument = LuaObject;
@@ -31,6 +34,25 @@ export interface AuraCore {
   encode(state: AuraState): string;
   /** Decodes a state code with the addon's own import decoder. Throws on anything that isn't an aura. */
   decode(code: string): DecodedState;
+
+  // The calls below run the whole addon (WeakAuras + WeakAurasOptions) in a second, full Lua VM,
+  // loaded on first use (a few hundred ms; in a Web Worker in the browser). encode/decode never wait for it.
+
+  /**
+   * Fills defaults and migrates with the addon's own WeakAuras.PreAdd (Modernize, Display.Migrate,
+   * region, sub-region and data_stub defaults). Returns the canonical documents. An aura without
+   * `internalVersion` is taken to be written for this addon version.
+   */
+  fillDefaults(state: AuraState): Promise<AuraState>;
+  /**
+   * The addon's own validation and combat rules, in plain words, with a pointer to the option that
+   * causes each problem. Never throws for a bad aura: problems are in the result.
+   */
+  validate(state: AuraState): Promise<ValidationResult>;
+  /** Region/sub-region defaults and properties, trigger prototypes, Aura (Modern) registries (cached). */
+  registries(): Promise<Registries>;
+  /** Loads the full addon VM now instead of on first use. Resolves with its load report (timings). */
+  loadFullAddon(): Promise<AddonVMReport>;
 }
 
 export interface LoadAddonOptions {
@@ -38,6 +60,8 @@ export interface LoadAddonOptions {
   fetchSource?: AddonSourceFetcher;
   /** Location of liblua5.1.wasm. Default: wasmoon's own (unpkg in the browser, the package in Node). */
   wasmUri?: string;
+  /** Where the full addon VM runs. Default: "worker" where Web Workers exist (browser), else "inline". */
+  fullAddon?: "worker" | "inline";
 }
 
 const STATE_CODE_PREFIX = "!WA:2!";
@@ -82,10 +106,38 @@ export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAd
   lua.doStringSync(LOAD_TRANSMISSION);
   lua.doStringSync(AURA_CORE);
 
+  const fullAddonMode = options.fullAddon ?? (typeof window !== "undefined" && typeof Worker !== "undefined" ? "worker" : "inline");
+  let fullVM: Promise<AsyncAddonVM> | undefined;
+  const full = () => {
+    fullVM ??= (fullAddonMode === "worker" ? loadWorkerAddonVM : loadInlineAddonVM)(ref, {
+      fetchSource,
+      wasmUri: options.wasmUri,
+    });
+    // A failed load is retried on the next call.
+    fullVM.catch(() => (fullVM = undefined));
+    return fullVM;
+  };
+
   return {
     ref,
     addonVersion,
     internalVersion,
+
+    async fillDefaults(state) {
+      return (await full()).fillDefaults({ aura: state.aura, children: state.children });
+    },
+
+    async validate(state) {
+      return (await full()).validate({ aura: state.aura, children: state.children });
+    },
+
+    async registries() {
+      return (await full()).registries();
+    },
+
+    async loadFullAddon() {
+      return (await full()).report;
+    },
 
     encode(state) {
       const aura = canonicalize(state.aura);
