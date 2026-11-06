@@ -111,6 +111,18 @@ export const FOREVER_CLIENT_PROFILE: readonly ProfileEntry[] = [
     verified: false,
   },
   {
+    api: 'CreateFrame("AuraContainer", ...):AddAuraSlot(key, filter, options)',
+    answer:
+      "creates the slot's aura button (a mock Button parented to the container) and calls options.initializeFrame(button) before returning",
+    why:
+      "The Remaining Time window on an Icon (secretUseRem) takes its button from initializeFrame right after AddAuraSlot " +
+      "(SecretAuraSingleRemaining.lua AcquireSlot). The generic frame stub never called it, so every such aura warned " +
+      "'Blizzard could not create the Remaining Time display: no slot'. Synchronous initialization is inferred from the " +
+      "addon (and ElvUI's aura containers), which use the button straight after the call. AddAuraGroup stays a no-op: " +
+      "groups initialize buttons only when auras show up, and nothing in validation waits for them.",
+    verified: false,
+  },
+  {
     api: "C_Spell.GetSpellInfo / GetSpellName / GetSpellTexture, GetSpellInfo, GetSpellTexture",
     answer: "name and icon FileDataID from the spell cache's Forever spell list (spells.ts preloads the IDs the aura refers to); nil for any other spell or a name",
     why: 'Spell inputs read "1459 (Arcane Intellect)" instead of "(Unknown Spell)", and validation sees which spells exist. Names resolve only for spells the player knows in the game; the simulated player knows none.',
@@ -138,6 +150,17 @@ Enum.DurationTextBindingProperty = { RemainingDuration = 0, RemainingPercent = 1
 Enum.StatusBarRenderMode = S.stubFallback({}, "Enum.StatusBarRenderMode")
 
 S.loadedAddons.Blizzard_AuraContainer = true
+
+-- Aura container slots: one fixed aura button per key, initialized during AddAuraSlot.
+S.kindMethods.AuraContainer = {
+  AddAuraSlot = function(self, key, _filter, options)
+    local slots = rawget(self, "__auraSlots") or {}
+    rawset(self, "__auraSlots", slots)
+    local button = S.newFrame("Button", nil, self)
+    slots[key] = button
+    if type(options) == "table" and type(options.initializeFrame) == "function" then options.initializeFrame(button) end
+  end,
+}
 
 local function inCombat() return PR.combat end
 local function contextual() return Enum.SecrecyLevel.ContextuallySecret end

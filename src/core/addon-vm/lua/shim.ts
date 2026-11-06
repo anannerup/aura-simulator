@@ -469,7 +469,12 @@ local function isMethodName(k)
   return false
 end
 local childGetterSuffixes = { "Texture", "FontString", "Region", "Frame", "Button", "Bar", "FontObject", "Animation", "Font" }
+-- Methods of one widget type (S.kindMethods[kind][name]), for widgets whose methods have effects the
+-- addon checks (the profile fills these in). They win over the generic methods below.
+S.kindMethods = {}
 frameMT.__index = function(t, k)
+  local own = S.kindMethods[rawget(t, "__kind")]
+  if own and own[k] then return own[k] end
   local m = frameMethods[k]
   if m then return m end
   if type(k) ~= "string" or not isMethodName(k) then return nil end
