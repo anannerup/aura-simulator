@@ -95,7 +95,8 @@ test("a screenshot shows behind the screen, is kept locally and can be hidden", 
   await expect(background).toBeVisible();
   const screen = (await page.getByTestId("mock-screen").boundingBox())!;
   const bg = (await background.boundingBox())!;
-  expect(bg).toEqual(screen);
+  // The screenshot lies in the scaled UI layer (so additive art blends onto it): equal up to float rounding.
+  for (const key of ["x", "y", "width", "height"] as const) expect(bg[key]).toBeCloseTo(screen[key], 1);
 
   // The screenshot is 1600x900, not the window's resolution: offer to switch to it, so it maps 1:1.
   await page.getByRole("button", { name: "Use 1600 × 900" }).click();

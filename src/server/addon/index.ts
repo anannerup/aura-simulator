@@ -4,6 +4,7 @@ import { createAddonSourceCache, type AddonSourceCache } from "./source-cache";
 export * from "./source-cache";
 export * from "./refs";
 export * from "./diff";
+export { buildAddonBundle, getEncodedAddonBundle, type EncodedAddonBundle } from "./bundle";
 export type { OptionTable, OptionTables } from "./option-tables";
 export type { FetchFn, FileListing } from "./remote";
 

@@ -9,7 +9,7 @@ import { OPTIONS_LUA } from "./lua/options";
 import { OPTIONS_FRAME_FILE, OptionEditError, normalizeOptionNode, parseOptionTabs, type OptionAddress, type OptionEdit, type OptionNode, type OptionsTree, type OptionTab } from "./options";
 import { SHIM_LUA } from "./lua/shim";
 import { PROFILE_LUA } from "./profile";
-import { addonLoadOrder } from "./toc";
+import { FULL_VM_ADDONS as ADDONS, addonLoadOrder } from "./toc";
 import { interpretValidation, mergeValidation, type RawValidation, type ValidationResult } from "./validation";
 
 /** An aura and its group descendants (same shape as AuraState in aura-core.ts). */
@@ -52,7 +52,6 @@ export interface LoadAddonVMOptions {
   wasmUri?: string;
 }
 
-const ADDONS = ["WeakAuras", "WeakAurasOptions"] as const;
 const PROBE_NAMESPACES = /^(C_Secrets|C_CurveUtil|C_StringUtil|C_DurationUtil|C_NamePlate|C_UnitAuras|AuraUtil|Enum)\./;
 
 const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());

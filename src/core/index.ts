@@ -3,6 +3,8 @@ export { loadAddon } from "./aura-core";
 export type { AuraCore, AuraDocument, AuraState, DecodedState, LoadAddonOptions } from "./aura-core";
 export { ADDON_REPO, DEFAULT_ADDON_REF, jsDelivrFetcher, jsDelivrUrl } from "./addon-source";
 export type { AddonSourceFetcher } from "./addon-source";
+export { ADDON_BUNDLE_SETS, bundleFetcher, collectAddonBundle } from "./addon-bundle";
+export type { AddonBundle, AddonBundleSet } from "./addon-bundle";
 export {
   canonicalize,
   entries,
