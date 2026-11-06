@@ -1,34 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { AuraCore, AuraDocument } from "@/core";
+import { useMemo, useState } from "react";
+import { sampleIconAura, type AuraDocument } from "@/core";
 import { AuraPreview } from "@/render/AuraPreview";
 import { DEFAULT_SITUATION } from "@/render/situation";
+import { AddonVersionPicker } from "./_addon/AddonVersionPicker";
+import { useAddonCore } from "./_addon/useAddonCore";
 import styles from "./page.module.css";
-
-type Loaded = { core: AuraCore; aura: AuraDocument; code: string };
 
 /** The app shell: loads the aura core in the browser, previews the sample aura, offers its state code. */
 export function Workbench() {
-  const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const addon = useAddonCore();
+  const { core } = addon;
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { loadAddon, sampleIconAura, DEFAULT_ADDON_REF } = await import("@/core");
-      const core = await loadAddon(DEFAULT_ADDON_REF, { wasmUri: "/lua/liblua5.1.wasm" });
-      const aura = sampleIconAura(core.internalVersion);
-      const code = core.encode({ aura, children: [] });
-      if (!cancelled) setLoaded({ core, aura, code });
-    })().catch((e: unknown) => {
-      if (!cancelled) setError(e instanceof Error ? e.message : String(e));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // The current aura, re-encoded by whichever addon version is loaded.
+  const loaded = useMemo(() => {
+    if (!core) return null;
+    const aura: AuraDocument = sampleIconAura(core.internalVersion);
+    return { core, aura, code: core.encode({ aura, children: [] }) };
+  }, [core]);
 
   async function copy() {
     if (!loaded) return;
@@ -37,11 +28,12 @@ export function Workbench() {
     setTimeout(() => setCopied(false), 1500);
   }
 
-  if (error) return <p className={styles.error}>Could not load Musca Auras: {error}</p>;
-  if (!loaded) return <p className={styles.status}>Loading Musca Auras…</p>;
+  const picker = <AddonVersionPicker addon={addon} />;
+  if (!loaded) return picker;
 
   return (
     <>
+      {picker}
       <section className={styles.previewArea}>
         <AuraPreview aura={loaded.aura} situation={DEFAULT_SITUATION} />
       </section>
