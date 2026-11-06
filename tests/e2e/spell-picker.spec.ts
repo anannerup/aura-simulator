@@ -1,9 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
+import { ownWorkspacePage } from "../support/e2e-workspace";
 
 // The dev server's spell database is seeded from tests/fixtures/spells (see global-setup.ts).
 
 async function openPage(page: Page) {
-  await page.goto("/");
+  await page.goto(ownWorkspacePage("spells"));
   const icon = page.getByTestId("aura-preview").locator('[data-region-type="icon"] img');
   await expect(icon).toHaveAttribute("src", /spell_holy_magicalsentry/, { timeout: 60_000 });
   return icon;
@@ -16,7 +17,7 @@ test("search, pick with the keyboard, and the preview shows the spell's icon", a
 
   const search = page.getByRole("combobox", { name: "Search spells" });
   await search.fill("frostbolt");
-  const options = page.getByRole("option");
+  const options = page.getByRole("listbox", { name: "Spells" }).getByRole("option");
   await expect(options).toHaveCount(2);
   await expect(options.first()).toContainText("Frostbolt");
   await expect(options.first()).toContainText("116");
@@ -40,7 +41,7 @@ test("hovering a result shows its Wowhead tooltip; clicking picks it", async ({ 
   const icon = await openPage(page);
   const search = page.getByRole("combobox", { name: "Search spells" });
   await search.fill("arcane");
-  const brilliance = page.getByRole("option", { name: /Arcane Brilliance/ });
+  const brilliance = page.getByRole("listbox", { name: "Spells" }).getByRole("option", { name: /Arcane Brilliance/ });
   await brilliance.hover();
   await expect(page.getByTestId("spell-tooltip")).toContainText("Arcane Brilliance");
   await brilliance.click();
@@ -51,7 +52,7 @@ test("a flagged spell shows a warning with an explanation", async ({ page }) => 
   await openPage(page);
   const search = page.getByRole("combobox", { name: "Search spells" });
   await search.fill("word of recall");
-  await page.getByRole("option", { name: /Word of Recall/ }).click();
+  await page.getByRole("listbox", { name: "Spells" }).getByRole("option", { name: /Word of Recall/ }).click();
   const flag = page.getByTestId("current-spell").locator('[data-flag="icon-mismatch"]');
   await expect(flag).toHaveText("Icon differs");
   await expect(flag).toHaveAttribute("title", /different icons/);
@@ -61,7 +62,7 @@ test("a spell ID can be entered by hand; an unknown one is flagged and falls bac
   const icon = await openPage(page);
   const search = page.getByRole("combobox", { name: "Search spells" });
   await search.fill("99999999");
-  await expect(page.getByRole("option").first()).toHaveText(/Use spell ID 99999999/);
+  await expect(page.getByRole("listbox", { name: "Spells" }).getByRole("option").first()).toHaveText(/Use spell ID 99999999/);
   await search.press("Enter");
   await expect(page.getByTestId("current-spell")).toContainText("ID 99999999");
   await expect(page.getByTestId("current-spell").locator('[data-flag="unknown"]')).toBeVisible();

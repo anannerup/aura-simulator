@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { ownWorkspacePage } from "../support/e2e-workspace";
 
 /** The window box, the icon box and the icon's size as a fraction of the window height. */
 async function measure(page: Page) {
@@ -39,7 +40,7 @@ async function screenshotPng(page: Page, width: number, height: number) {
 
 test("resolution and UI scale resize and move the aura like the game", async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 1000 });
-  await page.goto("/");
+  await page.goto(ownWorkspacePage("screen"));
   await expect(page.getByTestId("aura-preview")).toBeVisible({ timeout: 60_000 });
 
   // Defaults from the user's game: 2560x1440 with ElvUI's UI scale 0.6 → UIParent is 768/0.6 = 1280 units high.
@@ -85,7 +86,7 @@ test("resolution and UI scale resize and move the aura like the game", async ({ 
 });
 
 test("a screenshot shows behind the screen, is kept locally and can be hidden", async ({ page }) => {
-  await page.goto("/");
+  await page.goto(ownWorkspacePage("screen"));
   await expect(page.getByTestId("aura-preview")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByTestId("screen-background")).toHaveCount(0);
 

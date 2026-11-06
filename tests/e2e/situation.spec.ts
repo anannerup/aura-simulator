@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { ownWorkspacePage } from "../support/e2e-workspace";
 
 const trigger = (page: Page, n = 1) => page.getByRole("group", { name: new RegExp(`^Trigger ${n}:`) });
 const region = (page: Page) => page.getByTestId("aura-preview").locator("[data-region-type]");
@@ -89,7 +90,7 @@ test("a condition Aura (Modern) does not allow is reported and never applies", a
 });
 
 test("the main page's situation controls drive the sample aura", async ({ page }) => {
-  await page.goto("/");
+  await page.goto(ownWorkspacePage("situation"));
   await expect(region(page)).toBeVisible({ timeout: 60_000 });
   await trigger(page).getByLabel("Aura present").uncheck();
   await expect(region(page)).toHaveCount(0);

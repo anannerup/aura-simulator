@@ -39,11 +39,19 @@ async function encode(request: APIRequestContext, aura: object): Promise<string>
   return (await res.json()).code as string;
 }
 
+/** The previewed icon's width in UI units: the mock screen scales UIParent to the browser (as in smoke.spec.ts). */
 async function iconSize(page: Page): Promise<number> {
-  const icon = page.getByTestId("aura-preview").locator('[data-region-type="icon"] img');
+  const preview = page.getByTestId("aura-preview");
+  const icon = preview.locator('[data-region-type="icon"] img');
   await expect(icon).toBeVisible({ timeout: 60_000 });
-  return Math.round((await icon.boundingBox())!.width);
+  const screenBox = (await preview.boundingBox())!;
+  const iconBox = (await icon.boundingBox())!;
+  const uiHeight = Number(await page.getByTestId("mock-screen").getAttribute("data-ui-height"));
+  return Math.round((iconBox.width * uiHeight) / screenBox.height);
 }
+
+/** The workspace panel's Load button (the addon version picker has one too). */
+const loadCode = (page: Page) => page.getByRole("region", { name: "Workspace" }).getByRole("button", { name: "Load" });
 
 async function expectIconSize(page: Page, size: number) {
   await expect.poll(() => iconSize(page), { timeout: 60_000 }).toBe(size);
@@ -58,14 +66,14 @@ test("paste a state code, reload, and the same aura comes back; bad codes change
   await expect(page.getByTestId("workspace-id")).toHaveText(workspace);
 
   await page.getByLabel("Paste a code to load").fill(code);
-  await page.getByRole("button", { name: "Load" }).click();
+  await loadCode(page).click();
   await expectIconSize(page, 40);
   await expect(page.getByLabel("State code")).toHaveValue(code);
   await expect(page).toHaveURL(new RegExp(`\\?w=${workspace}&code=!WA:2!`));
   expect(new URL(page.url()).searchParams.get("code")).toBe(code);
 
   await page.getByLabel("Paste a code to load").fill("!WA:2!garbage");
-  await page.getByRole("button", { name: "Load" }).click();
+  await loadCode(page).click();
   await expect(page.getByText("Could not load that state code")).toBeVisible();
   await expect(page.getByLabel("State code")).toHaveValue(code);
   await expect(page.getByLabel("Paste a code to load")).toHaveValue("!WA:2!garbage");
@@ -114,7 +122,7 @@ test("a code too long for the address becomes a short link that restores it exac
   await page.goto(`/?w=${uniqueId("long")}`);
   await expectIconSize(page, 64);
   await page.getByLabel("Paste a code to load").fill(code);
-  await page.getByRole("button", { name: "Load" }).click();
+  await loadCode(page).click();
   await expectIconSize(page, 44);
   await expect.poll(() => new URL(page.url()).searchParams.get("s")).toMatch(/^[A-Za-z0-9]{8}$/);
   const url = new URL(page.url());
