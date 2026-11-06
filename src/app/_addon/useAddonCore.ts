@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AuraCore } from "@/core";
 import {
+  fetchClientSpells,
   fetchDiff,
   fetchVersions,
   readStoredRef,
@@ -45,7 +46,7 @@ async function loadCore(ref: string): Promise<{ core: AuraCore; resolution: Reso
   const resolution = await resolveRef(ref);
   // Fetch by the immutable ref (tag or commit SHA) so every file comes from the same commit.
   const fetchSource = serverAddonFetcher(resolution?.ref ?? ref);
-  const core = await loadAddon(ref, { fetchSource, wasmUri: WASM_URI });
+  const core = await loadAddon(ref, { fetchSource, wasmUri: WASM_URI, spellInfo: fetchClientSpells });
   return { core, resolution };
 }
 

@@ -13,16 +13,48 @@ export class PushError extends Error {
   }
 }
 
-const MAX_BODY_CHARS = 2_000_000;
+/**
+ * Largest push body, in bytes. Auras can be megabytes (long custom text, big groups). Next.js puts no limit on
+ * route handler bodies while the app has no proxy (`proxy.ts`); if one is added, raise
+ * `experimental.proxyClientMaxBodySize` (10 MB by default) to match.
+ */
+export const MAX_PUSH_BYTES = 32 * 1024 * 1024;
+
+/**
+ * Reads a request body as UTF-8 text, stopping with 413 as soon as it passes `maxBytes` (checked against
+ * Content-Length first, then while streaming), so an oversized body is never buffered whole.
+ */
+export async function readBodyText(request: Request, maxBytes = MAX_PUSH_BYTES): Promise<string> {
+  const tooLarge = () => new PushError(`Body too large (over ${Math.round(maxBytes / 1024 / 1024)} MB)`, 413);
+  const declared = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > maxBytes) throw tooLarge();
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  const parts: string[] = [];
+  let bytes = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes += value.byteLength;
+    if (bytes > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw tooLarge();
+    }
+    parts.push(decoder.decode(value, { stream: true }));
+  }
+  parts.push(decoder.decode());
+  return parts.join("");
+}
 
 /**
  * Reads a push body: JSON `{code}` or `{aura, children?}`, or a bare state code as text
  * (so `curl --data-binary @aura.txt` works).
  */
 export function parsePushBody(text: string, contentType: string | null): PushInput {
-  if (text.length > MAX_BODY_CHARS) throw new PushError("Body too large", 413);
+  if (text.length > MAX_PUSH_BYTES) throw new PushError("Body too large", 413);
   const trimmed = text.trim();
-  if (!contentType?.includes("json") && trimmed.startsWith("!WA:2!")) return { code: trimmed };
+  if (!contentType?.includes("json") && trimmed.startsWith("!WA:")) return { code: trimmed };
   let body: unknown;
   try {
     body = JSON.parse(trimmed);

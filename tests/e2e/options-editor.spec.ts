@@ -63,6 +63,13 @@ test("changing the width in the Display tab resizes the preview and changes the 
   await expect(width).toHaveValue("100");
 });
 
+test("a spell ID input shows the spell's name from the spell cache, as in the game", async ({ page }) => {
+  await page.goto(`/?w=${uniqueId("opts")}`);
+  await openTab(page, "Trigger");
+  await expect(option(page, "trigger.1.secretAura.spellid1")).toContainText("Arcane Intellect", { timeout: 30_000 });
+  await expect(option(page, "trigger.1.secretAura.spellid1")).not.toContainText("Unknown Spell");
+});
+
 test("enabling Remaining Time in the Trigger tab updates the checks", async ({ page }) => {
   await page.goto(`/?w=${uniqueId("opts")}`);
   const panel = page.getByTestId("validation-panel");

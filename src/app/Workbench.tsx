@@ -41,7 +41,7 @@ export function Workbench() {
   // The window's title font (Friz Quadrata), from the game files at runtime.
   useEffect(() => ensureFont("Friz Quadrata TT"), []);
 
-  // The sample aura is only the fallback when nothing else (address, storage, server) has an aura.
+  // The sample aura is only the fallback when nothing else (browser storage, server) has an aura.
   const fallbackCode = useMemo(() => {
     if (!core) return null;
     const aura: AuraDocument = sampleIconAura(core.internalVersion);
@@ -50,7 +50,7 @@ export function Workbench() {
   const workspace = useWorkspace(core, fallbackCode);
   const importer = useImporter(workspace);
 
-  // Edits (tabs, spell picker, raw table) replace the selected item's document; address, storage and server follow.
+  // Edits (tabs, spell picker, raw table) replace the selected item's document; storage and server follow.
   const updateSelected = workspace.updateSelected;
   const changeAura = useCallback((aura: AuraDocument): LoadResult => updateSelected(aura), [updateSelected]);
   // Undo/redo over whole-workspace snapshots (tree + selection), whatever made the change: editors, tree, paste, push.
@@ -226,7 +226,21 @@ export function Workbench() {
         }
         stage={
           ready ? (
-            <GameScreenStage screen={screen} notice={workspace.notice ? <p className={styles.notice}>{workspace.notice}</p> : null}>
+            <GameScreenStage
+              screen={screen}
+              notice={
+                workspace.notice || workspace.warning ? (
+                  <>
+                    {workspace.notice && <p className={styles.notice}>{workspace.notice}</p>}
+                    {workspace.warning && (
+                      <p className={styles.notice} role="status">
+                        {workspace.warning}
+                      </p>
+                    )}
+                  </>
+                ) : null
+              }
+            >
               {(ui) => (
                 <WorkspaceStage
                   items={workspace.items}
@@ -260,6 +274,7 @@ export function Workbench() {
             content: aura ? <RawEditor value={aura} onChange={changeAura} /> : <EmptyNote>No aura selected.</EmptyNote>,
           },
         ]}
+        // The only drop handler: files dropped on the window are imported.
         onDropFiles={(files) => {
           setImportOpen(true);
           void importer.importFiles(files);
