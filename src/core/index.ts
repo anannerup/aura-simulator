@@ -11,6 +11,13 @@ export {
   keyFromString,
   keyToString,
 } from "./lua-value";
+export {
+  LuaLiteralError,
+  parseCanonicalJson,
+  parseLuaLiteral,
+  printCanonicalJson,
+  printLuaLiteral,
+} from "./lua-literal";
 export type { LuaArray, LuaKey, LuaObject, LuaTable, LuaValue } from "./lua-value";
 export { sampleIconAura } from "./samples";
 export { ADDON_CONTRACT, AddonContractError } from "./addon-vm/contract";

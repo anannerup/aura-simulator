@@ -72,3 +72,22 @@
   border: 1px solid #555;
   border-radius: 6px;
 }
+
+.history {
+  display: flex;
+  gap: 8px;
+}
+
+.history button {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid #555;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.history button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
