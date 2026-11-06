@@ -18,7 +18,9 @@ export {
   type SegmentedProps,
   type SegmentedOption,
 } from "./Form";
-export { Section, type SectionProps } from "./Section";
+export { Section, SubHeading, type SectionProps } from "./Section";
+export { Tabs, type TabSpec, type TabsProps } from "./Tabs";
+export { GameTexture, ADDON_MEDIA, type GameTextureProps } from "./GameTexture";
 export { Tooltip, type TooltipSide } from "./Tooltip";
 export { ToastProvider, useToast } from "./Toast";
 export { Popover, type PopoverProps } from "./Popover";

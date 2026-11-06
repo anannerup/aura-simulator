@@ -1,68 +1,82 @@
 /*
- * Design tokens. Every colour, size and timing in the app comes from here, so a light theme is one more block
- * (see `[data-theme="light"]` below). Components use the semantic names (`--surface-*`, `--text-*`, `--accent`),
- * never raw hex values.
+ * Design tokens. The look follows Musca Auras' in-game options window as the user sees it (ElvUI-skinned AceGUI:
+ * flat near-black panels, 1px grey borders, gold text). Every colour, size and timing comes from here, so a light
+ * theme is one more block (see `[data-theme="light"]`). Components use the semantic names, never raw hex values.
  */
 :root {
   color-scheme: dark;
 
-  /* Surfaces: near-black blue-grey, each step one level of elevation up. */
-  --surface-sunken: #07090d; /* the stage surround behind the game screen */
-  --surface-0: #0c0f15; /* app background */
-  --surface-1: #12161e; /* sidebars, top bar */
-  --surface-2: #181d27; /* inputs, cards, raised items */
-  --surface-3: #202634; /* hover */
-  --surface-4: #2a3142; /* pressed, selected */
-  --surface-overlay: rgb(14 17 24 / 0.92); /* floating toolbars, popovers */
-  --scrim: rgb(3 5 8 / 0.6);
+  /* Surfaces. */
+  --surface-sunken: #050505; /* the stage surround behind the game screen */
+  --surface-0: #0b0b0b; /* app background, panes */
+  --surface-1: #151515; /* the options window body */
+  --surface-2: #1c1c1c; /* inputs, buttons, tabs */
+  --surface-3: #262626; /* hover */
+  --surface-4: #343434; /* pressed, selected tab */
+  --surface-overlay: rgb(16 16 16 / 0.96); /* floating toolbars, popovers */
+  --scrim: rgb(0 0 0 / 0.6);
 
-  --border-subtle: #1c2230;
-  --border: #283042;
-  --border-strong: #3a4459;
+  --border-subtle: #1f1f1f;
+  --border: #353535;
+  --border-strong: #4d4d4d;
 
-  /* Text. All of these pass 4.5:1 on --surface-0 … --surface-2. */
-  --text-1: #e9edf4;
-  --text-2: #aab3c3;
-  --text-3: #8690a3;
+  /* The window frame's bronze. */
+  --frame-1: #6e5a2a;
+  --frame-2: #3b2f12;
+  --frame-hi: #a88b45;
+
+  /* Text. All pass 4.5:1 on the surfaces. */
+  --text-1: #ffffff;
+  --text-2: #d2d2d2;
+  --text-3: #9a9a9a;
   --text-on-accent: #1a1300;
 
-  /* WoW gold: primary actions, focus, the selected thing. Use sparingly. */
+  /* WoW gold (NORMAL_FONT_COLOR): headings, labels, enabled toolbar actions. */
   --accent: #ffd100;
-  --accent-hover: #ffdc3d;
-  --accent-press: #e5bb00;
-  --accent-text: #ffd84d; /* gold text on dark surfaces */
+  --accent-hover: #ffe04d;
+  --accent-press: #d9b200;
+  --accent-text: #ffd100;
+  --accent-check: #c9a400; /* a ticked checkbox */
   --accent-soft: rgb(255 209 0 / 0.1);
-  --accent-border: rgb(255 209 0 / 0.38);
+  --accent-border: rgb(255 209 0 / 0.45);
 
-  /* Cool secondary: information, links, the "game" blue of tooltips. */
-  --cool: #79b4ff;
-  --cool-soft: rgb(121 180 255 / 0.12);
-  --cool-border: rgb(121 180 255 / 0.35);
+  /* The dark red of the window's "Guide" button. */
+  --red-1: #5c0b0b;
+  --red-2: #3a0606;
+  --red-border: #8c6a2a;
 
-  --warn: #f6b048;
-  --warn-soft: rgb(246 176 72 / 0.12);
-  --warn-border: rgb(246 176 72 / 0.4);
-  --danger: #ff7a7a;
-  --danger-soft: rgb(255 122 122 / 0.12);
-  --danger-border: rgb(255 122 122 / 0.4);
-  --success: #4fd69c;
-  --success-soft: rgb(79 214 156 / 0.12);
+  /* Cool secondary (the scrollbar thumb, links). */
+  --cool: #8aa8ff;
+  --cool-soft: rgb(80 80 160 / 0.2);
+  --cool-border: rgb(110 110 200 / 0.5);
+  --scroll-thumb: #4b4b8f;
 
-  /* Type. */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --warn: #ffb100;
+  --warn-soft: rgb(255 177 0 / 0.1);
+  --warn-border: rgb(255 177 0 / 0.4);
+  --danger: #ff5a5a;
+  --danger-soft: rgb(255 70 70 / 0.12);
+  --danger-border: rgb(255 90 90 / 0.45);
+  --success: #3ce13c; /* the game's green "Fully usable in combat." */
+  --success-soft: rgb(60 225 60 / 0.1);
+
+  /* Type: PT Sans Narrow is ElvUI's default UI font; Friz Quadrata (the game's, loaded at runtime from wago.tools)
+     for titles. */
+  --font-sans: var(--font-pt-narrow), "Arial Narrow", "Liberation Sans Narrow", sans-serif;
+  --font-title: "WoW Friz Quadrata TT", "Friz Quadrata", var(--font-marcellus), Georgia, serif;
   --font-mono: var(--font-mono-face), ui-monospace, "SFMono-Regular", monospace;
-  --font-display: var(--font-cinzel), var(--font-sans);
+  --font-display: var(--font-title);
   --font-geist-sans: var(--font-sans); /* older modules still name these */
   --font-geist-mono: var(--font-mono);
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-md: 13px;
-  --text-base: 14px;
-  --text-lg: 16px;
-  --text-xl: 20px;
-  --leading: 1.45;
-  --weight-medium: 500;
-  --weight-semibold: 600;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-base: 15px;
+  --text-lg: 17px;
+  --text-xl: 22px;
+  --leading: 1.3;
+  --weight-medium: 400;
+  --weight-semibold: 700;
 
   /* 4/8px spacing scale. */
   --space-1: 4px;
@@ -73,32 +87,30 @@
   --space-6: 32px;
   --space-7: 48px;
 
-  --radius-sm: 4px;
-  --radius: 6px;
-  --radius-lg: 10px;
+  --radius-sm: 0;
+  --radius: 0;
+  --radius-lg: 2px;
   --radius-pill: 999px;
 
-  --control-h-sm: 28px;
-  --control-h: 32px;
-  --control-h-lg: 36px;
+  --control-h-sm: 24px;
+  --control-h: 26px;
+  --control-h-lg: 30px;
 
-  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
-  --shadow-2: 0 4px 12px rgb(0 0 0 / 0.35), 0 1px 2px rgb(0 0 0 / 0.4);
-  --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.5), 0 2px 6px rgb(0 0 0 / 0.4);
-  --focus-ring: 0 0 0 2px var(--surface-0), 0 0 0 4px var(--accent);
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.6);
+  --shadow-2: 0 4px 12px rgb(0 0 0 / 0.6);
+  --shadow-pop: 0 10px 30px rgb(0 0 0 / 0.75);
+  --focus-ring: 0 0 0 1px var(--surface-0), 0 0 0 2px var(--accent);
 
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-  --dur-fast: 120ms;
-  --dur: 180ms;
-  --dur-slow: 260ms;
+  --dur-fast: 100ms;
+  --dur: 160ms;
+  --dur-slow: 240ms;
 
-  /* Shell layout. */
-  --topbar-h: 52px;
-  --sidebar-w: clamp(256px, 19vw, 300px);
-  --inspector-w: clamp(288px, 22vw, 352px);
-  --drawer-bar-h: 40px;
+  /* Layout. */
+  --window-w: clamp(700px, 52vw, 1000px);
+  --list-w: clamp(220px, 32%, 320px);
+  --drawer-bar-h: 32px;
 
-  /* Kept for modules written before the tokens. */
   --background: var(--surface-0);
   --foreground: var(--text-1);
 }
@@ -106,29 +118,22 @@
 /* A light theme only needs the semantic tokens redefined; nothing sets data-theme yet. */
 :root[data-theme="light"] {
   color-scheme: light;
-  --surface-sunken: #d9dde5;
-  --surface-0: #f4f6f9;
+  --surface-sunken: #cfd3da;
+  --surface-0: #eef0f3;
   --surface-1: #ffffff;
-  --surface-2: #f0f2f6;
-  --surface-3: #e6e9ef;
-  --surface-4: #dadfe8;
-  --surface-overlay: rgb(255 255 255 / 0.94);
-  --scrim: rgb(20 24 32 / 0.35);
-  --border-subtle: #e4e7ed;
-  --border: #d3d8e1;
-  --border-strong: #b7bfcc;
-  --text-1: #141821;
-  --text-2: #444d5c;
-  --text-3: #5d6676;
-  --accent: #e0b400;
-  --accent-hover: #f0c400;
-  --accent-press: #c99f00;
+  --surface-2: #f3f4f6;
+  --surface-3: #e7e9ed;
+  --surface-4: #d9dde3;
+  --surface-overlay: rgb(255 255 255 / 0.97);
+  --border-subtle: #e2e4e8;
+  --border: #c9cdd4;
+  --border-strong: #a9afb9;
+  --text-1: #111317;
+  --text-2: #3d434d;
+  --text-3: #5b626e;
+  --accent: #b58f00;
   --accent-text: #7a5c00;
-  --cool: #1f63c6;
-  --warn: #a35d00;
-  --danger: #c4302b;
-  --success: #17804f;
-  --focus-ring: 0 0 0 2px var(--surface-0), 0 0 0 4px #b38f00;
+  --accent-check: #b58f00;
 }
 
 * {
@@ -152,13 +157,12 @@ body {
   display: flex;
   flex-direction: column;
   color: var(--text-1);
-  background: var(--surface-0);
+  background: var(--surface-sunken);
   font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font-size: var(--text-md);
   line-height: var(--leading);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: "cv11", "ss01";
 }
 
 a {
@@ -189,10 +193,10 @@ pre {
   background: rgb(255 209 0 / 0.3);
 }
 
-/* Quiet scrollbars that match the surfaces. */
+/* The game's scrollbar: a dark track and a blue-violet thumb. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-color: var(--scroll-thumb) #0f0f0f;
 }
 
 @media (prefers-reduced-motion: reduce) {

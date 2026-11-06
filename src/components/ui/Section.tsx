@@ -19,6 +19,15 @@ export interface SectionProps {
   children: ReactNode;
 }
 
+/** A centred gold sub-heading between two rules, as the game separates option groups. */
+export function SubHeading({ children }: { children: ReactNode }) {
+  return (
+    <h3 className={styles.subHeading}>
+      {children}
+    </h3>
+  );
+}
+
 /** A titled, collapsible block of a side panel. */
 export function Section({ title, icon, meta, actions, defaultOpen = true, collapsible = true, children }: SectionProps) {
   const [open, setOpen] = useState(defaultOpen);

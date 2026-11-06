@@ -2,7 +2,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  gap: 6px;
   height: var(--control-h);
   padding: 0 var(--space-3);
   border-radius: var(--radius);
@@ -16,28 +16,23 @@
   transition:
     background-color var(--dur-fast) var(--ease),
     border-color var(--dur-fast) var(--ease),
-    color var(--dur-fast) var(--ease),
-    box-shadow var(--dur-fast) var(--ease),
-    transform var(--dur-fast) var(--ease);
-}
-
-.button:active:not(:disabled) {
-  transform: translateY(0.5px);
+    color var(--dur-fast) var(--ease);
 }
 
 .button:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
+  cursor: default;
+  color: var(--text-3) !important;
+  opacity: 0.7;
 }
 
 .sm {
   height: var(--control-h-sm);
   padding: 0 var(--space-2);
   font-size: var(--text-sm);
-  gap: 6px;
 }
 
 .md {
+  height: var(--control-h);
 }
 
 .lg {
@@ -52,37 +47,32 @@
 
 .icon {
   display: inline-flex;
-  margin-left: -2px;
-}
-
-/* Gold: the one action that matters most in an area. */
-.primary {
-  background: var(--accent);
-  color: var(--text-on-accent);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), var(--shadow-1);
-}
-
-.primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-}
-
-.primary:active:not(:disabled) {
-  background: var(--accent-press);
-}
-
-.secondary {
-  background: var(--surface-2);
-  border-color: var(--border);
   color: var(--text-1);
 }
 
-.secondary:hover:not(:disabled) {
-  background: var(--surface-3);
-  border-color: var(--border-strong);
+/* The window's dark-red button with gold text ("Guide: learn WeakAuras"). */
+.primary {
+  background: linear-gradient(var(--red-1), var(--red-2));
+  border-color: var(--red-border);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.6);
 }
 
-.secondary:active:not(:disabled) {
-  background: var(--surface-4);
+.primary:hover:not(:disabled) {
+  background: linear-gradient(#781010, #4a0808);
+  color: var(--accent-hover);
+}
+
+/* ElvUI's flat button: dark fill, grey edge, gold label ("Switch to classic mode"). */
+.secondary {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--accent);
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: var(--accent-border);
+  background: var(--surface-3);
 }
 
 .ghost {
@@ -91,12 +81,24 @@
 }
 
 .ghost:hover:not(:disabled) {
+  color: var(--text-1);
   background: var(--surface-3);
+}
+
+/* The toolbar's text buttons: white icon, gold label, no box ("Undo", "New Aura", "Import"). */
+.toolbar {
+  background: transparent;
+  color: var(--accent);
+  padding: 0 var(--space-2);
+  font-size: var(--text-base);
+}
+
+.toolbar:hover:not(:disabled) {
   color: var(--text-1);
 }
 
-.ghost:active:not(:disabled) {
-  background: var(--surface-4);
+.toolbar:disabled .icon {
+  color: var(--text-3);
 }
 
 .danger {
@@ -112,6 +114,7 @@
 .iconOnly {
   width: var(--control-h);
   padding: 0;
+  color: var(--text-2);
 }
 
 .iconOnly.sm {
@@ -126,5 +129,5 @@
 .pressed:hover:not(:disabled) {
   background: var(--accent-soft);
   border-color: var(--accent-border);
-  color: var(--accent-text);
+  color: var(--accent);
 }

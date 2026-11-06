@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useId, useMemo, useState, type ReactNode } from "react";
-import { ChevronDownIcon, IconButton, PanelLeftIcon, PanelRightIcon } from "@/components/ui";
+import { createContext, useContext, useId, useMemo, useState, type DragEvent, type ReactNode } from "react";
+import { ChevronDownIcon, IconButton } from "@/components/ui";
 import styles from "./AppShell.module.css";
 
 export interface DrawerTab {
@@ -11,43 +11,38 @@ export interface DrawerTab {
 }
 
 export interface AppShellProps {
-  /** The app's name and mark, at the top left. */
-  brand: ReactNode;
-  /** The rest of the top bar (use `TopBarGroup`, `TopBarSpacer`, `TopBarDivider`). */
-  topBar: ReactNode;
-  /** Left sidebar: the workspace's auras, the spell picker. */
-  left: ReactNode;
-  /** Accessible name of the left sidebar. */
-  leftLabel?: string;
-  /** The centre: the mock game screen (use `Stage`). */
+  /** The portrait in the window's top-left corner (the logo). */
+  portrait?: ReactNode;
+  /** The title bar's centre ("Musca Auras 1.15.0"; the version picker). */
+  title: ReactNode;
+  /** The title bar's right side (the guide button). */
+  titleActions?: ReactNode;
+  /** The toolbar under the title (Undo, Redo, New Aura, Import). */
+  toolbar: ReactNode;
+  /** The window's left pane: the aura list. */
+  list: ReactNode;
+  /** The window's right pane: the option tabs, or the New Aura chooser. */
+  options: ReactNode;
+  /** The window's footer links. */
+  footer?: ReactNode;
+  /** The game screen beside the window (use `Stage`). */
   stage: ReactNode;
-  /** Right sidebar: settings and option sections (use `InspectorSection`). */
-  inspector: ReactNode;
-  inspectorLabel?: string;
-  /**
-   * Optional bottom drawer under the stage, as tabs. The tab bar is always shown; clicking a tab opens the drawer on
-   * it, clicking the open tab closes it. Every tab's content stays mounted (hidden when not shown), so editors keep
-   * their unapplied edits.
-   */
+  /** Optional tabs in a drawer under the stage. Each tab's content stays mounted (hidden when not shown). */
   drawerTabs?: DrawerTab[];
-  /** Extra things on the drawer bar (right side). */
   drawerMeta?: ReactNode;
+  /** Files dropped anywhere on the window (import). */
+  onDropFiles?: (files: File[]) => void;
 }
 
 export interface ShellState {
   /** The open drawer tab's id, or null when the drawer is closed. */
   drawerTab: string | null;
   setDrawerTab: (tab: string | null) => void;
-  /** At narrow widths the sidebars are overlays; these open and close them. */
-  leftOpen: boolean;
-  setLeftOpen: (open: boolean) => void;
-  inspectorOpen: boolean;
-  setInspectorOpen: (open: boolean) => void;
 }
 
 const ShellContext = createContext<ShellState | null>(null);
 
-/** The shell's panel state, for slot content that opens the drawer or a sidebar. */
+/** The shell's panel state, for slot content that opens the drawer. */
 export function useShell(): ShellState {
   const ctx = useContext(ShellContext);
   if (!ctx) throw new Error("useShell must be used inside <AppShell>");
@@ -55,60 +50,60 @@ export function useShell(): ShellState {
 }
 
 /**
- * The app frame: a top bar, a left sidebar, the stage in the centre with an optional tabbed drawer under it, and an
- * inspector on the right. It fills the viewport and never scrolls as a page; each region scrolls on its own.
- * Below 1100px the inspector, and below 768px the left sidebar too, become overlay drawers opened from the top bar.
+ * The app frame: Musca Auras' options window (title bar, toolbar, aura list, option tabs, footer) docked on the left,
+ * the game screen filling the rest, and an optional drawer under the screen. It fills the viewport and never scrolls
+ * as a page; each pane scrolls on its own. Below 1100px the screen sits above the window.
  */
 export function AppShell(props: AppShellProps) {
   const [drawerTab, setDrawerTab] = useState<string | null>(null);
-  const [leftOpen, setLeftOpen] = useState(false);
-  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const drawerId = useId();
-  const leftId = useId();
-  const inspectorId = useId();
-
-  const state = useMemo<ShellState>(
-    () => ({ drawerTab, setDrawerTab, leftOpen, setLeftOpen, inspectorOpen, setInspectorOpen }),
-    [drawerTab, leftOpen, inspectorOpen],
-  );
+  const state = useMemo<ShellState>(() => ({ drawerTab, setDrawerTab }), [drawerTab]);
   const tabs = props.drawerTabs ?? [];
+  const onDropFiles = props.onDropFiles;
+
+  const dropHandlers = onDropFiles
+    ? {
+        onDragOver: (e: DragEvent) => {
+          if (!e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          setDragging(true);
+        },
+        onDragLeave: (e: DragEvent) => {
+          if (e.currentTarget === e.target) setDragging(false);
+        },
+        onDrop: (e: DragEvent) => {
+          if (!e.dataTransfer.files.length) return;
+          e.preventDefault();
+          setDragging(false);
+          onDropFiles(Array.from(e.dataTransfer.files));
+        },
+      }
+    : {};
 
   return (
     <ShellContext.Provider value={state}>
-      <div className={styles.shell} data-left-open={leftOpen} data-inspector-open={inspectorOpen}>
-        <header className={styles.topBar}>
-          <span className={styles.leftToggle}>
-            <IconButton
-              label={leftOpen ? "Hide aura list" : "Show aura list"}
-              icon={<PanelLeftIcon />}
-              pressed={leftOpen}
-              aria-controls={leftId}
-              onClick={() => {
-                setLeftOpen(!leftOpen);
-                setInspectorOpen(false);
-              }}
-            />
-          </span>
-          {props.brand}
-          <div className={styles.topBarContent}>{props.topBar}</div>
-          <span className={styles.inspectorToggle}>
-            <IconButton
-              label={inspectorOpen ? "Hide inspector" : "Show inspector"}
-              icon={<PanelRightIcon />}
-              pressed={inspectorOpen}
-              aria-controls={inspectorId}
-              tooltipSide="left"
-              onClick={() => {
-                setInspectorOpen(!inspectorOpen);
-                setLeftOpen(false);
-              }}
-            />
-          </span>
-        </header>
-
-        <aside id={leftId} className={styles.left} aria-label={props.leftLabel ?? "Auras"}>
-          {props.left}
-        </aside>
+      <div className={styles.shell}>
+        <section className={styles.window} aria-label="Musca Auras options" data-dragging={dragging} {...dropHandlers}>
+          {props.portrait && <div className={styles.portrait}>{props.portrait}</div>}
+          <header className={styles.titleBar}>
+            <div className={styles.title}>{props.title}</div>
+            {props.titleActions && <div className={styles.titleActions}>{props.titleActions}</div>}
+          </header>
+          <div className={styles.toolbar}>{props.toolbar}</div>
+          <div className={styles.body}>
+            <aside className={styles.list} aria-label="Auras">
+              {props.list}
+            </aside>
+            <div className={styles.options}>{props.options}</div>
+          </div>
+          {props.footer && <footer className={styles.footer}>{props.footer}</footer>}
+          {dragging && (
+            <div className={styles.dropHint} aria-hidden>
+              Drop a workspace file or a state code file to import it
+            </div>
+          )}
+        </section>
 
         <main className={styles.main}>
           <div className={styles.stage}>{props.stage}</div>
@@ -123,7 +118,6 @@ export function AppShell(props: AppShellProps) {
                         key={tab.id}
                         type="button"
                         role="tab"
-                        id={`${drawerId}-tab-${tab.id}`}
                         aria-selected={active}
                         aria-controls={`${drawerId}-panel-${tab.id}`}
                         className={styles.drawerTab}
@@ -134,7 +128,7 @@ export function AppShell(props: AppShellProps) {
                     );
                   })}
                 </div>
-                {props.drawerMeta && <div className={styles.drawerMeta}>{props.drawerMeta}</div>}
+                <div className={styles.drawerMeta}>{props.drawerMeta}</div>
                 <IconButton
                   label={drawerTab === null ? "Open drawer" : "Close drawer"}
                   icon={<ChevronDownIcon className={styles.drawerChevron} />}
@@ -157,19 +151,6 @@ export function AppShell(props: AppShellProps) {
             </section>
           )}
         </main>
-
-        <aside id={inspectorId} className={styles.inspector} aria-label={props.inspectorLabel ?? "Inspector"}>
-          {props.inspector}
-        </aside>
-
-        <div
-          className={styles.scrim}
-          aria-hidden
-          onClick={() => {
-            setLeftOpen(false);
-            setInspectorOpen(false);
-          }}
-        />
       </div>
     </ShellContext.Provider>
   );

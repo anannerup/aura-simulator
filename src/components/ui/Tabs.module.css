@@ -1,0 +1,63 @@
+.tabs {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+/* Two rows like the game: six tabs, then two half-width ones. */
+.list {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px 10px;
+  padding: 0 4px 6px;
+}
+
+.tab {
+  height: 22px;
+  min-width: 0;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(#1f1f1f, #121212);
+  color: var(--accent);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.tab:hover {
+  border-color: var(--accent-border);
+}
+
+.tab[aria-selected="true"] {
+  background: linear-gradient(#5a5650, #3e3b36);
+  border-color: #b9ac86;
+  color: var(--text-1);
+}
+
+.wide {
+  grid-column: span 3;
+}
+
+.panels {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  background: #0e0e0e;
+}
+
+.panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-3);
+}
+
+.panel[hidden] {
+  display: none;
+}

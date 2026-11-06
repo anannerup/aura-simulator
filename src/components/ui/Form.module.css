@@ -1,8 +1,8 @@
-/* ---- Field: a label above (or beside) a control, with an optional hint. ---- */
+/* ---- Field: a gold label above (or beside) a control, with an optional hint. ---- */
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -15,8 +15,8 @@
 
 .label {
   font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--text-2);
+  font-weight: var(--weight-semibold);
+  color: var(--accent);
 }
 
 .hint {
@@ -24,21 +24,18 @@
   color: var(--text-3);
 }
 
-/* ---- Text-like controls share one look. ---- */
+/* ---- Text-like controls: ElvUI's flat dark box. ---- */
 .control {
   width: 100%;
   min-width: 0;
   height: var(--control-h);
-  padding: 0 10px;
-  border-radius: var(--radius);
+  padding: 0 8px;
+  border-radius: 0;
   border: 1px solid var(--border);
-  background: var(--surface-2);
+  background: #121212;
   color: var(--text-1);
   font-size: var(--text-md);
-  transition:
-    border-color var(--dur-fast) var(--ease),
-    background-color var(--dur-fast) var(--ease),
-    box-shadow var(--dur-fast) var(--ease);
+  transition: border-color var(--dur-fast) var(--ease);
 }
 
 .control::placeholder {
@@ -53,33 +50,32 @@
 .control:focus {
   outline: none;
   border-color: var(--accent-border);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: none;
 }
 
 .control:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  color: var(--text-3);
+  cursor: default;
 }
 
 .sm {
   height: var(--control-h-sm);
   font-size: var(--text-sm);
-  padding: 0 var(--space-2);
+  padding: 0 6px;
 }
 
 .mono {
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
 }
 
 .textarea {
   height: auto;
-  padding: var(--space-2) 10px;
-  line-height: 1.5;
+  padding: 6px 8px;
+  line-height: 1.45;
   resize: vertical;
 }
 
-/* Number inputs: no spinner arrows, tabular digits. */
 .control[type="number"] {
   font-variant-numeric: tabular-nums;
   -moz-appearance: textfield;
@@ -96,7 +92,7 @@
   -webkit-appearance: none;
 }
 
-/* ---- Select: native select, own chevron. ---- */
+/* ---- Select: the dark dropdown box, value on the right, gold chevron (as in game). ---- */
 .selectWrap {
   position: relative;
   display: flex;
@@ -107,30 +103,35 @@
 .select {
   appearance: none;
   padding-right: 30px;
+  text-align: right;
+  text-align-last: right;
   cursor: pointer;
+  background: #121212;
 }
 
 .select option {
-  background: var(--surface-2);
+  background: #121212;
   color: var(--text-1);
+  text-align: left;
 }
 
 .selectChevron {
   position: absolute;
-  right: 9px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--text-3);
+  color: var(--accent);
+  stroke-width: 2.6;
   pointer-events: none;
 }
 
-/* ---- Slider ---- */
+/* ---- Slider: thin dark track, gold fill, small square thumb. ---- */
 .slider {
   --fill: 50%;
   appearance: none;
   width: 100%;
   min-width: 60px;
-  height: 20px;
+  height: 18px;
   background: transparent;
   cursor: pointer;
 }
@@ -140,72 +141,57 @@
 }
 
 .slider::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: linear-gradient(to right, var(--accent) var(--fill), var(--surface-4) var(--fill));
+  height: 6px;
+  border: 1px solid var(--border);
+  background: linear-gradient(to right, var(--accent-check) var(--fill), #121212 var(--fill));
 }
 
 .slider::-moz-range-track {
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-4);
+  height: 6px;
+  border: 1px solid var(--border);
+  background: #121212;
 }
 
 .slider::-moz-range-progress {
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
+  height: 6px;
+  background: var(--accent-check);
 }
 
 .slider::-webkit-slider-thumb {
   appearance: none;
-  width: 14px;
-  height: 14px;
-  margin-top: -5px;
-  border-radius: 50%;
-  background: var(--text-1);
-  border: 2px solid var(--accent);
-  box-shadow: var(--shadow-1);
-  transition: transform var(--dur-fast) var(--ease);
+  width: 10px;
+  height: 16px;
+  margin-top: -6px;
+  border: 1px solid #000;
+  background: linear-gradient(#e8e8e8, #9a9a9a);
 }
 
 .slider::-moz-range-thumb {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--text-1);
-  border: 2px solid var(--accent);
-}
-
-.slider:hover:not(:disabled)::-webkit-slider-thumb {
-  transform: scale(1.15);
+  width: 8px;
+  height: 14px;
+  border: 1px solid #000;
+  border-radius: 0;
+  background: linear-gradient(#e8e8e8, #9a9a9a);
 }
 
 .slider:focus-visible::-webkit-slider-thumb {
   box-shadow: var(--focus-ring);
 }
 
-.slider:focus-visible::-moz-range-thumb {
-  box-shadow: var(--focus-ring);
-}
-
 .slider:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
+  cursor: default;
+  opacity: 0.45;
 }
 
-.slider:disabled::-webkit-slider-runnable-track {
-  background: var(--surface-4);
-}
-
-/* ---- Switch: a real checkbox, drawn as a switch. ---- */
+/* ---- Checkbox (named Switch for its API): ElvUI's square box, a gold square when ticked. ---- */
 .switch {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-height: var(--control-h-sm);
   cursor: pointer;
   font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
   color: var(--text-1);
   user-select: none;
 }
@@ -230,84 +216,66 @@
 .track {
   position: relative;
   flex: none;
-  width: 30px;
-  height: 18px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-4);
+  width: 16px;
+  height: 16px;
+  background: #121212;
   border: 1px solid var(--border-strong);
-  transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
 
 .thumb {
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--text-2);
-  box-shadow: var(--shadow-1);
-  transition: transform var(--dur) var(--ease), background-color var(--dur) var(--ease);
-}
-
-.switchInput:checked + .track {
-  background: var(--accent);
-  border-color: var(--accent);
+  inset: 2px;
+  background: var(--accent-check);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
 }
 
 .switchInput:checked + .track .thumb {
-  transform: translateX(12px);
-  background: var(--text-on-accent);
+  opacity: 1;
 }
 
 .switchInput:focus-visible + .track {
   box-shadow: var(--focus-ring);
 }
 
-.switch:hover .switchInput:not(:checked):not(:disabled) + .track {
-  border-color: var(--text-3);
+.switch:hover .switchInput:not(:disabled) + .track {
+  border-color: var(--accent-border);
 }
 
 .switchInput:disabled + .track {
-  opacity: 0.45;
+  opacity: 0.5;
 }
 
 .switchDisabled {
-  cursor: not-allowed;
+  cursor: default;
   color: var(--text-3);
 }
 
 /* ---- Segmented control ---- */
 .segmented {
   display: inline-flex;
-  padding: 2px;
   gap: 2px;
-  border-radius: var(--radius);
-  background: var(--surface-0);
-  border: 1px solid var(--border);
 }
 
 .segment {
   flex: 1;
-  height: calc(var(--control-h) - 6px);
+  height: var(--control-h-sm);
   padding: 0 var(--space-3);
-  border: 0;
-  border-radius: calc(var(--radius) - 2px);
-  background: transparent;
-  color: var(--text-2);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--accent);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 
 .segment:hover {
-  color: var(--text-1);
+  border-color: var(--accent-border);
 }
 
 .segment[aria-checked="true"] {
-  background: var(--surface-3);
+  background: var(--surface-4);
+  border-color: #8f8466;
   color: var(--text-1);
-  box-shadow: var(--shadow-1), inset 0 0 0 1px var(--border-strong);
 }
