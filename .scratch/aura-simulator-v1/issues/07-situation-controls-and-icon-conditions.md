@@ -4,10 +4,10 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Situation controls drive the preview
-- [ ] Cooldown swipe and %p/%s text
-- [ ] Conditions change desaturate/colour/alpha/text as the situation changes
-- [ ] In-combat switch freezes non-combat-safe auras with a padlock
-- [ ] Browser tests for each control
+- [x] Situation controls drive the preview
+- [x] Cooldown swipe and %p/%s text
+- [x] Conditions change desaturate/colour/alpha/text as the situation changes
+- [x] In-combat switch freezes non-combat-safe auras with a padlock
+- [x] Browser tests for each control

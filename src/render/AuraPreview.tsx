@@ -1,8 +1,9 @@
 import type { CSSProperties } from "react";
 import type { AuraDocument, LuaValue } from "@/core";
 import { placeRegion } from "./anchor";
+import { evaluateAura } from "./conditions";
+import { IconRegion } from "./IconRegion";
 import type { Situation } from "./situation";
-import { iconUrl } from "./textures";
 import styles from "./AuraPreview.module.css";
 
 export interface AuraPreviewProps {
@@ -26,35 +27,31 @@ export function AuraPreview({ aura, situation, screen = { width: 800, height: 45
     xOffset: num(aura.xOffset, 0),
     yOffset: num(aura.yOffset, 0),
   });
-  const regionStyle: CSSProperties = { left, top, width, height };
+  const state = evaluateAura(aura, situation);
+  const regionStyle: CSSProperties = { left, top, width, height, opacity: num(state.properties.alpha, 1) };
   const name = typeof aura.id === "string" ? aura.id : "aura";
 
   return (
     <div className={styles.screen} style={{ width: screen.width, height: screen.height }} data-testid="aura-preview">
-      {situation.active && (
-        <div className={styles.region} style={regionStyle} data-region-type={String(aura.regionType)}>
+      {state.shown && (
+        <div
+          className={styles.region}
+          style={regionStyle}
+          data-region-type={String(aura.regionType)}
+          data-frozen={state.frozenMarker ? "true" : "false"}
+        >
           {aura.regionType === "icon" ? (
-            <IconRegion aura={aura} name={name} />
+            <IconRegion aura={aura} state={state} name={name} width={width} height={height} />
           ) : (
             <div className={styles.unsupported}>{String(aura.regionType)}</div>
           )}
         </div>
       )}
+      {state.problem && (
+        <p className={styles.problem} data-testid="condition-problem">
+          Condition {state.problem.condition}: {state.problem.message}
+        </p>
+      )}
     </div>
-  );
-}
-
-function IconRegion({ aura, name }: { aura: AuraDocument; name: string }) {
-  const desaturate = aura.desaturate === true;
-  return (
-    // Blizzard art comes from Wowhead's image server at runtime; next/image would proxy it.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      className={styles.icon}
-      src={iconUrl(aura.displayIcon as number | string | undefined)}
-      alt={name}
-      style={desaturate ? { filter: "grayscale(1)" } : undefined}
-      draggable={false}
-    />
   );
 }

@@ -17,6 +17,94 @@
   user-select: none;
 }
 
+.iconFrame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.iconClip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.iconClip .icon {
+  position: absolute;
+  max-width: none;
+}
+
+/* SetVertexColor multiplies the texture colour. */
+.tint {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.cooldown {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.swipe {
+  position: absolute;
+  inset: 0;
+}
+
+.edge {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 2px;
+  height: 50%;
+  margin-left: -1px;
+  transform-origin: 50% 100%;
+  background: linear-gradient(to top, rgba(255, 250, 220, 0), rgba(255, 250, 220, 0.95));
+  box-shadow: 0 0 3px rgba(255, 240, 180, 0.9);
+}
+
+.countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: "Friz Quadrata TT", "Friz Quadrata", Georgia, serif;
+  text-shadow: -1px 0 0 #000, 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000;
+}
+
+.glowHook {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.subText {
+  position: absolute;
+  white-space: pre;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.frozen {
+  position: absolute;
+  pointer-events: none;
+}
+
+.problem {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  right: 8px;
+  margin: 0;
+  color: #f5a524;
+  font-size: 12px;
+}
+
 .unsupported {
   width: 100%;
   height: 100%;

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { AuraCore, AuraDocument } from "@/core";
 import { AuraPreview } from "@/render/AuraPreview";
 import { DEFAULT_SITUATION } from "@/render/situation";
+import { SituationControls } from "./SituationControls";
 import styles from "./page.module.css";
 
 type Loaded = { core: AuraCore; aura: AuraDocument; code: string };
@@ -13,6 +14,7 @@ export function Workbench() {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [situation, setSituation] = useState(DEFAULT_SITUATION);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,8 +45,9 @@ export function Workbench() {
   return (
     <>
       <section className={styles.previewArea}>
-        <AuraPreview aura={loaded.aura} situation={DEFAULT_SITUATION} />
+        <AuraPreview aura={loaded.aura} situation={situation} />
       </section>
+      <SituationControls aura={loaded.aura} situation={situation} onChange={setSituation} />
       <section className={styles.export}>
         <div className={styles.exportHeader}>
           <h2>State code</h2>
