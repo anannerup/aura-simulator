@@ -4,8 +4,8 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** ready-for-human (only checking the placement against an in-game screenshot is left)
 
-- [ ] Resolution and UI scale settings
-- [ ] Anchors (self point, anchor point, offsets) placed like the game
-- [ ] Screenshot background upload, kept locally
+- [x] Resolution and UI scale settings
+- [x] Anchors (self point, anchor point, offsets) placed like the game
+- [x] Screenshot background upload, kept locally

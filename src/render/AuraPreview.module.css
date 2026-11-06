@@ -1,8 +1,20 @@
 .screen {
   position: relative;
-  overflow: hidden;
-  background: radial-gradient(ellipse at center, #2a3340 0%, #12161c 100%);
-  box-shadow: 0 0 0 1px #333;
+}
+
+/* A frame the simulator does not draw (unit frame, nameplate, mouse...), shown where it usually is. */
+.standIn {
+  position: absolute;
+  outline: calc(1px / var(--css-per-unit, 1)) dashed rgb(255 255 255 / 0.5);
+}
+
+.standInLabel {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  white-space: nowrap;
+  color: rgb(255 255 255 / 0.7);
+  font-size: calc(11px / var(--css-per-unit, 1));
 }
 
 .region {

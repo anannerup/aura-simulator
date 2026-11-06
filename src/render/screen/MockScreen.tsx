@@ -1,0 +1,99 @@
+"use client";
+
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { fitScale, uiParent, type UiParent } from "./geometry";
+import type { ScreenSettings } from "./settings";
+import styles from "./MockScreen.module.css";
+
+export interface MockScreenProps {
+  settings: ScreenSettings;
+  /** Object URL of a screenshot drawn behind the UI, stretched over the whole window (1:1 at the same resolution). */
+  backgroundUrl?: string | null;
+  /** Largest height the screen may take, as a fraction of the browser window's height. */
+  maxViewportHeight?: number;
+  /** Draws the UI inside UIParent; everything inside is laid out in UIParent units. */
+  children: (ui: UiParent) => ReactNode;
+}
+
+/** Grid spacing in UIParent units. */
+const GRID_STEP = 50;
+
+/**
+ * The game window, scaled to fit the browser area with its aspect ratio kept. Its child layer is UIParent: sized in
+ * UI units and scaled by CSS so that one unit takes as many CSS pixels as it takes window pixels in game, times the fit.
+ */
+export function MockScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, children }: MockScreenProps) {
+  const container = useRef<HTMLDivElement>(null);
+  const [area, setArea] = useState({ width: 800, height: 600 });
+
+  useEffect(() => {
+    const el = container.current;
+    if (!el) return;
+    const measure = () =>
+      setArea({ width: el.clientWidth, height: Math.max(100, window.innerHeight * maxViewportHeight) });
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [maxViewportHeight]);
+
+  const ui = uiParent(settings);
+  const fit = fitScale(settings, area);
+  const cssPerUnit = fit * ui.pixelsPerUnit;
+  const display = { width: settings.width * fit, height: settings.height * fit };
+  const showBackground = settings.showBackground && !!backgroundUrl;
+
+  const layerStyle = {
+    width: ui.width,
+    height: ui.height,
+    transform: `scale(${cssPerUnit})`,
+    "--css-per-unit": cssPerUnit,
+  } as CSSProperties;
+
+  return (
+    <div ref={container} className={styles.fit}>
+      <div
+        className={styles.window}
+        style={display}
+        data-testid="mock-screen"
+        data-window={`${settings.width}x${settings.height}`}
+        data-ui-width={ui.width}
+        data-ui-height={ui.height}
+      >
+        {showBackground && (
+          // A local object URL; next/image can't optimise it.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className={styles.background} src={backgroundUrl} alt="Screenshot background" data-testid="screen-background" />
+        )}
+        <div className={styles.uiParent} style={layerStyle}>
+          {children(ui)}
+        </div>
+        {settings.showGrid && <Grid width={display.width} height={display.height} step={GRID_STEP * cssPerUnit} />}
+      </div>
+    </div>
+  );
+}
+
+function Grid({ width, height, step }: { width: number; height: number; step: number }) {
+  const cx = width / 2;
+  const cy = height / 2;
+  const lines: ReactNode[] = [];
+  if (step >= 4) {
+    for (let d = step; cx - d >= 0 || cy - d >= 0; d += step) {
+      for (const x of [cx - d, cx + d]) if (x >= 0 && x <= width) lines.push(<line key={`x${x}`} x1={x} x2={x} y1={0} y2={height} />);
+      for (const y of [cy - d, cy + d]) if (y >= 0 && y <= height) lines.push(<line key={`y${y}`} x1={0} x2={width} y1={y} y2={y} />);
+    }
+  }
+  return (
+    <svg className={styles.grid} width={width} height={height} data-testid="screen-grid" aria-hidden>
+      <g className={styles.gridLines}>{lines}</g>
+      <g className={styles.centreLines}>
+        <line x1={cx} x2={cx} y1={0} y2={height} />
+        <line x1={0} x2={width} y1={cy} y2={cy} />
+      </g>
+    </svg>
+  );
+}
