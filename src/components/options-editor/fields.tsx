@@ -329,6 +329,7 @@ const ICON_GLYPHS: Record<string, string> = {
   add: "+",
   template: "▤",
   sidebar: "≡",
+  browse: "…",
 };
 
 export function ExecuteField({ node, disabled, onEdit }: Omit<FieldProps, "value">) {

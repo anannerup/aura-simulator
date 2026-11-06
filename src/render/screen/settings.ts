@@ -11,7 +11,12 @@ export interface ScreenSettings {
   showGrid: boolean;
   /** Draw the uploaded screenshot behind the screen (when there is one). */
   showBackground: boolean;
+  /** How the screen is sized in the stage: all of it (fit), covering the stage (fill), or one CSS pixel per window pixel. */
+  zoom: ScreenZoom;
 }
+
+export type ScreenZoom = "fit" | "fill" | "actual";
+export const SCREEN_ZOOMS: readonly ScreenZoom[] = ["fit", "fill", "actual"];
 
 /**
  * Defaults from the user's own game: Config.wtf has `GxMaximize "1"` (a maximised window) and no resolution, and
@@ -25,6 +30,7 @@ export const DEFAULT_SCREEN_SETTINGS: ScreenSettings = {
   uiScale: 0.6,
   showGrid: false,
   showBackground: true,
+  zoom: "fill",
 };
 
 export const RESOLUTION_PRESETS: readonly { width: number; height: number }[] = [
@@ -62,5 +68,6 @@ export function sanitizeScreenSettings(input: unknown): ScreenSettings {
       typeof o.uiScale === "number" && Number.isFinite(o.uiScale) ? clamp(o.uiScale, MIN_UI_SCALE, MAX_UI_SCALE) : d.uiScale,
     showGrid: bool(o.showGrid, d.showGrid),
     showBackground: bool(o.showBackground, d.showBackground),
+    zoom: SCREEN_ZOOMS.includes(o.zoom as ScreenZoom) ? (o.zoom as ScreenZoom) : d.zoom,
   };
 }

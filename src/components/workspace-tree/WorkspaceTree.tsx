@@ -1,6 +1,9 @@
 "use client";
 
-import { useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import { useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
+import type { AuraDocument } from "@/core";
+import { ADDON_MEDIA, GameTexture, SearchIcon } from "@/components/ui";
+import { useAuraIconUrl } from "@/render/textures";
 import {
   addSubtree,
   allIds,
@@ -41,6 +44,49 @@ type Drop = { id: string; where: "before" | "after" | "inside" };
 
 const KIND_LABEL: Record<string, string> = { group: "Group", dynamicgroup: "Dynamic group" };
 
+/** Region types whose list thumbnail is their icon; the others get a glyph, as their art is not an icon. */
+const ICON_THUMB_TYPES = new Set(["icon", "aurabar"]);
+const THUMB_GLYPHS: Record<string, string> = { text: "Aa", texture: "▧", progresstexture: "◔", stopmotion: "◎", model: "☗" };
+
+/** The first aura (not group) in a subtree: a group's thumbnail shows its first child's icon, as in game. */
+function firstLeaf(node: WorkspaceNode): WorkspaceNode | null {
+  if (!node.items) return node;
+  for (const child of node.items) {
+    const leaf = firstLeaf(child);
+    if (leaf) return leaf;
+  }
+  return null;
+}
+
+function IconThumb({ aura }: { aura: AuraDocument }) {
+  const url = useAuraIconUrl(aura);
+  // A Wowhead icon URL (external image); next/image would need its host configured for no gain.
+  // eslint-disable-next-line @next/next/no-img-element
+  return url ? <img src={url} alt="" draggable={false} /> : null;
+}
+
+/** The aura list's thumbnail: the aura's icon (or its first child's, for a group), else a glyph for its type. */
+function Thumb({ node }: { node: WorkspaceNode }) {
+  const leaf = firstLeaf(node);
+  const type = String(leaf?.aura.regionType ?? "");
+  let content: ReactNode = <span className={styles.thumbGlyph}>{THUMB_GLYPHS[type] ?? "?"}</span>;
+  if (leaf && ICON_THUMB_TYPES.has(type)) content = <IconThumb aura={leaf.aura} />;
+  return (
+    <span className={styles.thumb} data-group={node.items ? true : undefined} aria-hidden>
+      {content}
+    </span>
+  );
+}
+
+/** A node matches the search when its name or a descendant's does. */
+function matches(node: WorkspaceNode, query: string): boolean {
+  if (!query) return true;
+  if (nodeId(node).toLowerCase().includes(query)) return true;
+  return (node.items ?? []).some((child) => matches(child, query));
+}
+
+const actionIcon = (name: string) => <GameTexture source={ADDON_MEDIA(name)} size={16} />;
+
 /**
  * The workspace's auras and groups as a tree, with the addon's rules: unique ids, dynamic groups hold no groups.
  * Self-contained: every edit is a pure operation from `@/workspace`, handed to `onChange`.
@@ -52,6 +98,8 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, internalV
   const renameDone = useRef<{ id: string; value: string } | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [drop, setDrop] = useState<Drop | null>(null);
+  const [query, setQuery] = useState("");
+  const search = query.trim().toLowerCase();
   const selected = selectedId ? findNode(items, selectedId) : null;
 
   function apply(edit: () => { items: WorkspaceNode[]; select: string | null }) {
@@ -154,8 +202,8 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, internalV
     else if (e.key === "Delete") remove();
   }
 
-  const renderNodes = (list: WorkspaceNode[], level: number) =>
-    list.map((node) => {
+  const renderNodes = (list: WorkspaceNode[], level: number): ReactNode[] =>
+    list.filter((node) => matches(node, search)).map((node) => {
       const id = nodeId(node);
       const isSelected = id === selectedId;
       const kind = KIND_LABEL[String(node.aura.regionType)];
@@ -173,7 +221,7 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, internalV
             data-item-id={id}
             tabIndex={isSelected ? 0 : -1}
             className={`${styles.row} ${isSelected ? styles.selected : ""} ${dropClass}`}
-            style={{ paddingLeft: 8 + (level - 1) * 16 }}
+            style={{ paddingLeft: 3 + (level - 1) * 14 }}
             draggable={!renaming}
             onDragStart={(e) => {
               setDragId(id);
@@ -190,9 +238,7 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, internalV
             onDoubleClick={() => setRenaming({ id, value: id })}
             onKeyDown={(e) => onRowKey(e, id)}
           >
-            <span className={styles.kind} aria-hidden>
-              {node.items ? (isDynamicGroupDoc(node.aura) ? "⇶" : "▣") : "◆"}
-            </span>
+            <Thumb node={node} />
             {renaming?.id === id ? (
               <input
                 className={styles.renameInput}
@@ -209,9 +255,11 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, internalV
                 onBlur={commitRename}
               />
             ) : (
-              <span className={styles.name}>{id}</span>
+              <span className={styles.label}>
+                <span className={styles.name}>{id}</span>
+                {kind && <span className={styles.badge}>{kind}</span>}
+              </span>
             )}
-            {kind && <span className={styles.badge}>{kind}</span>}
             {onToggleHidden && !node.items && (
               <button
                 type="button"
@@ -224,7 +272,7 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, internalV
                   onToggleHidden(id);
                 }}
               >
-                {hidden ? "◌" : "●"}
+                <GameTexture source={ADDON_MEDIA(hidden ? "unloaded" : "loaded")} size={14} />
               </button>
             )}
           </div>
@@ -239,6 +287,14 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, internalV
 
   return (
     <section className={styles.tree} aria-label="Workspace items">
+      <label className={styles.search}>
+        <SearchIcon size={13} aria-hidden />
+        <input type="search" placeholder="Search" aria-label="Search auras" value={query} onChange={(e) => setQuery(e.target.value)} />
+      </label>
+      <div className={styles.listHeader}>
+        <span>Loaded/Standby</span>
+        <span className={styles.listCount}>{allIds(items).size}</span>
+      </div>
       <div className={styles.toolbar}>
         <button type="button" onClick={addAura}>
           New aura
@@ -266,26 +322,27 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, internalV
       >
         {renderNodes(items, 1)}
         {items.length === 0 && <li className={styles.empty}>The workspace is empty. Add an aura or paste a state code.</li>}
+        {items.length > 0 && search && !items.some((n) => matches(n, search)) && <li className={styles.empty}>No aura matches “{query.trim()}”.</li>}
       </ul>
       {selected && (
         <div className={styles.actions} aria-label="Selected item">
-          <button type="button" onClick={() => setRenaming({ id: selectedId!, value: selectedId! })}>
-            Rename
+          <button type="button" aria-label="Rename" title="Rename (F2)" onClick={() => setRenaming({ id: selectedId!, value: selectedId! })}>
+            {actionIcon("edit")}
           </button>
-          <button type="button" onClick={() => apply(() => {
+          <button type="button" aria-label="Duplicate" title="Duplicate" onClick={() => apply(() => {
             const d = duplicateNode(items, selectedId!);
             return { items: d.items, select: d.id };
           })}>
-            Duplicate
+            {actionIcon("duplicate")}
           </button>
-          <button type="button" onClick={remove}>
-            Delete
+          <button type="button" aria-label="Delete" title="Delete" onClick={remove}>
+            {actionIcon("delete")}
           </button>
           <button type="button" aria-label="Move up" title="Move up" onClick={() => apply(() => ({ items: shiftNode(items, selectedId!, -1), select: selectedId }))}>
-            ↑
+            {actionIcon("moveup")}
           </button>
           <button type="button" aria-label="Move down" title="Move down" onClick={() => apply(() => ({ items: shiftNode(items, selectedId!, 1), select: selectedId }))}>
-            ↓
+            {actionIcon("movedown")}
           </button>
           <label className={styles.moveTo}>
             In
