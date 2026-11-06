@@ -68,12 +68,14 @@ export function MockScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, f
         data-ui-width={ui.width}
         data-ui-height={ui.height}
       >
-        {showBackground && (
-          // A local object URL; next/image can't optimise it.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className={styles.background} src={backgroundUrl} alt="Screenshot background" data-testid="screen-background" />
-        )}
+        {/* The background sits inside the UI layer so additively blended art (sparks, glows) adds onto it: the
+            layer's transform makes it an isolated group whose own backdrop would otherwise be empty. */}
         <div className={styles.uiParent} style={layerStyle}>
+          {showBackground && (
+            // A local object URL; next/image can't optimise it.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className={styles.background} src={backgroundUrl} alt="Screenshot background" data-testid="screen-background" />
+          )}
           {children(ui)}
         </div>
         {settings.showGrid && <Grid width={display.width} height={display.height} step={GRID_STEP * cssPerUnit} />}

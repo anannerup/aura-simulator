@@ -12,16 +12,16 @@ async function expectAuraRendered(page: Page) {
 }
 
 test("the newest release loads by default, through the server's addon cache", async ({ page }) => {
-  const fileRequests: string[] = [];
+  const bundleRequests: string[] = [];
   page.on("request", (r) => {
-    if (r.url().includes("/api/addon/") && r.url().includes("/file?")) fileRequests.push(r.url());
+    if (r.url().includes("/api/addon/") && r.url().includes("/bundle?")) bundleRequests.push(r.url());
   });
   await page.goto(ownWorkspacePage("addon"));
   await expect(loaded(page)).toContainText("Musca Auras v1.15.0", { timeout: 60_000 });
   await expect(loaded(page)).toContainText("WeakAuras 5.22.0 · internal version 92");
   await expect(page.getByLabel("Musca Auras version")).toHaveValue("v1.15.0");
   await expectAuraRendered(page);
-  expect(fileRequests.some((u) => u.includes("WeakAuras%2FInit.lua"))).toBe(true);
+  expect(bundleRequests.some((u) => u.includes("/api/addon/v1.15.0/bundle?set=full"))).toBe(true);
 });
 
 test("switching version reloads the core, keeps the aura and reports what changed", async ({ page }) => {

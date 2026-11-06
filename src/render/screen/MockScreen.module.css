@@ -36,6 +36,7 @@
   left: 0;
   top: 0;
   transform-origin: 0 0;
+  background: radial-gradient(ellipse at center, #2a3340 0%, #12161c 100%);
 }
 
 .grid {
