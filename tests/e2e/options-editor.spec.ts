@@ -70,11 +70,11 @@ test("a spell ID input shows the spell's name from the spell cache, as in the ga
   await expect(option(page, "trigger.1.secretAura.spellid1")).not.toContainText("Unknown Spell");
 });
 
-test("enabling Remaining Time in the Trigger tab updates the checks", async ({ page }) => {
+test("enabling Remaining Time in the Trigger tab keeps the icon fully usable in combat", async ({ page }) => {
   await page.goto(`/?w=${uniqueId("opts")}`);
   const panel = page.getByTestId("validation-panel");
   await expect(panel).toHaveAttribute("data-state", "done", { timeout: 90_000 });
-  const before = await panel.locator("li").count();
+  const before = await stateCode(page).inputValue();
 
   await openTab(page, "Trigger");
   const useRem = option(page, "trigger.1.secretAura.useRem").getByRole("checkbox");
@@ -85,8 +85,13 @@ test("enabling Remaining Time in the Trigger tab updates the checks", async ({ p
   await expect(useRem).toBeChecked();
   await expect(option(page, "trigger.1.secretAura.rem").locator("input")).toBeVisible();
   await expect(raw(page)).toHaveValue(/secretUseRem = true/);
+  // The checks rerun for the new state code. Blizzard's aura container gives the Remaining Time window its slot,
+  // as in the game: no "could not create the Remaining Time display" warning.
+  await expect(stateCode(page)).not.toHaveValue(before);
   await expect(panel).toHaveAttribute("data-state", "done", { timeout: 30_000 });
-  await expect.poll(() => panel.locator("li").count(), { timeout: 30_000 }).not.toBe(before);
+  await expect(panel).toHaveAttribute("data-combat-status", "ok");
+  await expect(page.getByTestId("combat-status")).toContainText("Fully usable in combat.");
+  await expect(panel).not.toContainText("Remaining Time display");
 });
 
 test("adds a glow and a condition that shows it, with the addon's own buttons", async ({ page }) => {

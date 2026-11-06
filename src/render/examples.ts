@@ -52,7 +52,24 @@ const secretTrigger = (extra: LuaObject = {}): LuaObject => ({
   ...extra,
 });
 
-/** v1 acceptance aura 1a: desaturated buff icon that glows when under 3 minutes are left. */
+/**
+ * v1 acceptance aura 1a: the buff's icon, shown only while under 3 minutes are left. The trigger's own Remaining Time
+ * window (`secretUseRem`, icons only) does the hiding; the `%p` text turns red under 10 seconds.
+ */
+export const buffUnderThreeMinutes: AuraDocument = {
+  ...ICON_BASE,
+  id: "Arcane Intellect under 3 min",
+  subRegions: [durationText()],
+  triggers: {
+    "[1]": { trigger: secretTrigger({ secretUseRem: true, secretRemOperator: "<", secretRem: 180 }), untrigger: {} },
+    activeTriggerMode: -10,
+  },
+  conditions: [
+    { check: { trigger: 1, variable: "faAuraRemaining", op: "<", value: 10 }, changes: [{ property: "sub.1.text_color", value: [1, 0, 0, 1] }] },
+  ],
+};
+
+/** v1 acceptance aura 1a, alternative: desaturated buff icon shown all the time, glowing when under 3 minutes are left. */
 export const buffRunningLow: AuraDocument = {
   ...ICON_BASE,
   id: "Arcane Intellect low",
@@ -290,12 +307,13 @@ export const cooldownText: AuraDocument = {
 };
 
 /**
- * v1 acceptance aura 4: a group holding the other three (four auras). The two buff auras share a spot (one shows
- * while the buff is up, the other while it is missing), the cooldown sits to the right and the bar below.
+ * v1 acceptance aura 4: a group holding the other three (four auras: 1a, 1b, 2, 3). The two buff auras share a spot (one
+ * shows while under 3 minutes are left, the other while the buff is missing), the cooldown sits to the right and the bar
+ * below.
  */
 export const v1Group: AuraState = (() => {
   const place = (aura: AuraDocument, xOffset: number, yOffset: number): AuraDocument => ({ ...aura, parent: "v1 auras", xOffset, yOffset });
-  const children = [place(buffRunningLow, 0, 0), place(buffMissing, 0, 0), place(cooldownIcon, 72, 0), place(targetDebuffBar, 36, -56)];
+  const children = [place(buffUnderThreeMinutes, 0, 0), place(buffMissing, 0, 0), place(cooldownIcon, 72, 0), place(targetDebuffBar, 36, -56)];
   return {
     aura: {
       id: "v1 auras",
@@ -525,6 +543,7 @@ export const spinningTexture: AuraDocument = {
 };
 
 export const EXAMPLES: Record<string, AuraDocument> = {
+  "buff-under-3-min": buffUnderThreeMinutes,
   "buff-running-low": buffRunningLow,
   "buff-missing": buffMissing,
   "remaining-desaturates": remainingDesaturates,

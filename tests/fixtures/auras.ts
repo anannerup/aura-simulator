@@ -33,6 +33,21 @@ export const modernGlowOk: AuraDocument = {
   ],
 };
 
+/**
+ * Combat-safe: the trigger's own Remaining Time window ("show my buff when less than 3 min is left"). The addon binds
+ * it to a Blizzard aura slot (SecretAuraSingleRemaining.lua), which needs AuraContainer:AddAuraSlot from the profile.
+ */
+export const modernRemainingWindowOk: AuraDocument = {
+  id: "Arcane Intellect under 3 min (Modern)",
+  uid: "simSample0005",
+  regionType: "icon",
+  width: 48,
+  height: 48,
+  triggers: [{ trigger: { ...modernTrigger, secretUseRem: true, secretRemOperator: "<", secretRem: "180" }, untrigger: {} }],
+  subRegions: [{ type: "subbackground" }],
+  conditions: [],
+};
+
 /** Known-bad: a remaining-time condition drives desaturate, which an Aura (Modern) condition can't do. */
 export const modernDesaturateBad: AuraDocument = {
   id: "Arcane Intellect low desat (Modern)",

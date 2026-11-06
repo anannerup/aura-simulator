@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from "vitest";
-import { AddonContractError, getField, loadAddon, type AuraCore, type AuraDocument, type AuraState } from "@/core";
+import { AddonContractError, getField, loadAddon, sampleIconAura, type AuraCore, type AuraDocument, type AuraState } from "@/core";
 import { cachedAddonFetcher } from "../../tests/support/addon-source";
-import { aura2SpellIds, modernDesaturateBad, modernGlowOk } from "../../tests/fixtures/auras";
+import { aura2SpellIds, modernDesaturateBad, modernGlowOk, modernRemainingWindowOk } from "../../tests/fixtures/auras";
 
 const REF = "v1.15.0";
 const fetchSource = cachedAddonFetcher(REF);
@@ -111,6 +111,48 @@ describe("validate", () => {
   test("never throws on a broken document", async () => {
     const result = await core.validate(single({ id: "x", regionType: "icon", triggers: { nonsense: true } }));
     expect(result.combat.status).toBeDefined();
+  });
+});
+
+describe("Aura (Modern) Remaining Time (the trigger's own window, secretUseRem)", () => {
+  const remTrigger = (aura: AuraDocument) => (aura.triggers as { trigger: AuraDocument }[])[0].trigger;
+  const withTrigger = (aura: AuraDocument, extra: AuraDocument): AuraDocument => ({
+    ...aura,
+    triggers: [{ trigger: { ...remTrigger(aura), ...extra }, untrigger: {} }],
+  });
+  const messages = (r: { errors: { message: string }[]; warnings: { message: string }[] }) =>
+    [...r.errors, ...r.warnings].map((m) => m.message);
+
+  test("an Icon shown under 3 minutes gets its Blizzard aura slot and is fully usable in combat", async () => {
+    const result = await core.validate(single(modernRemainingWindowOk));
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+    expect(result.combat).toEqual({ status: "ok", messages: ["Fully usable in combat."] });
+  });
+
+  test("every comparison binds its slot", async () => {
+    for (const op of ["<", "<=", ">", ">="]) {
+      const result = await core.validate(single(withTrigger(modernRemainingWindowOk, { secretRemOperator: op, secretRem: "180" })));
+      expect({ op, messages: messages(result) }).toEqual({ op, messages: [] });
+    }
+  });
+
+  test("enabling it in the Trigger tab of the default icon keeps it fully usable", async () => {
+    const sample = single(sampleIconAura(core.internalVersion));
+    const edit = await core.setOption(sample, { tab: "trigger", path: ["trigger.1.secretAura.useRem"] }, true);
+    const result = await core.validate(single(edit.aura));
+    expect(messages(result)).toEqual([]);
+    expect(result.combat.status).toBe("ok");
+  });
+
+  test("cases the addon doesn't support still fail with its own messages", async () => {
+    const anchored = await core.validate(single({ ...modernRemainingWindowOk, regionType: "aurabar", anchorFrameType: "UNITFRAME" }));
+    expect(anchored.combat.status).toBe("broken");
+    expect(messages(anchored)).toEqual(["Remaining Time can't anchor to unit frames or nameplates."]);
+
+    const noWindow = await core.validate(single(withTrigger(modernRemainingWindowOk, { secretRem: -1 })));
+    expect(noWindow.combat.status).toBe("broken");
+    expect(messages(noWindow)).toEqual(["Remaining Time: pick a comparison and a seconds value of 0 or more."]);
   });
 });
 

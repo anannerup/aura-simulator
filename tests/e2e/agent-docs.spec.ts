@@ -15,7 +15,7 @@ test("every worked example in the docs pushes and validates with the combat stat
     body: m[3],
   }));
   expect(blocks.map((b) => b.key)).toEqual(
-    expect.arrayContaining(["buff-running-low", "buff-missing", "cooldown-icon", "target-debuff-bar", "v1-group"]),
+    expect.arrayContaining(["buff-under-3-min", "buff-running-low", "buff-missing", "cooldown-icon", "target-debuff-bar", "v1-group"]),
   );
   for (const block of blocks) {
     const workspace = uniqueId(`docs-${block.key}`);

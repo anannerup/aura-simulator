@@ -488,7 +488,7 @@ The player can save and load the whole workspace as a JSON file; you may write o
 ## Worked examples
 
 The v1 auras, each a complete push body (the tests push these exact blocks and check the status). Buff reminder
-1a + 1b, cooldown icon 2, debuff bar 3, and group 4 holding them. Change ids, spell IDs (\`auraspellids\`,
+1a (or its alternative) + 1b, cooldown icon 2, debuff bar 3, and group 4 holding them. Change ids, spell IDs (\`auraspellids\`,
 \`spellName\`) and \`displayIcon\` for other spells.
 
 ${WORKED_EXAMPLES.map(exampleBlock).join("\n")}
