@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 import type { AuraDocument, LuaValue } from "@/core";
 import { evaluateAura, type AuraRenderState } from "./conditions";
-import { IconRegion } from "./IconRegion";
+import { anchorFraction } from "./anchor";
+import { regionType } from "./regions";
 import { placeAura, strataZIndex, uiParent, type Rect, type UiParent } from "./screen/geometry";
 import type { Situation } from "./situation";
 import styles from "./AuraPreview.module.css";
@@ -20,14 +21,18 @@ const DEFAULT_SCREEN = uiParent({ width: 1920, height: 1080, useUiScale: false, 
 
 export function AuraPreview({ aura, situation, screen = DEFAULT_SCREEN }: AuraPreviewProps) {
   const state = evaluateAura(aura, situation);
+  const type = regionType(aura.regionType);
+  const width = num(aura.width, 64);
+  const height = num(aura.height, 64);
+  // Auto-sized regions (text) are placed as a point: their selfPoint goes on the anchor and the content sizes them.
   const { rect, frame } = placeAura(
     {
       anchorFrameType: aura.anchorFrameType,
       anchorFrameFrame: aura.anchorFrameFrame,
       anchorPoint: aura.anchorPoint,
       selfPoint: aura.selfPoint,
-      width: num(aura.width, 64),
-      height: num(aura.height, 64),
+      width: type?.autoSize ? 0 : width,
+      height: type?.autoSize ? 0 : height,
       xOffset: num(aura.xOffset, 0),
       yOffset: num(aura.yOffset, 0),
     },
@@ -67,13 +72,19 @@ export interface AuraRegionProps {
 
 /** One aura's region at a given rect: the part of the preview the workspace stage repeats for every aura. */
 export function AuraRegion({ aura, rect, state, selected, onSelect }: AuraRegionProps) {
+  const type = regionType(aura.regionType);
+  const [sx, sy] = anchorFraction(aura.selfPoint);
+  const alpha = num(state.properties.alpha, 1);
   const regionStyle: CSSProperties = {
     left: rect.x,
     top: rect.y,
-    width: rect.width,
-    height: rect.height,
-    zIndex: strataZIndex(aura.frameStrata),
-    opacity: num(state.properties.alpha, 1),
+    width: type?.autoSize ? undefined : rect.width,
+    height: type?.autoSize ? undefined : rect.height,
+    transform: type?.autoSize ? `translate(${-sx * 100}%, ${-sy * 100}%)` : undefined,
+    // Only an explicit strata or alpha makes the region its own stacking context: that would isolate it, and
+    // additively blended parts (sparks, glows) would then add onto nothing instead of onto the screen.
+    zIndex: aura.frameStrata === undefined || aura.frameStrata === 1 ? undefined : strataZIndex(aura.frameStrata),
+    opacity: alpha < 1 ? alpha : undefined,
   };
   const name = typeof aura.id === "string" ? aura.id : "aura";
   return (
@@ -86,8 +97,8 @@ export function AuraRegion({ aura, rect, state, selected, onSelect }: AuraRegion
       data-frozen={state.frozenMarker ? "true" : "false"}
       onClick={onSelect}
     >
-      {aura.regionType === "icon" ? (
-        <IconRegion aura={aura} state={state} name={name} width={rect.width} height={rect.height} />
+      {type ? (
+        <type.render aura={aura} state={state} name={name} width={num(aura.width, 64)} height={num(aura.height, 64)} />
       ) : (
         <div className={styles.unsupported}>{String(aura.regionType)}</div>
       )}

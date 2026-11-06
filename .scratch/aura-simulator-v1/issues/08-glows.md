@@ -4,13 +4,13 @@
 
 **Blocked by:** 07 (standalone glow renderer can start immediately)
 
-**Status:** ready-for-agent (standalone renderer done; condition toggling and preview integration wait for 07)
+**Status:** done
 
 - [x] Each glow type renders and animates like the game (compare to LibCustomGlow source)
 - [x] Glow options (colour, lines, frequency, length, thickness, scale, offsets) honoured
 - [x] Textures fetched at runtime by FileDataID, cached, never committed
-- [ ] Conditions toggle sub.N.glow
-- [ ] Completes v1 auras 1 and 2 in the preview
+- [x] Conditions toggle sub.N.glow
+- [x] Completes v1 auras 1 and 2 in the preview
 
 ## Progress notes
 
@@ -24,7 +24,9 @@ Pixel and autocast geometry is cross-checked against the Lua itself (`tests/fixt
 - Not modelled: ButtonGlow's half alpha while the parent's `.cooldown` runs > 3 s (the glow sub-region has no
   `.cooldown`, so it never applies to WeakAuras glows); Masque skins.
 
-Remaining:
-- Conditions toggle `sub.N.glow` (and glow properties) — needs 07; `<Glow visible>` already plays the
-  button glow's fade-out (animOut) when switched off.
-- Wire into the icon / aura bar renderers and check v1 auras 1 and 2 in the preview.
+Integration (with ticket 11): `src/render/subregions/SubGlow.tsx` draws `<Glow>` for each subglow from `state.glows`
+(`sub.N.glow` after conditions; glow option properties too), in the sub-region draw order. Default glowType per parent
+(Glow.lua:12-32: Pixel on aura bars, button overlay elsewhere); bars glow on `anchor_area` (bar = whole region, icon,
+fg = filled part, bg = bar), other regions on the region. The preview region and the mock screen's UI layer avoid
+stacking contexts where they can, so ADD-blended glow parts and sparks add onto the screen (and its screenshot) instead
+of onto nothing; an aura with its own strata or alpha < 1 is isolated and blends within itself only.
