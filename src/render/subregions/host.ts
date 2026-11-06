@@ -65,3 +65,18 @@ export function iconHost(width: number, height: number): SubRegionHost {
     },
   };
 }
+
+/**
+ * Regions without special anchors (texture, progress texture, stop motion, model, empty: RegionPrototype.lua:804-823
+ * AnchorSubRegion): areas are the whole region, points are the region's points.
+ */
+export function regionHost(regionType: string, width: number, height: number): SubRegionHost {
+  const region = fullBox(width, height);
+  return {
+    regionType,
+    width,
+    height,
+    area: () => region,
+    point: (anchorPoint) => ({ box: region, point: anchorPoint, dx: 0, dy: 0 }),
+  };
+}

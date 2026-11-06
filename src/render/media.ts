@@ -72,7 +72,7 @@ export const DEFAULT_FONT = "Friz Quadrata TT";
 
 /**
  * A texture as an aura stores it: a FileDataID (number or numeric string) or a game path. Atlas names are not
- * supported (ticket 15).
+ * drawn (texture regions label them instead).
  */
 export function textureSourceOf(value: LuaValue | undefined): TextureSource | null {
   if (typeof value === "number") return Number.isSafeInteger(value) && value > 0 ? value : null;

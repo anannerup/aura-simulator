@@ -312,6 +312,218 @@ export const v1Group: AuraState = (() => {
   };
 })();
 
+const MEDIA = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\";
+const REGION_BASE = { anchorPoint: "CENTER", selfPoint: "CENTER", xOffset: 0, yOffset: 0, load: {}, actions: { start: {}, finish: {}, init: {} } };
+const buffTrigger = () => ({ "[1]": { trigger: playerBuff(), untrigger: {} }, activeTriggerMode: -10 });
+const cooldownTrigger = () => ({
+  "[1]": {
+    trigger: { type: "spell", event: "Cooldown Progress (Spell)", spellName: 2136, genericShowOn: "showAlways", use_genericShowOn: true },
+    untrigger: {},
+  },
+  activeTriggerMode: -10,
+});
+
+/** A texture region: the PowerAuras ring, turned 30° (texcoord rotation, full rotation allowed) and tinted. */
+export const textureRegion: AuraDocument = {
+  ...REGION_BASE,
+  regionType: "texture",
+  id: "Texture",
+  texture: "Interface\\Addons\\WeakAuras\\PowerAurasMedia\\Auras\\Aura3",
+  width: 160,
+  height: 160,
+  color: [0.4, 0.8, 1, 0.9],
+  blendMode: "BLEND",
+  rotate: true,
+  rotation: 30,
+  mirror: false,
+  desaturate: false,
+  subRegions: [{ type: "subbackground" }],
+  triggers: buffTrigger(),
+  conditions: [],
+};
+
+/** A linear progress texture on a spell cooldown (drawn by the addon's own quads): slanted, horizontal. */
+export const progressLinear: AuraDocument = {
+  ...REGION_BASE,
+  regionType: "progresstexture",
+  id: "Linear progress",
+  foregroundTexture: `${MEDIA}Square_FullWhite`,
+  sameTexture: true,
+  width: 240,
+  height: 30,
+  orientation: "HORIZONTAL",
+  inverse: false,
+  foregroundColor: [1, 0.6, 0.1, 1],
+  backgroundColor: [0.2, 0.2, 0.2, 0.6],
+  backgroundOffset: 2,
+  slanted: true,
+  slant: 0.1,
+  slantMode: "INSIDE",
+  crop_x: 0.41,
+  crop_y: 0.41,
+  blendMode: "BLEND",
+  subRegions: [{ type: "subbackground" }],
+  triggers: cooldownTrigger(),
+  conditions: [],
+};
+
+/** A circular progress texture (a ring) on a buff: drawn natively from the duration object (ProgressTextureSecret.lua). */
+export const progressCircular: AuraDocument = {
+  ...REGION_BASE,
+  regionType: "progresstexture",
+  id: "Circular progress",
+  foregroundTexture: `${MEDIA}Ring_20px`,
+  sameTexture: true,
+  width: 120,
+  height: 120,
+  orientation: "CLOCKWISE",
+  startAngle: 0,
+  endAngle: 360,
+  inverse: false,
+  foregroundColor: [0.3, 1, 0.4, 1],
+  backgroundColor: [0.5, 0.5, 0.5, 0.4],
+  backgroundOffset: 0,
+  crop_x: 0.41,
+  crop_y: 0.41,
+  auraRotation: 0,
+  blendMode: "BLEND",
+  subRegions: [{ type: "subbackground" }, durationText({ text_fontSize: 20 })],
+  triggers: buffTrigger(),
+  conditions: [],
+};
+
+/** The addon's example stop motion sheet (Media/Textures/stopmotion, 8×8 frames), looping at 15 frames a second. */
+export const stopMotionLoop: AuraDocument = {
+  ...REGION_BASE,
+  regionType: "stopmotion",
+  id: "Stop motion",
+  foregroundTexture: `${MEDIA}stopmotion`,
+  sameTexture: true,
+  width: 128,
+  height: 128,
+  frameRate: 15,
+  animationType: "loop",
+  startPercent: 0,
+  endPercent: 1,
+  inverse: false,
+  foregroundColor: [1, 1, 1, 1],
+  backgroundColor: [0.5, 0.5, 0.5, 0.5],
+  hideBackground: true,
+  blendMode: "BLEND",
+  subRegions: [{ type: "subbackground" }],
+  triggers: buffTrigger(),
+  conditions: [],
+};
+
+/** Stop motion in "progress" mode: the frame follows the buff's elapsed time. */
+export const stopMotionProgress: AuraDocument = {
+  ...stopMotionLoop,
+  id: "Stop motion progress",
+  animationType: "progress",
+  hideBackground: false,
+  backgroundPercent: 1,
+};
+
+/** A model region: drawn as a labelled placeholder. */
+export const modelRegion: AuraDocument = {
+  ...REGION_BASE,
+  regionType: "model",
+  id: "Model",
+  model_fileId: "122968",
+  modelIsUnit: false,
+  width: 200,
+  height: 200,
+  subRegions: [{ type: "subbackground" }],
+  triggers: buffTrigger(),
+  conditions: [],
+};
+
+/** An empty region carrying the texture-like sub-elements: texture, linear/circular progress, stop motion, model, text. */
+export const emptyWithElements: AuraDocument = {
+  ...REGION_BASE,
+  regionType: "empty",
+  id: "Empty with elements",
+  width: 120,
+  height: 120,
+  subRegions: [
+    { type: "subbackground" },
+    { type: "subtexture", textureVisible: true, textureTexture: `${MEDIA}Circle_White`, textureColor: [0.1, 0.1, 0.2, 0.8], anchor_mode: "area", anchor_area: "ALL" },
+    {
+      type: "subcirculartexture",
+      circularTextureVisible: true,
+      circularTextureTexture: `${MEDIA}Ring_10px`,
+      circularTextureColor: [1, 0.8, 0.2, 1],
+      circularTextureStartAngle: 0,
+      circularTextureEndAngle: 360,
+      circularTextureClockwise: true,
+      circularTextureCrop_x: 0.41,
+      circularTextureCrop_y: 0.41,
+      anchor_mode: "area",
+    },
+    {
+      type: "sublineartexture",
+      linearTextureVisible: true,
+      linearTextureTexture: `${MEDIA}Square_FullWhite`,
+      linearTextureColor: [0.3, 0.7, 1, 1],
+      linearTextureOrientation: "HORIZONTAL",
+      anchor_mode: "point",
+      anchor_point: "BOTTOM",
+      self_point: "TOP",
+      width: 120,
+      height: 8,
+      xOffset: 0,
+      yOffset: -4,
+    },
+    {
+      type: "substopmotion",
+      stopmotionVisible: true,
+      stopmotionTexture: `${MEDIA}stopmotion`,
+      stopmotionColor: [1, 1, 1, 1],
+      animationType: "loop",
+      frameRate: 15,
+      anchor_mode: "point",
+      anchor_point: "CENTER",
+      self_point: "CENTER",
+      width: 48,
+      height: 48,
+    },
+    { type: "submodel", model_visible: true, model_fileId: "235338", model_alpha: 1, extra_width: 0, extra_height: 0 },
+    durationText({ anchor_point: "TOP", text_fontSize: 12 }),
+  ],
+  triggers: buffTrigger(),
+  conditions: [],
+};
+
+/**
+ * An animated icon: slides in from below and fades in (start, 1 s, ease out), pulses (main preset), and shrinks and
+ * fades out (finish, 1 s) when the buff goes. Toggle "Aura present" to see start and finish.
+ */
+export const animatedIcon: AuraDocument = {
+  ...ICON_BASE,
+  id: "Animated",
+  displayIcon: 135932,
+  subRegions: [durationText()],
+  triggers: buffTrigger(),
+  conditions: [],
+  animation: {
+    start: { type: "custom", duration_type: "seconds", duration: 1, use_translate: true, x: 0, y: -60, use_alpha: true, alpha: 0, easeType: "easeOut", easeStrength: 3 },
+    main: { type: "preset", duration_type: "seconds", preset: "pulse" },
+    finish: { type: "custom", duration_type: "seconds", duration: 1, use_scale: true, scalex: 0.2, scaley: 0.2, use_alpha: true, alpha: 0 },
+  },
+};
+
+/** A texture turning left forever (main preset "Rotate Left": texcoord rotation, 4 s a turn) and fading in. */
+export const spinningTexture: AuraDocument = {
+  ...textureRegion,
+  id: "Spinning texture",
+  rotation: 0,
+  animation: {
+    start: { type: "preset", duration_type: "seconds", preset: "fade" },
+    main: { type: "preset", duration_type: "seconds", preset: "rotateCounterClockwise" },
+    finish: { type: "preset", duration_type: "seconds", preset: "fade" },
+  },
+};
+
 export const EXAMPLES: Record<string, AuraDocument> = {
   "buff-running-low": buffRunningLow,
   "buff-missing": buffMissing,
@@ -323,4 +535,13 @@ export const EXAMPLES: Record<string, AuraDocument> = {
   "ticked-bar": tickedBar,
   "vertical-bar": verticalBar,
   "cooldown-text": cooldownText,
+  texture: textureRegion,
+  "progress-linear": progressLinear,
+  "progress-circular": progressCircular,
+  "stop-motion": stopMotionLoop,
+  "stop-motion-progress": stopMotionProgress,
+  model: modelRegion,
+  "empty-elements": emptyWithElements,
+  "animated-icon": animatedIcon,
+  "spinning-texture": spinningTexture,
 };
