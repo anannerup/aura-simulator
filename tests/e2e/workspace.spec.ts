@@ -42,7 +42,10 @@ async function encode(request: APIRequestContext, aura: object): Promise<string>
 async function iconSize(page: Page): Promise<number> {
   const icon = page.getByTestId("aura-preview").locator('[data-region-type="icon"] img');
   await expect(icon).toBeVisible({ timeout: 60_000 });
-  return Math.round((await icon.boundingBox())!.width);
+  // In UI units: the mock screen scales them to the browser window.
+  const screen = page.getByTestId("mock-screen");
+  const uiHeight = Number(await screen.getAttribute("data-ui-height"));
+  return Math.round(((await icon.boundingBox())!.width * uiHeight) / (await screen.boundingBox())!.height);
 }
 
 async function expectIconSize(page: Page, size: number) {
@@ -58,14 +61,14 @@ test("paste a state code, reload, and the same aura comes back; bad codes change
   await expect(page.getByTestId("workspace-id")).toHaveText(workspace);
 
   await page.getByLabel("Paste a code to load").fill(code);
-  await page.getByRole("button", { name: "Load" }).click();
+  await page.getByRole("region", { name: "Workspace" }).getByRole("button", { name: "Load" }).click();
   await expectIconSize(page, 40);
   await expect(page.getByLabel("State code")).toHaveValue(code);
   await expect(page).toHaveURL(new RegExp(`\\?w=${workspace}&code=!WA:2!`));
   expect(new URL(page.url()).searchParams.get("code")).toBe(code);
 
   await page.getByLabel("Paste a code to load").fill("!WA:2!garbage");
-  await page.getByRole("button", { name: "Load" }).click();
+  await page.getByRole("region", { name: "Workspace" }).getByRole("button", { name: "Load" }).click();
   await expect(page.getByText("Could not load that state code")).toBeVisible();
   await expect(page.getByLabel("State code")).toHaveValue(code);
   await expect(page.getByLabel("Paste a code to load")).toHaveValue("!WA:2!garbage");
@@ -114,7 +117,7 @@ test("a code too long for the address becomes a short link that restores it exac
   await page.goto(`/?w=${uniqueId("long")}`);
   await expectIconSize(page, 64);
   await page.getByLabel("Paste a code to load").fill(code);
-  await page.getByRole("button", { name: "Load" }).click();
+  await page.getByRole("region", { name: "Workspace" }).getByRole("button", { name: "Load" }).click();
   await expectIconSize(page, 44);
   await expect.poll(() => new URL(page.url()).searchParams.get("s")).toMatch(/^[A-Za-z0-9]{8}$/);
   const url = new URL(page.url());
