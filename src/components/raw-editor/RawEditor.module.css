@@ -2,110 +2,108 @@
   --raw-line: 18px;
   --raw-font: 12px;
   --raw-pad: 8px;
+  --raw-string: #7ee787;
+  --raw-number: #ffa657;
+  --raw-keyword: #d2a8ff;
+  --raw-key: #79c0ff;
+  --raw-comment: var(--text-3);
+  --raw-punct: var(--text-3);
+  --raw-error: var(--danger);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+:global([data-theme="light"]) .editor {
   --raw-string: #2a7d3f;
   --raw-number: #b05a00;
   --raw-keyword: #8a3ffc;
   --raw-key: #1f6feb;
-  --raw-comment: #888;
-  --raw-punct: #777;
-  --raw-error: #e5484d;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .editor {
-    --raw-string: #7ee787;
-    --raw-number: #ffa657;
-    --raw-keyword: #d2a8ff;
-    --raw-key: #79c0ff;
-  }
 }
 
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
-.toolbar button,
-.conflict button {
-  padding: 4px 12px;
-  border-radius: 6px;
-  border: 1px solid #555;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font-size: 13px;
-}
-
-.toolbar button:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.title {
-  font-size: 16px;
-}
-
+/* Lua / JSON: a two-button switch. */
 .modes {
-  display: flex;
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-0);
 }
 
 .modes button {
-  border-radius: 0;
+  height: 22px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: calc(var(--radius) - 2px);
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 
-.modes button:first-child {
-  border-radius: 6px 0 0 6px;
-}
-
-.modes button:last-child {
-  border-radius: 0 6px 6px 0;
-  border-left: none;
+.modes button:hover {
+  color: var(--text-1);
 }
 
 .modes button[aria-pressed="true"] {
-  background: var(--foreground);
-  color: var(--background);
+  background: var(--surface-3);
+  color: var(--text-1);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
 .state {
   flex: 1;
-  font-size: 13px;
-  color: #888;
+  font-size: var(--text-sm);
+  color: var(--text-3);
 }
 
-.toolbar .apply:not(:disabled) {
-  background: var(--foreground);
-  color: var(--background);
-  font-weight: 600;
+.state[data-dirty="true"] {
+  color: var(--warn);
 }
 
 .conflict {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
-  font-size: 13px;
-  padding: 6px 10px;
-  border: 1px solid #b08800;
-  border-radius: 6px;
+  font-size: var(--text-md);
+  padding: 6px var(--space-3);
+  border: 1px solid var(--warn-border);
+  border-radius: var(--radius);
+  background: var(--warn-soft);
+}
+
+.conflict span {
+  flex: 1;
 }
 
 .frame {
   display: flex;
-  height: 420px;
+  height: clamp(160px, 34dvh, 420px);
   min-height: 120px;
   resize: vertical;
   overflow: hidden;
-  border: 1px solid #555;
-  border-radius: 6px;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-0);
+  font-family: var(--font-mono);
   font-size: var(--raw-font);
   line-height: var(--raw-line);
+}
+
+.frame:focus-within {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .gutter {
@@ -113,9 +111,10 @@
   padding: var(--raw-pad) 6px var(--raw-pad) 8px;
   min-width: 3.5em;
   text-align: right;
-  color: #888;
+  color: var(--text-3);
+  background: var(--surface-1);
   user-select: none;
-  border-right: 1px solid #5555;
+  border-right: 1px solid var(--border-subtle);
 }
 
 .gutter > div {
@@ -150,18 +149,23 @@
 .layer {
   pointer-events: none;
   overflow: hidden;
+  color: var(--text-1);
 }
 
 .input {
   resize: none;
   background: transparent;
   color: transparent;
-  caret-color: var(--foreground);
+  caret-color: var(--accent);
   outline: none;
 }
 
+.input:focus-visible {
+  box-shadow: none;
+}
+
 .input::selection {
-  background: #1f6feb55;
+  background: rgb(121 180 255 / 0.3);
   color: transparent;
 }
 
@@ -191,6 +195,6 @@
 
 .error {
   color: var(--raw-error);
-  font-size: 13px;
+  font-size: var(--text-md);
   white-space: pre-wrap;
 }

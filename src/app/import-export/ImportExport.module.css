@@ -1,0 +1,72 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.title {
+  font-family: var(--font-title);
+  font-size: var(--text-lg);
+  font-weight: 400;
+  color: var(--accent);
+}
+
+.subTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.subTitle::before,
+.subTitle::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-strong);
+}
+
+.dropZone {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px dashed var(--border-strong);
+  background: #0e0e0e;
+  color: var(--text-2);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--accent-border);
+  background: var(--surface-2);
+}
+
+.hint {
+  font-size: var(--text-sm);
+  color: var(--text-3);
+}
+
+/* Off screen but in the document, so the code can be read without showing megabytes of it. */
+.hiddenCode {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}

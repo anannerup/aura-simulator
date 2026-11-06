@@ -3,6 +3,22 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const uniqueId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
+/** Opens a toolbar or list popover (Import, Export) unless it is open already. */
+async function openPopover(page: Page, name: string) {
+  const button = page.getByRole("button", { name, exact: true });
+  if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
+}
+/** Paste and workspace-file import live behind the window's Import button. */
+const openWorkspaceMenu = (page: Page) => openPopover(page, "Import");
+/** The selected item's state code and the workspace file export live behind the list's Export button. */
+const openExport = (page: Page) => openPopover(page, "Export");
+
+/** New Aura, then a display type from the chooser ("Icon", "Group", "Dynamic Group"). */
+async function newItem(page: Page, type: string) {
+  await page.getByRole("button", { name: "New Aura" }).click();
+  await page.getByRole("region", { name: "New aura" }).getByRole("button", { name: new RegExp(`^${type} `) }).click();
+}
+
 const row = (page: Page, id: string) => page.getByRole("treeitem", { name: id, exact: true });
 const region = (page: Page, id: string) => page.getByTestId("aura-preview").locator(`[data-aura-id="${id}"]`);
 
@@ -26,11 +42,11 @@ test("build a group with two auras, see both laid out, and paste its code into a
   await openFresh(page, "group");
 
   // A new group next to the sample, the sample moved into it, and a new aura added beside it in the group.
-  await page.getByRole("button", { name: "New group", exact: true }).click();
+  await newItem(page, "Group");
   await expect(row(page, "New Group")).toHaveAttribute("aria-selected", "true");
   await row(page, "Arcane Intellect").click();
   await page.getByLabel("Move to group").selectOption("New Group");
-  await page.getByRole("button", { name: "New aura" }).click();
+  await newItem(page, "Icon");
   await expect(row(page, "New")).toHaveAttribute("aria-selected", "true");
 
   // Rename the group: the children follow.
@@ -50,6 +66,7 @@ test("build a group with two auras, see both laid out, and paste its code into a
   expect(sel.width).toBeCloseTo(b.x + b.width - a.x, 0);
 
   // The group's state code holds both auras.
+  await openExport(page);
   await expect(page.getByRole("heading", { name: "State code of Buffs" })).toBeVisible();
   const code = await page.getByLabel("State code").inputValue();
   expect(code).toMatch(/^!WA:2!/);
@@ -58,6 +75,7 @@ test("build a group with two auras, see both laid out, and paste its code into a
   const other = await browser.newContext();
   const fresh = await other.newPage();
   await openFresh(fresh, "paste-group");
+  await openWorkspaceMenu(fresh);
   await fresh.getByLabel("Paste a code to load").fill(code);
   await fresh.getByRole("region", { name: "Workspace", exact: true }).getByRole("button", { name: "Load" }).click();
   await expect.poll(() => treeShape(fresh)).toEqual(["1:Buffs", "2:Arcane Intellect", "2:New"]);
@@ -67,6 +85,7 @@ test("build a group with two auras, see both laid out, and paste its code into a
   expect((b2.x - a2.x) / a2.width).toBeCloseTo(68 / 64, 2);
 
   // "Add to workspace" adds it once more as a subtree, with ids made unique the addon's way.
+  await openWorkspaceMenu(fresh);
   await fresh.getByLabel("Paste a code to load").fill(code);
   await fresh.getByRole("button", { name: "Add to workspace" }).click();
   await expect
@@ -126,13 +145,14 @@ test("a pushed dynamic group appears as a subtree; hidden children close up", as
 
 test("workspace file export and import round trip", async ({ page, browser }) => {
   await openFresh(page, "file");
-  await page.getByRole("button", { name: "New dynamic group" }).click();
-  await page.getByRole("button", { name: "New aura" }).click();
-  await page.getByRole("button", { name: "New aura" }).click();
+  await newItem(page, "Dynamic Group");
+  await newItem(page, "Icon");
+  await newItem(page, "Icon");
   const shape = ["1:Arcane Intellect", "1:New Dynamic Group", "2:New", "2:New 2"];
   await expect.poll(() => treeShape(page)).toEqual(shape);
 
   const download = page.waitForEvent("download");
+  await openExport(page);
   await page.getByRole("button", { name: "Export workspace file" }).click();
   const file = await (await download).path();
   const exported = JSON.parse(await readFile(file, "utf8"));
@@ -145,17 +165,20 @@ test("workspace file export and import round trip", async ({ page, browser }) =>
   const other = await browser.newContext();
   const fresh = await other.newPage();
   await openFresh(fresh, "file-import");
+  await openWorkspaceMenu(fresh);
   await fresh.getByLabel("Workspace file").setInputFiles(file);
   await fresh.getByRole("button", { name: "Replace workspace" }).click();
   await expect.poll(() => treeShape(fresh)).toEqual(shape);
 
   // Exporting again gives the same items: lossless.
   const download2 = fresh.waitForEvent("download");
+  await openExport(fresh);
   await fresh.getByRole("button", { name: "Export workspace file" }).click();
   const again = JSON.parse(await readFile(await (await download2).path(), "utf8"));
   expect(again.items).toEqual(exported.items);
 
   // A broken file changes nothing and says why.
+  await openWorkspaceMenu(fresh);
   await fresh.getByLabel("Workspace file").setInputFiles({
     name: "broken.json",
     mimeType: "application/json",

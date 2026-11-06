@@ -1,167 +1,204 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  font-size: 14px;
+  gap: var(--space-3);
+  font-size: var(--text-base);
 }
 
 .muted {
-  color: #888;
-  font-size: 13px;
+  color: var(--text-3);
+  font-size: var(--text-sm);
 }
 
 .error {
-  color: #e5484d;
-  font-size: 13px;
+  color: var(--danger);
+  font-size: var(--text-sm);
 }
 
+/* ---- Sync status ---- */
 .syncLine {
   display: flex;
   align-items: center;
-  gap: 10px;
-  color: #888;
-  font-size: 12px;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--text-3);
+  font-size: var(--text-xs);
   flex-wrap: wrap;
 }
 
-.syncPrompt {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 10px 12px;
-  border: 1px solid #b08a2e;
-  border-radius: 6px;
-  background: rgba(176, 138, 46, 0.12);
-}
-
-.syncPrompt p {
+.syncText {
   flex: 1;
-  min-width: 200px;
+  min-width: 0;
+  line-height: 1.4;
 }
 
-.syncButton {
-  padding: 4px 12px;
-  border-radius: 6px;
-  border: 1px solid #555;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font-size: 12px;
+.spinning {
+  animation: spin 0.9s linear infinite;
 }
 
-.syncButton:disabled {
-  cursor: progress;
-  opacity: 0.6;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
+/* ---- Trigger choice (auras with more than one trigger) ---- */
+.triggerSelect {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-2);
+}
+
+/* ---- The chosen spell ---- */
 .current {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  min-height: 24px;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: 10px var(--space-3);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
 }
 
-.triggerSelect select {
-  background: transparent;
-  color: inherit;
-  border: 1px solid #555;
-  border-radius: 4px;
+.currentIcon {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.6),
+    0 0 0 2px var(--border-strong);
+}
+
+.currentText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.currentName {
+  font-weight: var(--weight-semibold);
+  color: var(--accent-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.currentMeta {
+  display: flex;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
 }
 
 .name {
-  font-weight: 600;
+  font-weight: var(--weight-medium);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .icon {
-  width: 18px;
-  height: 18px;
-  border-radius: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
   flex: none;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.6);
 }
 
 .flags {
   display: inline-flex;
   gap: 4px;
   flex-wrap: wrap;
+  margin-top: 4px;
 }
 
 .flag {
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #f5c451;
-  border: 1px solid #b08a2e;
-  background: rgba(176, 138, 46, 0.15);
   cursor: help;
 }
 
+/* ---- Search ---- */
 .search {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.searchIcon {
+  position: absolute;
+  left: 10px;
+  top: calc(var(--control-h) / 2);
+  transform: translateY(-50%);
+  color: var(--text-3);
+  pointer-events: none;
 }
 
 .input {
-  width: 100%;
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid #555;
-  background: transparent;
-  color: inherit;
-  font-size: 14px;
+  padding-left: 30px;
 }
 
+/* Results open in the flow of the sidebar (it scrolls), with the hovered spell's tooltip below. */
 .dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  z-index: 10;
   display: flex;
-  gap: 8px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .list {
   list-style: none;
-  flex: 1;
-  max-height: 320px;
+  max-height: 280px;
   overflow-y: auto;
-  border: 1px solid #555;
-  border-radius: 6px;
-  background: var(--background);
+  padding: 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-2);
 }
 
 .option {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 10px;
+  gap: var(--space-2);
+  min-height: 32px;
+  padding: 4px var(--space-2);
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  font-size: var(--text-md);
+}
+
+.option .muted {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
 }
 
 .option[aria-selected="true"] {
-  background: rgba(127, 127, 127, 0.2);
+  background: var(--surface-4);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
+/* In the style of the game's tooltips: deep blue-black, thin light border. */
 .tooltip {
-  width: 300px;
-  flex: none;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 10px;
-  border: 1px solid #3a4a6a;
-  border-radius: 6px;
-  background: #0b0f1c;
+  padding: 10px var(--space-3);
+  border: 1px solid #5d6b8c;
+  border-radius: var(--radius);
+  background: linear-gradient(#0b1020, #070a14);
+  box-shadow: var(--shadow-pop);
   color: #fff;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .tooltipHead {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -176,13 +213,5 @@
   flex-direction: column;
   gap: 2px;
   color: #ffd100;
-}
-
-@media (max-width: 640px) {
-  .dropdown {
-    flex-direction: column;
-  }
-  .tooltip {
-    width: 100%;
-  }
+  line-height: 1.4;
 }

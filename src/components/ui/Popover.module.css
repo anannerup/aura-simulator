@@ -1,0 +1,30 @@
+.root {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+/* Placed against the viewport by the component (top/left/width/maxHeight). */
+.panel {
+  position: fixed;
+  z-index: 60;
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-overlay);
+  box-shadow:
+    inset 0 0 0 1px #000,
+    var(--shadow-pop);
+  animation: pop-in var(--dur) var(--ease);
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}

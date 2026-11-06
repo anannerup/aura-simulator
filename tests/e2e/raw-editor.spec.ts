@@ -16,6 +16,8 @@ async function expectIconSize(page: Page, size: number) {
 }
 
 const raw = (page: Page) => page.getByLabel("Raw table text");
+/** The raw table lives in a tab of the drawer under the game screen. */
+const openRaw = (page: Page) => page.getByRole("tab", { name: "Raw table" }).click();
 const stateCode = (page: Page) => page.getByLabel("State code");
 
 async function editRaw(page: Page, edit: (text: string) => string) {
@@ -28,6 +30,7 @@ async function editRaw(page: Page, edit: (text: string) => string) {
 test("edit the raw table: preview and state code follow; invalid text keeps the work and the preview", async ({ page }) => {
   await page.goto(`/?w=${uniqueId("raw")}`);
   await expectIconSize(page, 64);
+  await openRaw(page);
   await expect(raw(page)).toHaveValue(/^\{\n {2}actions = /);
   await expect(raw(page)).toHaveValue(/\n {2}width = 64,\n/);
   await expect(raw(page)).toHaveValue(/\[1\] = \{/); // triggers[1] is a number key
@@ -69,6 +72,7 @@ test("undo and redo step through raw edits, pastes and agent pushes", async ({ p
   const workspace = uniqueId("undo");
   await page.goto(`/?w=${workspace}`);
   await expectIconSize(page, 64);
+  await openRaw(page);
   const sample = await stateCode(page).inputValue();
   const undoButton = page.getByRole("button", { name: "Undo" });
   const redoButton = page.getByRole("button", { name: "Redo" });

@@ -1,0 +1,26 @@
+.dim {
+  color: var(--text-3);
+}
+
+.popoverHead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--space-4);
+}
+
+.popoverTitle {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+}
+
+.popoverHint {
+  font-size: var(--text-sm);
+  color: var(--text-3);
+}
+
+@media (max-width: 480px) {
+  .dim {
+    display: none;
+  }
+}

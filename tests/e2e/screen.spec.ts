@@ -21,6 +21,9 @@ async function setNumber(page: Page, label: string, value: number) {
   await input.press("Enter");
 }
 
+/** The screen settings live in a popover behind the stage toolbar's settings button. */
+const openSettings = (page: Page) => page.getByRole("button", { name: "Screen settings" }).click();
+
 /** A PNG "screenshot" of the given size, drawn by the browser. */
 async function screenshotPng(page: Page, width: number, height: number) {
   const dataUrl = await page.evaluate(
@@ -51,6 +54,7 @@ test("resolution and UI scale resize and move the aura like the game", async ({ 
   expect(Math.abs(m.centreDy)).toBeLessThan(1);
 
   // UI scale off: UIParent is 768 units high, so the icon takes 64/768 of the window.
+  await openSettings(page);
   await page.getByRole("combobox", { name: "Resolution" }).selectOption("1920x1080");
   await page.getByRole("checkbox", { name: "Use UI scale" }).uncheck();
   m = await measure(page);
@@ -81,6 +85,7 @@ test("resolution and UI scale resize and move the aura like the game", async ({ 
 
   // Grid and centre lines.
   await expect(page.getByTestId("screen-grid")).toHaveCount(0);
+  await openSettings(page);
   await page.getByRole("checkbox", { name: "Grid and centre lines" }).check();
   await expect(page.getByTestId("screen-grid")).toBeVisible();
 });
@@ -99,6 +104,7 @@ test("a screenshot shows behind the screen, is kept locally and can be hidden", 
   for (const key of ["x", "y", "width", "height"] as const) expect(bg[key]).toBeCloseTo(screen[key], 1);
 
   // The screenshot is 1600x900, not the window's resolution: offer to switch to it, so it maps 1:1.
+  await openSettings(page);
   await page.getByRole("button", { name: "Use 1600 × 900" }).click();
   await expect(page.getByTestId("mock-screen")).toHaveAttribute("data-window", "1600x900");
   await expect(page.getByRole("button", { name: "Use 1600 × 900" })).toHaveCount(0);
@@ -106,6 +112,7 @@ test("a screenshot shows behind the screen, is kept locally and can be hidden", 
   await page.reload();
   await expect(page.getByTestId("screen-background")).toBeVisible({ timeout: 60_000 });
 
+  await openSettings(page);
   await page.getByRole("checkbox", { name: "Show screenshot" }).uncheck();
   await expect(page.getByTestId("screen-background")).toHaveCount(0);
   await page.getByRole("checkbox", { name: "Show screenshot" }).check();

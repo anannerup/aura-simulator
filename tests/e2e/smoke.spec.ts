@@ -21,7 +21,8 @@ test("the page loads, previews the sample aura and copies its state code", async
   expect(Math.round(iconBox.x + iconBox.width / 2)).toBe(Math.round(screenBox.x + screenBox.width / 2));
   expect(Math.round(iconBox.y + iconBox.height / 2)).toBe(Math.round(screenBox.y + screenBox.height / 2));
 
-  await page.getByRole("button", { name: "Copy" }).click();
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  await page.getByRole("button", { name: "Copy to clipboard" }).click();
   await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(copied).toMatch(/^!WA:2![A-Za-z0-9()]+$/);

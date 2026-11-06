@@ -49,7 +49,13 @@ async function iconSize(page: Page, id?: string): Promise<number> {
   return Math.round(((await icon.boundingBox())!.width * uiHeight) / screen.height);
 }
 
-/** The workspace panel's Load button (the addon version picker has one too). */
+/** Paste and workspace-file import live behind the window's Import button. */
+async function openWorkspaceMenu(page: Page) {
+  const button = page.getByRole("button", { name: "Import", exact: true });
+  if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
+}
+
+/** The workspace panel's Load button. */
 const loadButton = (page: Page) =>
   page.getByRole("region", { name: "Workspace", exact: true }).getByRole("button", { name: "Load" });
 
@@ -65,6 +71,7 @@ test("paste a state code, reload, and the same aura comes back; bad codes change
   await expectIconSize(page, 64); // the sample
   await expect(page.getByTestId("workspace-id")).toHaveText(workspace);
 
+  await openWorkspaceMenu(page);
   await page.getByLabel("Paste a code to load").fill(code);
   await loadButton(page).click();
   await expectIconSize(page, 40);
@@ -72,6 +79,7 @@ test("paste a state code, reload, and the same aura comes back; bad codes change
   await expect(page).toHaveURL(new RegExp(`\\?w=${workspace}&code=!WA:2!`));
   expect(new URL(page.url()).searchParams.get("code")).toBe(code);
 
+  await openWorkspaceMenu(page);
   await page.getByLabel("Paste a code to load").fill("!WA:2!garbage");
   await loadButton(page).click();
   await expect(page.getByText("Could not load that state code")).toBeVisible();
@@ -133,6 +141,7 @@ test("a code too long for the address becomes a short link that restores it exac
 
   await page.goto(`/?w=${uniqueId("long")}`);
   await expectIconSize(page, 64);
+  await openWorkspaceMenu(page);
   await page.getByLabel("Paste a code to load").fill(code);
   await loadButton(page).click();
   await expectIconSize(page, 44);

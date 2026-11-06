@@ -1,49 +1,55 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.title {
-  font-size: 16px;
+  gap: var(--space-3);
 }
 
 .muted {
-  color: #888;
-  font-size: 13px;
+  color: var(--text-3);
+  font-size: var(--text-sm);
 }
 
 .combat {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border-left: 4px solid;
-  font-size: 14px;
+  padding: 10px var(--space-3);
+  border-radius: var(--radius);
+  border: 1px solid;
+  border-left-width: 3px;
+  font-size: var(--text-md);
+  color: var(--text-2);
+}
+
+.combat strong {
+  color: var(--text-1);
+  font-weight: var(--weight-semibold);
 }
 
 .ok {
-  border-color: #30a46c;
-  background: rgb(48 164 108 / 10%);
+  border-color: rgb(79 214 156 / 0.35);
+  border-left-color: var(--success);
+  background: var(--success-soft);
 }
 
 .limited {
-  border-color: #f5a623;
-  background: rgb(245 166 35 / 10%);
+  border-color: var(--warn-border);
+  border-left-color: var(--warn);
+  background: var(--warn-soft);
 }
 
 .broken {
-  border-color: #e5484d;
-  background: rgb(229 72 77 / 10%);
+  border-color: var(--danger-border);
+  border-left-color: var(--danger);
+  background: var(--danger-soft);
 }
 
 .list {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
+  gap: var(--space-2);
+  font-size: var(--text-md);
 }
 
 .list li {
@@ -52,29 +58,32 @@
   gap: 6px;
   align-items: baseline;
   padding-left: 10px;
-  border-left: 3px solid;
+  border-left: 2px solid;
+  color: var(--text-1);
 }
 
 .error {
-  border-color: #e5484d;
-  color: #e5484d;
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .list .error {
-  color: inherit;
+  color: var(--text-1);
 }
 
 .warning {
-  border-color: #f5a623;
+  border-color: var(--warn);
 }
 
 .info {
-  border-color: #888;
+  border-color: var(--border-strong);
 }
 
 .where {
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
   padding: 1px 6px;
-  border-radius: 4px;
-  background: rgb(128 128 128 / 20%);
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  color: var(--text-2);
 }

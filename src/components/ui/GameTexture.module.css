@@ -1,0 +1,11 @@
+.placeholder {
+  display: inline-block;
+  flex: none;
+}
+
+.texture {
+  display: inline-block;
+  flex: none;
+  object-fit: contain;
+  user-select: none;
+}

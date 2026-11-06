@@ -14,7 +14,8 @@ function addonRequests(page: Page) {
     const url = r.url();
     if (/\/api\/addon\/[^/]+\/bundle\?/.test(url)) seen.bundle.push(url);
     if (/\/api\/addon\/[^/]+\/files?[?/]/.test(url)) seen.file.push(url);
-    if (url.includes("cdn.jsdelivr.net/gh/")) seen.jsDelivr.push(url);
+    // Addon Lua only: the window's textures (logo, toolbar icons) come from the repository as media files.
+    if (url.includes("cdn.jsdelivr.net/gh/") && !/\.(tga|blp)$/i.test(url)) seen.jsDelivr.push(url);
   });
   return seen;
 }

@@ -10,6 +10,7 @@ import {
   printLuaLiteral,
   type AuraDocument,
 } from "@/core";
+import { Button } from "@/components/ui";
 import { highlight } from "./highlight";
 import styles from "./RawEditor.module.css";
 
@@ -157,7 +158,6 @@ export function RawEditor({ value, onChange }: RawEditorProps) {
   return (
     <section className={styles.editor} aria-label="Raw table" data-testid="raw-editor">
       <div className={styles.toolbar}>
-        <h2 className={styles.title}>Raw table</h2>
         <div className={styles.modes} role="group" aria-label="Format">
           <button type="button" aria-pressed={mode === "lua"} onClick={() => switchMode("lua")}>
             Lua
@@ -166,25 +166,25 @@ export function RawEditor({ value, onChange }: RawEditorProps) {
             JSON
           </button>
         </div>
-        <span className={styles.state} data-testid="raw-editor-state">
+        <span className={styles.state} data-testid="raw-editor-state" data-dirty={dirty}>
           {dirty ? "Unapplied edits" : "In sync"}
         </span>
-        <button type="button" onClick={reload} disabled={!dirty}>
+        <Button size="sm" variant="ghost" onClick={reload} disabled={!dirty}>
           Revert
-        </button>
-        <button type="button" className={styles.apply} onClick={apply} disabled={!dirty} title="Ctrl/Cmd+Enter">
+        </Button>
+        <Button size="sm" variant="primary" onClick={apply} disabled={!dirty} title="Ctrl/Cmd+Enter">
           Apply
-        </button>
+        </Button>
       </div>
       {conflict && (
         <div className={styles.conflict} role="status">
           <span>The aura changed elsewhere while you were editing.</span>
-          <button type="button" onClick={reload}>
+          <Button size="sm" onClick={reload}>
             Reload
-          </button>
-          <button type="button" onClick={() => setConflict(false)}>
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setConflict(false)}>
             Keep editing
-          </button>
+          </Button>
         </div>
       )}
       <div className={styles.frame}>

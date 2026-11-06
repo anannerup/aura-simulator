@@ -4,6 +4,7 @@ import { useEffect, useId, useState, type KeyboardEvent } from "react";
 import { setTriggerSpellId, triggerCount, triggerSpellId, type AuraDocument } from "@/core";
 import { QUESTION_MARK_ICON, iconNameUrl, iconStore } from "@/render/textures";
 import { FLAG_TEXT, getSpell, searchSpells, tooltipLines, type Spell, type SpellFlag, type SpellSearchHit } from "./spell-api";
+import { Badge, Input, SearchIcon, Select } from "@/components/ui";
 import { SpellSync } from "./SpellSync";
 import styles from "./SpellPicker.module.css";
 
@@ -16,6 +17,7 @@ export interface SpellPickerProps {
 type Option = { id: number; name: string | null; icon: string | null; manual?: boolean };
 
 const SMALL_ICON = (icon: string | null) => iconNameUrl(icon ?? QUESTION_MARK_ICON, "small");
+const MEDIUM_ICON = (icon: string | null) => iconNameUrl(icon ?? QUESTION_MARK_ICON, "medium");
 
 /** Spell search and choice for the aura's trigger, with the spell cache's sync status and warnings. */
 export function SpellPicker({ aura, onAuraChange }: SpellPickerProps) {
@@ -117,46 +119,45 @@ export function SpellPicker({ aura, onAuraChange }: SpellPickerProps) {
 
   return (
     <section className={styles.panel} aria-label="Spell">
-      <SpellSync
-        onSynced={() => {
-          iconStore.refresh();
-          setSyncVersion((v) => v + 1);
-        }}
-      />
+      {triggers > 1 && (
+        <label className={styles.triggerSelect}>
+          <span>Trigger</span>
+          <Select size="sm" value={trigger} onChange={(e) => setTriggerIndex(Number(e.target.value))}>
+            {Array.from({ length: triggers }, (_, i) => (
+              <option key={i + 1} value={i + 1}>
+                {i + 1}
+              </option>
+            ))}
+          </Select>
+        </label>
+      )}
 
       <div className={styles.current} data-testid="current-spell">
-        {triggers > 1 && (
-          <label className={styles.triggerSelect}>
-            Trigger{" "}
-            <select value={trigger} onChange={(e) => setTriggerIndex(Number(e.target.value))}>
-              {Array.from({ length: triggers }, (_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {i + 1}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
         {currentId === null ? (
           <span className={styles.muted}>No spell on trigger {trigger} yet.</span>
         ) : (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element -- Wowhead image server, loaded at runtime */}
-            <img className={styles.icon} src={SMALL_ICON(current?.icon ?? null)} alt="" width={18} height={18} />
-            <span className={styles.name}>{current?.name ?? (current ? "Unknown spell" : "…")}</span>
-            <span className={styles.muted}>ID {currentId}</span>
-            {current && <Flags flags={current.flags} />}
+            <img className={styles.currentIcon} src={MEDIUM_ICON(current?.icon ?? null)} alt="" width={36} height={36} />
+            <div className={styles.currentText}>
+              <span className={styles.currentName}>{current?.name ?? (current ? "Unknown spell" : "…")}</span>
+              <span className={styles.currentMeta}>
+                <span className={styles.muted}>ID {currentId}</span>
+                {aura.iconSource === 0 && (
+                  <span className={styles.muted} title="iconSource 0: the icon is set by hand, not taken from the trigger's spell.">
+                    · manual icon
+                  </span>
+                )}
+              </span>
+              {current && <Flags flags={current.flags} />}
+            </div>
           </>
-        )}
-        {aura.iconSource === 0 && (
-          <span className={styles.muted} title="iconSource 0: the icon is set by hand, not taken from the trigger's spell.">
-            (manual icon)
-          </span>
         )}
       </div>
 
       <div className={styles.search}>
-        <input
+        <SearchIcon className={styles.searchIcon} size={14} />
+        <Input
           type="search"
           role="combobox"
           aria-label="Search spells"
@@ -164,7 +165,7 @@ export function SpellPicker({ aura, onAuraChange }: SpellPickerProps) {
           aria-controls={listId}
           aria-activedescendant={showList ? `${listId}-${activeIndex}` : undefined}
           aria-autocomplete="list"
-          placeholder="Search spells by name, or enter a spell ID"
+          placeholder="Search by name or spell ID"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -209,6 +210,13 @@ export function SpellPicker({ aura, onAuraChange }: SpellPickerProps) {
           </div>
         )}
       </div>
+
+      <SpellSync
+        onSynced={() => {
+          iconStore.refresh();
+          setSyncVersion((v) => v + 1);
+        }}
+      />
     </section>
   );
 }
@@ -219,9 +227,9 @@ function Flags({ flags }: { flags: SpellFlag[] }) {
   return (
     <span className={styles.flags}>
       {shown.map((f) => (
-        <span key={f} className={styles.flag} title={FLAG_TEXT[f]!.tooltip} data-flag={f}>
+        <Badge key={f} tone="warn" className={styles.flag} title={FLAG_TEXT[f]!.tooltip} data-flag={f}>
           {FLAG_TEXT[f]!.label}
-        </span>
+        </Badge>
       ))}
     </span>
   );

@@ -1,0 +1,133 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--control-h);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.button:disabled {
+  cursor: default;
+  color: var(--text-3) !important;
+  opacity: 0.7;
+}
+
+.sm {
+  height: var(--control-h-sm);
+  padding: 0 var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.md {
+  height: var(--control-h);
+}
+
+.lg {
+  height: var(--control-h-lg);
+  padding: 0 var(--space-4);
+  font-size: var(--text-base);
+}
+
+.block {
+  width: 100%;
+}
+
+.icon {
+  display: inline-flex;
+  color: var(--text-1);
+}
+
+/* The window's dark-red button with gold text ("Guide: learn WeakAuras"). */
+.primary {
+  background: linear-gradient(var(--red-1), var(--red-2));
+  border-color: var(--red-border);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.6);
+}
+
+.primary:hover:not(:disabled) {
+  background: linear-gradient(#781010, #4a0808);
+  color: var(--accent-hover);
+}
+
+/* ElvUI's flat button: dark fill, grey edge, gold label ("Switch to classic mode"). */
+.secondary {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--accent);
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: var(--accent-border);
+  background: var(--surface-3);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--text-2);
+}
+
+.ghost:hover:not(:disabled) {
+  color: var(--text-1);
+  background: var(--surface-3);
+}
+
+/* The toolbar's text buttons: white icon, gold label, no box ("Undo", "New Aura", "Import"). */
+.toolbar {
+  background: transparent;
+  color: var(--accent);
+  padding: 0 var(--space-2);
+  font-size: var(--text-base);
+}
+
+.toolbar:hover:not(:disabled) {
+  color: var(--text-1);
+}
+
+.toolbar:disabled .icon {
+  color: var(--text-3);
+}
+
+.danger {
+  background: transparent;
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+
+.danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+}
+
+.iconOnly {
+  width: var(--control-h);
+  padding: 0;
+  color: var(--text-2);
+}
+
+.iconOnly.sm {
+  width: var(--control-h-sm);
+}
+
+.iconOnly.lg {
+  width: var(--control-h-lg);
+}
+
+.pressed,
+.pressed:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}

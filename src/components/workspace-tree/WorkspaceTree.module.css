@@ -1,69 +1,129 @@
 .tree {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: 13px;
+  gap: var(--space-2);
+  font-size: var(--text-md);
 }
 
-.toolbar,
+/* New items come from the window's New Aura button, as in game. */
+.toolbar {
+  display: none;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   align-items: center;
 }
 
 .toolbar button,
 .actions button,
 .actions select {
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid #555;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
+  height: var(--control-h-sm);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
   font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.toolbar button:hover:not(:disabled),
+.actions button:hover:not(:disabled),
+.actions select:hover:not(:disabled) {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+  color: var(--text-1);
+}
+
+.toolbar button:disabled,
+.actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.actions {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .list {
   list-style: none;
 }
 
+.list .list {
+  margin-left: 14px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border-subtle);
+}
+
+/* Each aura as the game's list button: a dark bar, the name in white. Groups get the gold header bar. */
 .row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  border-radius: 4px;
+  gap: var(--space-2);
+  min-height: 30px;
+  margin-bottom: 2px;
+  padding: 3px var(--space-2);
+  background: linear-gradient(to right, #262626, #1a1a1a);
   cursor: pointer;
   user-select: none;
   border: 1px solid transparent;
+  transition: background-color var(--dur-fast) var(--ease);
 }
 
 .row:hover {
-  background: rgb(128 128 128 / 0.12);
+  background: linear-gradient(to right, #30302e, #222);
 }
 
-.selected {
-  background: rgb(255 209 0 / 0.18);
-  border-color: rgb(255 209 0 / 0.6);
+.row[aria-expanded] {
+  background: linear-gradient(to right, #3a3a3a, #262626);
+}
+
+.row[aria-expanded] .name {
+  color: var(--accent);
+  font-weight: var(--weight-semibold);
+}
+
+.row:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.selected,
+.selected:hover,
+.selected[aria-expanded] {
+  background: linear-gradient(to right, #3b3f8a, #23255a);
+  border-color: #8f93e6;
+}
+
+.selected .name {
+  color: var(--text-1);
+  font-weight: var(--weight-semibold);
 }
 
 .dropInside {
-  border-color: #3b82f6;
+  border-color: var(--cool);
 }
 
 .dropBefore {
-  box-shadow: inset 0 2px 0 #3b82f6;
+  box-shadow: inset 0 2px 0 var(--cool);
 }
 
 .dropAfter {
-  box-shadow: inset 0 -2px 0 #3b82f6;
+  box-shadow: inset 0 -2px 0 var(--cool);
 }
 
 .kind {
   width: 14px;
-  color: #888;
+  color: var(--text-3);
   text-align: center;
 }
 
@@ -73,44 +133,55 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--text-1);
 }
 
 .renameInput {
   flex: 1;
   min-width: 0;
+  height: 24px;
   font: inherit;
-  padding: 1px 4px;
-  background: transparent;
-  color: inherit;
-  border: 1px solid #888;
-  border-radius: 4px;
+  padding: 0 6px;
+  background: var(--surface-0);
+  color: var(--text-1);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
 }
 
 .badge {
-  font-size: 11px;
-  color: #888;
+  font-size: var(--text-xs);
+  color: var(--text-3);
 }
 
 .eye {
+  width: 22px;
+  height: 22px;
   border: none;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: inherit;
+  color: var(--text-3);
   cursor: pointer;
-  width: 20px;
+}
+
+.eye:hover {
+  background: var(--surface-4);
+  color: var(--text-1);
 }
 
 .moveTo {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #888;
+  color: var(--text-3);
+  font-size: var(--text-sm);
 }
 
 .empty {
-  color: #888;
-  padding: 4px 8px;
+  color: var(--text-3);
+  padding: 4px var(--space-2);
 }
 
 .error {
-  color: #e5484d;
+  color: var(--danger);
+  font-size: var(--text-sm);
 }
