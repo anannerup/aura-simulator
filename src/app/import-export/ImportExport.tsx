@@ -2,25 +2,23 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Callout, TextArea, useToast, WarningIcon } from "@/components/ui";
-import { DEFAULT_WORKSPACE_ID } from "@/workspace";
-import type { UseWorkspace } from "../workspace/useWorkspace";
+import type { PendingWorkspaceFile, UseWorkspace } from "../workspace/useWorkspace";
 import styles from "./ImportExport.module.css";
 
 /** Pasted strings up to this size go through the paste box; anything bigger should be a file. */
 const PASTE_HINT_LIMIT = 200_000;
 
-type PendingFile = { name: string; text: string; count: number };
-
 /**
- * Import state: a pasted state code (Load replaces the workspace, Add puts it beside what's there), or a file —
- * a workspace file (asks to replace or merge when the workspace isn't empty) or a text file holding a state code.
- * The UI is `ImportPanel`; the shell's drop handler calls `importFiles` too.
+ * Import state: a pasted state code (Load replaces the workspace, Add puts it beside what's there), or files —
+ * text files with state codes are added; a workspace file replaces an empty workspace, else it waits in
+ * `pendingFile` for the player to choose replace or merge. The UI is `ImportPanel`; the shell's drop handler
+ * calls `importFiles` too.
  */
 export function useImporter(workspace: UseWorkspace) {
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
-  const [pendingFile, setPendingFile] = useState<PendingFile | null>(null);
+  const [fileErrors, setFileErrors] = useState<string[]>([]);
+  const [pending, setPending] = useState<PendingWorkspaceFile[]>([]);
 
   function paste(action: "load" | "add") {
     const result = action === "load" ? workspace.load(text) : workspace.importCode(text);
@@ -32,36 +30,23 @@ export function useImporter(workspace: UseWorkspace) {
     }
   }
 
-  function finishImport(content: string, mode: "replace" | "merge") {
-    const result = workspace.importFile(content, mode);
-    setFileError(result.ok ? null : result.error);
-    setPendingFile(null);
-  }
+  const { importFiles: importWorkspaceFiles, importFile } = workspace;
+  const importFiles = useCallback(
+    async (files: File[]) => {
+      if (!files.length) return;
+      const result = await importWorkspaceFiles(files);
+      setFileErrors(result.errors);
+      setPending((p) => [...p, ...result.pending]);
+    },
+    [importWorkspaceFiles],
+  );
 
-  async function importFiles(files: File[]) {
-    const file = files[0];
-    if (!file) return;
-    const content = await file.text();
-    // A text file with a state code in it: add it to the workspace.
-    if (/^\s*!WA:/.test(content)) {
-      const result = workspace.importCode(content.trim());
-      setFileError(result.ok ? null : `Could not read ${file.name}: ${result.error}`);
-      setPendingFile(null);
-      return;
+  function finishImport(file: PendingWorkspaceFile, mode: "replace" | "merge" | "cancel") {
+    if (mode !== "cancel") {
+      const result = importFile(file.text, mode);
+      setFileErrors(result.ok ? [] : [`Could not read ${file.name}: ${result.error}`]);
     }
-    const checked = workspace.checkFile(content);
-    if (!checked.ok) {
-      setFileError(`Could not read ${file.name}: ${checked.error}`);
-      setPendingFile(null);
-      return;
-    }
-    setFileError(null);
-    if (workspace.items.length === 0) {
-      finishImport(content, "replace");
-      return;
-    }
-    // Something is already here: ask whether to replace it or add the file's items.
-    setPendingFile({ name: file.name, text: content, count: checked.items.length });
+    setPending((p) => p.filter((x) => x !== file));
   }
 
   return {
@@ -69,11 +54,11 @@ export function useImporter(workspace: UseWorkspace) {
     setText,
     error,
     paste,
-    fileError,
-    pendingFile,
+    fileErrors,
+    /** The next workspace file waiting for a replace/merge choice. */
+    pendingFile: pending[0] ?? null,
     importFiles,
     finishImport,
-    cancelImport: () => setPendingFile(null),
   };
 }
 
@@ -87,14 +72,15 @@ export function ImportPanel({ importer }: { importer: Importer }) {
     <section className={styles.panel} aria-label="Workspace">
       <h2 className={styles.title}>Import</h2>
       <div className={styles.dropZone}>
-        <p>Drop a workspace file (.json) or a state code file anywhere on the window, or</p>
+        <p>Drop state code files (.txt) or a workspace file (.json) anywhere on the window, or</p>
         <Button onClick={() => fileInput.current?.click()}>Choose file…</Button>
         <input
           ref={fileInput}
           type="file"
-          accept="application/json,.json,text/plain,.txt"
+          accept=".txt,.json,text/plain,application/json"
+          multiple
           hidden
-          aria-label="Workspace file"
+          aria-label="Import files"
           onChange={(e) => {
             void importer.importFiles(Array.from(e.target.files ?? []));
             e.target.value = "";
@@ -108,23 +94,23 @@ export function ImportPanel({ importer }: { importer: Importer }) {
             them to it?
           </p>
           <div className={styles.buttons}>
-            <Button size="sm" onClick={() => importer.finishImport(pendingFile.text, "replace")}>
+            <Button size="sm" onClick={() => importer.finishImport(pendingFile, "replace")}>
               Replace workspace
             </Button>
-            <Button size="sm" onClick={() => importer.finishImport(pendingFile.text, "merge")}>
+            <Button size="sm" onClick={() => importer.finishImport(pendingFile, "merge")}>
               Add items
             </Button>
-            <Button size="sm" variant="ghost" onClick={importer.cancelImport}>
+            <Button size="sm" variant="ghost" onClick={() => importer.finishImport(pendingFile, "cancel")}>
               Cancel
             </Button>
           </div>
         </div>
       )}
-      {importer.fileError && (
-        <Callout tone="danger" icon={<WarningIcon size={14} />} role="alert">
-          {importer.fileError}
+      {importer.fileErrors.map((message) => (
+        <Callout key={message} tone="danger" icon={<WarningIcon size={14} />} role="alert">
+          {message}
         </Callout>
-      )}
+      ))}
 
       <h3 className={styles.subTitle}>Or paste a short state code</h3>
       <TextArea
@@ -155,19 +141,6 @@ export function ImportPanel({ importer }: { importer: Importer }) {
   );
 }
 
-function download(name: string, content: string, type: string) {
-  const url = URL.createObjectURL(new Blob([content], { type }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-const fileSafe = (name: string) => name.replace(/[^\w.-]+/g, "_").slice(0, 80) || "aura";
-
 /**
  * The Export dialog for the selected aura or group: save its state code as a file, or copy it to paste into the
  * game's import box. Also exports the whole workspace as a file.
@@ -180,10 +153,9 @@ export function ExportPanel({ workspace }: { workspace: UseWorkspace }) {
   const code = workspace.code ?? "";
   const name = workspace.selectedId;
 
+  const { copyCode } = workspace;
   const copy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-    } catch {
+    if (!(await copyCode()).ok) {
       toast("The browser blocked the clipboard; save the file instead", { tone: "danger" });
       return;
     }
@@ -191,7 +163,7 @@ export function ExportPanel({ workspace }: { workspace: UseWorkspace }) {
     toast("Copied; paste it into the game's Import box");
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setCopied(false), 1500);
-  }, [code, toast]);
+  }, [copyCode, toast]);
 
   const kb = (code.length / 1024).toFixed(code.length < 10240 ? 1 : 0);
   return (
@@ -203,7 +175,7 @@ export function ExportPanel({ workspace }: { workspace: UseWorkspace }) {
       {/* Kept for agents and tests that read the code; not shown. */}
       <textarea className={styles.hiddenCode} readOnly value={code} aria-label="State code" tabIndex={-1} />
       <div className={styles.buttons}>
-        <Button disabled={!code} onClick={() => download(`${fileSafe(name ?? "aura")}.txt`, code, "text/plain")}>
+        <Button disabled={!code} onClick={() => workspace.exportAura()}>
           Save as file
         </Button>
         <Button disabled={!code} onClick={copy}>
@@ -212,12 +184,7 @@ export function ExportPanel({ workspace }: { workspace: UseWorkspace }) {
       </div>
       <h3 className={styles.subTitle}>Whole workspace</h3>
       <div className={styles.buttons}>
-        <Button
-          size="sm"
-          onClick={() =>
-            download(`aura-workspace-${workspace.workspaceId ?? DEFAULT_WORKSPACE_ID}.json`, workspace.exportFile(), "application/json")
-          }
-        >
+        <Button size="sm" onClick={() => workspace.exportWorkspace()}>
           Export workspace file
         </Button>
       </div>

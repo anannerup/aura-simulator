@@ -4,9 +4,23 @@
 
 **Blocked by:** 07
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Texture and progress texture (linear/circular)
-- [ ] Stop motion
-- [ ] Model shown as a labelled placeholder
-- [ ] Start/main/finish animations play in the preview
+- [x] Texture and progress texture (linear/circular)
+- [x] Stop motion
+- [x] Model shown as a labelled placeholder
+- [x] Start/main/finish animations play in the preview
+
+## Notes
+
+- Renderers: `src/render/TextureRegion.tsx`, `ProgressTextureRegion.tsx` (+ `progress-texture.ts`), `StopMotionRegion.tsx`
+  (+ `stop-motion.ts`), `ModelRegion.tsx` (model placeholder, empty region), sub-elements in
+  `src/render/subregions/SubTextures.tsx`. Shared texcoord maths in `src/render/texture-geometry.ts`, drawing in
+  `MappedTexture.tsx`.
+- Animations: `src/render/animations.ts` (presets, functions, easing, show/hide lifecycle), played by
+  `src/render/AnimatedAuraRegion.tsx` in `AuraPreview` and `WorkspaceStage`. `AuraPreview`'s `replay` prop replays the
+  start animation; the lab has a Replay button (the workbench can wire the same prop).
+- Limits: custom Lua animation functions fall back to the type's normal function; "relative" start/finish animations
+  end at once (the preview's timer stands still); atlas textures are labelled, not drawn; wrap modes other than
+  CLAMPTOBLACKADDITIVE draw clamped to transparent; the native (Blizzard radial) progress ring is drawn with the
+  addon's square-pie wedge.

@@ -44,6 +44,8 @@ async function handle(msg: Exclude<ToWorker, { type: "fetched" }>): Promise<unkn
       return loaded.newAura(msg.args[0] as string, msg.args[1] as Parameters<AddonVM["newAura"]>[1]);
     case "packs":
       return loaded.packs();
+    case "setSpells":
+      return loaded.setSpells(msg.args[0] as Parameters<AddonVM["setSpells"]>[0]);
   }
 }
 

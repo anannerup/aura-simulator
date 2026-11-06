@@ -1,13 +1,14 @@
 import { connection, type NextRequest } from "next/server";
 import { isWorkspaceId } from "@/workspace";
-import { getWorkspaceHub, type WorkspaceSnapshot } from "@/server/workspaces";
+import { getWorkspaceHub, notice, type WorkspaceNotice } from "@/server/workspaces";
 
 const HEARTBEAT_MS = 20_000;
 
 /**
- * GET /api/workspaces/<id>/events: Server-Sent Events. First `event: snapshot` with the workspace's current
- * snapshot (`{id, code, updatedAt, revision}`), then `event: state` with it on every push or page change;
- * a comment line as heartbeat.
+ * GET /api/workspaces/<id>/events: Server-Sent Events. First `event: snapshot` with a notice of the workspace's
+ * current state (`{id, revision, updatedAt, source}`), then `event: state` with a notice on every push or page
+ * change; a comment line as heartbeat. Notices carry no code (codes can be megabytes): fetch
+ * `GET /api/workspaces/<id>?revision=<n>` for it.
  */
 export async function GET(request: NextRequest, ctx: RouteContext<"/api/workspaces/[id]/events">) {
   await connection();
@@ -25,8 +26,8 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/workspac
           cleanup();
         }
       };
-      const unsubscribe = getWorkspaceHub().subscribe(id, (snap: WorkspaceSnapshot) => {
-        send(`event: state\ndata: ${JSON.stringify(snap)}\n\n`);
+      const unsubscribe = getWorkspaceHub().subscribe(id, (n: WorkspaceNotice) => {
+        send(`event: state\ndata: ${JSON.stringify(n)}\n\n`);
       });
       const heartbeat = setInterval(() => send(": ping\n\n"), HEARTBEAT_MS);
       cleanup = () => {
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/workspac
         }
       };
       request.signal.addEventListener("abort", () => cleanup());
-      send(`retry: 2000\nevent: snapshot\ndata: ${JSON.stringify(getWorkspaceHub().get(id))}\n\n`);
+      send(`retry: 2000\nevent: snapshot\ndata: ${JSON.stringify(notice(getWorkspaceHub().get(id)))}\n\n`);
     },
     cancel() {
       cleanup();

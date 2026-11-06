@@ -253,7 +253,7 @@ export function isGlowProperty(aura: AuraDocument, path: string): boolean {
 }
 
 /** SecretAuraConditions.lua:258-263, 272-275: properties a Missing condition may drive per region type. */
-const MISSING_ROOT: Record<string, string[]> = {
+export const MISSING_ROOT: Record<string, string[]> = {
   icon: ["desaturate", "color", "zoom"],
   aurabar: ["barColor", "backgroundColor", "icon_color", "desaturate"],
   progresstexture: ["foregroundColor", "backgroundColor", "desaturateForeground"],

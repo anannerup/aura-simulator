@@ -7,7 +7,11 @@ import type { AuraDocument } from "@/core";
 import { AuraBarRegion } from "./AuraBarRegion";
 import type { AuraRenderState } from "./conditions";
 import { IconRegion } from "./IconRegion";
+import { EmptyRegion, ModelRegion } from "./ModelRegion";
+import { ProgressTextureRegion } from "./ProgressTextureRegion";
+import { StopMotionRegion } from "./StopMotionRegion";
 import { TextRegion } from "./TextRegion";
+import { TextureRegion, type RegionAnim } from "./TextureRegion";
 
 export interface RegionProps {
   aura: AuraDocument;
@@ -17,6 +21,8 @@ export interface RegionProps {
   /** The region's size in UI units (for auto-sized regions, the document's width/height). */
   width: number;
   height: number;
+  /** Animation state the region draws itself (rotation, mirroring from a negative scale), while one runs. */
+  anim?: RegionAnim;
 }
 
 export interface RegionType {
@@ -32,6 +38,11 @@ export const REGION_TYPES: Record<string, RegionType> = {
   icon: { render: IconRegion },
   aurabar: { render: AuraBarRegion },
   text: { render: TextRegion, autoSize: true },
+  texture: { render: TextureRegion },
+  progresstexture: { render: ProgressTextureRegion },
+  stopmotion: { render: StopMotionRegion },
+  model: { render: ModelRegion },
+  empty: { render: EmptyRegion },
 };
 
 export function regionType(type: unknown): RegionType | undefined {

@@ -38,17 +38,24 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
 - `src/server/`: server-only code (SQLite via built-in `node:sqlite`, wago/Wowhead sync, addon source cache).
   Database file lives in `/data/` (gitignored).
 - `src/workspace/`: the workspace model (`tree.ts`: top-level items, groups nest; pure operations keep ids unique and
-  `controlledChildren`/`parent` in step), its storage/file format (`workspace.ts`, v2 JSON; v1 still read) and the page
-  address format (`?code=`, `?s=`, `?w=`; several items are a short link to a bundle of codes).
+  `controlledChildren`/`parent` in step), its storage/file format (`workspace.ts`, v2 JSON; v1 still read), import/export
+  files (`files.ts`: aura `.txt` = exactly one state code; text with several codes; workspace `.json`) and the page
+  address (`address.ts`: only `?w=`). **Auras never go in the address**: they can be megabytes, so they travel as
+  files, over the push API, or by clipboard (an old `?code=` link is imported once and stripped; `?s=` short links are gone).
   Group layout maths (Group.lua/DynamicGroup.lua ports) and the all-items stage are in `src/render/group/`.
-  Pure, shared by page and server. The page's restore/sync logic is in `src/app/workspace/`; push API, SSE hub,
-  short links (SQLite) and the server-side aura core are in `src/server/workspaces/`.
+  Pure, shared by page and server. The page's restore/sync logic is in `src/app/workspace/` (browser storage is
+  IndexedDB, `storage.ts`, migrating old localStorage copies); push API (bodies up to 32 MB), SSE hub (notices
+  without codes; pages fetch the revision) and the server-side aura core are in `src/server/workspaces/`.
 - `src/docs/`: the agent docs (one Markdown source, served at `/docs/agents`, `/llms.txt`, `/docs/agents.md`).
-  Update it when an API or format changes.
+  Update it when an API or format changes. Lists of types, triggers, condition variables and defaults are generated
+  from the addon version (`addon-facts.ts`); the worked examples (`worked-examples.ts`) are the documents in
+  `src/render/examples.ts` (also shown on `/lab`) and tests push every example block of the served docs.
 - `src/app/`: Next.js routes and pages. Thin; delegates to the modules above.
 - Tests: unit/seam A with Vitest (`npm test`), browser/HTTP seam B with Playwright (`npm run test:e2e`,
   `E2E_PORT` picks the port so parallel worktrees don't clash). Network-dependent tests use recorded
-  fixtures in `tests/fixtures/`.
+  fixtures in `tests/fixtures/`. The e2e dev server gets addon versions/refs from recorded GitHub/jsDelivr
+  answers (`ADDON_UPSTREAM_FIXTURES`; addon files are cached in `.cache/e2e/addon`); `LIVE=1 npm test -- addon-live`
+  checks the real upstream.
 - Musca Auras source: GitHub `dldvlpr-addons-wow/Musca-Auras`, per file via
   `https://cdn.jsdelivr.net/gh/dldvlpr-addons-wow/Musca-Auras@<ref>/<path>`. A local install of v1.15.0 is at
   `~/Games/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns/WeakAuras*` (read only).

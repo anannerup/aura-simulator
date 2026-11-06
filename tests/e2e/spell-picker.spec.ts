@@ -39,11 +39,21 @@ test("search, pick with the keyboard, and the preview shows the spell's icon", a
 
 test("hovering a result shows its Wowhead tooltip; clicking picks it", async ({ page }) => {
   const icon = await openPage(page);
+  // Everything above the search box has loaded (sync status, current spell), so the result list
+  // doesn't move under the mouse after the hover; under load it used to, and another result got hovered.
+  await expect(page.getByTestId("spell-sync")).toContainText("build 1.60.1.70790");
+  await expect(page.getByTestId("current-spell")).toContainText("Arcane Intellect");
   const search = page.getByRole("combobox", { name: "Search spells" });
   await search.fill("arcane");
   const brilliance = page.getByRole("listbox", { name: "Spells" }).getByRole("option", { name: /Arcane Brilliance/ });
-  await brilliance.hover();
-  await expect(page.getByTestId("spell-tooltip")).toContainText("Arcane Brilliance");
+  // The hover counts once the option is the selected one (hovered again if something still moved it away).
+  await expect(async () => {
+    await brilliance.hover();
+    await expect(brilliance).toHaveAttribute("aria-selected", "true", { timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
+  // The tooltip follows after its debounce and /api/spells/<id> (slow to compile on a busy dev server).
+  await expect(page.getByTestId("spell-tooltip")).toContainText("Arcane Brilliance", { timeout: 20_000 });
+  await expect(brilliance).toHaveAttribute("aria-selected", "true");
   await brilliance.click();
   await expect(icon).toHaveAttribute("src", /spell_holy_arcaneintellect/);
 });

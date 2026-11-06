@@ -22,6 +22,7 @@ import {
   type OptionTab,
 } from "./options";
 import { SHIM_LUA } from "./lua/shim";
+import { spellsToLua, type ClientSpell } from "./spells";
 import { PROFILE_LUA } from "./profile";
 import { FULL_VM_ADDONS as ADDONS, addonLoadOrder } from "./toc";
 import { interpretValidation, mergeValidation, type RawValidation, type ValidationResult } from "./validation";
@@ -65,6 +66,8 @@ export interface AddonVM {
   newAura(regionType: string, sourceData?: LuaObject): LuaObject;
   /** The Packs page: utility packs and every class's HUD pack with its blocks. */
   packs(): AuraPacks;
+  /** Adds spells the client knows (C_Spell.GetSpellInfo and friends answer them; any other ID is nil). */
+  setSpells(spells: Record<number, ClientSpell>): void;
 }
 
 export interface LoadAddonVMOptions {
@@ -278,6 +281,9 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
         };
       })();
       return packsCache;
+    },
+    setSpells(spells) {
+      if (Object.keys(spells).length > 0) lua.doStringSync(spellsToLua(spells));
     },
     registries() {
       registriesCache ??= json<Registries>("__extract.registries()");

@@ -3,6 +3,7 @@ import type { AuraPacks, NewAuraPage, OptionAddress, OptionEdit, OptionsTree } f
 import type { AddonVMReport, Registries, VMState } from "./vm";
 import type { LuaObject } from "../lua-value";
 import type { ValidationResult } from "./validation";
+import type { ClientSpell } from "./spells";
 
 /** The full addon VM seen from outside: the same calls as AddonVM, asynchronous (inline or in a Web Worker). */
 export interface AsyncAddonVM {
@@ -15,11 +16,13 @@ export interface AsyncAddonVM {
   newAuraPage(): Promise<NewAuraPage>;
   newAura(regionType: string, sourceData?: LuaObject): Promise<LuaObject>;
   packs(): Promise<AuraPacks>;
+  /** Adds spells the client knows (see AddonVM.setSpells). */
+  setSpells(spells: Record<number, ClientSpell>): Promise<void>;
   /** Stops the VM (terminates the worker). */
   dispose(): void;
 }
 
-type Method = "fillDefaults" | "validate" | "registries" | "options" | "setOption" | "newAuraPage" | "newAura" | "packs";
+type Method = "fillDefaults" | "validate" | "registries" | "options" | "setOption" | "setSpells" | "newAuraPage" | "newAura" | "packs";
 
 /** Messages between the page and the worker. */
 export type ToWorker =
@@ -49,6 +52,7 @@ export async function loadInlineAddonVM(
     newAuraPage: async () => vm.newAuraPage(),
     newAura: async (regionType, sourceData) => vm.newAura(regionType, sourceData),
     packs: async () => vm.packs(),
+    setSpells: async (spells) => vm.setSpells(spells),
     dispose() {},
   };
 }
@@ -122,6 +126,7 @@ export async function loadWorkerAddonVM(
     newAuraPage: () => call<NewAuraPage>("newAuraPage"),
     newAura: (regionType, sourceData) => call<LuaObject>("newAura", regionType, sourceData),
     packs: () => call<AuraPacks>("packs"),
+    setSpells: (spells) => call<void>("setSpells", spells),
     dispose: () => worker.terminate(),
   };
 }

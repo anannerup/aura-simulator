@@ -132,3 +132,24 @@
   color: #aaa;
   font-size: 11px;
 }
+
+/* A model (no 3D in the preview) or a texture the preview can't draw: a labelled stand-in. */
+.modelPlaceholder {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: repeating-linear-gradient(45deg, rgb(120 140 200 / 0.18) 0 6px, rgb(120 140 200 / 0.08) 6px 12px);
+  outline: calc(1px / var(--css-per-unit, 1)) dashed rgb(160 180 255 / 0.7);
+  pointer-events: none;
+}
+
+.placeholderLabel {
+  position: relative;
+  padding: 2px 4px;
+  color: rgb(220 228 255 / 0.9);
+  font: 11px/1.2 system-ui, sans-serif;
+  text-align: center;
+  word-break: break-word;
+}

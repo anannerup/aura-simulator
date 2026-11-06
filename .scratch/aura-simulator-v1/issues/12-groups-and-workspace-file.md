@@ -15,11 +15,11 @@
 ## Notes
 
 - Model: `src/workspace/tree.ts` (pure operations; ids unique, `controlledChildren`/`parent` derived from the
-  tree). Formats: `src/workspace/workspace.ts` (v2 file/storage, v1 migrated by decoding), `src/workspace/address.ts`
-  (bundles). Layout: `src/render/group/` (grow.ts, layout.ts, WorkspaceStage.tsx). Tree UI:
+  tree). Formats: `src/workspace/workspace.ts` (v2 file/storage, v1 migrated by decoding), `src/workspace/files.ts`
+  (aura `.txt` / workspace `.json` import and export). Layout: `src/render/group/` (grow.ts, layout.ts, WorkspaceStage.tsx). Tree UI:
   `src/components/workspace-tree/`. Page sync: `src/app/workspace/session.ts`.
-- Address: a one-item workspace stays `?code=`; several items are `?s=` pointing at a bundle (each top-level item's
-  code, one per line), so every line is still a code the game imports.
+- Address: only `?w=` since 2026-11-06 (bundles and short links removed; see tickets 02 and 13). Several auras travel
+  as one `.txt` file with a code per line, or as the workspace `.json`.
 - Pushes merge into the top level (same uid, else same id, replaces; otherwise appended).
 - Approximations: modern aura groups (`blizzardFlow`) chain icons/bars without native containers; anchor-per-unit,
   custom grow/sort and text-region measured sizes are not simulated; time-based sorts fall back to index order.
