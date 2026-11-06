@@ -19,4 +19,4 @@ export {
   type TexCoord,
   type TextureVariant,
 } from "./pixels";
-export { iconUrl } from "./icons";
+export * from "./icons";
