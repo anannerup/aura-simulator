@@ -1,0 +1,4786 @@
+{
+ "addons": {
+  "WeakAuras": {
+   "version": "1.15.0",
+   "interface": "16001",
+   "fileCount": 160,
+   "bytes": 4288748
+  },
+  "WeakAurasOptions": {
+   "version": "1.15.0",
+   "interface": "16001",
+   "fileCount": 141,
+   "bytes": 3191774
+  }
+ },
+ "files": [
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/LibStub/LibStub.lua",
+   "ms": 1.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/CallbackHandler-1.0/CallbackHandler-1.0.lua",
+   "ms": 1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/AceTimer-3.0/AceTimer-3.0.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/AceSerializer-3.0/AceSerializer-3.0.lua",
+   "ms": 0.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/AceComm-3.0/ChatThrottleLib.lua",
+   "ms": 1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/AceComm-3.0/AceComm-3.0.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/Chomp/Internal.lua",
+   "ms": 1.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/Chomp/Public.lua",
+   "ms": 1.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/Chomp/StringManip.lua",
+   "ms": 1.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/LibSharedMedia-3.0/LibSharedMedia-3.0.lua",
+   "ms": 1.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/LibCompress/LibCompress.lua",
+   "ms": 2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/LibDataBroker-1.1/LibDataBroker-1.1.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/LibRangeCheck-3.0/LibRangeCheck-3.0.lua",
+   "ms": 3.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/LibDeflate/LibDeflate.lua",
+   "ms": 6.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/LibCustomGlow-1.0/LibCustomGlow-1.0.lua",
+   "ms": 1.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/LibDBIcon-1.0/LibDBIcon-1.0.lua",
+   "ms": 0.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/LibGetFrame-1.0/LibGetFrame-1.0.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/Archivist/Archivist.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/Archivist/stores/RawData.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/Archivist/stores/ReadOnly.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Libs/LibSerialize/LibSerialize.lua",
+   "ms": 1.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Init.lua",
+   "ms": 0.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretRestrictions.lua",
+   "ms": 0.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Compatibility.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Locales/enUS.lua",
+   "ms": 3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Locales/deDE.lua",
+   "ms": 1.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Locales/frFR.lua",
+   "ms": 1.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Locales/koKR.lua",
+   "ms": 1.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Locales/zhCN.lua",
+   "ms": 2.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Locales/zhTW.lua",
+   "ms": 3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Locales/esES.lua",
+   "ms": 1.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Locales/esMX.lua",
+   "ms": 1.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Locales/ruRU.lua",
+   "ms": 1.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Locales/ptBR.lua",
+   "ms": 1.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Locales/itIT.lua",
+   "ms": 1.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "ArchiveTypes/Repository.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "DefaultOptions.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubscribableObject.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Features.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "TimeMachine.lua",
+   "ms": 0.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Types_Vanilla.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Types.lua",
+   "ms": 5.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "PlayerSpecialization.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "TalentReader.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "CDMBackground.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "CDMSetup.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "CooldownViewerCatalog.lua",
+   "ms": 1.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "CooldownViewerSelection.lua",
+   "ms": 1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "CooldownViewerStates.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "CooldownViewerTrigger.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "PrototypeSecretHelpers.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Prototypes.lua",
+   "ms": 6.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "ClassicEraTriggers.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "AuraShownTrigger.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Profiling.lua",
+   "ms": 1.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "WeakAuras.lua",
+   "ms": 6.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "History.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "AuraBackups.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Transmission.lua",
+   "ms": 0.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "ForeverTutorial.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Modernize.lua",
+   "ms": 1.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "ForeverAurasImport.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Animations.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "Conditions.lua",
+   "ms": 1.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretConditions.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "TriggerExpression.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "UnusedAuras.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "ReplaceValues.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "AuraSets.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "EditModePlacement.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "FrozenMarker.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "PixelSnapping.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "AnchorToWeakAuras.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraRanks.lua",
+   "ms": 2.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraAnchor.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BlizzardAuraDisplay.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BlizzardAuraDisplayUnits.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BlizzardAuraDisplayTrigger.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BlizzardAuraDisplayMigration.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BlizzardAuraDisplaySounds.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BlizzardAuraDisplayValidation.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BlizzardAuraDisplayPlacement.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BlizzardAuraDisplayButtons.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BlizzardAuraDisplayInstances.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BlizzardAuraDisplayUnitRefresh.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BlizzardAuraDisplayQueues.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BlizzardAuraDisplayLifecycle.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BlizzardAuraDisplayEvents.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraPreview.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "DispelTypeDisplay.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "CDMAuraProgress.lua",
+   "ms": 1.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraAppearance.lua",
+   "ms": 1.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraConditions.lua",
+   "ms": 3.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraSingle.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraSingleFallback.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraSingleLearning.lua",
+   "ms": 0.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraSingleGates.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraSingleGateDisplay.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraSingleStatus.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraSingleFollow.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraSingleMissing.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraSingleRemaining.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraGlow.lua",
+   "ms": 0.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraFlow.lua",
+   "ms": 0.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraFlowShadow.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraFlowUnits.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraFlowGrid.lua",
+   "ms": 0.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraFlowPreview.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretAuraTrigger.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BuffTriggerRestrictedAuras.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BuffTriggerNativeFilter.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BuffTrigger2.lua",
+   "ms": 3.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "GenericTriggerRestricted.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SpellCooldownState.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SecretSpellCooldown.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "GenericTrigger.lua",
+   "ms": 4.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BossMods.lua",
+   "ms": 1.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "TSUHelpers.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "AuraWarnings.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "AuraEnvironment.lua",
+   "ms": 0.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "AuraEnvironmentWrappedSystems.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "DebugLog.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "TextStyle.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "DurationText.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "RegionTypes/SmoothStatusBarMixin.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "RegionTypes/RegionPrototype.lua",
+   "ms": 1.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "RegionTypes/Empty.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BaseRegions/TextureCoords.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BaseRegions/CircularProgressTexture.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BaseRegions/LinearProgressTexture.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "NativeProgressPainter.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "ProgressTextureNative.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "RegionTypes/ProgressTextureSecret.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "RegionTypes/ProgressTexture.lua",
+   "ms": 0.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BaseRegions/Texture.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "RegionTypes/Texture.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "RegionTypes/AuraBarNative.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "RegionTypes/AuraBar.lua",
+   "ms": 1.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "RegionTypes/Icon.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "RegionTypes/Text.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "RegionTypes/Group.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "RegionTypes/DynamicGroup.lua",
+   "ms": 1.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "BaseRegions/StopMotion.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "RegionTypes/StopMotion.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "RegionTypes/Model.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubRegionTypes/Background.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubRegionTypes/SubTextNative.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubRegionTypes/SubText.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubRegionTypes/Border.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubRegionTypes/DispelIcon.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubRegionTypes/Glow.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubRegionTypes/Tick.lua",
+   "ms": 0.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubRegionTypes/Model.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubRegionTypes/StopMotion.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubRegionTypes/Texture.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubRegionTypes/CDMDispel.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubRegionTypes/CDMDispelBorder.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubRegionTypes/CircularProgressTexture.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "SubRegionTypes/LinearProgressTexture.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAuras",
+   "file": "DiscordList.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/AceGUI-3.0.lua",
+   "ms": 0.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIContainer-BlizOptionsGroup.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIContainer-DropDownGroup.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIContainer-Frame.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIContainer-InlineGroup.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIContainer-ScrollFrame.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIContainer-SimpleGroup.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIContainer-TabGroup.lua",
+   "ms": 0.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIContainer-TreeGroup.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIContainer-Window.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIWidget-Button.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIWidget-CheckBox.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIWidget-ColorPicker.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIWidget-DropDown.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIWidget-DropDown-Items.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIWidget-EditBox.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIWidget-Heading.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIWidget-Icon.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIWidget-InteractiveLabel.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIWidget-Keybinding.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIWidget-Label.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIWidget-MultiLineEditBox.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0/widgets/AceGUIWidget-Slider.lua",
+   "ms": 0.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceConfig-3.0/AceConfigRegistry-3.0/AceConfigRegistry-3.0.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceConfig-3.0/AceConfigCmd-3.0/AceConfigCmd-3.0.lua",
+   "ms": 0.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceConfig-3.0/AceConfigDialog-3.0/AceConfigDialog-3.0.lua",
+   "ms": 3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceConfig-3.0/AceConfig-3.0.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0-SharedMediaWidgets/prototypes.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0-SharedMediaWidgets/FontWidget.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0-SharedMediaWidgets/SoundWidget.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0-SharedMediaWidgets/StatusbarWidget.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0-SharedMediaWidgets/BorderWidget.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/AceGUI-3.0-SharedMediaWidgets/BackgroundWidget.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/LibUIDropDownMenu/LibUIDropDownMenu.lua",
+   "ms": 2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Libs/LibAPIAutoComplete-1.0/LibAPIAutoComplete-1.0.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Locales/enUS.lua",
+   "ms": 1.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Locales/deDE.lua",
+   "ms": 0.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Locales/frFR.lua",
+   "ms": 1.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Locales/koKR.lua",
+   "ms": 0.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Locales/zhCN.lua",
+   "ms": 0.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Locales/zhTW.lua",
+   "ms": 0.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Locales/esES.lua",
+   "ms": 0.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Locales/esMX.lua",
+   "ms": 0.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Locales/ruRU.lua",
+   "ms": 1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Locales/ptBR.lua",
+   "ms": 0.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Locales/itIT.lua",
+   "ms": 0.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "VersionCheck.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "ForAllIndentsAndPurposes.lua",
+   "ms": 0.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "RegionOptions/Empty.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "RegionOptions/AuraBar.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "RegionOptions/Texture.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "RegionOptions/Icon.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "RegionOptions/Text.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "RegionOptions/GroupModernFlow.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "RegionOptions/Group.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "RegionOptions/DynamicGroup.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "RegionOptions/StopMotion.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "RegionOptions/Model.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "RegionOptions/ProgressTexture.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SubRegionOptions/SubRegionCommon.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SubRegionOptions/Background.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SubRegionOptions/SubText.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SubRegionOptions/Border.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SubRegionOptions/DispelIcon.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SubRegionOptions/Glow.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SubRegionOptions/Tick.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SubRegionOptions/Model.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SubRegionOptions/StopMotion.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SubRegionOptions/Texture.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SubRegionOptions/CDMDispel.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SubRegionOptions/CDMDispelBorder.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SubRegionOptions/CircularProgressTexture.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SubRegionOptions/LinearProgressTexture.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Cache.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "TriggerSecretWarnings.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AuraTriggerOptions.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "CommonOptions.lua",
+   "ms": 1.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "GroupOptions.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "DisplayOptions.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "TriggerOptions.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "LoadOptions.lua",
+   "ms": 1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "ActionOptions.lua",
+   "ms": 1.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AnimationOptions.lua",
+   "ms": 1.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "InformationOptions.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AuraDisplayOptions.lua",
+   "ms": 0.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "BuffTrigger2.lua",
+   "ms": 1.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "SecretAuraTriggerOptions.lua",
+   "ms": 0.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "CooldownViewerOptions.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "GenericTrigger.lua",
+   "ms": 0.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "WeakAurasOptions.lua",
+   "ms": 2.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "ConditionOptions.lua",
+   "ms": 3.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AuthorOptions.lua",
+   "ms": 3.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "Changelog.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "ClassPacks.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "UtilityPacks.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "PackLibrary.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "OptionsFrames/OptionsFrame.lua",
+   "ms": 1.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "OptionsFrames/CodeReview.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "OptionsFrames/IconPicker.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "OptionsFrames/ImportExport.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "OptionsFrames/ModelPicker.lua",
+   "ms": 0.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "OptionsFrames/TextEditor.lua",
+   "ms": 0.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "OptionsFrames/TexturePicker.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "OptionsFrames/Update.lua",
+   "ms": 2.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "OptionsFrames/DebugLogFrame.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "OptionsFrames/MoverSizer.lua",
+   "ms": 1.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "OptionsFrames/FrameChooser.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasExpand.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasExpandSmall.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasIcon.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasNewHeaderButton.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasLoadedHeaderButton.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasDisplayButton.lua",
+   "ms": 2.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasDropDownItemCurrency.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasPendingInstallButton.lua",
+   "ms": 0.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasPendingUpdateButton.lua",
+   "ms": 0.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasTextureButton.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasIconButton.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasMultiLineEditBox.lua",
+   "ms": 0.7,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasMultiLineEditBoxWithEnter.lua",
+   "ms": 0.9,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasNewButton.lua",
+   "ms": 0.5,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasImportButton.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasToolbarButton.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasMiniTalent.lua",
+   "ms": 0.8,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasTwoColumnDropDown.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasSnippetButton.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasAnchorButtons.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIContainer-WeakAurasTreeGroup.lua",
+   "ms": 0.6,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIContainer-WeakAurasInlineGroup.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasExpandAnchor.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasSpacer.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGuiWidget-WeakAurasProgressBar.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasSpinBox.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasScrollArea.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasInput.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasInputFocus.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasInputWithIndentation.lua",
+   "ms": 0.3,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGuiWidget-WeakAurasMediaSound.lua",
+   "ms": 0.1,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/WeakAurasStatusbarAtlasWidget.lua",
+   "ms": 0.2,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "ColorPalette.lua",
+   "ms": 0.4,
+   "status": "ok"
+  },
+  {
+   "addon": "WeakAurasOptions",
+   "file": "AceGUI-Widgets/AceGUIWidget-WeakAurasColorPicker.lua",
+   "ms": 0.2,
+   "status": "ok"
+  }
+ ],
+ "timings": {
+  "WeakAuras": 210,
+  "WeakAurasOptions": 126,
+  "vmCreate": 12,
+  "total": 360
+ },
+ "events": [
+  {
+   "event": "ADDON_LOADED",
+   "args": [
+    "WeakAuras"
+   ],
+   "errors": {},
+   "handlers": 2
+  },
+  {
+   "event": "PLAYER_LOGIN",
+   "args": [],
+   "errors": [
+    "/addons/WeakAuras/Libs/Chomp/Internal.lua:467: bad argument #1 to 'ipairs' (table expected, got nil)\nstack traceback:\n\t[C]: in function 'ipairs'\n\t/addons/WeakAuras/Libs/Chomp/Internal.lua:467: in function </addons/WeakAuras/Libs/Chomp/Internal.lua:446>\n\t(tail call): ?\n\t[C]: in function 'xpcall51'\n\t[string \"-- WoW API shim for loading Musca Auras hea...\"]:129: in function 'xpcall'\n\t[string \"-- JS <-> Lua bridge helpers: run one addon...\"]:33: in function 'fireSafe'\n\t[string \"return __bridge.json(__shim.fireSafe(\"PLAYE...\"]:1: in main chunk",
+    "...ddons/WeakAuras/Libs/LibDBIcon-1.0/LibDBIcon-1.0.lua:163: attempt to perform arithmetic on a nil value\nstack traceback:\n\t...ddons/WeakAuras/Libs/LibDBIcon-1.0/LibDBIcon-1.0.lua:163: in function 'updatePosition'\n\t...ddons/WeakAuras/Libs/LibDBIcon-1.0/LibDBIcon-1.0.lua:324: in function <...ddons/WeakAuras/Libs/LibDBIcon-1.0/LibDBIcon-1.0.lua:322>\n\t(tail call): ?\n\t[C]: in function 'xpcall51'\n\t[string \"-- WoW API shim for loading Musca Auras hea...\"]:129: in function 'xpcall'\n\t[string \"-- JS <-> Lua bridge helpers: run one addon...\"]:33: in function 'fireSafe'\n\t[string \"return __bridge.json(__shim.fireSafe(\"PLAYE...\"]:1: in main chunk"
+   ],
+   "handlers": 6
+  },
+  {
+   "event": "PLAYER_ENTERING_WORLD",
+   "args": [
+    true,
+    false
+   ],
+   "errors": {},
+   "handlers": 11
+  },
+  {
+   "event": "ADDON_LOADED",
+   "args": [
+    "WeakAurasOptions"
+   ],
+   "errors": {},
+   "handlers": 3
+  }
+ ],
+ "login": {
+  "finished": true,
+  "ticks": 0,
+  "errors": []
+ },
+ "errorHandler": {},
+ "memoryBytes": 8294655,
+ "extractTimings": {
+  "registriesMs": 41,
+  "validationMs": 15,
+  "optionsTimings": {
+   "modern-icon-glow-ok": 31,
+   "aura2-icon-spellids": 30
+  }
+ },
+ "memoryBytesAfter": 9197322,
+ "touchedCount": 580,
+ "touched": [
+  {
+   "api": "GetDifficultyInfo()",
+   "count": 260,
+   "files": 1
+  },
+  {
+   "api": "C_UIFileAsset.IsKnownFile()",
+   "count": 119,
+   "files": 1
+  },
+  {
+   "api": "C_Texture.GetAtlasInfo()",
+   "count": 26,
+   "files": 1
+  },
+  {
+   "api": "nil:ElvUI",
+   "count": 19,
+   "files": 1
+  },
+  {
+   "api": "nil:OmniCC",
+   "count": 19,
+   "files": 1
+  },
+  {
+   "api": "C_Item.GetItemSubClassInfo()",
+   "count": 17,
+   "files": 1
+  },
+  {
+   "api": "ChatFrame_AddMessageEventFilter()",
+   "count": 16,
+   "files": 2
+  },
+  {
+   "api": "C_Map.GetBestMapForUnit()",
+   "count": 10,
+   "files": 1
+  },
+  {
+   "api": "GetInstanceInfo()",
+   "count": 10,
+   "files": 1
+  },
+  {
+   "api": "C_SpecializationInfo.GetNumSpecializationsForClassID()",
+   "count": 9,
+   "files": 1
+  },
+  {
+   "api": "nil:CUSTOM_CLASS_COLORS",
+   "count": 9,
+   "files": 1
+  },
+  {
+   "api": "GetText()",
+   "count": 8,
+   "files": 1
+  },
+  {
+   "api": "UnitSex()",
+   "count": 8,
+   "files": 1
+  },
+  {
+   "api": "C_GameRules.IsHardcoreActive()",
+   "count": 7,
+   "files": 2
+  },
+  {
+   "api": "C_Spell.GetSchoolString()",
+   "count": 7,
+   "files": 1
+  },
+  {
+   "api": "TableHasAnyEntries()",
+   "count": 7,
+   "files": 2
+  },
+  {
+   "api": "C_Engraving.IsEngravingEnabled()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "C_Secrets.HasSecretRestrictions()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "C_SpecializationInfo.GetSpecialization()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "GetGuildInfo()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "GetInventorySlotInfo()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "GetMinimapZoneText()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "GetRealZoneText()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "IsInInstance()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "IsMounted()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.SetScript()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.SetScript()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.SetScript()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "UnitGroupRolesAssigned()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "UnitInVehicle()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "UnitIsDeadOrGhost()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "UnitIsGroupAssistant()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "UnitIsGroupLeader()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "UnitIsPVP()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "UnitIsPVPFreeForAll()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "UnitOnTaxi()",
+   "count": 6,
+   "files": 1
+  },
+  {
+   "api": "GetTotemInfo()",
+   "count": 5,
+   "files": 1
+  },
+  {
+   "api": "EventRegistry.RegisterCallback()",
+   "count": 4,
+   "files": 2
+  },
+  {
+   "api": "C_ChatInfo.RegisterAddonMessagePrefix()",
+   "count": 3,
+   "files": 1
+  },
+  {
+   "api": "C_Secrets.GetSpellAuraSecrecy()",
+   "count": 3,
+   "files": 1
+  },
+  {
+   "api": "CreateTextureMarkup()",
+   "count": 3,
+   "files": 1
+  },
+  {
+   "api": "GetInventoryItemTexture()",
+   "count": 3,
+   "files": 1
+  },
+  {
+   "api": "GetTexCoordsByGrid()",
+   "count": 3,
+   "files": 1
+  },
+  {
+   "api": "nil:BigWigsLoader",
+   "count": 3,
+   "files": 1
+  },
+  {
+   "api": "C_CooldownViewer.GetCooldownViewerCategorySet()",
+   "count": 2,
+   "files": 1
+  },
+  {
+   "api": "C_EventUtils.IsEventValid()",
+   "count": 2,
+   "files": 1
+  },
+  {
+   "api": "C_Secrets.ShouldSpellAuraBeSecret()",
+   "count": 2,
+   "files": 1
+  },
+  {
+   "api": "GetNumTalentTabs()",
+   "count": 2,
+   "files": 2
+  },
+  {
+   "api": "L_DropDownList1.Hide()",
+   "count": 2,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.SetFrameStrata()",
+   "count": 2,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.Hide()",
+   "count": 2,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.SetFrameStrata()",
+   "count": 2,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.Hide()",
+   "count": 2,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.SetFrameStrata()",
+   "count": 2,
+   "files": 1
+  },
+  {
+   "api": "Minimap.HookScript()",
+   "count": 2,
+   "files": 1
+  },
+  {
+   "api": "nil:ChatThrottleLib",
+   "count": 2,
+   "files": 1
+  },
+  {
+   "api": "nil:WeakAurasCompanion",
+   "count": 2,
+   "files": 1
+  },
+  {
+   "api": "ACCEPT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "AMMOSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "AceGUIEditBoxInsertLink",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "AceGUIMultiLineEditBoxInsertLink",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "AceGUIWeakAurasInputWithIndentationInsertLink",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "AceGUIWeakAurasMultiLineEditBoxInsertLink",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "AceGUIWeakAurasMultiLineEditBoxWithEnterInsertLink",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "AddonCompartmentFrame",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Ambiguate",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "AuraUtil.ForEachAura",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "AuraUtil.ForEachAura()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "BACKSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "BINDING_HEADER_RAID_TARGET",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "BOOKTYPE_SPELL",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "BuffBarCooldownViewer",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "BuffIconCooldownViewer",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "CANCEL",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "CHESTSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "CHI_POWER",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "COMBO_POINTS",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "COOKINGGEAR0SLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "COOKINGTOOLSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_BattleNet",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_BattleNet.SendGameData",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_ChatInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_ChatInfo.IsAddonMessagePrefixRegistered",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_ChatInfo.IsAddonMessagePrefixRegistered()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_ChatInfo.RegisterAddonMessagePrefix",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_ChatInfo.SendAddonMessage",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_ChatInfo.SendAddonMessageLogged",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_ChatInfo.SendChatMessage",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_CooldownViewer",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_CooldownViewer.GetCooldownViewerCategorySet",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_CurveUtil",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_CurveUtil.CreateColorCurve",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_CurveUtil.CreateCurve",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_CurveUtil.CreateCurve()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_CurveUtil.EvaluateColorValueFromBoolean",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_DamageMeter",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_DurationUtil",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_DurationUtil.CreateDurationTextBinding",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Engraving",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Engraving.IsEngravingEnabled",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_EventUtils",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_EventUtils.IsEventValid",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_GameRules",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_GameRules.IsHardcoreActive",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Item",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Item.GetItemSubClassInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Map",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Map.GetBestMapForUnit",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_PaperDollInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_PaperDollInfo.GetInventorySlotInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_PaperDollInfo.GetInventorySlotInfo()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Reputation",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Reputation.AreLegacyReputationsShown",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Reputation.AreLegacyReputationsShown()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Reputation.CollapseFactionHeader",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Reputation.ExpandFactionHeader",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Reputation.GetFactionDataByID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Reputation.GetFactionDataByIndex",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Reputation.GetNumFactions",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Reputation.GetReputationSortType",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Reputation.GetReputationSortType()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Reputation.GetWatchedFactionData",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Reputation.SetLegacyReputationsShown",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Reputation.SetLegacyReputationsShown()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Seasons",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Seasons.GetActiveSeason",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Seasons.GetActiveSeason()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Secrets",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Secrets.GetSpellAuraSecrecy",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Secrets.HasSecretRestrictions",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Secrets.ShouldAurasBeSecret",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Secrets.ShouldCooldownsBeSecret",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Secrets.ShouldSpellAuraBeSecret",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Secrets.ShouldSpellCooldownBeSecret",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Secrets.ShouldUnitStatsBeSecret",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_SpecializationInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_SpecializationInfo.GetActiveSpecGroup",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_SpecializationInfo.GetActiveSpecGroup()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_SpecializationInfo.GetCombatConfigIDForSpecGroup",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_SpecializationInfo.GetCombatConfigIDForSpecGroup()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_SpecializationInfo.GetNumSpecializationsForClassID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_SpecializationInfo.GetSpecialization",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_SpecializationInfo.GetSpecializationInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_SpecializationInfo.GetTalentInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Spell.GetSchoolString",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Spell.GetSpellPowerCost",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Spell.RequestLoadSpellData",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Spell.RequestLoadSpellData()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_StringUtil",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_StringUtil.CreateNumericRuleFormatter",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_SwingTimer",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Texture",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Texture.GetAtlasElements",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Texture.GetAtlasInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_TooltipInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_TooltipInfo.GetSpellByID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_TooltipInfo.GetSpellByID()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_TooltipInfo.GetUnitBuffByAuraInstanceID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_Traits",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_UIFileAsset",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_UIFileAsset.IsKnownFile",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_UnitAuras",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_UnitAuras.GetAuraDataByAuraInstanceID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_UnitAuras.GetAuraDataByIndex",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_UnitAuras.GetAuraSlots",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "C_UnitAuras.IsAuraFilteredOutByInstanceID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ChatFrame_AddMessageEventFilter",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "CheckInteractDistance",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ClearCursor",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "CloseMenus",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ColorPickerFrame",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ColorPickerFrame.Content",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ColorPickerFrame.Content.ColorPicker",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "CombatLogGetCurrentEventInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "CreateTextureMarkup",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "CurveConstants",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "CurveConstants.Reverse",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "CurveConstants.ZeroToOne",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "CustomAuraContainerAuraProcessingPolicy",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "DAMAGER",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ENABLE_AMBIENCE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ENABLE_DIALOG",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ENABLE_MUSIC",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ENABLE_SOUNDFX",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ERR_CHAT_PLAYER_NOT_FOUND_S",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.AddOnEnableState",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.AddOnEnableState.None",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.CooldownViewerCategory",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.CooldownViewerCategory.TrackedBar",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.CooldownViewerCategory.TrackedBuff",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.DurationTextBindingProperty",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.DurationTextBindingProperty.ElapsedDuration",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.DurationTextBindingProperty.ElapsedPercent",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.DurationTextBindingProperty.EndTime",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.DurationTextBindingProperty.RemainingDuration",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.DurationTextBindingProperty.RemainingPercent",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.DurationTextBindingProperty.StartTime",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.DurationTextBindingProperty.TotalDuration",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.FontStringScaleAnimationMode",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.LuaCurveType",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.LuaCurveType.Step",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.PlayerSwingType",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.PlayerSwingType.MainHand",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.PlayerSwingType.OffHand",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.PlayerSwingType.Ranged",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.SecrecyLevel",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.SecrecyLevel.NeverSecret",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.SendAddonMessageResult",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Enum.StatusBarTimerDirection",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "EssentialCooldownViewer",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "EventRegistry",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "EventRegistry.RegisterCallback",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "FEETSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "FINGER0SLOT_UNIQUE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "FINGER1SLOT_UNIQUE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "FISHINGTOOLSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "FindBaseSpellByID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "FindSpellOverrideByID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ForeverAuras",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:ClearAllPoints",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:ClearTransform",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:CreateAnimation",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:CreateAnimationGroup",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:CreateFontString",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:CreateTexture",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:EnableMouse",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:GetCountdownFontString",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:GetHighlightTexture",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:GetHorizontalScrollRange",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:GetNormalTexture",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:GetPushedTexture",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:GetVerticalScrollRange",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:IsProtected",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:IsRectValid",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:Pause",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:RegisterForClicks",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:RegisterForDrag",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetAdditionalProgress",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetAllPoints",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetAlpha",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetAnimRotation",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetAtlas",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetBlendMode",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetColorTexture",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetCooldown",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetDesaturated",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetDrawBling",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetDrawEdge",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetDrawLayer",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetDrawSwipe",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetDuration",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetFacing",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetFixedFrameLevel",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetFixedFrameStrata",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetFontObject",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetFrameLevel",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetFrameStrata",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetFromAlpha",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetHideCountdownNumbers",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetHighlightFontObject",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetHighlightTexture",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetHorizontalScroll",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetJustifyH",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetModel",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetMovable",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetNonSpaceWrap",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetNormalFontObject",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetNormalTexture",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetOrder",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetPoint",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetPosition",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetPushedTexture",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetRadialProgressBarPercent",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetResizable",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetResizeBounds",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetReverse",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetRotation",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetScrollChild",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetSnapToPixelGrid",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetStartDelay",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetTexCoord",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetTexelSnappingBias",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetTextColor",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetTextHeight",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetTexture",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetTimerDuration",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetToAlpha",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetToFinalAlpha",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetVertexColor",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Frame:SetVerticalScroll",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GAME_LOCALE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GameTooltip_AddColoredLine",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GameTooltip_AddInstructionLine",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GameTooltip_AddNormalLine",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GameTooltip_SetTitle",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetAutoCompleteRealms",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetAutoCompleteRealms()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetCursorInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetCursorPosition",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetDifficultyInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetFrameCPUUsage",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetFramerate",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetGuildInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetInstanceInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetInventoryItemLink",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetInventoryItemTexture",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetInventorySlotInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetMinimapShape",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetMinimapShape()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetMinimapZoneText",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetMouseFocus",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetNumShapeshiftForms",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetNumShapeshiftForms()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetNumSpellTabs",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetNumTalentTabs",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetNumTalents",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetPlayerInfoByGUID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetRaidRosterInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetRealZoneText",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetShapeshiftForm",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetShapeshiftFormInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetSpecialization",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetSpecializationInfoForClassID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetSpellBookItemInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetSpellBookItemName",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetSpellCharges",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetSpellCount",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetSpellTabInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetTexCoordsByGrid",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetText",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetTotemInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetUnitName",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "GetUnitName()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "HANDSSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "HEADSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "HEALER",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "HOLY_POWER",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "INLINE_DAMAGER_ICON",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "INLINE_HEALER_ICON",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "INLINE_TANK_ICON",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "IsAltKeyDown",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "IsControlKeyDown",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "IsInInstance",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "IsMounted",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "IsMouseButtonDown",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "IsPlayerMoving",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "IsShiftKeyDown",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "IsSpellInRange",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ItemLocationMixin",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ItemTransmogInfoMixin",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "LATER",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "LEGSSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.EnableMouse",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.EnableMouse()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.Hide",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.SetFrameStrata",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.SetID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.SetID()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.SetParent",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.SetParent()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.SetScript",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.SetSize",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.SetSize()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.SetToplevel",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1.SetToplevel()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1Backdrop",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1Backdrop.SetAllPoints",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1Backdrop.SetAllPoints()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1Button1",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1Button1.SetID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1Button1.SetID()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1Button1NormalText",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1Button1NormalText.GetFont",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1Button1NormalText.GetFont()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1MenuBackdrop",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1MenuBackdrop.SetAllPoints",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1MenuBackdrop.SetAllPoints()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1MenuBackdrop.SetBackdropBorderColor",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1MenuBackdrop.SetBackdropBorderColor()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1MenuBackdrop.SetBackdropColor",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList1MenuBackdrop.SetBackdropColor()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.EnableMouse",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.EnableMouse()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.Hide",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.SetFrameStrata",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.SetID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.SetID()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.SetParent",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.SetParent()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.SetScript",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.SetSize",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.SetSize()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.SetToplevel",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2.SetToplevel()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2Backdrop",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2Backdrop.SetAllPoints",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2Backdrop.SetAllPoints()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2Button1",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2Button1.SetID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2Button1.SetID()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2MenuBackdrop",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2MenuBackdrop.SetAllPoints",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2MenuBackdrop.SetAllPoints()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2MenuBackdrop.SetBackdropBorderColor",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2MenuBackdrop.SetBackdropBorderColor()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2MenuBackdrop.SetBackdropColor",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList2MenuBackdrop.SetBackdropColor()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.EnableMouse",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.EnableMouse()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.Hide",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.SetFrameStrata",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.SetID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.SetID()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.SetParent",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.SetParent()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.SetScript",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.SetSize",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.SetSize()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.SetToplevel",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3.SetToplevel()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3Backdrop",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3Backdrop.SetAllPoints",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3Backdrop.SetAllPoints()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3Button1",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3Button1.SetID",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3Button1.SetID()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3MenuBackdrop",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3MenuBackdrop.SetAllPoints",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3MenuBackdrop.SetAllPoints()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3MenuBackdrop.SetBackdropBorderColor",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3MenuBackdrop.SetBackdropBorderColor()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3MenuBackdrop.SetBackdropColor",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "L_DropDownList3MenuBackdrop.SetBackdropColor()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "MAINASSIST",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "MAINHANDSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "MAINTANK",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "MAX_NUM_TALENTS",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Minimap",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Minimap.GetWidth",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Minimap.GetWidth()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Minimap.HookScript",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "MouseIsOver",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "NECKSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "OKAY",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "PET_MODE_AGGRESSIVE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "PET_MODE_ASSIST",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "PET_MODE_DEFENSIVE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "PET_MODE_PASSIVE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "PLAYER_DIFFICULTY1",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "PLAYER_DIFFICULTY2",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "POWER_TYPE_ARCANE_CHARGES",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "POWER_TYPE_ENERGY",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "POWER_TYPE_FOCUS",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "POWER_TYPE_FURY_DEMONHUNTER",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "POWER_TYPE_INSANITY",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "POWER_TYPE_LUNAR_POWER",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "POWER_TYPE_MAELSTROM",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "POWER_TYPE_MANA",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "POWER_TYPE_PAIN",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "POWER_TYPE_RED_POWER",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "PlaySound",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "PlayerLocationMixin",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "PowerBarColor",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "RAID_TARGET_1",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "RAID_TARGET_2",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "RAID_TARGET_3",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "RAID_TARGET_4",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "RAID_TARGET_5",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "RAID_TARGET_6",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "RAID_TARGET_7",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "RAID_TARGET_8",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "RAID_TARGET_NONE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "RANGEDSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "RELOADUI",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "RUNIC_POWER",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ResetCursor",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "SECONDARYHANDSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "SHOULDERSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "SOUL_SHARDS_POWER",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "SPECIALIZATION",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_ENVIRONMENTAL_DAMAGE_DROWNING",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_ENVIRONMENTAL_DAMAGE_FALLING",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_ENVIRONMENTAL_DAMAGE_FATIGUE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_ENVIRONMENTAL_DAMAGE_FIRE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_ENVIRONMENTAL_DAMAGE_LAVA",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_ENVIRONMENTAL_DAMAGE_SLIME",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_ARCANE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_CHAOS",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_CHROMATIC",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_COSMIC",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_DIVINE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_ELEMENTAL",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_FIRE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_FIRESTORM",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_FLAMESTRIKE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_FROST",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_FROSTFIRE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_FROSTSTORM",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_FROSTSTRIKE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_HOLY",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_HOLYFIRE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_HOLYFROST",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_HOLYSTORM",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_HOLYSTRIKE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_MAGIC",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_NATURE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_PHYSICAL",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_SHADOW",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_SHADOWFLAME",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_SHADOWFROST",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_SHADOWLIGHT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_SHADOWSTORM",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_SHADOWSTRIKE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_SPELLFIRE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_SPELLFROST",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_SPELLSHADOW",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_SPELLSTORM",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_SPELLSTRIKE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "STRING_SCHOOL_STORMSTRIKE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "SecureButton_GetUnit",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "SendChatMessage",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "SetCursor",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "SetItemRef",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "ShowUIPanel",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "TABARDSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "TANK",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "TOOLTIP_DEFAULT_BACKGROUND_COLOR",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "TOOLTIP_DEFAULT_COLOR",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "TRINKET0SLOT_UNIQUE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "TRINKET1SLOT_UNIQUE",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "TableHasAnyEntries",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "TextureUtil",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "TextureUtil.AnimateTexCoords",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "TransmogLocationMixin",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "TransmogPendingInfoMixin",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitAttackSpeed",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitAttackSpeed()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitAura",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitCanAssist",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitCanAttack",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitCastingInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitChannelInfo",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitDetailedThreatSituation",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitFullName",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitFullName()",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitGroupRolesAssigned",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitHasVehicleUI",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitInBattleground",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitInVehicle",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitIsDeadOrGhost",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitIsGroupAssistant",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitIsGroupLeader",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitIsPVP",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitIsPVPFreeForAll",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitIsVisible",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitOnTaxi",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UnitSex",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UpdateAddOnCPUUsage",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "UtilityCooldownViewer",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Vector2DMixin",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "Vector3DMixin",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "WAISTSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "WRISTSLOT",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "arg",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "arg.0",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "match",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "nil:DBM",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "nil:IndentationLib",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "nil:LibStub",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "nil:WeakAurasArchive",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "nil:WeakAurasCooldownarcane_intellect_(aura2)",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "nil:WeakAurasCooldownarcane_intellect_low_(modern)",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "nil:WeakAurasCooldownarcane_intellect_low_desat_(modern)",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "nil:WeakAurasOptionsSaved",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "nil:WeakAurasSaved",
+   "count": 1,
+   "files": 1
+  },
+  {
+   "api": "nil:__chomp_internal",
+   "count": 1,
+   "files": 1
+  }
+ ],
+ "prints": {}
+}
