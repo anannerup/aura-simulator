@@ -123,6 +123,12 @@ export const FOREVER_CLIENT_PROFILE: readonly ProfileEntry[] = [
     verified: false,
   },
   {
+    api: "EssentialCooldownViewer, UtilityCooldownViewer, BuffIconCooldownViewer, BuffBarCooldownViewer",
+    answer: "present, with no cooldown frames",
+    why: "The Cooldown Manager trigger lists the viewers' frames; without them its Trigger tab fails to build. Empty: the simulated player tracks no cooldowns.",
+    verified: false,
+  },
+  {
     api: "InCombatLockdown()",
     answer: "false (also during the combat checks)",
     why: "WeakAuras.Add defers work in combat lockdown; the combat checks only need the C_Secrets answers.",
@@ -154,6 +160,13 @@ PowerBarColor = {
   ENERGY = { r = 1, g = 1, b = 0, atlas = "UI-HUD-UnitFrame-Player-PortraitOff-Bar-Energy" },
   RUNIC_POWER = { r = 0, g = 0.82, b = 1, atlas = "UI-HUD-UnitFrame-Player-PortraitOff-Bar-RunicPower" },
 }
+-- The Cooldown Manager's viewers, empty (no cooldowns tracked): the CDM trigger lists their frames.
+for _, name in ipairs({ "EssentialCooldownViewer", "UtilityCooldownViewer", "BuffIconCooldownViewer", "BuffBarCooldownViewer" }) do
+  local viewer = CreateFrame("Frame", name)
+  viewer.itemFramePool = { EnumerateActive = function() return function() end end }
+  _G[name] = viewer
+end
+
 PowerBarColor[0] = PowerBarColor.MANA
 PowerBarColor[1] = PowerBarColor.RAGE
 PowerBarColor[2] = PowerBarColor.FOCUS

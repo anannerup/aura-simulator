@@ -99,8 +99,9 @@ export interface OptionEdit<Doc> {
   /** The addon raised an error during the edit, but the change it made so far was kept (as in the game). */
   warning?: string;
   /**
-   * The button opened one of the window's dialogs (icon, texture or model picker, code editor). The page shows its
-   * own and sends the choice back with the same button: `setOption(state, { tab, path: button }, choice)`.
+   * The button opened one of the window's dialogs (icon, texture or model picker, code editor, a confirmation). The
+   * page shows its own and sends the choice back with the same button: `setOption(state, { tab, path: button }, choice)`
+   * (a confirmation: `true`).
    */
   dialog?: OptionDialog;
 }
@@ -111,6 +112,7 @@ export type OptionDialog =
   | { kind: "texture"; property?: string; current?: string | number; categories: { name: string; textures: [path: string, name: string][] }[] }
   | { kind: "model"; current?: string | number }
   | { kind: "text"; current: string; title?: string; url?: string; lua: boolean }
+  | { kind: "confirm"; text: string; accept: string; cancel: string }
   | { kind: "textReplacements" }
   | { kind: "unsupported"; message: string };
 

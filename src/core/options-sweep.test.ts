@@ -67,6 +67,12 @@ function shownAgain(node: OptionNode, given: unknown, shown: unknown): boolean {
   return true;
 }
 
+/**
+ * Errors the addon's own code raises in the game too (bugs to report upstream, not simulator problems):
+ * - Prototypes.lua "Item Bonus Id Equipped" formats trigger.itemSlot with %d while it is still unset.
+ */
+const KNOWN_ADDON_ERRORS = [/bad argument #5 to 'format' \(number expected, got nil\)[\s\S]*Prototypes\.lua/];
+
 interface SweepResult {
   problems: string[];
   mismatches: string[];
@@ -77,13 +83,18 @@ interface SweepResult {
 async function sweepTab(base: AuraState, tab: string, out: SweepResult, label = "") {
   const tree = await expandedTree(base, tab);
   for (const node of walkOptions(tree).filter(editable)) {
-    const value = sweepValue(node);
+    let value = sweepValue(node);
     if (value === undefined) continue;
     const where = `${label}${tab} ${node.path.join("/")} (${node.type} "${node.name ?? ""}")`;
     try {
-      const edit = await core.setOption(base, { tab, path: node.path }, value);
+      const edit = await core.setOption(base, { tab, path: node.path }, value).catch((e: unknown) => {
+        // The addon refuses text in a number field (its validate()): the form shows that refusal. Try a number.
+        if (node.type !== "input" || !(e instanceof Error) || e.name !== "OptionEditError") throw e;
+        value = "5";
+        return core.setOption(base, { tab, path: node.path }, value);
+      });
       out.edited++;
-      if (edit.warning) out.problems.push(`${where}: addon error ${edit.warning}`);
+      if (edit.warning && !KNOWN_ADDON_ERRORS.some((r) => r.test(edit.warning!))) out.problems.push(`${where}: addon error ${edit.warning}`);
       if (!edit.changed) continue; // e.g. an input the addon normalises back
       const after = await core.options({ aura: edit.aura, children: edit.children ?? base.children }, { tab });
       if (after.error) out.problems.push(`${where}: tab no longer builds: ${after.error}`);
@@ -100,7 +111,10 @@ async function sweepTab(base: AuraState, tab: string, out: SweepResult, label = 
 /** Runs every button of one tab once, each from `base`. */
 async function pressAll(base: AuraState, tab: string, out: SweepResult, label = "") {
   const tree = await expandedTree(base, tab);
-  const buttons = walkOptions(tree).filter((n) => n.type === "execute" && n.canRun && !n.hidden && !n.disabled);
+  // (Section headers are pressed by expandedTree; pressing them again would collapse what the rest needs.)
+  const buttons = walkOptions(tree).filter(
+    (n) => n.type === "execute" && n.canRun && !n.hidden && !n.disabled && !/^WeakAurasExpand/.test(n.control ?? ""),
+  );
   for (const node of buttons) {
     const where = `${label}${tab} ${node.path.join("/")} ("${node.name ?? node.image ?? ""}")`;
     try {
@@ -154,7 +168,12 @@ describe("deeper", () => {
     expect(typeSelect).toBeDefined();
     for (const [type] of typeSelect.values ?? []) {
       const typed = { aura: (await core.setOption(base, { tab: "trigger", path: typeSelect.path }, type)).aura, children: [] };
-      const tree = (await core.options(typed, { tab: "trigger" })).tree!;
+      const built = await core.options(typed, { tab: "trigger" });
+      if (!built.tree) {
+        out.problems.push(`[${String(type)}] trigger tab: ${built.error}`);
+        continue;
+      }
+      const tree = built.tree;
       // A trigger type with sub types (Event: the event list) is swept per sub type.
       const sub = walkOptions(tree).find((n) => n.type === "select" && /^trigger\.1\.[^.]+\.event$/.test(n.key) && !n.hidden);
       const states = [typed];
@@ -173,7 +192,7 @@ describe("deeper", () => {
     const out = fresh();
     for (const tab of ["region", "conditions", "action", "animation", "authorOptions", "trigger"]) {
       const tree = await expandedTree(base, tab);
-      const adds = walkOptions(tree).filter((n) => n.type === "execute" && n.canRun && !n.hidden && !n.disabled && /^Add\b|add/i.test(`${n.name ?? ""} ${n.image ?? ""}`));
+      const adds = walkOptions(tree).filter((n) => n.type === "execute" && n.canRun && !n.hidden && !n.disabled && (/^Add\b/.test(n.name ?? "") || /(^|\\)add$/i.test(n.image ?? "")));
       for (const add of adds) {
         const edit = await core.setOption(base, { tab, path: add.path });
         if (!edit.changed) continue;

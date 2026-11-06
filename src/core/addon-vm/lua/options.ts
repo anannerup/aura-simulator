@@ -86,6 +86,15 @@ local function plainList(t)
 end
 
 local dialogs = {
+  confirm = {
+    apply = function(s, value)
+      if value == true or value == "accept" then
+        if type(s.popup.OnAccept) == "function" then s.popup.OnAccept() end
+      elseif type(s.popup.OnCancel) == "function" then
+        s.popup.OnCancel()
+      end
+    end,
+  },
   icon = {
     open = function(base, paths, groupIcon)
       local first = groupIcon and base or leafs(base)[1]
@@ -214,6 +223,16 @@ function O.installDialogs()
       end
     end
   end
+  -- Confirmation popups (delete a trigger, …): the page asks, and confirms with the same button.
+  local show = StaticPopup_Show
+  StaticPopup_Show = function(name, ...)
+    local popup = StaticPopupDialogs and StaticPopupDialogs[name]
+    if type(popup) ~= "table" then return show(name, ...) end
+    O.dialog = { kind = "confirm", state = { popup = popup },
+      info = { kind = "confirm", text = type(popup.text) == "string" and popup.text or "",
+        accept = type(popup.button1) == "string" and popup.button1 or "OK",
+        cancel = type(popup.button2) == "string" and popup.button2 or "Cancel" } }
+  end
   -- The aura list (display buttons, its search box) doesn't exist headless.
   if type(OP.SortDisplayButtons) == "function" then OP.SortDisplayButtons = function() end end
 end
@@ -239,7 +258,7 @@ function O.installWindow()
   local methods = {
     IsVisible = function() return false end,
     IsShown = function() return false end,
-    GetPickedDisplay = function() local d = currentData() return d and d.id end,
+    GetPickedDisplay = function() return currentData() end,
     GetTargetAura = function() local d = currentData() return d and d.id end,
     -- Like the window: one option table per aura and tab, until the options are cleared.
     EnsureOptions = function(_, data, tab)
@@ -271,16 +290,35 @@ end
 -- Loading the aura being edited
 ---------------------------------------------------------------------------------------------------
 
+-- WeakAurasOptions' collapsed sections per aura id (cleared when an aura is deleted).
+local function collapsedTable()
+  local fn = OP.IsCollapsed
+  if type(fn) ~= "function" then return nil end
+  for i = 1, 50 do
+    local name, value = debug.getupvalue(fn, i)
+    if not name then return nil end
+    if name == "collapsedOptions" then return value end
+  end
+end
+
+-- Unregisters the edited aura. Returns its expanded/collapsed sections, which are kept when the
+-- same aura is loaded again (after an undo, a push, …).
 local function deleteCurrent()
   local data = currentData()
-  if data then pcall(WeakAuras.Delete, data) end
+  local kept
+  if data then
+    local collapsed = collapsedTable()
+    kept = collapsed and { id = data.id, state = collapsed[data.id] }
+    pcall(WeakAuras.Delete, data)
+  end
   session = nil
+  return kept
 end
 
 -- Registers the aura (and, for a group, its children first) and makes it the edited aura.
 function O.load(input, children)
   setup()
-  deleteCurrent()
+  local kept = deleteCurrent()
   local kids = {}
   for _, child in ipairs(children or {}) do
     local c = X.prepare(child)
@@ -296,6 +334,8 @@ function O.load(input, children)
     uidCounter = uidCounter + 1
     data.uid = "__aurasimE" .. uidCounter
   end
+  local collapsed = collapsedTable()
+  if kept and collapsed and kept.id == data.id then collapsed[data.id] = kept.state end
   local r = B.try(WeakAuras.Add, data)
   session = { uid = data.uid, input = deepcopy(input), children = kids }
   if not currentData() then
@@ -611,6 +651,10 @@ function O.edit(tabKey, ids, value)
   if dialog and r.ok and value ~= nil and dialogs[dialog.kind] then
     -- The page's dialog answered: apply the choice the way the game's dialog does.
     r = B.try(dialogs[dialog.kind].apply, dialog.state, value)
+  elseif dialog and dialog.kind == "confirm" then
+    -- Asked only: cancel the popup for now (its code may wait for an answer); the page confirms by running the
+    -- button again with true.
+    B.try(dialogs.confirm.apply, dialog.state, false)
   end
   local after = currentData()
   if not after then
