@@ -1,0 +1,514 @@
+/* The options editor's richer widgets: colour picker, media dropdowns and the dialogs. Uses the app's tokens. */
+
+/* ---------- Colour swatch and picker ---------- */
+.colorRoot {
+  position: relative;
+  display: inline-flex;
+}
+
+.swatch {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  background: #000;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.swatch:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.swatch:focus-visible {
+  outline: 1px solid var(--accent);
+}
+
+.swatchChecker,
+.swatchFill {
+  position: absolute;
+  inset: 1px;
+}
+
+.swatchChecker {
+  background: repeating-conic-gradient(#888 0 25%, #ddd 0 50%) 0 0 / 8px 8px;
+}
+
+.colorPanel {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 260px;
+  padding: 10px;
+  border: 1px solid var(--border-strong);
+  background: #101010;
+  box-shadow: var(--shadow-pop);
+}
+
+.colorPanelBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.svSquare {
+  position: relative;
+  height: 140px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.svWhite,
+.svBlack {
+  position: absolute;
+  inset: 0;
+}
+
+.svWhite {
+  background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0));
+}
+
+.svBlack {
+  background: linear-gradient(to top, #000, rgba(0, 0, 0, 0));
+}
+
+.svThumb {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #000;
+  pointer-events: none;
+}
+
+.hueBar,
+.alphaBar {
+  position: relative;
+  height: 12px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.hueBar {
+  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+}
+
+.alphaBar {
+  background: repeating-conic-gradient(#888 0 25%, #ddd 0 50%) 0 0 / 8px 8px;
+}
+
+.alphaFill {
+  position: absolute;
+  inset: 0;
+}
+
+.barThumb {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 4px;
+  margin-left: -2px;
+  border: 1px solid #000;
+  background: #fff;
+  pointer-events: none;
+}
+
+.svSquare:focus-visible,
+.hueBar:focus-visible,
+.alphaBar:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.colorFields {
+  display: grid;
+  grid-template-columns: 1.8fr repeat(4, 1fr);
+  gap: 4px;
+}
+
+.colorFields label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.colorFields input[type="number"] {
+  appearance: textfield;
+}
+
+.colorFields input::-webkit-inner-spin-button,
+.colorFields input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.colorFields input {
+  width: 100%;
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  background: #121212;
+  color: var(--text-1, #fff);
+  font: inherit;
+  font-size: 12px;
+}
+
+/* ---------- Media dropdowns ---------- */
+.mediaRoot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mediaLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--accent);
+}
+
+.mediaButton {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  height: 26px;
+  padding: 0 26px 0 7px;
+  border: 1px solid var(--border);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 16 16' fill='none' stroke='%23ffd100' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E")
+      no-repeat right 7px center,
+    #121212;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.mediaButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.mediaPanel {
+  position: absolute;
+  z-index: 40;
+  top: 100%;
+  left: 0;
+  right: 0;
+  min-width: 200px;
+  border: 1px solid var(--border-strong);
+  background: #101010;
+  box-shadow: var(--shadow-pop);
+}
+
+.mediaFilter {
+  width: 100%;
+  height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: #161616;
+  color: inherit;
+  font: inherit;
+}
+
+.mediaList {
+  max-height: 280px;
+  margin: 0;
+  padding: 2px 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.mediaList li {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.mediaList li[data-active] {
+  background: rgba(255, 209, 0, 0.12);
+}
+
+.mediaList li[aria-selected="true"] {
+  color: var(--accent);
+}
+
+.mediaEmpty {
+  color: var(--text-3, #888);
+  cursor: default;
+}
+
+.mediaFont {
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.mediaName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.mediaBar {
+  display: inline-block;
+  width: 96px;
+  height: 12px;
+  border: 1px solid var(--border);
+  background: #000;
+}
+
+.mediaTile {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--border);
+  background: #000;
+}
+
+.play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--border-strong);
+  color: var(--accent);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+/* ---------- Dialogs ---------- */
+.dialogBackdrop {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(640px, 100%);
+  max-height: min(80vh, 720px);
+  border: 1px solid var(--accent-border);
+  background: #0e0e0e;
+  box-shadow: var(--shadow-pop);
+}
+
+.dialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dialogHeader h3 {
+  margin: 0;
+  color: var(--accent);
+  font-family: var(--font-title, inherit);
+  font-size: 16px;
+}
+
+.dialogClose {
+  border: 0;
+  background: none;
+  color: var(--danger, #e33);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  overflow: auto;
+}
+
+.dialogText {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.dialogMuted {
+  margin: 0;
+  color: var(--text-3, #999);
+  font-size: 12px;
+}
+
+.dialogError {
+  margin: 0;
+  color: var(--danger, #e33);
+}
+
+.dialogRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.dialogRow .dialogInput {
+  flex: 1 1 200px;
+  width: auto;
+}
+
+.dialogInput {
+  flex: none;
+  width: 100%;
+  height: 26px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  background: #121212;
+  color: inherit;
+  font: inherit;
+}
+
+.dialogButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dialogButton,
+.dialogPrimary {
+  height: 26px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  background: #1a1a1a;
+  color: var(--accent);
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.dialogPrimary {
+  border-color: var(--red-border, #7a1a12);
+  background: var(--red-1, #5a120c);
+}
+
+.dialogButton:disabled,
+.dialogPrimary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dialogLink {
+  align-self: center;
+  margin-right: auto;
+  color: var(--accent);
+}
+
+.inlineIcon {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+}
+
+.iconPicker,
+.texturePicker,
+.textEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.iconGrid,
+.textureGrid {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iconGrid {
+  grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+}
+
+.iconGrid button {
+  width: 42px;
+  height: 42px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  background: #000;
+  cursor: pointer;
+}
+
+.iconGrid button:hover,
+.textureGrid button:hover {
+  border-color: var(--accent);
+}
+
+.iconGrid img {
+  width: 100%;
+  height: 100%;
+}
+
+.textureGrid {
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+}
+
+.textureGrid button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 4px;
+  border: 1px solid var(--border);
+  background: #0a0a0a;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.textureGrid button[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+
+.textureThumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: repeating-conic-gradient(#222 0 25%, #2c2c2c 0 50%) 0 0 / 12px 12px;
+}
+
+.textureName {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.codeArea {
+  min-height: 320px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  background: #080808;
+  color: inherit;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  resize: vertical;
+  tab-size: 2;
+}

@@ -586,12 +586,14 @@ end
 
 -- Applies what changed from 'before' to 'after' onto 'target' (the document as the page holds it),
 -- so a document keeps only what its author wrote plus the edits. Sequences that change length are
--- replaced whole (adding or removing a trigger, condition or sub element).
+-- replaced whole (adding or removing a trigger, condition or sub element), and so is a sequence the
+-- author didn't write (a colour left at its default gets the whole new colour, not just the changed parts).
 local function applyDiff(target, before, after)
   for k, av in pairs(after) do
     local bv = before[k]
     if not equal(av, bv) then
-      if type(av) == "table" and type(bv) == "table" and seqLength(av) == seqLength(bv) then
+      if type(av) == "table" and type(bv) == "table" and seqLength(av) == seqLength(bv)
+        and (type(target[k]) == "table" or seqLength(av) == 0) then
         if type(target[k]) ~= "table" then target[k] = {} end
         applyDiff(target[k], bv, av)
       else

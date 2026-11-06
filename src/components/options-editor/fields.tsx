@@ -9,6 +9,8 @@ import type { LuaKey, OptionNode } from "@/core";
 import { searchSpells, type SpellSearchHit } from "@/components/spell-picker/spell-api";
 import { imageName, plainText, splitInputValue } from "./wow-text";
 import { WowText } from "./WowText";
+import { ColorPicker, toRgba } from "./ColorPicker";
+import { MediaSelect, mediaKind } from "./MediaSelect";
 import styles from "./OptionsEditor.module.css";
 
 export interface EditOptions {
@@ -235,6 +237,12 @@ const keyText = (k: LuaKey) => `${typeof k}:${String(k)}`;
 const isMediaList = (node: OptionNode) => /LSM30/.test(node.dialogControl ?? "");
 
 export function SelectField({ node, value, disabled, onEdit }: FieldProps) {
+  const kind = mediaKind(node);
+  if (kind) return <MediaSelect node={node} kind={kind} value={value} disabled={disabled} onEdit={onEdit} />;
+  return <PlainSelect node={node} value={value} disabled={disabled} onEdit={onEdit} />;
+}
+
+function PlainSelect({ node, value, disabled, onEdit }: FieldProps) {
   const id = useId();
   const values = node.values ?? [];
   const media = isMediaList(node);
@@ -280,41 +288,22 @@ export function MultiSelectField({ node, value, disabled, onEdit }: FieldProps) 
   );
 }
 
-const hex2 = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, "0");
-
-/** Colour as the addon stores it: [r, g, b, a], each 0..1. */
+/** Colour as the addon stores it: [r, g, b, a], each 0..1. A swatch that opens the colour picker. */
 export function ColorField({ node, value, disabled, onEdit }: FieldProps) {
-  const id = useId();
-  const [r, g, b, a] = Array.isArray(value) ? (value as number[]).map(Number) : [1, 1, 1, 1];
-  const alpha = Number.isFinite(a) ? a : 1;
+  const name = plainText(node.name);
   return (
-    <div className={styles.color}>
-      <input
-        id={id}
-        type="color"
-        value={`#${hex2(r)}${hex2(g)}${hex2(b)}`}
+    <div className={styles.color} title={plainText(node.desc) || undefined}>
+      <ColorPicker
+        label={name || "Colour"}
+        value={toRgba(value)}
+        hasAlpha={node.hasAlpha !== false}
         disabled={disabled}
-        onChange={(e) => {
-          const h = e.target.value;
-          const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
-          onEdit([...c, alpha], { continuous: true });
-        }}
+        onChange={(rgba, continuous) => onEdit(rgba, { continuous })}
       />
-      <label htmlFor={id} title={plainText(node.desc) || undefined}>
-        <WowText text={node.name} />
-      </label>
-      {node.hasAlpha !== false && (
-        <input
-          type="range"
-          className={styles.alpha}
-          aria-label={`${plainText(node.name)} opacity`}
-          min={0}
-          max={1}
-          step={0.01}
-          value={alpha}
-          disabled={disabled}
-          onChange={(e) => onEdit([r, g, b, Number(e.target.value)], { continuous: true })}
-        />
+      {name && (
+        <span>
+          <WowText text={node.name} />
+        </span>
       )}
     </div>
   );
@@ -343,6 +332,7 @@ export function ExecuteField({ node, disabled, onEdit }: Omit<FieldProps, "value
         type="button"
         className={node.control === "WeakAurasExpand" ? styles.section : styles.expandSmall}
         aria-expanded={bullet ? undefined : !collapsed}
+        data-section={bullet ? undefined : "true"}
         disabled={disabled || !node.canRun}
         onClick={() => onEdit(undefined)}
       >
