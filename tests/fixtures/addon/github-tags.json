@@ -1,0 +1,140 @@
+[
+ {
+  "name": "v1.15.0",
+  "commit": {
+   "sha": "448b7b3886fe7f76b45ce1ae067085ac526a2d95"
+  }
+ },
+ {
+  "name": "v1.15.0-beta1",
+  "commit": {
+   "sha": "b8773dc0c8414e36e5e43d1ad0035ecd9f8ea802"
+  }
+ },
+ {
+  "name": "v1.14.0",
+  "commit": {
+   "sha": "90f2d7e1fe3c3700b29e8133888b4805eebd0f30"
+  }
+ },
+ {
+  "name": "v1.10.0",
+  "commit": {
+   "sha": "253212993c71887e3f2a2af46dbe0decae2ff529"
+  }
+ },
+ {
+  "name": "v1.8.0",
+  "commit": {
+   "sha": "9b09ab7cde655e7818843248c32e06bdb0c88b5b"
+  }
+ },
+ {
+  "name": "v1.7.1",
+  "commit": {
+   "sha": "fad2b0c43e2cc0f08a4defe6d67fb64f841c86d8"
+  }
+ },
+ {
+  "name": "v1.6.2",
+  "commit": {
+   "sha": "67116a763c03f21ac67479b073fedfa45462d829"
+  }
+ },
+ {
+  "name": "v1.6.1",
+  "commit": {
+   "sha": "fede58d9f9d04c3e7226c982fd6af0b7f3a52f0d"
+  }
+ },
+ {
+  "name": "v1.6.0",
+  "commit": {
+   "sha": "e51523e50bc70507be863c0ecd7b3d1ddd3340a0"
+  }
+ },
+ {
+  "name": "v1.5.0",
+  "commit": {
+   "sha": "6e86db28cef82cd6084cb4c3b50981859013b28d"
+  }
+ },
+ {
+  "name": "v1.4.2",
+  "commit": {
+   "sha": "a6aa985c443d18cde5107260c9a36dede4d18b84"
+  }
+ },
+ {
+  "name": "v1.4.1",
+  "commit": {
+   "sha": "31c3df117968145b3dd50b7a8c0ab81f77aba91f"
+  }
+ },
+ {
+  "name": "v1.4.0",
+  "commit": {
+   "sha": "0328e7cc4937b5aea7c9a37957302f43e6b7edbb"
+  }
+ },
+ {
+  "name": "v1.3.2",
+  "commit": {
+   "sha": "ab0807965d831354543d4b35123ee5728045407e"
+  }
+ },
+ {
+  "name": "v1.3.1",
+  "commit": {
+   "sha": "4a688937b4fa302e849475f5f57ee39d24ce28e7"
+  }
+ },
+ {
+  "name": "1.15.0-beta2",
+  "commit": {
+   "sha": "bffc2179e16833798d9b0dfcb131afbecbe8642a"
+  }
+ },
+ {
+  "name": "1.13.0",
+  "commit": {
+   "sha": "9498a38c07c45d8e3590ce809dd2f3af07d2f553"
+  }
+ },
+ {
+  "name": "1.12.0",
+  "commit": {
+   "sha": "ba33ce0cea5204cbd72f0d27d74240e76e2bd14a"
+  }
+ },
+ {
+  "name": "1.11.0",
+  "commit": {
+   "sha": "6a149f8329673f12fb5f3d6cd1951cc392ffbe99"
+  }
+ },
+ {
+  "name": "1.9.1",
+  "commit": {
+   "sha": "b9d1fb01e46755a46a418782b9127358baeb8d1e"
+  }
+ },
+ {
+  "name": "1.9.0",
+  "commit": {
+   "sha": "263c7226b663a3d9af37820c8ccf5ff96089d5cf"
+  }
+ },
+ {
+  "name": "1.8.1",
+  "commit": {
+   "sha": "be7e8d488b4560a8300abe8ffec22f653adb7db1"
+  }
+ },
+ {
+  "name": "1.7.0",
+  "commit": {
+   "sha": "823633852f1fed75b55a6a6d1917df287cead770"
+  }
+ }
+]

@@ -1,0 +1,97 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #888;
+}
+
+.inline {
+  display: flex;
+  gap: 6px;
+}
+
+.picker select,
+.picker input,
+.picker button {
+  font: inherit;
+  font-size: 14px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid #555;
+  background: transparent;
+  color: var(--foreground);
+}
+
+.picker select option {
+  background: var(--background);
+}
+
+.picker button {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.picker button:disabled,
+.picker select:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.status {
+  font-size: 13px;
+  color: #888;
+}
+
+.loading {
+  font-style: italic;
+}
+
+.error {
+  color: #e5484d;
+  font-size: 13px;
+}
+
+.note {
+  color: #888;
+  font-size: 13px;
+}
+
+.diff {
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.diff > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.diff ul {
+  margin: 8px 0 0 18px;
+  word-break: break-word;
+}
+
+.changelog {
+  white-space: pre-wrap;
+  font-family: var(--font-geist-mono);
+  font-size: 12px;
+  max-height: 300px;
+  overflow: auto;
+}
