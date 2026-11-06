@@ -53,25 +53,50 @@ Example: the built-in sample, an Arcane Intellect icon on the player using the f
 ${JSON.stringify(f.sampleAura, null, 2)}
 \`\`\`
 
-A group is pushed as its own document plus \`children\`: every descendant, flattened in the addon's
-traversal order (the group's \`controlledChildren\` lists the child \`id\`s).
+### Groups
+
+A group is an aura document with \`"regionType": "group"\` (children keep their own anchors and offsets,
+relative to the group's centre) or \`"dynamicgroup"\` (children are laid out by \`grow\`: \`RIGHT\`,
+\`LEFT\`, \`UP\`, \`DOWN\`, \`HORIZONTAL\`, \`VERTICAL\`, \`CIRCLE\`, \`COUNTERCIRCLE\`, \`GRID\`, with
+\`space\`, \`align\`, \`stagger\`, \`useLimit\`/\`limit\`, \`radius\`, \`gridType\`/\`gridWidth\`; shown
+children close up). Groups nest; a dynamic group holds no groups. \`id\`s must be unique.
+
+A group travels as its own document plus \`children\`: every descendant, flattened in the addon's
+traversal order (each group, then its children, depth first). A group's \`controlledChildren\` lists its
+children's \`id\`s and each child's \`parent\` is its group's \`id\`. Without sub groups you may leave both
+out: like the game's import, every child then belongs to the group in the order given. With sub groups,
+set them (the state code is then transmission version 2000).
+
+\`\`\`json
+{"aura": {"id": "Buffs", "regionType": "dynamicgroup", "grow": "RIGHT", "selfPoint": "LEFT", "space": 4,
+          "controlledChildren": ["Arcane Intellect", "Mark"]},
+ "children": [{"id": "Arcane Intellect", "parent": "Buffs", "regionType": "icon", ...},
+              {"id": "Mark", "parent": "Buffs", "regionType": "icon", ...}]}
+\`\`\`
 
 ## State codes
 
 A **state code** is the addon's own import string (\`!WA:2!...\`, plain, not encrypted): the whole aura
 encoded, the way a chess FEN is a whole position. The player pastes it into Musca Auras' import dialog.
-The page address always holds the current state code, so a link is a saved aura:
+A group's state code holds the whole group with everything in it. The page address always holds the
+workspace, so a link is a saved workspace:
 
-- \`${o}/?code=<state code>\` while the code fits (encoded value up to ${MAX_ADDRESS_CODE_LENGTH} characters);
-  percent-encode it (\`(\` → \`%28\`, \`)\` → \`%29\`).
-- \`${o}/?s=<short id>\` for longer codes: the server stores the code under a short ID.
+- \`${o}/?code=<state code>\` when the workspace holds one top-level item (an aura or a group) and the code
+  fits (encoded value up to ${MAX_ADDRESS_CODE_LENGTH} characters); percent-encode it (\`(\` → \`%28\`, \`)\` → \`%29\`).
+  Opening it makes that item the whole workspace.
+- \`${o}/?s=<short id>\` otherwise: the server stores the code, or for several top-level items a **bundle**
+  (their codes, one per line), under a short ID.
 - \`w=<workspace id>\` (optional, e.g. \`?w=abc&code=...\`) picks the workspace the page follows; without it
   the page follows \`${d}\`.
 ${f.sampleCode ? `\nThe sample above as a state code:\n\n\`\`\`text\n${f.sampleCode}\n\`\`\`\n` : ""}
 ## Pushing to the open page
 
-A **workspace** is what an open page shows. Every page follows one workspace ID (shown under the
-preview; \`${d}\` unless the address has \`?w=\`). Push to it and every page on it updates live.
+A **workspace** is what an open page shows: a list of top-level items (auras and groups), all drawn at once
+as in the game, one of them selected. Every page follows one workspace ID (shown under the preview;
+\`${d}\` unless the address has \`?w=\`). Push to it and every page on it updates live: the pushed item
+(with a group's whole subtree) **replaces the top-level item with the same \`uid\`, else the same \`id\`**,
+or is added at the end, and is selected. So keep the \`id\` (or \`uid\`) while you iterate on one aura, and
+use new ones for further auras. Items can't be deleted over the API; the player removes them in the page.
 
 ### POST /api/workspaces/<id>/aura
 
@@ -100,14 +125,35 @@ it, 503 the addon couldn't be loaded.
 
 ### Other workspace endpoints
 
-- \`GET /api/workspaces/<id>\` → \`{"id", "code", "updatedAt", "revision", "url"}\`: what the page shows
-  right now (\`code\` is null until a page or agent has set it since the server started). Read this to
-  see the player's changes.
+- \`GET /api/workspaces/<id>\` → \`{"id", "code", "updatedAt", "revision", "url"}\`: the top-level item
+  pushed or changed last (\`code\` is null until a page or agent has set it since the server started; the
+  page sends every top-level item the player changes). Read this to see the player's changes.
 - \`GET /api/workspaces/<id>/events\` → Server-Sent Events: \`event: snapshot\` with that snapshot on
   connect, then \`event: state\` with it on every change.
-- \`POST /api/short-links\` with \`{"code"}\` → \`{"id", "url"}\`; \`GET /api/short-links/<id>\` → \`{"id", "code"}\`.
+- \`POST /api/short-links\` with \`{"code"}\` or \`{"codes": [...]}\` (a bundle) → \`{"id", "url"}\`;
+  \`GET /api/short-links/<id>\` → \`{"id", "code", "codes"}\` (\`codes\`: every top-level item's code;
+  \`code\`: the first).
 
 Workspace IDs are 1-64 characters of \`A-Z a-z 0-9 _ -\`.
+
+## The workspace file
+
+The page exports and imports the whole workspace as JSON (the player can hand it to you, or you can write
+one for them to import). Each \`aura\` is the canonical document; spells and icons are their IDs, no images:
+
+\`\`\`json
+{"format": "aura-simulator/workspace", "version": 2, "updatedAt": "2026-11-06T10:00:00.000Z",
+ "selected": "Buffs",
+ "items": [
+   {"aura": {"id": "Buffs", "regionType": "group", "controlledChildren": ["Arcane Intellect"], ...},
+    "items": [{"aura": {"id": "Arcane Intellect", "parent": "Buffs", "regionType": "icon", ...}}]},
+   {"aura": {"id": "Cooldown", "regionType": "icon", ...}}
+ ]}
+\`\`\`
+
+\`items\` is present exactly for groups and nests further; \`controlledChildren\` and \`parent\` follow the
+nesting (the page derives them from it). Ids must be unique. Version 1 files (\`"items": [{"code": "!WA:2!..."}]\`)
+still load.
 
 ## Spells
 

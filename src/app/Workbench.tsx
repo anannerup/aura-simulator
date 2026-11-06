@@ -4,7 +4,8 @@ import { useCallback, useMemo, useState } from "react";
 import { sampleIconAura, type AuraDocument } from "@/core";
 import { RawEditor } from "@/components/raw-editor/RawEditor";
 import { SpellPicker } from "@/components/spell-picker/SpellPicker";
-import { AuraPreview } from "@/render/AuraPreview";
+import { WorkspaceTree } from "@/components/workspace-tree/WorkspaceTree";
+import { WorkspaceStage } from "@/render/group/WorkspaceStage";
 import { DEFAULT_SITUATION } from "@/render/situation";
 import { AddonVersionPicker } from "./_addon/AddonVersionPicker";
 import { useAddonCore } from "./_addon/useAddonCore";
@@ -17,7 +18,10 @@ import type { LoadResult } from "./workspace/session";
 import { useWorkspace } from "./workspace/useWorkspace";
 import { WorkspacePanel } from "./workspace/WorkspacePanel";
 
-/** The app shell: loads the chosen addon version in the browser, previews the workspace's aura, offers its state code. */
+/**
+ * The app shell: loads the chosen addon version in the browser, draws every aura of the workspace, and offers the
+ * selected item's state code.
+ */
 export function Workbench() {
   const addon = useAddonCore();
   const { core } = addon;
@@ -39,25 +43,33 @@ export function Workbench() {
     setTimeout(() => setCopied(false), 1500);
   }
 
-  // Edits (e.g. picking a spell, the raw table) go through the workspace, so the address, storage,
-  // server and undo history follow.
-  const { load, children } = workspace;
-  const changeAura = useCallback(
-    (aura: AuraDocument): LoadResult => {
-      if (!core) return { ok: false, error: "The addon is still loading" };
-      try {
-        return load(core.encode({ aura, children }));
-      } catch (e) {
-        return { ok: false, error: e instanceof Error ? e.message : String(e) };
-      }
+  // Edits (spell picker, raw table) replace the selected item's document; address, storage and server follow.
+  const updateSelected = workspace.updateSelected;
+  const changeAura = useCallback((aura: AuraDocument): LoadResult => updateSelected(aura), [updateSelected]);
+  // Undo/redo over whole-workspace snapshots (tree + selection), whatever made the change: editors, tree, paste, push.
+  const { items, selectedId, setItems } = workspace;
+  const snapshot = useMemo(() => (items.length ? JSON.stringify({ items, selectedId }) : null), [items, selectedId]);
+  const restore = useCallback(
+    (text: string): LoadResult => {
+      const s = JSON.parse(text) as { items: typeof items; selectedId: string | null };
+      return setItems(s.items, s.selectedId);
     },
-    [core, load, children],
+    [setItems],
   );
-  const history = useUndo(workspace.code, load);
+  const history = useUndo(snapshot, restore);
+  // Auras hidden in the preview only (as if their trigger were inactive), e.g. to see a dynamic group close up.
+  const [hiddenIds, setHiddenIds] = useState<ReadonlySet<string>>(new Set());
+  const toggleHidden = useCallback((id: string) => {
+    setHiddenIds((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  }, []);
 
   const picker = <AddonVersionPicker addon={addon} />;
   if (!core) return picker;
-  if (!workspace.aura || !workspace.code) {
+  if (!workspace.ready) {
     return (
       <>
         {picker}
@@ -65,6 +77,7 @@ export function Workbench() {
       </>
     );
   }
+  const selectedIsGroup = workspace.aura?.regionType === "group" || workspace.aura?.regionType === "dynamicgroup";
 
   return (
     <>
@@ -78,15 +91,37 @@ export function Workbench() {
             Redo
           </button>
         </div>
-        <GameScreen>{(ui) => <AuraPreview aura={workspace.aura!} situation={situation} screen={ui} />}</GameScreen>
+        <GameScreen>
+          {(ui) => (
+            <WorkspaceStage
+              items={workspace.items}
+              situation={situation}
+              screen={ui}
+              selectedId={workspace.selectedId}
+              hiddenIds={hiddenIds}
+              onSelect={workspace.select}
+            />
+          )}
+        </GameScreen>
       </section>
-      <SituationControls aura={workspace.aura} situation={situation} onChange={setSituation} />
-      <ValidationPanel core={core} code={workspace.code} aura={workspace.aura} childAuras={workspace.children} />
-      <SpellPicker aura={workspace.aura} onAuraChange={changeAura} />
-      <RawEditor value={workspace.aura} onChange={changeAura} />
+      <WorkspaceTree
+        items={workspace.items}
+        selectedId={workspace.selectedId}
+        onSelect={workspace.select}
+        onChange={workspace.setItems}
+        internalVersion={core.internalVersion}
+        hiddenIds={hiddenIds}
+        onToggleHidden={toggleHidden}
+      />
+      {workspace.aura && !selectedIsGroup && <SpellPicker aura={workspace.aura} onAuraChange={changeAura} />}
+      {workspace.aura && <SituationControls aura={workspace.aura} situation={situation} onChange={setSituation} />}
+      {workspace.aura && workspace.code && (
+        <ValidationPanel core={core} code={workspace.code} aura={workspace.aura} childAuras={workspace.children} />
+      )}
+      {workspace.aura && <RawEditor value={workspace.aura} onChange={changeAura} />}
       <section className={styles.export}>
         <div className={styles.exportHeader}>
-          <h2>State code</h2>
+          <h2>State code{workspace.selectedId ? ` of ${workspace.selectedId}` : ""}</h2>
           <span className={styles.meta}>
             Musca Auras {core.ref} (WeakAuras {core.addonVersion})
           </span>
@@ -94,7 +129,7 @@ export function Workbench() {
             {copied ? "Copied" : "Copy"}
           </button>
         </div>
-        <textarea className={styles.code} readOnly value={workspace.code} aria-label="State code" rows={4} />
+        <textarea className={styles.code} readOnly value={workspace.code ?? ""} aria-label="State code" rows={4} />
       </section>
       <WorkspacePanel workspace={workspace} />
     </>
