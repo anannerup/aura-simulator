@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import type { AuraDocument, LuaValue } from "@/core";
 import { placeRegion } from "./anchor";
 import type { Situation } from "./situation";
-import { iconUrl } from "./textures";
+import { useAuraIconUrl } from "./textures";
 import styles from "./AuraPreview.module.css";
 
 export interface AuraPreviewProps {
@@ -46,12 +46,14 @@ export function AuraPreview({ aura, situation, screen = { width: 800, height: 45
 
 function IconRegion({ aura, name }: { aura: AuraDocument; name: string }) {
   const desaturate = aura.desaturate === true;
+  const src = useAuraIconUrl(aura);
+  if (!src) return <span className={styles.icon} data-icon-loading />;
   return (
     // Blizzard art comes from Wowhead's image server at runtime; next/image would proxy it.
     // eslint-disable-next-line @next/next/no-img-element
     <img
       className={styles.icon}
-      src={iconUrl(aura.displayIcon as number | string | undefined)}
+      src={src}
       alt={name}
       style={desaturate ? { filter: "grayscale(1)" } : undefined}
       draggable={false}

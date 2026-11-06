@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AuraCore, AuraDocument } from "@/core";
+import { SpellPicker } from "@/components/spell-picker/SpellPicker";
 import { AuraPreview } from "@/render/AuraPreview";
 import { DEFAULT_SITUATION } from "@/render/situation";
 import styles from "./page.module.css";
@@ -37,6 +38,10 @@ export function Workbench() {
     setTimeout(() => setCopied(false), 1500);
   }
 
+  const changeAura = useCallback((aura: AuraDocument) => {
+    setLoaded((l) => l && { ...l, aura, code: l.core.encode({ aura, children: [] }) });
+  }, []);
+
   if (error) return <p className={styles.error}>Could not load Musca Auras: {error}</p>;
   if (!loaded) return <p className={styles.status}>Loading Musca Auras…</p>;
 
@@ -45,6 +50,7 @@ export function Workbench() {
       <section className={styles.previewArea}>
         <AuraPreview aura={loaded.aura} situation={DEFAULT_SITUATION} />
       </section>
+      <SpellPicker aura={loaded.aura} onAuraChange={changeAura} />
       <section className={styles.export}>
         <div className={styles.exportHeader}>
           <h2>State code</h2>
