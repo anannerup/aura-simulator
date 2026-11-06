@@ -1,13 +1,140 @@
+/*
+ * Design tokens. Every colour, size and timing in the app comes from here, so a light theme is one more block
+ * (see `[data-theme="light"]` below). Components use the semantic names (`--surface-*`, `--text-*`, `--accent`),
+ * never raw hex values.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+
+  /* Surfaces: near-black blue-grey, each step one level of elevation up. */
+  --surface-sunken: #07090d; /* the stage surround behind the game screen */
+  --surface-0: #0c0f15; /* app background */
+  --surface-1: #12161e; /* sidebars, top bar */
+  --surface-2: #181d27; /* inputs, cards, raised items */
+  --surface-3: #202634; /* hover */
+  --surface-4: #2a3142; /* pressed, selected */
+  --surface-overlay: rgb(14 17 24 / 0.92); /* floating toolbars, popovers */
+  --scrim: rgb(3 5 8 / 0.6);
+
+  --border-subtle: #1c2230;
+  --border: #283042;
+  --border-strong: #3a4459;
+
+  /* Text. All of these pass 4.5:1 on --surface-0 … --surface-2. */
+  --text-1: #e9edf4;
+  --text-2: #aab3c3;
+  --text-3: #8690a3;
+  --text-on-accent: #1a1300;
+
+  /* WoW gold: primary actions, focus, the selected thing. Use sparingly. */
+  --accent: #ffd100;
+  --accent-hover: #ffdc3d;
+  --accent-press: #e5bb00;
+  --accent-text: #ffd84d; /* gold text on dark surfaces */
+  --accent-soft: rgb(255 209 0 / 0.1);
+  --accent-border: rgb(255 209 0 / 0.38);
+
+  /* Cool secondary: information, links, the "game" blue of tooltips. */
+  --cool: #79b4ff;
+  --cool-soft: rgb(121 180 255 / 0.12);
+  --cool-border: rgb(121 180 255 / 0.35);
+
+  --warn: #f6b048;
+  --warn-soft: rgb(246 176 72 / 0.12);
+  --warn-border: rgb(246 176 72 / 0.4);
+  --danger: #ff7a7a;
+  --danger-soft: rgb(255 122 122 / 0.12);
+  --danger-border: rgb(255 122 122 / 0.4);
+  --success: #4fd69c;
+  --success-soft: rgb(79 214 156 / 0.12);
+
+  /* Type. */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-face), ui-monospace, "SFMono-Regular", monospace;
+  --font-display: var(--font-cinzel), var(--font-sans);
+  --font-geist-sans: var(--font-sans); /* older modules still name these */
+  --font-geist-mono: var(--font-mono);
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --leading: 1.45;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* 4/8px spacing scale. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+
+  --control-h-sm: 28px;
+  --control-h: 32px;
+  --control-h-lg: 36px;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 4px 12px rgb(0 0 0 / 0.35), 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.5), 0 2px 6px rgb(0 0 0 / 0.4);
+  --focus-ring: 0 0 0 2px var(--surface-0), 0 0 0 4px var(--accent);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 180ms;
+  --dur-slow: 260ms;
+
+  /* Shell layout. */
+  --topbar-h: 52px;
+  --sidebar-w: 288px;
+  --inspector-w: 336px;
+  --drawer-bar-h: 40px;
+
+  /* Kept for modules written before the tokens. */
+  --background: var(--surface-0);
+  --foreground: var(--text-1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* A light theme only needs the semantic tokens redefined; nothing sets data-theme yet. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --surface-sunken: #d9dde5;
+  --surface-0: #f4f6f9;
+  --surface-1: #ffffff;
+  --surface-2: #f0f2f6;
+  --surface-3: #e6e9ef;
+  --surface-4: #dadfe8;
+  --surface-overlay: rgb(255 255 255 / 0.94);
+  --scrim: rgb(20 24 32 / 0.35);
+  --border-subtle: #e4e7ed;
+  --border: #d3d8e1;
+  --border-strong: #b7bfcc;
+  --text-1: #141821;
+  --text-2: #444d5c;
+  --text-3: #5d6676;
+  --accent: #e0b400;
+  --accent-hover: #f0c400;
+  --accent-press: #c99f00;
+  --accent-text: #7a5c00;
+  --cool: #1f63c6;
+  --warn: #a35d00;
+  --danger: #c4302b;
+  --success: #17804f;
+  --focus-ring: 0 0 0 2px var(--surface-0), 0 0 0 4px #b38f00;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 
 html {
@@ -24,17 +151,14 @@ body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text-1);
+  background: var(--surface-0);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+  font-feature-settings: "cv11", "ss01";
 }
 
 a {
@@ -42,8 +166,40 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+code,
+kbd,
+pre {
+  font-family: var(--font-mono);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+::selection {
+  background: rgb(255 209 0 / 0.3);
+}
+
+/* Quiet scrollbars that match the surfaces. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
   }
 }

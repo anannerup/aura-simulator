@@ -1,0 +1,242 @@
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--inspector-w);
+  grid-template-rows: var(--topbar-h) minmax(0, 1fr);
+  grid-template-areas:
+    "top top top"
+    "left main inspector";
+  height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  background: var(--surface-0);
+}
+
+/* ---- Top bar ---- */
+.topBar {
+  grid-area: top;
+  position: relative;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) 0 var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-1);
+  min-width: 0;
+}
+
+.topBarContent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.leftToggle,
+.inspectorToggle {
+  display: none;
+}
+
+/* ---- Sidebars ---- */
+.left,
+.inspector {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--surface-1);
+}
+
+.left {
+  grid-area: left;
+  border-right: 1px solid var(--border);
+}
+
+.inspector {
+  grid-area: inspector;
+  border-left: 1px solid var(--border);
+}
+
+/* ---- Centre ---- */
+.main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--surface-sunken);
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---- Bottom drawer ---- */
+.drawer {
+  flex: none;
+  border-top: 1px solid var(--border);
+  background: var(--surface-1);
+}
+
+.drawerBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--drawer-bar-h);
+  padding: 0 var(--space-3) 0 var(--space-2);
+}
+
+.drawerToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 var(--space-2) 0 6px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+}
+
+.drawerToggle:hover {
+  color: var(--text-1);
+  background: var(--surface-3);
+}
+
+.drawerChevron {
+  color: var(--text-3);
+  transition: transform var(--dur) var(--ease);
+}
+
+.drawerToggle[aria-expanded="true"] .drawerChevron {
+  transform: rotate(180deg);
+}
+
+.drawerMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+  font-size: var(--text-sm);
+  color: var(--text-3);
+}
+
+.drawerBody {
+  padding: 0 var(--space-4) var(--space-4);
+  max-height: 40dvh;
+  overflow-y: auto;
+}
+
+.drawerBody[hidden] {
+  display: none;
+}
+
+.scrim {
+  display: none;
+}
+
+/* ---- Narrow: the inspector becomes an overlay drawer from the right. ---- */
+@media (max-width: 1099px) {
+  .shell {
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+    grid-template-areas:
+      "top top"
+      "left main";
+  }
+
+  .inspectorToggle {
+    display: inline-flex;
+  }
+
+  .inspector {
+    position: fixed;
+    z-index: 40;
+    top: var(--topbar-h);
+    right: 0;
+    bottom: 0;
+    width: min(var(--inspector-w), calc(100vw - 48px));
+    box-shadow: var(--shadow-pop);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition:
+      transform var(--dur-slow) var(--ease),
+      visibility 0s linear var(--dur-slow);
+  }
+
+  .shell[data-inspector-open="true"] .inspector {
+    transform: none;
+    visibility: visible;
+    transition: transform var(--dur-slow) var(--ease);
+  }
+
+  .scrim {
+    display: block;
+    position: fixed;
+    z-index: 35;
+    inset: var(--topbar-h) 0 0 0;
+    background: var(--scrim);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-slow) var(--ease);
+  }
+
+  .shell[data-inspector-open="true"] .scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* ---- Phone: the left sidebar is an overlay too. ---- */
+@media (max-width: 767px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "top"
+      "main";
+  }
+
+  .topBar {
+    gap: var(--space-2);
+    padding: 0 var(--space-2);
+  }
+
+  .leftToggle {
+    display: inline-flex;
+  }
+
+  .left {
+    position: fixed;
+    z-index: 40;
+    top: var(--topbar-h);
+    left: 0;
+    bottom: 0;
+    width: min(var(--sidebar-w), calc(100vw - 48px));
+    box-shadow: var(--shadow-pop);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform var(--dur-slow) var(--ease),
+      visibility 0s linear var(--dur-slow);
+  }
+
+  .shell[data-left-open="true"] .left {
+    transform: none;
+    visibility: visible;
+    transition: transform var(--dur-slow) var(--ease);
+  }
+
+  .shell[data-left-open="true"] .scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
