@@ -10,11 +10,13 @@ test("the page loads, previews the sample aura and copies its state code", async
   await expect(icon).toBeVisible();
   await expect(icon).toHaveAttribute("src", /spell_holy_magicalsentry/);
 
-  // The sample is 64x64 at the screen centre.
+  // The sample is 64x64 UI units at the screen centre; the mock screen scales UI units to the browser.
   const screenBox = (await preview.boundingBox())!;
   const iconBox = (await icon.boundingBox())!;
-  expect(Math.round(iconBox.width)).toBe(64);
-  expect(Math.round(iconBox.height)).toBe(64);
+  const uiHeight = Number(await page.getByTestId("mock-screen").getAttribute("data-ui-height"));
+  const iconSize = (64 * screenBox.height) / uiHeight;
+  expect(iconBox.width).toBeCloseTo(iconSize, 0);
+  expect(iconBox.height).toBeCloseTo(iconSize, 0);
   expect(Math.round(iconBox.x + iconBox.width / 2)).toBe(Math.round(screenBox.x + screenBox.width / 2));
   expect(Math.round(iconBox.y + iconBox.height / 2)).toBe(Math.round(screenBox.y + screenBox.height / 2));
 

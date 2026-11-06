@@ -1,0 +1,150 @@
+/**
+ * Mock game screen geometry, in WoW UI units.
+ *
+ * WoW's UI coordinate system is 768 units high at scale 1, whatever the window size; the width follows the window's
+ * aspect ratio. UIParent has the UI scale, so it is 768 / uiScale units high, and one of its units is
+ * windowHeight / 768 * uiScale physical pixels. ElvUI (PixelPerfect.lua) relies on the same model: `768 /
+ * physicalHeight` is its "pixel perfect" scale, at which one UIParent unit is one pixel, and GetScreenHeight() is
+ * UIParent's height in its own units. With "Use UI Scale" off, UIParent keeps scale 1.
+ *
+ * All positions here are y-down from UIParent's top left; WoW offsets are y-up and are flipped in `placeRegion`.
+ */
+import { placeRegion } from "../anchor";
+import type { ScreenSettings } from "./settings";
+
+/** The height of the UI coordinate system at scale 1. */
+export const UI_BASE_HEIGHT = 768;
+
+export interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface UiParent {
+  /** UIParent's size in its own units (GetScreenWidth/GetScreenHeight). */
+  width: number;
+  height: number;
+  /** UIParent's effective scale. */
+  scale: number;
+  /** Physical window pixels per UIParent unit. */
+  pixelsPerUnit: number;
+}
+
+export function uiParent(settings: Pick<ScreenSettings, "width" | "height" | "useUiScale" | "uiScale">): UiParent {
+  const scale = settings.useUiScale ? settings.uiScale : 1;
+  const height = UI_BASE_HEIGHT / scale;
+  return {
+    width: (height * settings.width) / settings.height,
+    height,
+    scale,
+    pixelsPerUnit: (settings.height / UI_BASE_HEIGHT) * scale,
+  };
+}
+
+/** CSS pixels per window pixel to fit the whole window, aspect kept, into the available browser area. */
+export function fitScale(window: { width: number; height: number }, available: { width: number; height: number }) {
+  return Math.max(0, Math.min(available.width / window.width, available.height / window.height));
+}
+
+/** The frame an aura is anchored to: UIParent itself, or a stand-in for a frame the simulator does not draw. */
+export interface AnchorFrame {
+  rect: Rect;
+  /** The anchor point WeakAuras really uses (MOUSE always anchors to the cursor's CENTER). */
+  anchorPoint: unknown;
+  /** Set for stand-ins: what the box stands for. */
+  label?: string;
+}
+
+/**
+ * Where an aura's anchor frame is (WeakAuras.lua GetAnchorFrame and Private.AnchorFrame):
+ * - SCREEN ("Screen/Parent Group") anchors to its parent; a top-level aura's parent is WeakAurasFrame, which is
+ *   SetAllPoints(UIParent), so it is UIParent's rect. UIPARENT ("Screen") anchors to UIParent itself.
+ * - PRD, NAMEPLATE, UNITFRAME, MOUSE, SELECTFRAME and CUSTOM anchor to frames the game creates; these get a stand-in
+ *   at a typical spot. MOUSE forces anchorPoint CENTER.
+ */
+export function anchorFrameFor(
+  aura: { anchorFrameType?: unknown; anchorPoint?: unknown; anchorFrameFrame?: unknown },
+  ui: UiParent,
+): AnchorFrame {
+  const screen = { x: 0, y: 0, width: ui.width, height: ui.height };
+  const centredAt = (cx: number, cy: number, width: number, height: number): Rect => ({
+    x: cx - width / 2,
+    y: cy - height / 2,
+    width,
+    height,
+  });
+  // Frames whose effective scale is 1 whatever the UI scale (the PRD stand-in, nameplates) are 1/scale UIParent units.
+  const unscaled = 1 / ui.scale;
+  switch (aura.anchorFrameType) {
+    case undefined:
+    case "SCREEN":
+    case "UIPARENT":
+      return { rect: screen, anchorPoint: aura.anchorPoint };
+    case "PRD": {
+      // WeakAuras' PRD mover with default nameplate CVars: 200 * 1.1 - 24 wide, 4 * 1.2 * 2 + 1 high, scale 1.
+      return {
+        rect: centredAt(ui.width / 2, ui.height * 0.62, 196 * unscaled, 10.6 * unscaled),
+        anchorPoint: aura.anchorPoint,
+        label: "Personal Resource Display",
+      };
+    }
+    case "NAMEPLATE":
+      return {
+        rect: centredAt(ui.width / 2, ui.height * 0.3, 196 * unscaled, 10.6 * unscaled),
+        anchorPoint: aura.anchorPoint,
+        label: "Nameplate",
+      };
+    case "UNITFRAME":
+      // Blizzard's PlayerFrame: 232x100 at TOPLEFT (-19, -4) of UIParent; its art starts about 19 units in.
+      return { rect: { x: 0, y: 4, width: 232, height: 100 }, anchorPoint: aura.anchorPoint, label: "Unit frame" };
+    case "MOUSE":
+      return { rect: centredAt(ui.width * 0.6, ui.height * 0.45, 0, 0), anchorPoint: "CENTER", label: "Mouse cursor" };
+    case "SELECTFRAME": {
+      const name = typeof aura.anchorFrameFrame === "string" ? aura.anchorFrameFrame : "";
+      return {
+        rect: centredAt(ui.width / 2, ui.height / 2, 100, 100),
+        anchorPoint: aura.anchorPoint,
+        label: name ? `Frame: ${name}` : "Selected frame",
+      };
+    }
+    default:
+      return {
+        rect: centredAt(ui.width / 2, ui.height / 2, 100, 100),
+        anchorPoint: aura.anchorPoint,
+        label: "Custom anchor",
+      };
+  }
+}
+
+/** An aura's rect in UIParent units: its selfPoint pinned on its anchor frame's anchorPoint, plus offsets. */
+export function placeAura(
+  aura: {
+    anchorFrameType?: unknown;
+    anchorFrameFrame?: unknown;
+    anchorPoint?: unknown;
+    selfPoint?: unknown;
+    xOffset: number;
+    yOffset: number;
+    width: number;
+    height: number;
+  },
+  ui: UiParent,
+): { rect: Rect; frame: AnchorFrame } {
+  const frame = anchorFrameFor(aura, ui);
+  const { left, top } = placeRegion(frame.rect, { ...aura, selfPoint: aura.selfPoint, anchorPoint: frame.anchorPoint });
+  return { rect: { x: frame.rect.x + left, y: frame.rect.y + top, width: aura.width, height: aura.height }, frame };
+}
+
+/** A rect in UIParent units as physical window pixels. */
+export function toPixels(rect: Rect, ui: UiParent): Rect {
+  const k = ui.pixelsPerUnit;
+  return { x: rect.x * k, y: rect.y * k, width: rect.width * k, height: rect.height * k };
+}
+
+/** Frame strata (Types.lua frame_strata_types; 1 = inherited) as a CSS z-index. */
+export function strataZIndex(frameStrata: unknown): number {
+  return typeof frameStrata === "number" && frameStrata >= 2 && frameStrata <= 9 ? frameStrata : 4;
+}
+

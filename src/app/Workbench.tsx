@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { AuraCore, AuraDocument } from "@/core";
 import { AuraPreview } from "@/render/AuraPreview";
 import { DEFAULT_SITUATION } from "@/render/situation";
+import { GameScreen } from "./screen/GameScreen";
 import styles from "./page.module.css";
 
 type Loaded = { core: AuraCore; aura: AuraDocument; code: string };
@@ -43,7 +44,7 @@ export function Workbench() {
   return (
     <>
       <section className={styles.previewArea}>
-        <AuraPreview aura={loaded.aura} situation={DEFAULT_SITUATION} />
+        <GameScreen>{(ui) => <AuraPreview aura={loaded.aura} situation={DEFAULT_SITUATION} screen={ui} />}</GameScreen>
       </section>
       <section className={styles.export}>
         <div className={styles.exportHeader}>

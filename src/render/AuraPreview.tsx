@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { AuraDocument, LuaValue } from "@/core";
-import { placeRegion } from "./anchor";
+import { placeAura, strataZIndex, uiParent, type UiParent } from "./screen/geometry";
 import type { Situation } from "./situation";
 import { iconUrl } from "./textures";
 import styles from "./AuraPreview.module.css";
@@ -8,29 +8,49 @@ import styles from "./AuraPreview.module.css";
 export interface AuraPreviewProps {
   aura: AuraDocument;
   situation: Situation;
-  /** Size of the drawn screen in UI units (1 unit = 1 CSS pixel for now; ticket 14 adds scale). */
-  screen?: { width: number; height: number };
+  /** UIParent in UI units; the mock screen (`src/render/screen`) scales the whole preview to the window. */
+  screen?: UiParent;
 }
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /** Draws an aura on a plain screen at its anchor, offset and size. Pure: props in, markup out. */
-export function AuraPreview({ aura, situation, screen = { width: 800, height: 450 } }: AuraPreviewProps) {
-  const width = num(aura.width, 64);
-  const height = num(aura.height, 64);
-  const { left, top } = placeRegion(screen, {
-    width,
-    height,
-    anchorPoint: aura.anchorPoint,
-    selfPoint: aura.selfPoint,
-    xOffset: num(aura.xOffset, 0),
-    yOffset: num(aura.yOffset, 0),
-  });
-  const regionStyle: CSSProperties = { left, top, width, height };
+const DEFAULT_SCREEN = uiParent({ width: 1920, height: 1080, useUiScale: false, uiScale: 1 });
+
+export function AuraPreview({ aura, situation, screen = DEFAULT_SCREEN }: AuraPreviewProps) {
+  const { rect, frame } = placeAura(
+    {
+      anchorFrameType: aura.anchorFrameType,
+      anchorFrameFrame: aura.anchorFrameFrame,
+      anchorPoint: aura.anchorPoint,
+      selfPoint: aura.selfPoint,
+      width: num(aura.width, 64),
+      height: num(aura.height, 64),
+      xOffset: num(aura.xOffset, 0),
+      yOffset: num(aura.yOffset, 0),
+    },
+    screen,
+  );
+  const regionStyle: CSSProperties = {
+    left: rect.x,
+    top: rect.y,
+    width: rect.width,
+    height: rect.height,
+    zIndex: strataZIndex(aura.frameStrata),
+  };
   const name = typeof aura.id === "string" ? aura.id : "aura";
 
   return (
     <div className={styles.screen} style={{ width: screen.width, height: screen.height }} data-testid="aura-preview">
+      {frame.label && (
+        <div
+          className={styles.standIn}
+          style={{ left: frame.rect.x, top: frame.rect.y, width: frame.rect.width, height: frame.rect.height }}
+          data-testid="anchor-stand-in"
+        >
+          <span className={styles.standInLabel}>{frame.label} (stand-in)</span>
+        </div>
+      )}
       {situation.active && (
         <div className={styles.region} style={regionStyle} data-region-type={String(aura.regionType)}>
           {aura.regionType === "icon" ? (

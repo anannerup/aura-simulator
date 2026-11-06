@@ -1,0 +1,33 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 8px 12px 12px;
+  font-size: 13px;
+}
+
+.panel legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.number {
+  width: 6em;
+}
+
+.meta {
+  color: #888;
+}
+
+.error {
+  color: #e5484d;
+}
