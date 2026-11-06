@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /**
- * Renders the small Markdown subset the agent docs use: #-headings, paragraphs, "- " lists,
+ * Renders the small Markdown subset the agent docs use: #-headings (to ####), paragraphs, "- " lists,
  * fenced code blocks, `inline code` and **bold**. Keeps the docs one Markdown source for people and agents.
  */
 export function Markdown({ source }: { source: string }) {
@@ -20,10 +20,11 @@ export function Markdown({ source }: { source: string }) {
           <code>{body.join("\n")}</code>
         </pre>,
       );
-    } else if (/^#{1,3} /.test(line)) {
+    } else if (/^#{1,4} /.test(line)) {
       const level = line.indexOf(" ");
       const text = inline(line.slice(level + 1));
-      blocks.push(level === 1 ? <h1 key={key}>{text}</h1> : level === 2 ? <h2 key={key}>{text}</h2> : <h3 key={key}>{text}</h3>);
+      const Heading = (["h1", "h2", "h3", "h4"] as const)[level - 1];
+      blocks.push(<Heading key={key}>{text}</Heading>);
       i++;
     } else if (line.startsWith("- ")) {
       const items: string[] = [];
@@ -43,7 +44,7 @@ export function Markdown({ source }: { source: string }) {
       i++;
     } else {
       const para: string[] = [];
-      while (i < lines.length && lines[i].trim() !== "" && !/^(#{1,3} |- |```)/.test(lines[i])) para.push(lines[i++]);
+      while (i < lines.length && lines[i].trim() !== "" && !/^(#{1,4} |- |```)/.test(lines[i])) para.push(lines[i++]);
       blocks.push(<p key={key}>{inline(para.join(" "))}</p>);
     }
   }
