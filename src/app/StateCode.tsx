@@ -33,17 +33,21 @@ export function CopyCodeButton({ code }: { code: string }) {
   );
 }
 
+/** The drawer tab that holds the full state code. */
+export const STATE_CODE_TAB = "code";
+
 /** The state code as a compact pill for the top bar; clicking it opens the drawer with the full code. */
 export function StateCodePill({ code }: { code: string }) {
-  const { drawerOpen, setDrawerOpen } = useShell();
+  const { drawerTab, setDrawerTab } = useShell();
+  const open = drawerTab === STATE_CODE_TAB;
   return (
     <button
       type="button"
       className={styles.pill}
       aria-label="Show full code"
-      aria-expanded={drawerOpen}
+      aria-expanded={open}
       title={`${code.length.toLocaleString()} characters: show the full code`}
-      onClick={() => setDrawerOpen(!drawerOpen)}
+      onClick={() => setDrawerTab(open ? null : STATE_CODE_TAB)}
     >
       <CodeIcon size={14} className={styles.pillIcon} />
       <span className={styles.pillCode}>{code}</span>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getSpellStatus, syncSpells, type SpellCacheStatus } from "./spell-api";
-import { Button, Callout, RefreshIcon, WarningIcon } from "@/components/ui";
+import { Button, Callout, IconButton, RefreshIcon, WarningIcon } from "@/components/ui";
 import styles from "./SpellPicker.module.css";
 
 /**
@@ -62,9 +62,14 @@ export function SpellSync({ onSynced }: { onSynced?: () => void }) {
           ? `Spells: build ${status.build}, ${status.spellCount.toLocaleString()} spells, synced ${new Date(status.syncedAt!).toLocaleString()}`
           : "Spells: …"}
       </span>
-      <Button variant="ghost" size="sm" icon={<RefreshIcon size={13} />} onClick={sync} disabled={syncing}>
-        {syncing ? "Syncing…" : "Sync spells"}
-      </Button>
+      <IconButton
+        label={syncing ? "Syncing spells…" : "Sync spells"}
+        icon={<RefreshIcon size={14} className={syncing ? styles.spinning : undefined} />}
+        size="sm"
+        tooltipSide="left"
+        onClick={sync}
+        disabled={syncing}
+      />
       {error && <span className={styles.error}>{error}</span>}
     </div>
   );

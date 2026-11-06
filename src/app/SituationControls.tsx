@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import type { AuraDocument } from "@/core";
 import { Input, Slider, Switch } from "@/components/ui";
 import {
@@ -24,6 +25,7 @@ const fmt = (s: number) => (s >= 60 ? `${Math.floor(s / 60)}m ${String(Math.roun
 /** The situation controls: per trigger present/time left/stacks, plus target and combat. */
 export function SituationControls({ aura, situation, onChange }: { aura: AuraDocument; situation: Situation; onChange: (next: Situation) => void }) {
   const triggers = auraTriggers(aura);
+  const ids = useId();
   return (
     <section className={styles.panel} aria-label="Situation">
       <div className={styles.world}>
@@ -49,12 +51,17 @@ export function SituationControls({ aura, situation, onChange }: { aura: AuraDoc
               checked={t.present}
               onChange={(e) => set(kind === "spellCooldown" && e.target.checked && t.remaining <= 0 ? { present: true, remaining: t.duration } : { present: e.target.checked })}
             />
-            <label className={styles.slider}>
+            <div className={styles.slider}>
               <span className={styles.sliderHead}>
-                <span className={styles.label}>{labels.remaining}</span>
-                <output className={styles.value}>{fmt(t.remaining)}</output>
+                <label className={styles.label} htmlFor={`${ids}-remaining-${index}`}>
+                  {labels.remaining}
+                </label>
+                <output className={styles.value} htmlFor={`${ids}-remaining-${index}`}>
+                  {fmt(t.remaining)}
+                </output>
               </span>
               <Slider
+                id={`${ids}-remaining-${index}`}
                 min={0}
                 max={Math.max(t.duration, 0.1)}
                 step={0.1}
@@ -62,7 +69,7 @@ export function SituationControls({ aura, situation, onChange }: { aura: AuraDoc
                 disabled={!t.present || t.duration <= 0}
                 onChange={(e) => set({ remaining: Number(e.target.value) })}
               />
-            </label>
+            </div>
             <div className={styles.numbers}>
               <label className={styles.number}>
                 <span className={styles.label}>{labels.duration}</span>

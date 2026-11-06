@@ -11,6 +11,25 @@ export {
   keyFromString,
   keyToString,
 } from "./lua-value";
+export {
+  LuaLiteralError,
+  parseCanonicalJson,
+  parseLuaLiteral,
+  printCanonicalJson,
+  printLuaLiteral,
+} from "./lua-literal";
 export type { LuaArray, LuaKey, LuaObject, LuaTable, LuaValue } from "./lua-value";
 export { sampleIconAura } from "./samples";
+export { ADDON_CONTRACT, AddonContractError } from "./addon-vm/contract";
+export { FOREVER_CLIENT_PROFILE } from "./addon-vm/profile";
+export type { ProfileEntry } from "./addon-vm/profile";
+export type { AddonVMReport, Registries } from "./addon-vm/vm";
+export type {
+  CombatReport,
+  CombatStatus,
+  OptionPointer,
+  OptionTarget,
+  ValidationMessage,
+  ValidationResult,
+} from "./addon-vm/validation";
 export { getTrigger, setTriggerSpellId, triggerCount, triggerSpellId } from "./trigger-spell";

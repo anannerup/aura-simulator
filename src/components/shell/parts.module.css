@@ -5,7 +5,8 @@
   gap: 10px;
   flex: none;
   padding: 4px 6px 4px 2px;
-  border-radius: var(--radius);
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 .mark {
@@ -100,6 +101,8 @@
 }
 
 .toolbarDock {
+  position: relative;
+  z-index: 5;
   flex: none;
   display: flex;
   justify-content: center;
@@ -163,7 +166,6 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   background: var(--surface-overlay);
-  backdrop-filter: blur(8px);
   box-shadow: var(--shadow-2);
   max-width: 100%;
 }

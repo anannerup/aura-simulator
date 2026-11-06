@@ -4,9 +4,9 @@
 
 **Blocked by:** 02, 03
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Edit raw table -> preview and state code update
-- [ ] Push/paste updates the raw view
-- [ ] Undo/redo across all edit sources
-- [ ] Invalid table shows an error without losing work
+- [x] Edit raw table -> preview and state code update
+- [x] Push/paste updates the raw view
+- [x] Undo/redo across all edit sources
+- [x] Invalid table shows an error without losing work

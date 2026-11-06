@@ -104,9 +104,12 @@ export interface SwitchProps extends Omit<InputHTMLAttributes<HTMLInputElement>,
 export function Switch({ label, className, disabled, ...rest }: SwitchProps) {
   return (
     <label className={cx(styles.switch, disabled && styles.switchDisabled, className)}>
-      <input type="checkbox" className={styles.switchInput} disabled={disabled} {...rest} />
-      <span className={styles.track} aria-hidden>
-        <span className={styles.thumb} />
+      {/* The real input lies (transparent) over the drawn track, so pointer and test clicks land on it. */}
+      <span className={styles.switchBox}>
+        <input type="checkbox" className={styles.switchInput} disabled={disabled} {...rest} />
+        <span className={styles.track} aria-hidden>
+          <span className={styles.thumb} />
+        </span>
       </span>
       <span>{label}</span>
     </label>

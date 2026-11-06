@@ -4,13 +4,13 @@ import styles from "./parts.module.css";
 
 const cx = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(" ");
 
-/** The app's mark and name for the top bar. The name hides on phones. */
-export function Brand({ name, href = "/" }: { name: string; href?: string }) {
+/** The app's mark and name for the top bar (the page's heading). The name hides on phones. */
+export function Brand({ name }: { name: string }) {
   return (
-    <a className={styles.brand} href={href} aria-label={name}>
+    <h1 className={styles.brand} aria-label={name}>
       <LogoMark />
       <span className={styles.brandName}>{name}</span>
-    </a>
+    </h1>
   );
 }
 

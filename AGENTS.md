@@ -27,6 +27,9 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   encodes/decodes state codes, fills defaults, validates. No React, no DOM. Runs in browser and Node.
   Import it via `@/core` only. The aura document (a Lua table as JSON: arrays for sequences, `"[1]"`-style keys
   for number/boolean keys) is defined in `src/core/lua-value.ts`; core tests cache addon files in `.cache/` (gitignored).
+  `fillDefaults`/`validate`/`registries` run the whole addon in a lazily loaded second VM (`src/core/addon-vm/`,
+  a Web Worker in the browser). Client answers that change validation belong in its Forever client profile
+  (`profile.ts`), and every addon internal it uses in its contract (`contract.ts`).
 - `src/render/`: hand-written renderers (React components + CSS) per region and sub-region type.
   Pure props in (aura document + situation), nothing fetched inside except textures via `src/render/textures`.
 - `src/server/`: server-only code (SQLite via built-in `node:sqlite`, wago/Wowhead sync, addon source cache).

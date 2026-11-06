@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { ownWorkspacePage } from "../support/e2e-workspace";
 
 const loaded = (page: Page) => page.getByTestId("addon-loaded");
 /** The version picker lives in a popover under the top bar's version button. */
@@ -15,7 +16,7 @@ test("the newest release loads by default, through the server's addon cache", as
   page.on("request", (r) => {
     if (r.url().includes("/api/addon/") && r.url().includes("/file?")) fileRequests.push(r.url());
   });
-  await page.goto("/");
+  await page.goto(ownWorkspacePage("addon"));
   await expect(loaded(page)).toContainText("Musca Auras v1.15.0", { timeout: 60_000 });
   await expect(loaded(page)).toContainText("WeakAuras 5.22.0 · internal version 92");
   await expect(page.getByLabel("Musca Auras version")).toHaveValue("v1.15.0");
@@ -24,14 +25,25 @@ test("the newest release loads by default, through the server's addon cache", as
 });
 
 test("switching version reloads the core, keeps the aura and reports what changed", async ({ page }) => {
-  await page.goto("/");
+  await page.goto(ownWorkspacePage("addon"));
   await expect(loaded(page)).toContainText("v1.15.0", { timeout: 60_000 });
+
+  // Change the workspace's aura (not the sample), so "kept" can't be the fallback sample coming back.
+  const icon = page.getByTestId("aura-preview").locator('[data-region-type="icon"] img');
+  const search = page.getByRole("combobox", { name: "Search spells" });
+  await search.fill("frostbolt");
+  await page.getByRole("listbox", { name: "Spells" }).getByRole("option", { name: /Frostbolt/ }).first().click();
+  await expect(icon).toHaveAttribute("src", /spell_frost_frostbolt02/);
+  const code = await page.getByLabel("State code").inputValue();
 
   await openPicker(page);
   await page.getByLabel("Musca Auras version").selectOption("v1.10.0");
   await expect(loaded(page)).toContainText("Musca Auras v1.10.0", { timeout: 60_000 });
   await expect(loaded(page)).toContainText("internal version 91");
   await expectAuraRendered(page);
+  await expect(page.getByLabel("State code")).toHaveValue(code);
+  await expect(icon).toHaveAttribute("src", /spell_frost_frostbolt02/);
+  await expect(page.getByTestId("current-spell")).toContainText("ID 116");
 
   const diff = page.getByTestId("addon-diff");
   await expect(diff).toContainText("What changed from v1.15.0 to v1.10.0");
@@ -40,20 +52,21 @@ test("switching version reloads the core, keeps the aura and reports what change
   // The choice is remembered.
   await page.reload();
   await expect(loaded(page)).toContainText("Musca Auras v1.10.0", { timeout: 60_000 });
+  await expect(page.getByLabel("State code")).toHaveValue(code);
 });
 
 test("a branch loads by name; an unknown ref shows an error and keeps the previous version", async ({ page }) => {
-  await page.goto("/");
+  await page.goto(ownWorkspacePage("addon"));
   await expect(loaded(page)).toContainText("v1.15.0", { timeout: 60_000 });
 
   await openPicker(page);
   const input = page.getByLabel("Branch or commit");
   await input.fill("main");
-  await page.getByRole("button", { name: "Switch" }).click();
+  await page.getByRole("region", { name: "Addon version picker" }).getByRole("button", { name: "Switch" }).click();
   await expect(loaded(page)).toContainText(/Musca Auras main \([0-9a-f]{7}\)/, { timeout: 60_000 });
 
   await input.fill("no-such-branch");
-  await page.getByRole("button", { name: "Switch" }).click();
+  await page.getByRole("region", { name: "Addon version picker" }).getByRole("button", { name: "Switch" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Could not load" })).toContainText('no release, branch or commit called "no-such-branch"');
   await expect(page.getByRole("alert").filter({ hasText: "Could not load" })).toContainText("Still using main");
   await expect(loaded(page)).toContainText("Musca Auras main");
@@ -62,7 +75,7 @@ test("a branch loads by name; an unknown ref shows an error and keeps the previo
 
 test("without the server's addon routes, the core loads straight from jsDelivr", async ({ page }) => {
   await page.route("**/api/addon/**", (route) => route.fulfill({ status: 500, body: "down" }));
-  await page.goto("/");
+  await page.goto(ownWorkspacePage("addon"));
   await expect(loaded(page)).toContainText("Musca Auras v1.15.0", { timeout: 60_000 });
   await expectAuraRendered(page);
 });

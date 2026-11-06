@@ -32,6 +32,11 @@
   transition-delay: 0ms;
 }
 
+/* No hint over a trigger whose popover is open. */
+.host:has(> [aria-expanded="true"]) > .tip {
+  display: none;
+}
+
 .top {
   bottom: calc(100% + 6px);
   left: 50%;

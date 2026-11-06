@@ -88,36 +88,58 @@
   padding: 0 var(--space-3) 0 var(--space-2);
 }
 
-.drawerToggle {
+.drawerTabs {
+  display: flex;
+  align-items: stretch;
+  align-self: stretch;
+  gap: var(--space-1);
+}
+
+.drawerTab {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 28px;
-  padding: 0 var(--space-2) 0 6px;
+  padding: 0 var(--space-2);
   border: 0;
-  border-radius: var(--radius);
   background: transparent;
-  color: var(--text-2);
+  color: var(--text-3);
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
-  transition: color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+  transition: color var(--dur-fast) var(--ease);
 }
 
-.drawerToggle:hover {
+.drawerTab:hover {
   color: var(--text-1);
-  background: var(--surface-3);
+}
+
+.drawerTab[aria-selected="true"] {
+  color: var(--text-1);
+}
+
+/* The open tab's gold underline sits on the drawer's top edge, like a tab pulled up. */
+.drawerTab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: var(--space-2);
+  right: var(--space-2);
+  top: -1px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--accent);
 }
 
 .drawerChevron {
-  color: var(--text-3);
+  transform: rotate(180deg);
   transition: transform var(--dur) var(--ease);
 }
 
-.drawerToggle[aria-expanded="true"] .drawerChevron {
-  transform: rotate(180deg);
+.drawer[data-open="true"] .drawerChevron {
+  transform: none;
 }
 
 .drawerMeta {
@@ -133,7 +155,7 @@
 
 .drawerBody {
   padding: 0 var(--space-4) var(--space-4);
-  max-height: 40dvh;
+  max-height: 48dvh;
   overflow-y: auto;
 }
 
@@ -212,6 +234,10 @@
 
   .leftToggle {
     display: inline-flex;
+  }
+
+  .drawerMeta {
+    visibility: hidden;
   }
 
   .left {

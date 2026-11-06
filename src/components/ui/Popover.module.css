@@ -9,7 +9,7 @@
   top: calc(100% + var(--space-2));
   z-index: 60;
   width: min(420px, calc(100vw - 2 * var(--space-4)));
-  max-height: calc(100dvh - var(--topbar-h) - var(--space-5));
+  max-height: calc(100dvh - var(--topbar-h) - 96px);
   overflow-y: auto;
   padding: var(--space-4);
   border-radius: var(--radius-lg);
@@ -29,6 +29,18 @@
 
 .end {
   right: 0;
+}
+
+/* Phones: the panel spans the screen under the top bar instead of hanging off its trigger. */
+@media (max-width: 767px) {
+  .panel {
+    position: fixed;
+    top: calc(var(--topbar-h) + var(--space-2));
+    left: var(--space-4);
+    right: var(--space-4);
+    width: auto;
+    max-height: calc(100dvh - var(--topbar-h) - var(--space-6));
+  }
 }
 
 @keyframes pop-in {

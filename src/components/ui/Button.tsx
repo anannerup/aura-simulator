@@ -39,6 +39,8 @@ export interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
   /** For toggle buttons: sets aria-pressed and the pressed style. */
   pressed?: boolean;
   tooltipSide?: TooltipSide;
+  /** Tooltip text when it should say more than the label (e.g. a keyboard shortcut). */
+  tooltip?: ReactNode;
 }
 
 /** A square icon-only button; its label is its accessible name and its tooltip. */
@@ -49,12 +51,13 @@ export function IconButton({
   size = "md",
   pressed,
   tooltipSide = "bottom",
+  tooltip,
   className,
   type = "button",
   ...rest
 }: IconButtonProps) {
   return (
-    <Tooltip content={label} side={tooltipSide}>
+    <Tooltip content={tooltip ?? label} side={tooltipSide}>
       <button
         type={type}
         aria-label={label}

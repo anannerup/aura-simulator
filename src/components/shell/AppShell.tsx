@@ -1,8 +1,14 @@
 "use client";
 
 import { createContext, useContext, useId, useMemo, useState, type ReactNode } from "react";
-import { ChevronUpIcon, IconButton, PanelLeftIcon, PanelRightIcon } from "@/components/ui";
+import { ChevronDownIcon, IconButton, PanelLeftIcon, PanelRightIcon } from "@/components/ui";
 import styles from "./AppShell.module.css";
+
+export interface DrawerTab {
+  id: string;
+  label: ReactNode;
+  content: ReactNode;
+}
 
 export interface AppShellProps {
   /** The app's name and mark, at the top left. */
@@ -18,17 +24,20 @@ export interface AppShellProps {
   /** Right sidebar: settings and option sections (use `InspectorSection`). */
   inspector: ReactNode;
   inspectorLabel?: string;
-  /** Optional bottom drawer under the stage; its bar is always shown, its body when opened. */
-  drawer?: ReactNode;
-  /** The drawer bar's toggle text. */
-  drawerTitle?: ReactNode;
+  /**
+   * Optional bottom drawer under the stage, as tabs. The tab bar is always shown; clicking a tab opens the drawer on
+   * it, clicking the open tab closes it. Every tab's content stays mounted (hidden when not shown), so editors keep
+   * their unapplied edits.
+   */
+  drawerTabs?: DrawerTab[];
   /** Extra things on the drawer bar (right side). */
   drawerMeta?: ReactNode;
 }
 
 export interface ShellState {
-  drawerOpen: boolean;
-  setDrawerOpen: (open: boolean) => void;
+  /** The open drawer tab's id, or null when the drawer is closed. */
+  drawerTab: string | null;
+  setDrawerTab: (tab: string | null) => void;
   /** At narrow widths the sidebars are overlays; these open and close them. */
   leftOpen: boolean;
   setLeftOpen: (open: boolean) => void;
@@ -46,22 +55,23 @@ export function useShell(): ShellState {
 }
 
 /**
- * The app frame: a top bar, a left sidebar, the stage in the centre with an optional drawer under it, and an
+ * The app frame: a top bar, a left sidebar, the stage in the centre with an optional tabbed drawer under it, and an
  * inspector on the right. It fills the viewport and never scrolls as a page; each region scrolls on its own.
  * Below 1100px the inspector, and below 768px the left sidebar too, become overlay drawers opened from the top bar.
  */
 export function AppShell(props: AppShellProps) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState<string | null>(null);
   const [leftOpen, setLeftOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
-  const drawerBodyId = useId();
+  const drawerId = useId();
   const leftId = useId();
   const inspectorId = useId();
 
   const state = useMemo<ShellState>(
-    () => ({ drawerOpen, setDrawerOpen, leftOpen, setLeftOpen, inspectorOpen, setInspectorOpen }),
-    [drawerOpen, leftOpen, inspectorOpen],
+    () => ({ drawerTab, setDrawerTab, leftOpen, setLeftOpen, inspectorOpen, setInspectorOpen }),
+    [drawerTab, leftOpen, inspectorOpen],
   );
+  const tabs = props.drawerTabs ?? [];
 
   return (
     <ShellContext.Provider value={state}>
@@ -83,7 +93,7 @@ export function AppShell(props: AppShellProps) {
           <div className={styles.topBarContent}>{props.topBar}</div>
           <span className={styles.inspectorToggle}>
             <IconButton
-              label={inspectorOpen ? "Hide settings" : "Show settings"}
+              label={inspectorOpen ? "Hide inspector" : "Show inspector"}
               icon={<PanelRightIcon />}
               pressed={inspectorOpen}
               aria-controls={inspectorId}
@@ -102,24 +112,48 @@ export function AppShell(props: AppShellProps) {
 
         <main className={styles.main}>
           <div className={styles.stage}>{props.stage}</div>
-          {props.drawer && (
-            <section className={styles.drawer} data-open={drawerOpen}>
+          {tabs.length > 0 && (
+            <section className={styles.drawer} data-open={drawerTab !== null}>
               <div className={styles.drawerBar}>
-                <button
-                  type="button"
-                  className={styles.drawerToggle}
-                  aria-expanded={drawerOpen}
-                  aria-controls={drawerBodyId}
-                  onClick={() => setDrawerOpen(!drawerOpen)}
-                >
-                  <ChevronUpIcon className={styles.drawerChevron} size={14} />
-                  {props.drawerTitle}
-                </button>
+                <div role="tablist" aria-label="Drawer" className={styles.drawerTabs}>
+                  {tabs.map((tab) => {
+                    const active = drawerTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        id={`${drawerId}-tab-${tab.id}`}
+                        aria-selected={active}
+                        aria-controls={`${drawerId}-panel-${tab.id}`}
+                        className={styles.drawerTab}
+                        onClick={() => setDrawerTab(active ? null : tab.id)}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
                 {props.drawerMeta && <div className={styles.drawerMeta}>{props.drawerMeta}</div>}
+                <IconButton
+                  label={drawerTab === null ? "Open drawer" : "Close drawer"}
+                  icon={<ChevronDownIcon className={styles.drawerChevron} />}
+                  size="sm"
+                  tooltipSide="left"
+                  onClick={() => setDrawerTab(drawerTab === null ? tabs[0].id : null)}
+                />
               </div>
-              <div id={drawerBodyId} className={styles.drawerBody} hidden={!drawerOpen}>
-                {props.drawer}
-              </div>
+              {tabs.map((tab) => (
+                <div
+                  key={tab.id}
+                  id={`${drawerId}-panel-${tab.id}`}
+                  role="tabpanel"
+                  className={styles.drawerBody}
+                  hidden={drawerTab !== tab.id}
+                >
+                  {tab.content}
+                </div>
+              ))}
             </section>
           )}
         </main>

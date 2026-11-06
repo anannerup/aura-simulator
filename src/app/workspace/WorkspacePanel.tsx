@@ -26,7 +26,7 @@ export function WorkspacePanel({ workspace }: { workspace: UseWorkspace }) {
   const id = workspace.workspaceId ?? DEFAULT_WORKSPACE_ID;
 
   return (
-    <div className={styles.panel}>
+    <section className={styles.panel} aria-label="Workspace">
       {workspace.notice && (
         <Callout tone="warn" icon={<WarningIcon size={14} />}>
           {workspace.notice}
@@ -54,7 +54,7 @@ export function WorkspacePanel({ workspace }: { workspace: UseWorkspace }) {
           Could not load that state code: {error}
         </Callout>
       )}
-    </div>
+    </section>
   );
 }
 
