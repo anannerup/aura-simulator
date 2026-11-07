@@ -1,6 +1,6 @@
 # An unknown game's page answers 200 on a fresh production server
 
-Status: needs-triage
+Status: resolved
 
 Found while moving the e2e tests to a production build (`next build` + `next start`, as the user's server runs).
 
@@ -22,7 +22,13 @@ response starts streaming from the shell before `notFound()` runs, so it keeps i
 has started"). `dynamicParams = false` is not available with Cache Components; the docs point to a request-time check
 in Proxy (`proxy.ts`).
 
-## Test
+Not only the game page: `/classic/docs/agents`, `/classic/fonts` and `/classic/render` answered 200 too (and rendered
+with no game: "Cannot read properties of undefined (reading 'agentDocs')" in the server log).
 
-The page half of the test is `test.fixme` in `tests/e2e/games.spec.ts` ("an unknown game's page answers 404"); turn it
-back on with the fix.
+## Fix
+
+- `src/app/[game]/page.tsx` is fully prerendered for every game (`ensureStatic = "navigation"`): a request for an id
+  `generateStaticParams` doesn't list waits for its render, so the layout's `notFound()` answers 404.
+- The request-time pages under `[game]` (agent docs, fonts, render) can't be static; `src/proxy.ts` answers 404 for them
+  before they render. `tests/unit/proxy.test.ts` checks that its matcher lists every such page.
+- `tests/e2e/games.spec.ts` checks all of them on the fresh e2e server (a production build).

@@ -209,6 +209,12 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   for the version picker, `app/screen` for the game screen pane). `components/ui` is the generic UI kit (no game code). `/lua/liblua5.1.wasm` serves wasmoon's
   Lua binary from `node_modules`, so the browser's aura core loads no CDN. Links the server writes into answers use
   `requestOrigin` (`src/server/request-origin.ts`: honours `X-Forwarded-*`), not `request.nextUrl.origin`.
+  An id that isn't a game is a 404 everywhere under `[game]`, also on a fresh production server: the game page is
+  fully prerendered (`ensureStatic = "navigation"`), and a page rendered per request (agent docs, fonts, render) is
+  checked in `src/proxy.ts` before its prerendered shell goes out; add a new request-time page under `[game]` to the
+  proxy's matcher (`tests/unit/proxy.test.ts` fails until it is).
+- The Lua VMs are called only through `runLua` (`src/core/lua-run.ts`), which puts the Lua stack back after each call
+  (wasmoon's `doStringSync` leaves results on it, which grew the stack until the VM's heap got corrupted).
 - `src/lib/`: small generic helpers with no project knowledge; any layer may import them and they import nothing
   from `src` (`errors.ts`: `errorMessage`; `fetch-json.ts`: `fetchJson`, the one way page code fetches JSON, and
   `HttpError`; `idb.ts`: one IndexedDB object store, used by the workspace storage and the screenshot store).
