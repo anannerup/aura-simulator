@@ -43,6 +43,8 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
     examples in `worked-examples.ts`), `examples.ts` (the docs' and tests' auras, the TBC v1 auras among them; their
     `.txt`/`.json` files are in `.scratch/tbc-anniversary/v1-auras/`, checked by `tests/unit/tbc-v1-auras.test.ts`,
     `WRITE_V1_AURAS=1` rewrites them). Fixtures: `tests/fixtures/tbc/` (`addon/github-releases.json`, `spells/`).
+    Real TBC auras from wago.io (raid packs, class packs, custom Lua): `tests/fixtures/wago/tbc/` with `manifest.json`,
+    run by `src/core/wago-tbc.test.ts`; findings in `.scratch/tbc-anniversary/stress-test.md`.
   - `docs/shared.ts`: agent-doc sections that are the same concept in every game (wago JSON, push API with driving
     the page, the situation, the spell API, wago links),
     used by each game's docs with its id.

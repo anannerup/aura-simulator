@@ -148,3 +148,12 @@ test("a text region renders its format codes in the game font", async ({ page })
   await expect(text).toHaveCSS("color", "rgb(255, 209, 0)");
   await expect(text).toHaveText(/^Fire Blast:\s*$/);
 });
+
+test("a text's WoW colour escapes are drawn as the game's font string draws them", async ({ page }) => {
+  await stubNetwork(page);
+  await openPushed(page, { ...cooldownText, id: "Escapes", displayText: "|cFFff0000WARNING|r: %p||c" });
+  const text = page.getByTestId("text-region");
+  await expect(text).toHaveText("WARNING: 45.0|c");
+  await expect(text.locator("[data-wow-color]")).toHaveText("WARNING");
+  await expect(text.locator("[data-wow-color]")).toHaveCSS("color", "rgb(255, 0, 0)");
+});
