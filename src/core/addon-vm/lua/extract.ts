@@ -51,8 +51,7 @@ function X.findUpvalue(name, roots)
 end
 
 local function upvalueRoots()
-  local D = P and P.BlizzardAuraDisplay
-  return { D or {}, P and P.AuraSingleShared or {}, P and P.AuraDisplayShared or {} }
+  return { P.BlizzardAuraDisplay, P.AuraSingleShared, P.AuraDisplayShared }
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -207,7 +206,7 @@ function X.registries()
     remOperators = D.remOperators, totalOperators = D.totalOperators, stackOperators = D.stackOperators,
     STACK_LIMIT = D.STACK_LIMIT,
     supportedRegionTypes = {},
-    supportsDurationColorCondition = D.SupportsDurationColorCondition and D.SupportsDurationColorCondition() or false,
+    supportsDurationColorCondition = D.SupportsDurationColorCondition(),
   }
   for _, rn in ipairs(regionNames) do
     if D.SupportsRegionType(rn) then table.insert(R.secretAura.supportedRegionTypes, rn) end

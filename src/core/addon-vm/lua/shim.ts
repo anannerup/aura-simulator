@@ -5,7 +5,7 @@
 export const SHIM_LUA = String.raw`-- WoW API shim for loading Musca Auras headlessly in wasmoon-lua5.1.
 --
 -- Two layers:
---   1. Real shims for the APIs whose *values* matter (string aliases, bit, build info, addon
+--   1. Real shims for the APIs whose *values* matter (string helpers, build info, addon
 --      metadata, player identity, screen size, timers, events, mock frames).
 --   2. A permissive auto-stub: any other global that is read returns a "stub" object that can be
 --      indexed (returns child stubs), called (returns nil), concatenated and tostring'd. Every
@@ -20,7 +20,7 @@ S.touched = {}       -- "path" -> { count = n, files = { [file] = true } }
 S.currentFile = "?"
 S.frames = {}        -- every mock frame created
 S.eventFrames = {}   -- event -> { frame = true }
-S.timers = {}        -- pending C_Timer / AceTimer callbacks (never run automatically)
+S.timers = {}        -- pending C_Timer / AceTimer callbacks (run by __shim.tick, bridge.ts)
 S.toc = S.toc or {}
 -- WeakAurasArchive is a data-only addon (SavedVariables); pretend it is loaded.
 S.loadedAddons = { WeakAurasArchive = true }
@@ -72,27 +72,8 @@ stubMT.__add, stubMT.__sub, stubMT.__mul, stubMT.__div, stubMT.__mod, stubMT.__p
 stubMT.__len = zero
 
 ---------------------------------------------------------------------------------------------------
--- Lua / WoW standard library aliases
+-- WoW string and table helpers (the plain Lua aliases and bit are in lua-stdlib.ts, run first)
 ---------------------------------------------------------------------------------------------------
-strmatch, strsub, strbyte, strchar, strfind, strlen, strrep, strlower, strupper, strrev, format, gsub, gmatch =
-  string.match, string.sub, string.byte, string.char, string.find, string.len, string.rep,
-  string.lower, string.upper, string.reverse, string.format, string.gsub, string.gmatch
-string.split = nil
-tinsert, tremove, sort, getn, tconcat = table.insert, table.remove, table.sort, table.getn, table.concat
-floor, ceil, abs, sqrt, max, min, random, mod, fmod, exp, log, log10, frexp, ldexp =
-  math.floor, math.ceil, math.abs, math.sqrt, math.max, math.min, math.random, math.fmod, math.fmod,
-  math.exp, math.log, math.log10, math.frexp, math.ldexp
-PI = math.pi
-rad, deg = math.rad, math.deg
--- WoW's trig functions take degrees.
-sin = function(d) return math.sin(math.rad(d)) end
-cos = function(d) return math.cos(math.rad(d)) end
-tan = function(d) return math.tan(math.rad(d)) end
-asin = function(x) return math.deg(math.asin(x)) end
-acos = function(x) return math.deg(math.acos(x)) end
-atan = function(x) return math.deg(math.atan(x)) end
-atan2 = function(y, x) return math.deg(math.atan2(y, x)) end
-
 function strtrim(s, chars)
   chars = chars and ("[" .. chars:gsub("[%]%^%-]", "%%%0") .. "]") or "%s"
   return (s:gsub("^" .. chars .. "+", ""):gsub(chars .. "+$", ""))
@@ -136,12 +117,10 @@ do
     return xpcall51(function() return f(unpack(args, 1, n)) end, handler)
   end
 end
-function wipe(t) for k in pairs(t) do t[k] = nil end return t end
 function ipairs_reverse(t)
   local i = #t + 1
   return function() i = i - 1 if i > 0 then return i, t[i] end end
 end
-table.wipe = wipe
 function tContains(t, v) for _, x in pairs(t) do if x == v then return true end end return false end
 function tInvert(t) local r = {} for k, v in pairs(t) do r[v] = k end return r end
 function tIndexOf(t, v) for i, x in ipairs(t) do if x == v then return i end end end
@@ -207,44 +186,7 @@ function GetTimePreciseSec() return GetTime() end
 function GetServerTime() return os.time() end
 function debugprofilestop() return os.clock() * 1000 end
 function debugprofilestart() end
-time = os.time
-date = os.date
 function print(...) S.prints = S.prints or {} table.insert(S.prints, table.concat({ tostringall(...) }, " ")) end
-
--- bit library (LuaBitOp semantics on 32-bit ints)
-do
-  local function norm(x) x = math.floor(x) % 4294967296 return x end
-  local function tosigned(x) if x >= 2147483648 then return x - 4294967296 end return x end
-  local function bitop(a, b, f)
-    a, b = norm(a), norm(b)
-    local r, p = 0, 1
-    for _ = 1, 32 do
-      local x, y = a % 2, b % 2
-      if f(x, y) then r = r + p end
-      a, b, p = (a - x) / 2, (b - y) / 2, p * 2
-    end
-    return tosigned(r)
-  end
-  bit = {
-    band = function(a, b, ...)
-      local r = bitop(a, b, function(x, y) return x == 1 and y == 1 end)
-      if ... then return bit.band(r, ...) end
-      return r
-    end,
-    bor = function(a, b, ...)
-      local r = bitop(a, b or 0, function(x, y) return x == 1 or y == 1 end)
-      if ... then return bit.bor(r, ...) end
-      return r
-    end,
-    bxor = function(a, b) return bitop(a, b, function(x, y) return x ~= y end) end,
-    bnot = function(a) return tosigned(4294967295 - norm(a)) end,
-    lshift = function(a, n) return tosigned(norm(norm(a) * 2 ^ n)) end,
-    rshift = function(a, n) return tosigned(math.floor(norm(a) / 2 ^ n)) end,
-    arshift = function(a, n) return math.floor(tosigned(norm(a)) / 2 ^ n) end,
-    tobit = function(a) return tosigned(norm(a)) end,
-  }
-end
-bit32 = nil
 
 ---------------------------------------------------------------------------------------------------
 -- Build / client identity
@@ -331,7 +273,7 @@ function GetSpellTexture(id) local s = spellInfo(id) return s and s.iconID end
 function IsSpellKnown() return false end
 function IsPlayerSpell() return false end
 
--- Timers: recorded, never fired (the headless loader has no frame loop)
+-- Timers: recorded; __shim.tick (bridge.ts) fires the due ones
 local function newTimer(delay, cb, iterations)
   local handle = { delay = delay, cb = cb, iterations = iterations, cancelled = false }
   function handle:Cancel() self.cancelled = true end
@@ -629,18 +571,6 @@ function S.stubFallback(tbl, name)
 end
 for _, name in ipairs({ "C_AddOns", "C_Spell", "C_Timer", "C_CreatureInfo" }) do S.stubFallback(_G[name], name) end
 
--- Fire an event to every mock frame registered for it.
-function S.fire(event, ...)
-  local list = S.eventFrames[event]
-  if not list then return 0 end
-  local n = 0
-  for f in pairs(list) do
-    local h = rawget(f, "__scripts").OnEvent
-    if h then h(f, event, ...) n = n + 1 end
-  end
-  return n
-end
-
 ---------------------------------------------------------------------------------------------------
 -- Global auto-stub
 ---------------------------------------------------------------------------------------------------
@@ -653,8 +583,6 @@ local nilGlobals = {
   SharedMedia = true, Details = true, Questie = true, CUSTOM_CLASS_COLORS = true,
 }
 S.nilGlobals = nilGlobals
--- Globals that read as nil because a nil value selects the code path the real client takes.
--- (Filled in by the loader as we learn them.)
 
 setmetatable(_G, {
   __index = function(t, k)

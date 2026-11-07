@@ -3,7 +3,7 @@
  * AceConfig option tree evaluated for one aura (see lua/options.ts). Plain JSON, safe to post
  * between a Web Worker and the page.
  */
-import type { LuaKey } from "../lua-value";
+import type { AuraDocument, LuaKey } from "../lua-value";
 
 /** Option key path inside a tab. Keys are the addon's own, with `table: 0x…` parts replaced by `@`. */
 export type OptionPath = string[];
@@ -86,14 +86,14 @@ export interface OptionsTree {
   fullWidth: number;
 }
 
-export interface OptionEdit<Doc> {
+export interface OptionEdit {
   /** The aura after the edit: the document as given, plus what the edit changed. */
-  aura: Doc;
+  aura: AuraDocument;
   /**
    * A group's descendants after the edit, in the order given, when the edit changed any of them (a group's Display,
    * Trigger, … tabs edit its children, as in the game).
    */
-  children?: Doc[];
+  children?: AuraDocument[];
   /** False when the edit only changed the editor (e.g. expanding a section). */
   changed: boolean;
   /** The addon raised an error during the edit, but the change it made so far was kept (as in the game). */
@@ -115,15 +115,6 @@ export type OptionDialog =
   | { kind: "confirm"; text: string; accept: string; cancel: string }
   | { kind: "textReplacements" }
   | { kind: "unsupported"; message: string };
-
-/** The VM's JSON writes empty Lua tables as `{}`; makes the dialog's lists arrays again. */
-export function normalizeDialog(dialog: OptionDialog): OptionDialog {
-  if (dialog.kind === "texture") {
-    const list = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
-    dialog.categories = list<(typeof dialog.categories)[number]>(dialog.categories).map((c) => ({ ...c, textures: list(c.textures) }));
-  }
-  return dialog;
-}
 
 export interface TabSource {
   key: string;
@@ -163,17 +154,6 @@ export function parseOptionTabs(optionsFrameLua: string): TabSource[] | undefine
 }
 
 export const OPTIONS_FRAME_FILE = "OptionsFrames/OptionsFrame.lua";
-
-const asArray = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
-
-/** The VM's JSON writes empty Lua tables as `{}`; makes every list field a JS array again. */
-export function normalizeOptionNode(node: OptionNode): OptionNode {
-  node.path = asArray<string>(node.path);
-  if (node.values !== undefined) node.values = asArray(node.values);
-  if (node.type === "multiselect" && node.value !== undefined) node.value = asArray(node.value);
-  if (node.args !== undefined) node.args = asArray<OptionNode>(node.args).map(normalizeOptionNode);
-  return node;
-}
 
 /** An edit the addon refused or couldn't apply (the message is shown next to the option). */
 export class OptionEditError extends Error {
@@ -223,8 +203,8 @@ export interface AuraPack {
 export interface AuraPackBlock extends AuraPack {
   label: string;
   /** Import data the addon builds for this block (BuildClassPackBlockImport): the group and its descendants. */
-  aura: Record<string, unknown>;
-  children: Record<string, unknown>[];
+  aura: AuraDocument;
+  children: AuraDocument[];
 }
 
 export interface AuraPacks {

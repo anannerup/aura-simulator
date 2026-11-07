@@ -114,7 +114,13 @@ local function isArray(t)
   return true, n
 end
 
--- opts.functions: "omit" (default) or "mark" ("<function>")
+-- Marks an aura (or a list of auras) to be written in the document form (AuraCore.toJSON, lua-value.ts)
+-- inside a B.json answer, so the page gets it already parsed.
+local docMT = {}
+function B.doc(v) return setmetatable({ v }, docMT) end
+
+-- JSON for answers to the page: sequences and empty tables become arrays, other tables objects
+-- (keys as strings), B.doc values aura documents. opts.functions: "omit" (default) or "mark" ("<function>")
 function B.json(v, opts)
   opts = opts or {}
   local seen = {}
@@ -130,12 +136,13 @@ function B.json(v, opts)
     elseif tx == "string" then buf[#buf + 1] = escapeStr(x)
     elseif tx == "function" then buf[#buf + 1] = '"<function>"'
     elseif tx == "table" then
+      if getmetatable(x) == docMT then buf[#buf + 1] = AuraCore.toJSON(x[1]) return end
       if S.isStub(x) then buf[#buf + 1] = escapeStr("<stub:" .. tostring(x) .. ">") return end
       if rawget(x, "__kind") then buf[#buf + 1] = '"<frame>"' return end
       if seen[x] or depth > (opts.maxDepth or 40) then buf[#buf + 1] = '"<cycle>"' return end
       seen[x] = true
       local arr, n = isArray(x)
-      if arr and n > 0 then
+      if arr then
         buf[#buf + 1] = "["
         for i = 1, n do
           if i > 1 then buf[#buf + 1] = "," end

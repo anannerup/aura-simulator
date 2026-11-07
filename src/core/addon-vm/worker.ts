@@ -1,7 +1,6 @@
 /** Web Worker that hosts the full addon VM (see remote.ts for the page side). */
 import type { FromWorker, ToWorker } from "./remote";
-import type { OptionAddress } from "./options";
-import { loadAddonVM, type AddonVM, type VMState } from "./vm";
+import { loadAddonVM, type AddonVM } from "./vm";
 
 const scope = self as unknown as {
   postMessage(message: FromWorker): void;
@@ -26,27 +25,8 @@ async function handle(msg: Exclude<ToWorker, { type: "fetched" }>): Promise<unkn
     return (await vm).report;
   }
   if (!vm) throw new Error("The addon VM is not loaded");
-  const loaded = await vm;
-  switch (msg.method) {
-    case "fillDefaults":
-      return loaded.fillDefaults(msg.args[0] as Parameters<AddonVM["fillDefaults"]>[0]);
-    case "validate":
-      return loaded.validate(msg.args[0] as Parameters<AddonVM["validate"]>[0]);
-    case "registries":
-      return loaded.registries();
-    case "options":
-      return loaded.options(msg.args[0] as VMState, msg.args[1] as { tab?: string } | undefined);
-    case "setOption":
-      return loaded.setOption(msg.args[0] as VMState, msg.args[1] as OptionAddress, msg.args[2]);
-    case "newAuraPage":
-      return loaded.newAuraPage();
-    case "newAura":
-      return loaded.newAura(msg.args[0] as string, msg.args[1] as Parameters<AddonVM["newAura"]>[1]);
-    case "packs":
-      return loaded.packs();
-    case "setSpells":
-      return loaded.setSpells(msg.args[0] as Parameters<AddonVM["setSpells"]>[0]);
-  }
+  const loaded = (await vm) as unknown as Record<string, (...args: unknown[]) => unknown>;
+  return loaded[msg.method](...msg.args);
 }
 
 scope.onmessage = (event) => {

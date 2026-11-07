@@ -155,3 +155,13 @@ export function toLuaLiteral(value: LuaValue): string {
   }
   return `{${parts.join(",")}}`;
 }
+
+/** One aura's table, as the addon stores it. */
+export type AuraDocument = LuaObject;
+
+/** What a state code holds: an aura (or group) and, for groups, all its descendants. */
+export interface AuraState {
+  aura: AuraDocument;
+  /** Every descendant of a group, flattened in the addon's traversal order. Empty for a single aura. */
+  children: AuraDocument[];
+}

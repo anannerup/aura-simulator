@@ -1,33 +1,25 @@
 import type { AddonSourceFetcher } from "../addon-source";
-import type { AuraPacks, NewAuraPage, OptionAddress, OptionEdit, OptionsTree } from "./options";
-import type { AddonVMReport, Registries, VMState } from "./vm";
-import type { LuaObject } from "../lua-value";
-import type { ValidationResult } from "./validation";
-import type { ClientSpell } from "./spells";
+import type { AddonVM, AddonVMReport, LoadAddonVMOptions } from "./vm";
 
-/** The full addon VM seen from outside: the same calls as AddonVM, asynchronous (inline or in a Web Worker). */
-export interface AsyncAddonVM {
+/** AddonVM's calls (everything but `ref`, `report` and `dispose`). */
+export type AddonVMMethod = Exclude<
+  { [K in keyof AddonVM]: AddonVM[K] extends (...args: never[]) => unknown ? K : never }[keyof AddonVM],
+  "dispose"
+>;
+
+/** The full addon VM seen from outside: AddonVM's calls, asynchronous (inline or in a Web Worker). */
+export type AsyncAddonVM = {
+  [K in AddonVMMethod]: (...args: Parameters<AddonVM[K]>) => Promise<ReturnType<AddonVM[K]>>;
+} & {
   readonly report: AddonVMReport;
-  fillDefaults(state: VMState): Promise<VMState>;
-  validate(state: VMState): Promise<ValidationResult>;
-  registries(): Promise<Registries>;
-  options(state: VMState, request?: { tab?: string }): Promise<OptionsTree>;
-  setOption(state: VMState, address: OptionAddress, value: unknown): Promise<OptionEdit<LuaObject>>;
-  newAuraPage(): Promise<NewAuraPage>;
-  newAura(regionType: string, sourceData?: LuaObject): Promise<LuaObject>;
-  packs(): Promise<AuraPacks>;
-  /** Adds spells the client knows (see AddonVM.setSpells). */
-  setSpells(spells: Record<number, ClientSpell>): Promise<void>;
   /** Stops the VM (terminates the worker). */
   dispose(): void;
-}
-
-type Method = "fillDefaults" | "validate" | "registries" | "options" | "setOption" | "setSpells" | "newAuraPage" | "newAura" | "packs";
+};
 
 /** Messages between the page and the worker. */
 export type ToWorker =
   | { type: "load"; id: number; ref: string; wasmUri?: string }
-  | { type: "call"; id: number; method: Method; args: unknown[] }
+  | { type: "call"; id: number; method: AddonVMMethod; args: unknown[] }
   | { type: "fetched"; id: number; text?: string; error?: string };
 
 export type FromWorker =
@@ -35,26 +27,25 @@ export type FromWorker =
   | { type: "error"; id: number; name: string; message: string }
   | { type: "fetch"; id: number; path: string };
 
+/**
+ * An AsyncAddonVM that sends every call through `call`, so a new AddonVM call needs no code here or in the
+ * worker. Not a thenable (`then` is undefined), so it can be returned from async functions.
+ */
+function asyncVM(report: AddonVMReport, call: (method: AddonVMMethod, args: unknown[]) => Promise<unknown>, dispose: () => void): AsyncAddonVM {
+  return new Proxy({ report, dispose } as AsyncAddonVM, {
+    get: (target, name) =>
+      name in target || typeof name !== "string" || name === "then"
+        ? Reflect.get(target, name)
+        : (...args: unknown[]) => call(name as AddonVMMethod, args),
+  });
+}
+
 /** Loads the full addon VM in an in-process Lua VM (Node, tests, or a page without workers). */
-export async function loadInlineAddonVM(
-  ref: string,
-  options: { fetchSource: AddonSourceFetcher; wasmUri?: string },
-): Promise<AsyncAddonVM> {
+export async function loadInlineAddonVM(ref: string, options: LoadAddonVMOptions): Promise<AsyncAddonVM> {
   const { loadAddonVM } = await import("./vm");
   const vm = await loadAddonVM(ref, options);
-  return {
-    report: vm.report,
-    fillDefaults: async (state) => vm.fillDefaults(state),
-    validate: async (state) => vm.validate(state),
-    registries: async () => vm.registries(),
-    options: async (state, request) => vm.options(state, request),
-    setOption: async (state, address, value) => vm.setOption(state, address, value),
-    newAuraPage: async () => vm.newAuraPage(),
-    newAura: async (regionType, sourceData) => vm.newAura(regionType, sourceData),
-    packs: async () => vm.packs(),
-    setSpells: async (spells) => vm.setSpells(spells),
-    dispose() {},
-  };
+  const methods = vm as unknown as Record<AddonVMMethod, (...args: unknown[]) => unknown>;
+  return asyncVM(vm.report, async (method, args) => methods[method](...args), () => vm.dispose());
 }
 
 /**
@@ -96,7 +87,7 @@ export async function loadWorkerAddonVM(
     pending.clear();
   };
 
-  type Request = { type: "load"; ref: string; wasmUri?: string } | { type: "call"; method: Method; args: unknown[] };
+  type Request = { type: "load"; ref: string; wasmUri?: string } | { type: "call"; method: AddonVMMethod; args: unknown[] };
   const send = (msg: Request): Promise<unknown> => {
     if (failed) return Promise.reject(failed);
     const id = nextId++;
@@ -114,19 +105,8 @@ export async function loadWorkerAddonVM(
     worker.terminate();
     throw e;
   }
-  const call = <T>(method: Method, ...args: unknown[]) =>
-    send({ type: "call", method, args }) as Promise<T>;
-  return {
-    report,
-    fillDefaults: (state) => call<VMState>("fillDefaults", state),
-    validate: (state) => call<ValidationResult>("validate", state),
-    registries: () => call<Registries>("registries"),
-    options: (state, request) => call<OptionsTree>("options", state, request),
-    setOption: (state, address, value) => call<OptionEdit<LuaObject>>("setOption", state, address, value),
-    newAuraPage: () => call<NewAuraPage>("newAuraPage"),
-    newAura: (regionType, sourceData) => call<LuaObject>("newAura", regionType, sourceData),
-    packs: () => call<AuraPacks>("packs"),
-    setSpells: (spells) => call<void>("setSpells", spells),
-    dispose: () => worker.terminate(),
-  };
+  return asyncVM(report, (method, args) => send({ type: "call", method, args }), () => {
+    failed ??= new Error("The addon VM was disposed");
+    worker.terminate();
+  });
 }

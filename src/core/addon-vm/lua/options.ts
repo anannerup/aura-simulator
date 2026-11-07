@@ -19,7 +19,7 @@ local deepcopy = X.deepcopy
 -- Option tables the headless window has built (EnsureOptions), per aura id and tab.
 O.optionCache = {}
 
--- Tabs and generators, read from the options window's own source by the JS side (tabs.ts) and set here.
+-- Tabs and generators, read from the options window's own source by the JS side (parseOptionTabs) and set here.
 O.tabs = {}
 
 -- The aura being edited: registered with WeakAuras.Add (the addon's add path), found again by uid.
@@ -28,20 +28,17 @@ local uidCounter = 0
 
 local function currentData()
   if not session then return nil end
-  return P.GetDataByUID and P.GetDataByUID(session.uid) or nil
+  return P.GetDataByUID(session.uid)
 end
 
 local ready = false
-local setupErrors = {}
 local function setup()
   if ready then return end
   ready = true
+  -- What WeakAuras.ToggleOptions does the first time (minus the window): wire OptionsPrivate.Private
+  -- and register region options (a failing one only misses its display type).
   OP.Private = OP.Private or P
-  -- What WeakAuras.ToggleOptions does the first time (minus the window): register region options.
-  for i, fn in ipairs(OP.registerRegions or {}) do
-    local r = B.try(fn)
-    if not r.ok then setupErrors[#setupErrors + 1] = "registerRegions[" .. i .. "]: " .. r.error:sub(1, 300) end
-  end
+  for _, fn in ipairs(OP.registerRegions) do B.try(fn) end
   O.installWindow()
   O.installDialogs()
 end
@@ -57,11 +54,7 @@ O.dialog = nil -- { kind, ... } while a button's func runs
 
 local function leafs(base)
   local out = {}
-  if P.TraverseLeafsOrAura then
-    for child in P.TraverseLeafsOrAura(base) do out[#out + 1] = child end
-  else
-    out[1] = base
-  end
+  for child in P.TraverseLeafsOrAura(base) do out[#out + 1] = child end
   return out
 end
 
@@ -244,7 +237,6 @@ end
 -- few questions option code asks it.
 function O.installWindow()
   local anchor = OP.ClearOptions
-  if type(anchor) ~= "function" then return end
   local i = 1
   while true do
     local name, value = debug.getupvalue(anchor, i)
@@ -293,7 +285,6 @@ end
 -- WeakAurasOptions' collapsed sections per aura id (cleared when an aura is deleted).
 local function collapsedTable()
   local fn = OP.IsCollapsed
-  if type(fn) ~= "function" then return nil end
   for i = 1, 50 do
     local name, value = debug.getupvalue(fn, i)
     if not name then return nil end
@@ -378,7 +369,7 @@ local function buildRoot(tabKey)
   if not tab then return nil, "Unknown tab " .. tostring(tabKey) end
   local fn = OP[tab.fn]
   if type(fn) ~= "function" then return nil, "OptionsPrivate." .. tab.fn .. " is missing in this addon version" end
-  if OP.commonOptionsCache and OP.commonOptionsCache.Clear then pcall(OP.commonOptionsCache.Clear, OP.commonOptionsCache) end
+  pcall(OP.commonOptionsCache.Clear, OP.commonOptionsCache)
   O.optionCache = {}
   local r = B.try(fn, data)
   if not r.ok then return nil, r.error end
@@ -690,10 +681,10 @@ function O.edit(tabKey, ids, value)
     session.input = deepcopy(result)
   end
   changed = changed or childrenChanged
-  return { ok = true, changed = changed, aura = AuraCore.toJSON(result),
-    children = childrenChanged and AuraCore.toJSON(childResults) or nil,
+  return { ok = true, changed = changed, aura = B.doc(result),
+    children = childrenChanged and B.doc(childResults) or nil,
     warning = not r.ok and shortError(r.error) or nil,
-    dialog = dialog and (value == nil or not dialogs[dialog.kind]) and AuraCore.toJSON(dialog.info) or nil }
+    dialog = dialog and (value == nil or not dialogs[dialog.kind]) and dialog.info or nil }
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -710,7 +701,7 @@ end
 function O.newAuraTypes()
   setup()
   local list = {}
-  for regionType, ro in pairs(P.regionOptions or {}) do
+  for regionType, ro in pairs(P.regionOptions) do
     if P.regionTypes[regionType] then
       local entry = { regionType = regionType, displayName = ro.displayName, description = ro.description }
       if type(ro.icon) == "string" then entry.icon = ro.icon end
@@ -744,7 +735,6 @@ end
 -- to WeakAuras.Add, so nothing is registered. sourceData: e.g. the Modern Aura Group's flow settings.
 function O.newAura(regionType, sourceData)
   setup()
-  if type(WeakAuras.NewAura) ~= "function" then return { ok = false, error = "WeakAuras.NewAura is missing in this addon version" } end
   if not P.regionTypes[regionType] then return { ok = false, error = "Unknown display type " .. tostring(regionType) } end
   local captured
   local add = WeakAuras.Add
@@ -755,20 +745,20 @@ function O.newAura(regionType, sourceData)
   local r = B.try(WeakAuras.NewAura, sourceData, regionType, nil)
   WeakAuras.Add = add
   if not captured then return { ok = false, error = shortError(r.error or "WeakAuras.NewAura made no aura") } end
-  return { ok = true, aura = AuraCore.toJSON(captured) }
+  return { ok = true, aura = B.doc(captured) }
 end
 
 -- The Packs page (frame.OpenPacks): utility packs, and the class HUD packs (whole HUD and blocks)
--- for every class, each with its import data (a state code, or a transmit table { d, c } as JSON).
+-- for every class, each with its import data (a state code, or the block's aura and descendants).
 function O.packs()
   setup()
   local out = { utility = {}, classes = {} }
-  for _, pack in ipairs(OP.utilityPacks or {}) do
+  for _, pack in ipairs(OP.utilityPacks) do
     out.utility[#out.utility + 1] = { name = translate(pack.name), description = translate(pack.description),
       category = translate(pack.category), icon = pack.icon, code = type(pack.data) == "string" and pack.data or nil }
   end
   local classes = {}
-  for class in pairs(OP.classPacks or {}) do classes[#classes + 1] = class end
+  for class in pairs(OP.classPacks) do classes[#classes + 1] = class end
   table.sort(classes)
   for _, class in ipairs(classes) do
     local classPack = OP.classPacks[class]
@@ -776,16 +766,14 @@ function O.packs()
       name = translate("Whole HUD"),
       description = translate("Full UI pack for your class: rotation, cooldowns, buffs and resources, ready to play"),
       code = type(classPack) == "string" and classPack or nil }
-    if OP.GetClassPackBlocks and OP.BuildClassPackBlockImport then
-      local blocks = B.try(OP.GetClassPackBlocks, classPack)
-      for _, block in ipairs(blocks.ok and blocks.value or {}) do
-        local texts = OP.classPackBlockTexts and OP.classPackBlockTexts[block.label]
-        local data = B.try(OP.BuildClassPackBlockImport, classPack, block.label)
-        if data.ok and type(data.value) == "table" then
-          entry.blocks[#entry.blocks + 1] = { label = block.label,
-            name = texts and translate(texts[1]) or block.label, description = texts and translate(texts[2]) or "",
-            transmit = AuraCore.toJSON(data.value) }
-        end
+    local blocks = B.try(OP.GetClassPackBlocks, classPack)
+    for _, block in ipairs(blocks.ok and blocks.value or {}) do
+      local texts = OP.classPackBlockTexts[block.label]
+      local data = B.try(OP.BuildClassPackBlockImport, classPack, block.label)
+      if data.ok and type(data.value) == "table" then
+        entry.blocks[#entry.blocks + 1] = { label = block.label,
+          name = texts and translate(texts[1]) or block.label, description = texts and translate(texts[2]) or "",
+          aura = B.doc(data.value.d), children = B.doc(data.value.c or {}) }
       end
     end
     out.classes[#out.classes + 1] = entry
@@ -793,5 +781,4 @@ function O.packs()
   return out
 end
 
-function O.setupErrors() return setupErrors end
 `;

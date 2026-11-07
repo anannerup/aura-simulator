@@ -24,7 +24,9 @@ export interface ValidationMessage {
    * - `modern.note`: a caution from the trigger's status line;
    * - `combat.hiddenValues`: in combat the game hides values this trigger compares;
    * - `defaults.error`: the addon failed while filling defaults / migrating;
-   * - `addon.<key>`: a warning the addon raised when the aura was added (e.g. `addon.forever_combat_log`).
+   * - `defaults.message`: a line the addon printed while filling defaults (an error when it says ERROR);
+   * - `addon.<key>`: a warning the addon raised when the aura was added (e.g. `addon.forever_combat_log`);
+   *   `addon.LuaError` when running the aura in the simulated client raised a Lua error.
    */
   code: string;
   severity: "error" | "warning" | "info";
@@ -138,18 +140,7 @@ const WONT_WORK = /^Won't work:\s*/;
 const OK_MESSAGE = "Fully usable in combat: no combat restrictions found.";
 
 /** Turns the VM's raw validation of one aura into plain messages with pointers and a combat status. */
-export function interpretValidation(input: RawValidation, auraId?: string): ValidationResult {
-  // The VM's JSON writes empty Lua tables as {}; make every list a list.
-  const list = <T>(x: T[] | undefined): T[] => (Array.isArray(x) ? x : []);
-  const raw: RawValidation = {
-    ...input,
-    prepare: { ...input.prepare, handlerErrors: list(input.prepare.handlerErrors), prints: list(input.prepare.prints) },
-    problems: list(input.problems),
-    statusSegments: list(input.statusSegments),
-    combatTriggers: list(input.combatTriggers),
-    auraWarnings: list(input.auraWarnings),
-    add: input.add && { ...input.add, handlerErrors: list(input.add.handlerErrors) },
-  };
+export function interpretValidation(raw: RawValidation, auraId?: string): ValidationResult {
   const errors: ValidationMessage[] = [];
   const warnings: ValidationMessage[] = [];
   const combatMessages: string[] = [];

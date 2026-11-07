@@ -1,22 +1,15 @@
 import { Lua } from "wasmoon-lua5.1";
-import { ADDON_FILES, DEFAULT_ADDON_REF, jsDelivrFetcher, type AddonSourceFetcher } from "./addon-source";
-import { AURA_CORE, LOAD_LIBRARY, LOAD_TRANSMISSION, WOW_SHIM } from "./lua-glue";
-import { canonicalize, isLuaTable, toLuaLiteral, type LuaObject, type LuaValue } from "./lua-value";
-import { loadInlineAddonVM, loadWorkerAddonVM, type AsyncAddonVM } from "./addon-vm/remote";
-import type { AddonVMReport, Registries } from "./addon-vm/vm";
+import { ADDON_FILES, DEFAULT_ADDON_REF, jsDelivrFetcher, normalizeNewlines, type AddonSourceFetcher } from "./addon-source";
+import { AURA_CORE, LOAD_LIBRARY, LOAD_TRANSMISSION } from "./lua-glue";
+import { LUA_STDLIB } from "./lua-stdlib";
+import { canonicalize, isLuaTable, toLuaLiteral, type AuraDocument, type AuraState, type LuaObject, type LuaValue } from "./lua-value";
+import { loadInlineAddonVM, loadWorkerAddonVM, type AddonVMMethod, type AsyncAddonVM } from "./addon-vm/remote";
+import type { AddonVM, AddonVMReport, Registries } from "./addon-vm/vm";
 import type { ValidationResult } from "./addon-vm/validation";
 import type { AuraPacks, NewAuraPage, OptionAddress, OptionEdit, OptionsTree } from "./addon-vm/options";
 import { createSpellPreloader, type SpellInfoSource } from "./addon-vm/spells";
 
-/** One aura's table, as the addon stores it (see lua-value.ts for the JS representation). */
-export type AuraDocument = LuaObject;
-
-/** What a state code holds: an aura (or group) and, for groups, all its descendants. */
-export interface AuraState {
-  aura: AuraDocument;
-  /** Every descendant of a group, flattened in the addon's traversal order. Empty for a single aura. */
-  children: AuraDocument[];
-}
+export type { AuraDocument, AuraState };
 
 export interface DecodedState extends AuraState {
   /** `s` of the transmit table: the addon version string of whoever made the code. */
@@ -67,7 +60,7 @@ export interface AuraCore {
    * Condition", "Delete", expanding a section). Returns the aura as given plus what the edit
    * changed. Throws OptionEditError when the addon refuses the value or the option can't run here.
    */
-  setOption(state: AuraState, address: OptionAddress, value?: unknown): Promise<OptionEdit<AuraDocument>>;
+  setOption(state: AuraState, address: OptionAddress, value?: unknown): Promise<OptionEdit>;
   /** What the window's New Aura page offers: display types (names, descriptions), Modern Aura Group, Packs, Premade. */
   newAuraPage(): Promise<NewAuraPage>;
   /**
@@ -77,12 +70,17 @@ export interface AuraCore {
   newAura(regionType: string, sourceData?: LuaObject): Promise<AuraDocument>;
   /** The window's Packs page: utility packs and each class's HUD pack with its blocks, with their import data. */
   packs(): Promise<AuraPacks>;
+  /** Frees both Lua VMs (terminates the full VM's worker). The core can't be used afterwards. */
+  dispose(): void;
 }
+
+type StateMethod = "fillDefaults" | "validate" | "options" | "setOption";
+type Tail<T extends unknown[]> = T extends [unknown, ...infer R] ? R : never;
 
 export interface LoadAddonOptions {
   /** Where source files come from. Default: jsDelivr for `ref`. */
   fetchSource?: AddonSourceFetcher;
-  /** Location of liblua5.1.wasm. Default: wasmoon's own (unpkg in the browser, the package in Node). */
+  /** Location of liblua5.1.wasm. Default: wasmoon's own (the page passes its own `/lua/liblua5.1.wasm` route). */
   wasmUri?: string;
   /** Where the full addon VM runs. Default: "worker" where Web Workers exist (browser), else "inline". */
   fullAddon?: "worker" | "inline";
@@ -108,8 +106,6 @@ function readInternalVersion(weakAuras: string): number {
   return Number(m[1]);
 }
 
-const normalizeNewlines = (s: string) => s.replace(/\r\n?/g, "\n");
-
 /** Loads an addon version's Lua and returns an aura core bound to it. */
 export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAddonOptions = {}): Promise<AuraCore> {
   const fetchSource = options.fetchSource ?? jsDelivrFetcher(ref);
@@ -124,7 +120,7 @@ export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAd
   const internalVersion = readInternalVersion(src.weakAuras);
 
   const lua = await Lua.create(options.wasmUri ? { customWasmUri: options.wasmUri } : {});
-  lua.doStringSync(WOW_SHIM);
+  lua.doStringSync(LUA_STDLIB);
   for (const name of ["libStub", "libDeflate", "libSerialize"] as const) {
     lua.global.set("__src", src[name]);
     lua.global.set("__name", ADDON_FILES[name]);
@@ -138,13 +134,17 @@ export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAd
 
   const fullAddonMode = options.fullAddon ?? (typeof window !== "undefined" && typeof Worker !== "undefined" ? "worker" : "inline");
   let fullVM: Promise<AsyncAddonVM> | undefined;
+  let disposed = false;
   const full = () => {
-    fullVM ??= (fullAddonMode === "worker" ? loadWorkerAddonVM : loadInlineAddonVM)(ref, {
-      fetchSource,
-      wasmUri: options.wasmUri,
-    });
-    // A failed load is retried on the next call.
-    fullVM.catch(() => (fullVM = undefined));
+    if (disposed) return Promise.reject(new Error("This aura core was disposed"));
+    if (!fullVM) {
+      const loading = (fullAddonMode === "worker" ? loadWorkerAddonVM : loadInlineAddonVM)(ref, { fetchSource, wasmUri: options.wasmUri });
+      // A failed load is retried on the next call.
+      loading.catch(() => {
+        if (fullVM === loading) fullVM = undefined;
+      });
+      fullVM = loading;
+    }
     return fullVM;
   };
   const spells = createSpellPreloader(options.spellInfo);
@@ -156,45 +156,38 @@ export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAd
     return vm;
   };
 
+  /** A full-VM call on `state`, with the spells it refers to loaded first. */
+  const onState =
+    <K extends StateMethod>(method: K) =>
+    async (state: AuraState, ...rest: Tail<Parameters<AddonVM[K]>>) =>
+      ((await fullFor(state))[method] as (...args: unknown[]) => Promise<ReturnType<AddonVM[K]>>)(state, ...rest);
+  const onVM =
+    <K extends AddonVMMethod>(method: K) =>
+    async (...args: Parameters<AddonVM[K]>) =>
+      ((await full())[method] as (...args: unknown[]) => Promise<ReturnType<AddonVM[K]>>)(...args);
+
   return {
     ref,
     addonVersion,
     internalVersion,
-
-    async fillDefaults(state) {
-      return (await fullFor(state)).fillDefaults({ aura: state.aura, children: state.children });
-    },
-
-    async validate(state) {
-      return (await fullFor(state)).validate({ aura: state.aura, children: state.children });
-    },
-
-    async registries() {
-      return (await full()).registries();
-    },
+    fillDefaults: onState("fillDefaults"),
+    validate: onState("validate"),
+    options: onState("options"),
+    setOption: onState("setOption"),
+    registries: onVM("registries"),
+    newAuraPage: onVM("newAuraPage"),
+    newAura: onVM("newAura"),
+    packs: onVM("packs"),
 
     async loadFullAddon() {
       return (await full()).report;
     },
 
-    async options(state, request) {
-      return (await fullFor(state)).options({ aura: state.aura, children: state.children }, request);
-    },
-
-    async setOption(state, address, value) {
-      return (await fullFor(state)).setOption({ aura: state.aura, children: state.children }, address, value ?? null);
-    },
-
-    async newAuraPage() {
-      return (await full()).newAuraPage();
-    },
-
-    async newAura(regionType, sourceData) {
-      return (await full()).newAura(regionType, sourceData);
-    },
-
-    async packs() {
-      return (await full()).packs();
+    dispose() {
+      disposed = true;
+      lua.global.close();
+      fullVM?.then((vm) => vm.dispose(), () => {});
+      fullVM = undefined;
     },
 
     encode(state) {

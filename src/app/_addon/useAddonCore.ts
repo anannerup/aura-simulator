@@ -61,6 +61,15 @@ export function useAddonCore(): AddonCoreState {
   const generation = useRef(0);
   const coreRef = useRef<AuraCore | null>(null);
 
+  /** Makes `next` the core in use and frees the one it replaces (its full VM is a Web Worker with its own Lua heap). */
+  const adopt = useCallback((next: { core: AuraCore; resolution: ResolutionInfo | null }) => {
+    const replaced = coreRef.current;
+    coreRef.current = next.core;
+    setCore(next.core);
+    setResolution(next.resolution);
+    if (replaced && replaced !== next.core) replaced.dispose();
+  }, []);
+
   const run = useCallback(async (ref: string, fallbackRef?: string) => {
     const gen = ++generation.current;
     const previous = coreRef.current;
@@ -78,18 +87,14 @@ export function useAddonCore(): AddonCoreState {
         // The stored version is gone: fall back to the default but leave the error visible.
         try {
           const fb = await loadCore(fallbackRef);
-          if (gen !== generation.current) return;
-          coreRef.current = fb.core;
-          setCore(fb.core);
-          setResolution(fb.resolution);
+          if (gen !== generation.current) return fb.core.dispose();
+          adopt(fb);
         } catch {}
       }
       return;
     }
-    if (gen !== generation.current) return;
-    coreRef.current = loaded.core;
-    setCore(loaded.core);
-    setResolution(loaded.resolution);
+    if (gen !== generation.current) return loaded.core.dispose();
+    adopt(loaded);
     setLoadingRef(null);
     storeRef(ref);
     if (previous && previous.ref !== ref) {
@@ -100,7 +105,7 @@ export function useAddonCore(): AddonCoreState {
         (err: unknown) => setDiff((d) => (d === state ? { ...state, error: err instanceof Error ? err.message : String(err) } : d)),
       );
     }
-  }, []);
+  }, [adopt]);
 
   useEffect(() => {
     let cancelled = false;

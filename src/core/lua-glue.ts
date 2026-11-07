@@ -3,49 +3,6 @@
  * browser and in Node without loading files.
  */
 
-/** WoW globals the vendored libraries expect before they load. */
-export const WOW_SHIM = `
-strmatch = string.match
-strsub = string.sub
-strbyte = string.byte
-strchar = string.char
-strfind = string.find
-strlen = string.len
-strlower = string.lower
-strupper = string.upper
-strrep = string.rep
-format = string.format
-gsub = string.gsub
-tinsert = table.insert
-tremove = table.remove
-tconcat = table.concat
-wipe = function(t) for k in pairs(t) do t[k] = nil end return t end
-time = os.time
-
--- Lua 5.1 has no bit library; WoW ships one. Only what the loaded files use.
-do
-  local floor = math.floor
-  local function tou32(x) return x % 4294967296 end
-  local function bitop(a, b, f)
-    a, b = tou32(a), tou32(b)
-    local r, m = 0, 1
-    for _ = 1, 32 do
-      local x, y = a % 2, b % 2
-      if f(x, y) then r = r + m end
-      a, b, m = floor(a / 2), floor(b / 2), m * 2
-    end
-    return r
-  end
-  bit = {
-    band = function(a, b) return bitop(a, b, function(x, y) return x == 1 and y == 1 end) end,
-    bor = function(a, b) return bitop(a, b, function(x, y) return x == 1 or y == 1 end) end,
-    bxor = function(a, b) return bitop(a, b, function(x, y) return x ~= y end) end,
-    lshift = function(a, n) return tou32(tou32(a) * 2 ^ n) end,
-    rshift = function(a, n) return floor(tou32(a) / 2 ^ n) end,
-  }
-end
-`;
-
 /**
  * Loads one addon file by source text (global __src) and chunk name (global __name).
  * Plain libraries run in the global environment.

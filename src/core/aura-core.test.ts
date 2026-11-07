@@ -125,3 +125,10 @@ describe("fixtures: the import strings shipped in the addon", () => {
     }
   });
 });
+
+test("dispose frees the core: later full-VM calls fail instead of loading another VM", async () => {
+  const doomed = await loadAddon(REF, { fetchSource });
+  await doomed.loadFullAddon();
+  doomed.dispose();
+  await expect(doomed.registries()).rejects.toThrow(/disposed/);
+});

@@ -29,3 +29,6 @@ export const ADDON_FILES = {
   weakAuras: "WeakAuras/WeakAuras.lua",
   transmission: "WeakAuras/Transmission.lua",
 } as const;
+
+/** Lua source as the VMs run it: Unix newlines (the repo has files with CRLF). */
+export const normalizeNewlines = (s: string) => s.replace(/\r\n?/g, "\n");
