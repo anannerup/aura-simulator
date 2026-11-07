@@ -199,8 +199,9 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
     const missing: string[] = [];
     let options = 0;
     for (const regionType of reference.regionTypes) {
-      const base = await newState(regionType);
-      for (const { key: tab } of (await core!.options(base)).tabs) {
+      for (const { key: tab } of (await core!.options(await newState(regionType))).tabs) {
+        // The window as it shows the display type's new aura, settled as the reference's probes start from it.
+        const base = await baseFor({ regionType }, tab)!;
         for (const node of walkOptions(await tree(base, tab)).filter(referenced)) {
           options++;
           const found = reference.entries.some(

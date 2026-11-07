@@ -194,13 +194,17 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
   const fullWidth = Number(lua.doStringSync("return WeakAuras.doubleWidth or 2.6")) || 2.6;
 
   // The aura the options editor works on stays registered in the VM between calls; it is loaded
-  // again only when the page sends a different document.
+  // again only when the page sends a different document, and before an edit after a tab was evaluated: evaluating a
+  // tab can write into the VM's copy (some get()s fill in defaults, a group's region re-anchors), and an edit always
+  // starts from the document as given.
   let loadedKey: string | undefined;
-  const ensureSession = (state: AuraState) => {
+  let evaluated = false;
+  const ensureSession = (state: AuraState, forEdit = false) => {
     const aura = toAura(state.aura);
     const children = state.children.map(toAura);
     const key = JSON.stringify({ aura, children });
-    if (key === loadedKey) return;
+    if (key === loadedKey && !(forEdit && evaluated)) return;
+    evaluated = false;
     const r = json<{ ok: boolean; error?: string }>(
       `__options.load(${toLuaLiteral(aura)}, ${toLuaLiteral(children as unknown as LuaValue)})`,
     );
@@ -236,13 +240,11 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
         return { ...base, error: `This addon version's options window (${OPTIONS_FRAME_FILE}) no longer has the tab list the editor reads` };
       }
       const r = json<{ tree?: OptionNode; error?: string }>(`__options.tree(${toLuaLiteral(tab)})`);
-      // Evaluating a tab can write into the VM's copy of the aura (some get()s fill in defaults, a group's region
-      // re-anchors), so the next call loads the document again: an edit always starts from the document as given.
-      loadedKey = undefined;
+      evaluated = true;
       return { ...base, ...r };
     },
     setOption(state, address, value) {
-      ensureSession(state);
+      ensureSession(state, true);
       const v = value === undefined || value === null ? "nil" : toLuaLiteral(value as LuaValue);
       const r = json<Partial<OptionEdit> & { ok: boolean; error?: string }>(
         `__options.edit(${toLuaLiteral(address.tab)}, ${toLuaLiteral(address.path)}, ${v})`,
