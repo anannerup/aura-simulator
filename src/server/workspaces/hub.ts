@@ -26,6 +26,11 @@ export interface WorkspaceHub {
   setSituation(id: string, situation: Situation): void;
   /** Returns an unsubscribe function. */
   subscribeSituation(id: string, listener: SituationListener): () => void;
+  /**
+   * Forgets the workspace: its pushes and its situation (open pages keep their own copy, in the browser). False when
+   * nothing was kept for it.
+   */
+  delete(id: string): boolean;
 }
 
 export interface HubLimits {
@@ -134,6 +139,12 @@ export function createWorkspaceHub(limits: HubLimits = {}): WorkspaceHub {
       tell(situationListeners.get(id), situation);
     },
     subscribeSituation: (id, listener) => listen(situationListeners, id, listener),
+    delete(id) {
+      const entries = states.get(id);
+      for (const e of entries ?? []) totalChars -= e.code.length;
+      const had = states.delete(id);
+      return situations.delete(id) || had;
+    },
   };
 }
 

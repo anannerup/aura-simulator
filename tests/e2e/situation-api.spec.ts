@@ -109,6 +109,19 @@ test("each aura can have its own situation: over HTTP, in the preview, on the sc
   await expect(text("Food")).toHaveText("12");
 });
 
+test("an agent deletes a workspace: its pushes and situation are gone from the server", async ({ request }) => {
+  const workspace = uniqueId("delete-me");
+  expect((await request.post(`/api/tbc/workspaces/${workspace}/aura`, { data: { aura: tbcBuffMissing } })).status()).toBe(200);
+  expect((await request.put(`/api/tbc/workspaces/${workspace}/situation`, { data: { inCombat: true } })).status()).toBe(200);
+  const gone = await request.delete(`/api/tbc/workspaces/${workspace}`);
+  expect(gone.status()).toBe(200);
+  expect(await gone.json()).toEqual({ workspace, deleted: true });
+  expect(await (await request.get(`/api/tbc/workspaces/${workspace}`)).json()).toMatchObject({ code: null, revision: 0 });
+  expect(await (await request.get(`/api/tbc/workspaces/${workspace}/situation`)).json()).toMatchObject({ set: false, preview: null });
+  expect(await (await request.delete(`/api/tbc/workspaces/${workspace}`)).json()).toEqual({ workspace, deleted: false });
+  expect((await request.delete(`/api/tbc/workspaces/not%20an%20id`)).status()).toBe(400);
+});
+
 test("a situation that isn't one is refused with what is wrong", async ({ request }) => {
   const workspace = uniqueId("situation-bad");
   const bad = async (game: string, body: string) => {

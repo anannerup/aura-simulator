@@ -45,6 +45,22 @@ describe("workspace hub", () => {
     expect(hub.getSituation("c")).toEqual(fight);
   });
 
+  it("deletes a workspace: its pushes and its situation are gone, other workspaces stay", () => {
+    const hub = createWorkspaceHub({ maxTotalChars: 100 });
+    hub.set("a", `!WA:2!${"a".repeat(40)}`);
+    hub.setSituation("a", { triggers: {}, targetExists: false, inCombat: false });
+    hub.set("b", "!WA:2!b");
+    expect(hub.delete("a")).toBe(true);
+    expect(hub.get("a")).toMatchObject({ code: null, revision: 0 });
+    expect(hub.get("a", 1)).toBeNull();
+    expect(hub.getSituation("a")).toBeNull();
+    expect(hub.get("b").code).toBe("!WA:2!b");
+    expect(hub.delete("a")).toBe(false);
+    // Its codes no longer count against the size limit.
+    hub.set("c", `!WA:2!${"c".repeat(80)}`);
+    expect(hub.get("b").code).toBe("!WA:2!b");
+  });
+
   it("forgets old revisions and workspaces past its size limits, keeping the latest code", () => {
     const hub = createWorkspaceHub({ revisionsKept: 2, maxTotalChars: 100 });
     hub.set("a", `!WA:2!${"a".repeat(40)}`);
