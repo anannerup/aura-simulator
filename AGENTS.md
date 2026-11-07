@@ -243,7 +243,8 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
     (`--grep-invert @exhaustive`; one to two minutes). Run it when a change touches the page, the routes or the server.
   - `npm run test:all`: everything, both seams: the exhaustive Vitest suites (`option-reference`, `options-sweep`,
     `wago-tbc`, each split into shards that run in parallel: `vitest.config.ts`, `tests/support/shards.ts`) and every
-    e2e test (the @exhaustive tab sweeps too); four to six minutes. Run it before handing work over for merging; the
+    e2e test (the @exhaustive tab sweeps too); about three minutes (two more when the option reference's generator
+    changed and it is generated again). Run it before handing work over for merging; the
     coordinator runs it again on the integrated tree. `npx vitest run` alone runs seam A's part;
     `npx vitest run --project 'option-reference*'` one suite's shards.
   A new long suite: add it to `EXHAUSTIVE` in `vitest.config.ts` and split its work with `shardUnits`.
