@@ -3,6 +3,8 @@ import { ownWorkspacePage } from "../support/e2e-workspace";
 
 /** Loads the page and waits until the light core and the full addon VM (validation) are both done. */
 async function loadFully(page: Page) {
+  // As long as the waits below: the dev server may be busy (e.g. generating an option reference on a cold cache).
+  test.setTimeout(150_000);
   await page.goto(ownWorkspacePage("bundle"));
   await expect(page.getByTestId("addon-loaded")).toContainText("Musca Auras v1.15.0", { timeout: 60_000 });
   await expect(page.getByTestId("validation-panel")).toHaveAttribute("data-state", "done", { timeout: 60_000 });

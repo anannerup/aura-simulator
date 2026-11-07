@@ -69,9 +69,17 @@ test("TBC's option ↔ table reference comes from WeakAuras2: a known option and
   test.setTimeout(420_000);
   const res = await request.get("/tbc/docs/agents/options.json", { timeout: 400_000 });
   expect(res.status()).toBe(200);
-  const reference = (await res.json()) as { ref: string; entries: { tab: string; option: string[]; writes: string[] }[] };
+  const reference = (await res.json()) as {
+    ref: string;
+    entries: { tab: string; option: string[]; writes: string[]; scopes: { regionType: string; triggerType?: string }[] }[];
+  };
   expect(reference.ref).toMatch(/^5\./);
-  const unit = reference.entries.find((e) => e.tab === "trigger" && e.option.join("/") === "trigger.1.aura_options.unit");
+  const unit = reference.entries.find(
+    (e) =>
+      e.tab === "trigger" &&
+      e.option.join("/") === "trigger.1.aura_options.unit" &&
+      e.scopes.some((s) => s.regionType === "icon" && !s.triggerType),
+  );
   expect(unit?.writes).toEqual(["triggers.1.trigger.unit"]);
   const md = await (await request.get("/tbc/docs/agents/options.md")).text();
   expect(md).toContain("# Option ↔ table reference: WeakAuras 5.");

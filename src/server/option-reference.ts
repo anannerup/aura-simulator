@@ -13,7 +13,14 @@ interface Job {
   value?: OptionReference;
 }
 
-const g = globalThis as typeof globalThis & { __optionReferences?: Map<string, Job> };
+const g = globalThis as typeof globalThis & { __optionReferences?: Map<string, Job>; __optionReferenceQueue?: Promise<unknown> };
+
+/** Generations run one at a time (each already takes half the server's thread). */
+function queued<T>(work: () => Promise<T>): Promise<T> {
+  const run = (g.__optionReferenceQueue ?? Promise.resolve()).then(work, work);
+  g.__optionReferenceQueue = run.catch(() => {});
+  return run;
+}
 
 async function job(server: ServerGame, requestedRef?: string | null): Promise<Job> {
   const resolution = await resolveServerRef(server, requestedRef);
@@ -21,8 +28,8 @@ async function job(server: ServerGame, requestedRef?: string | null): Promise<Jo
   const key = `${server.game.id}\n${resolution.key}`;
   let found = jobs.get(key);
   if (!found) {
-    const promise = server.addon.memo(resolution, `option-reference-v${OPTION_REFERENCE_FORMAT}`, async () =>
-      (await getServerAuraCore(server, resolution.ref)).optionReference({ background: true }),
+    const promise = server.addon.memo(resolution, `option-reference-v${OPTION_REFERENCE_FORMAT}`, () =>
+      queued(async () => (await getServerAuraCore(server, resolution.ref)).optionReference({ background: true })),
     );
     const started: Job = { promise };
     promise.then(

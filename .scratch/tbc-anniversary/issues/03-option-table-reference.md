@@ -26,17 +26,18 @@ Serve it in the agent docs: a Markdown section (both directions) and `options.js
 - [x] Generation time is acceptable for serving (cache per version on the server)
 
 Notes (implementation):
-- `core.optionReference()` (`src/core/addon-vm/option-reference.ts`, path form documented there). About a minute
-  for v1.15.0 (~4000 entries, ~2 MB JSON); on the server it runs in the background (`{ background: true }`: half the
-  thread, about two minutes) so other requests stay fast.
-- The server caches it per game and resolved ref in memory and on disk, in the game's addon source cache
-  (`<ref>/option-reference-v<format>.json`; `src/server/option-reference.ts`).
-- Paths are wago JSON keys; the reference's `arrays` lists the tables that are JSON arrays, and the test checks every
-  replayed path against the aura's wago JSON.
-- The main docs carry a short section (path rules, generated examples in both directions with their wago JSON,
-  links); the whole reference in both directions is Markdown at `/<game>/docs/agents/options.md` (~640 KB, too big
-  for the main docs agents read whole) and JSON at `/<game>/docs/agents/options.json`
-  (`src/games/option-reference-docs.ts` renders both for any game). TBC gets its routes once it has a `ServerGame`
-  (ticket 04); its reference is generated and tested at seam A already.
-- Edits now always start from the document as given: evaluating a tab marks the VM's copy stale (its get()s can
-  write defaults into it), so the next call reloads the document.
+- `core.optionReference()` (`src/core/addon-vm/option-reference.ts`, path form documented there). Seam A, inline:
+  Forever v1.15.0 3983 entries in ~74 s, TBC WeakAuras2 5.22.1 3844 entries in ~51 s (~2 MB JSON each). On the
+  server it runs in the background (`{ background: true }`: half the thread, about two to three minutes), one
+  generation at a time.
+- The server caches it per game and release in memory and on disk, in the game's addon source cache
+  (`<ref>/option-reference-v<format>.json`; `src/server/option-reference.ts`). Served at
+  `/<game>/docs/agents/options.json` and `options.md` for both games.
+- Paths are wago JSON keys (a table with only number keys is a JSON array, n its n-th element; otherwise n is the
+  key `"n"`); the reference's `lists` names the tables that always are arrays, and the test checks every replayed
+  path against the aura's wago JSON.
+- Both games' docs carry a short section (path rules, generated examples in both directions with their wago JSON,
+  links); the whole reference in both directions is Markdown at `options.md` (~640 KB, too big for the main docs
+  agents read whole). `src/games/docs/option-reference.ts` renders both for any game.
+- Edits start from the document as given: after a tab was evaluated (its get()s can write defaults into the VM's
+  copy), the next edit loads the document again.
