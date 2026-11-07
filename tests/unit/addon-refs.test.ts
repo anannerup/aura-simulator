@@ -8,7 +8,7 @@ import {
   defaultRelease,
   findRelease,
   mapReleases,
-  normaliseVersion,
+  normalizeVersion,
 } from "@/server/addon";
 
 const fixture = (name: string) => JSON.parse(readFileSync(path.join(__dirname, "../fixtures/addon", name), "utf8"));
@@ -18,18 +18,18 @@ const tags = (fixture("github-tags.json") as { name: string; commit: { sha: stri
   sha: t.commit.sha,
 }));
 
-describe("normaliseVersion", () => {
+describe("normalizeVersion", () => {
   it("strips the v prefix and keeps pre-release suffixes", () => {
-    expect(normaliseVersion("v1.15.0")).toBe("1.15.0");
-    expect(normaliseVersion("1.13.0")).toBe("1.13.0");
-    expect(normaliseVersion("1.15.0-beta2")).toBe("1.15.0-beta2");
-    expect(normaliseVersion("v1.15.0-beta1")).toBe("1.15.0-beta1");
+    expect(normalizeVersion("v1.15.0")).toBe("1.15.0");
+    expect(normalizeVersion("1.13.0")).toBe("1.13.0");
+    expect(normalizeVersion("1.15.0-beta2")).toBe("1.15.0-beta2");
+    expect(normalizeVersion("v1.15.0-beta1")).toBe("1.15.0-beta1");
   });
 
   it("returns null for branch names and SHAs", () => {
-    expect(normaliseVersion("main")).toBeNull();
-    expect(normaliseVersion("forever-spell-ids")).toBeNull();
-    expect(normaliseVersion("448b7b3886fe7f76b45ce1ae067085ac526a2d95")).toBeNull();
+    expect(normalizeVersion("main")).toBeNull();
+    expect(normalizeVersion("forever-spell-ids")).toBeNull();
+    expect(normalizeVersion("448b7b3886fe7f76b45ce1ae067085ac526a2d95")).toBeNull();
   });
 });
 
@@ -43,7 +43,7 @@ describe("compareVersionsDesc", () => {
 describe("mapReleases (recorded jsDelivr versions + GitHub tags)", () => {
   const releases = mapReleases(jsDelivrVersions, tags);
 
-  it("maps jsDelivr's normalised versions back to the real, inconsistently prefixed tag names", () => {
+  it("maps jsDelivr's normalized versions back to the real, inconsistently prefixed tag names", () => {
     const tagOf = (v: string) => releases.find((r) => r.version === v)?.tag;
     expect(tagOf("1.15.0")).toBe("v1.15.0");
     expect(tagOf("1.15.0-beta2")).toBe("1.15.0-beta2");

@@ -3,23 +3,12 @@
  * list maps back to the repo's real tag names.
  *
  * The repo's tags are inconsistently named: most are `v1.15.0`, some are `1.13.0`, and pre-releases
- * look like `1.15.0-beta2`. jsDelivr lists them all normalised (`1.15.0`, `1.13.0`, `1.15.0-beta2`),
+ * look like `1.15.0-beta2`. jsDelivr lists them all normalized (`1.15.0`, `1.13.0`, `1.15.0-beta2`),
  * so the real names come from GitHub's tag list.
  */
+import type { AddonRelease } from "@/api/addon";
 
-/** One release of the addon. */
-export interface AddonRelease {
-  /** Normalised version, as jsDelivr lists it: "1.15.0", "1.15.0-beta2". */
-  version: string;
-  /** The real git tag name: "v1.15.0", "1.13.0". Equals `version` when GitHub couldn't confirm it. */
-  tag: string;
-  /** Whether `tag` comes from GitHub's tag list (false: a guess, though jsDelivr accepts either spelling). */
-  tagConfirmed: boolean;
-  /** "-beta1" and the like. */
-  prerelease: boolean;
-  /** Commit the tag points at, when GitHub reported it. */
-  sha?: string;
-}
+export type { AddonRelease };
 
 export interface GitHubTag {
   name: string;
@@ -29,7 +18,7 @@ export interface GitHubTag {
 const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
 
 /** "v1.15.0" → "1.15.0"; null when the name isn't a version. */
-export function normaliseVersion(name: string): string | null {
+export function normalizeVersion(name: string): string | null {
   const m = SEMVER.exec(name.trim());
   if (!m) return null;
   return `${m[1]}.${m[2]}.${m[3]}${m[4] ? `-${m[4]}` : ""}`;
@@ -59,7 +48,7 @@ export function compareVersionsDesc(a: string, b: string): number {
 export function mapReleases(jsDelivrVersions: string[], tags: GitHubTag[] | null): AddonRelease[] {
   const byVersion = new Map<string, AddonRelease>();
   for (const t of tags ?? []) {
-    const version = normaliseVersion(t.name);
+    const version = normalizeVersion(t.name);
     if (!version) continue;
     const existing = byVersion.get(version);
     // Two tags for one version ("v1.2.0" and "1.2.0"): prefer the one spelled like the version itself.
@@ -67,7 +56,7 @@ export function mapReleases(jsDelivrVersions: string[], tags: GitHubTag[] | null
     byVersion.set(version, { version, tag: t.name, tagConfirmed: true, prerelease: version.includes("-"), sha: t.sha });
   }
   for (const raw of jsDelivrVersions) {
-    const version = normaliseVersion(raw);
+    const version = normalizeVersion(raw);
     if (!version || byVersion.has(version)) continue;
     byVersion.set(version, { version, tag: version, tagConfirmed: false, prerelease: version.includes("-") });
   }
@@ -83,7 +72,7 @@ export function defaultRelease(releases: AddonRelease[]): AddonRelease | undefin
 export function findRelease(releases: AddonRelease[], input: string): AddonRelease | undefined {
   const exact = releases.find((r) => r.tag === input);
   if (exact) return exact;
-  const version = normaliseVersion(input);
+  const version = normalizeVersion(input);
   return version ? releases.find((r) => r.version === version) : undefined;
 }
 

@@ -3,19 +3,20 @@
  * and GitHub's REST API (real tag names, branch → commit, full file trees; 60 requests/hour
  * unauthenticated, so every answer is cached by the caller). GITHUB_TOKEN raises the limit if set.
  */
-import { ADDON_REPO } from "@/core";
+import { ADDON_REPO, jsDelivrUrl } from "@/core";
+import type { FileListing } from "@/api/addon";
 import { AddonRefError, type GitHubTag } from "./refs";
+
+export type { FileListing };
 
 export type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 
 const JSDELIVR_DATA = `https://data.jsdelivr.com/v1/packages/gh/${ADDON_REPO}`;
-const JSDELIVR_CDN = `https://cdn.jsdelivr.net/gh/${ADDON_REPO}`;
 const GITHUB_API = `https://api.github.com/repos/${ADDON_REPO}`;
 
 export const urls = {
   versions: JSDELIVR_DATA,
   flatListing: (ref: string) => `${JSDELIVR_DATA}@${encodeURIComponent(ref)}?structure=flat`,
-  file: (ref: string, path: string) => `${JSDELIVR_CDN}@${encodeURIComponent(ref)}/${path}`,
   tags: (page: number) => `${GITHUB_API}/tags?per_page=100&page=${page}`,
   branches: `${GITHUB_API}/branches?per_page=100`,
   branch: (name: string) => `${GITHUB_API}/branches/${encodeURIComponent(name)}`,
@@ -49,7 +50,7 @@ export class HttpError extends Error {
   }
 }
 
-/** jsDelivr's normalised version list. */
+/** jsDelivr's normalized version list. */
 export async function fetchJsDelivrVersions(fetchFn: FetchFn): Promise<string[]> {
   const body = await getJson<{ versions?: { version: string }[] }>(fetchFn, urls.versions);
   return (body.versions ?? []).map((v) => v.version);
@@ -93,14 +94,6 @@ export async function fetchCommitSha(fetchFn: FetchFn, sha: string): Promise<str
   }
 }
 
-export interface FileListing {
-  /** Repo-relative paths with a content hash (git blob SHA or jsDelivr's SHA-256), sorted by path. */
-  files: { path: string; hash: string }[];
-  source: "github-tree" | "jsdelivr-flat";
-  /** False when the source cut the list short (jsDelivr lists at most 1000 files). */
-  complete: boolean;
-}
-
 /** All files at a ref: GitHub's recursive tree, or jsDelivr's flat listing when GitHub is unavailable. */
 export async function fetchFileListing(fetchFn: FetchFn, ref: string): Promise<FileListing> {
   try {
@@ -123,7 +116,7 @@ const sortByPath = <T extends { path: string }>(files: T[]) =>
 
 /** One file's bytes from jsDelivr. */
 export async function fetchAddonFile(fetchFn: FetchFn, ref: string, path: string): Promise<Uint8Array> {
-  const url = urls.file(ref, path);
+  const url = jsDelivrUrl(ref, path);
   const res = await fetchFn(url);
   if (res.status === 404) throw new AddonRefError(`Musca Auras ${ref} has no file ${path}`, 404);
   if (!res.ok) throw new AddonRefError(`Could not load ${path} of Musca Auras ${ref}: HTTP ${res.status}`, 502);

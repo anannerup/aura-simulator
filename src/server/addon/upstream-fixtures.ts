@@ -17,7 +17,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { ADDON_REPO } from "@/core";
-import type { FetchFn } from "./remote";
+import type { FetchFn } from "./upstream";
 
 interface Ref {
   name: string;

@@ -1,49 +1,18 @@
 /**
- * What changed between two addon versions, for the version picker.
- *
- * Until the aura core describes a full options schema, the diff compares:
- * - the option tables of every region and sub-region type (defaults and condition properties,
- *   extracted by running RegionTypes/*.lua and SubRegionTypes/*.lua; see option-tables.ts),
+ * What changed between two addon versions, for the version picker:
+ * - the option tables of every region and sub-region type (defaults and the properties conditions can
+ *   change), from each version's own registries (AuraCore.registries),
  * - the file lists (added, removed and changed files),
  * - the CHANGELOG sections the newer version adds.
  */
-import { extractOptionTables, isRegionFile, type OptionTable, type OptionTables } from "./option-tables";
-import type { FileListing } from "./remote";
+import type { Registries } from "@/core";
+import type { AddonDiff, FileListing, OptionTable, OptionTables, TypeChange } from "@/api/addon";
 import type { AddonSourceCache, Resolution } from "./source-cache";
 
-export interface TypeChange {
-  /** Region type ("icon") or sub-region type ("subglow"). */
-  type: string;
-  status: "added" | "removed" | "changed";
-  addedOptions: string[];
-  removedOptions: string[];
-  changedDefaults: { option: string; from: unknown; to: unknown }[];
-  addedProperties: string[];
-  removedProperties: string[];
-}
+export type { AddonDiff, OptionTable, OptionTables, TypeChange };
 
-export interface AddonDiff {
-  from: Resolution;
-  to: Resolution;
-  options: {
-    regionTypes: TypeChange[];
-    subRegionTypes: TypeChange[];
-    /** Region/sub-region files whose option tables couldn't be read, per side. */
-    unreadable: { from: string[]; to: string[] };
-  };
-  files: {
-    added: string[];
-    removed: string[];
-    changed: string[];
-    /** Where the lists came from, and whether they are complete (jsDelivr lists at most 1000 files). */
-    source: FileListing["source"][];
-    complete: boolean;
-  };
-  /** CHANGELOG.md sections present in `to` but not in `from` (Markdown), or null. */
-  changelog: string | null;
-  /** One line per notable change, for the UI. */
-  summary: string[];
-}
+/** Reads an addon version's registries (the server's aura core for that resolved ref). */
+export type RegistriesOf = (resolution: Resolution) => Promise<Registries>;
 
 const CHANGELOG = "WeakAuras/CHANGELOG.md";
 
@@ -113,8 +82,11 @@ export function newChangelogSections(from: string | null, to: string | null): st
   return fresh.length ? fresh.join("\n").trim() : null;
 }
 
-export function summarise(options: AddonDiff["options"], files: AddonDiff["files"]): string[] {
+export function summarize(options: AddonDiff["options"], files: AddonDiff["files"]): string[] {
   const lines: string[] = [];
+  for (const side of ["from", "to"] as const) {
+    if (options.unreadable[side]) lines.push(`Options of the ${side === "from" ? "old" : "new"} version couldn't be read: ${options.unreadable[side]}`);
+  }
   for (const [label, changes] of [
     ["Region type", options.regionTypes],
     ["Sub-element", options.subRegionTypes],
@@ -137,19 +109,47 @@ export function summarise(options: AddonDiff["options"], files: AddonDiff["files
       lines.push(`${label} ${c.type}: ${parts.join("; ")}`);
     }
   }
-  if (!options.regionTypes.length && !options.subRegionTypes.length) lines.push("No option changes in region or sub-element types");
+  const compared = !options.unreadable.from && !options.unreadable.to;
+  if (compared && !options.regionTypes.length && !options.subRegionTypes.length) lines.push("No option changes in region or sub-element types");
   lines.push(`Files: ${files.added.length} added, ${files.removed.length} removed, ${files.changed.length} changed`);
   return lines;
 }
 
-async function optionTablesAt(cache: AddonSourceCache, resolution: Resolution, listing: FileListing): Promise<OptionTables> {
-  return cache.memo(resolution, "option-tables", async () => {
-    const regionFiles = listing.files.map((f) => f.path).filter(isRegionFile);
-    const files = await Promise.all(
-      regionFiles.map(async (p) => ({ path: p, text: await cache.readText(resolution.ref, p) })),
-    );
-    return extractOptionTables(files);
-  });
+type Entry = Record<string, unknown> | undefined;
+const record = (v: unknown): Record<string, unknown> | null =>
+  typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : Array.isArray(v) && v.length === 0 ? {} : null;
+const propertyNames = (v: unknown): string[] | null => {
+  const r = record(v);
+  return r && !("__error" in r) ? Object.keys(r).sort() : null;
+};
+
+/**
+ * The option tables in a version's registries. A sub-region type's defaults and properties can depend on its
+ * parent; they are read for an icon parent where the type supports icons, else for its first supported parent.
+ */
+export function optionTablesOf(registries: Registries): OptionTables {
+  const regionTypes: Record<string, OptionTable> = {};
+  for (const [name, rt] of Object.entries(record(registries.regionTypes) ?? {}) as [string, Entry][]) {
+    regionTypes[name] = { defaults: record(rt?.default), properties: propertyNames(rt?.properties) };
+  }
+  const subRegionTypes: Record<string, OptionTable> = {};
+  for (const [name, st] of Object.entries(record(registries.subRegionTypes) ?? {}) as [string, Entry][]) {
+    const supports = Array.isArray(st?.supports) ? (st.supports as string[]) : [];
+    const parent = supports.includes("icon") ? "icon" : supports[0];
+    subRegionTypes[name] = {
+      defaults: parent ? record(record(st?.defaults)?.[parent]) : null,
+      properties: parent ? propertyNames(record(st?.properties)?.[parent]) : null,
+    };
+  }
+  return { regionTypes, subRegionTypes };
+}
+
+async function optionTablesAt(cache: AddonSourceCache, resolution: Resolution, registriesOf: RegistriesOf) {
+  try {
+    return { tables: await cache.memo(resolution, "registry-option-tables", async () => optionTablesOf(await registriesOf(resolution))) };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 async function readOptional(cache: AddonSourceCache, ref: string, file: string): Promise<string | null> {
@@ -161,18 +161,24 @@ async function readOptional(cache: AddonSourceCache, ref: string, file: string):
 }
 
 /** Diffs two refs (any release, branch or commit). */
-export async function diffAddonVersions(cache: AddonSourceCache, fromInput: string, toInput: string): Promise<AddonDiff> {
+export async function diffAddonVersions(
+  cache: AddonSourceCache,
+  registriesOf: RegistriesOf,
+  fromInput: string,
+  toInput: string,
+): Promise<AddonDiff> {
   const [a, b] = await Promise.all([cache.listFiles(fromInput), cache.listFiles(toInput)]);
   const [ta, tb, ca, cb] = await Promise.all([
-    optionTablesAt(cache, a.resolution, a.listing),
-    optionTablesAt(cache, b.resolution, b.listing),
+    optionTablesAt(cache, a.resolution, registriesOf),
+    optionTablesAt(cache, b.resolution, registriesOf),
     readOptional(cache, a.resolution.ref, CHANGELOG),
     readOptional(cache, b.resolution.ref, CHANGELOG),
   ]);
+  const both = ta.tables && tb.tables;
   const options: AddonDiff["options"] = {
-    regionTypes: diffOptionTables(ta.regionTypes, tb.regionTypes),
-    subRegionTypes: diffOptionTables(ta.subRegionTypes, tb.subRegionTypes),
-    unreadable: { from: ta.failures.map((f) => f.file), to: tb.failures.map((f) => f.file) },
+    regionTypes: both ? diffOptionTables(ta.tables.regionTypes, tb.tables.regionTypes) : [],
+    subRegionTypes: both ? diffOptionTables(ta.tables.subRegionTypes, tb.tables.subRegionTypes) : [],
+    unreadable: { from: ta.error ?? null, to: tb.error ?? null },
   };
   const files = diffListings(a.listing, b.listing);
   return {
@@ -181,6 +187,6 @@ export async function diffAddonVersions(cache: AddonSourceCache, fromInput: stri
     options,
     files,
     changelog: newChangelogSections(ca, cb),
-    summary: summarise(options, files),
+    summary: summarize(options, files),
   };
 }

@@ -6,13 +6,14 @@ import { canonicalize, isLuaTable, toLuaLiteral, type AuraDocument, type AuraSta
 import { ADDON_CONTRACT, AddonContractError } from "./contract";
 import { BRIDGE_LUA } from "./lua/bridge";
 import { EXTRACT_LUA } from "./lua/extract";
+import type { AuraPacks, NewAuraPage } from "./new-aura";
+import { DIALOGS_LUA } from "./lua/dialogs";
+import { NEW_AURA_LUA } from "./lua/new-aura";
 import { OPTIONS_LUA } from "./lua/options";
 import {
   OPTIONS_FRAME_FILE,
   OptionEditError,
   parseOptionTabs,
-  type AuraPacks,
-  type NewAuraPage,
   type OptionAddress,
   type OptionEdit,
   type OptionNode,
@@ -132,6 +133,8 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
   lua.doStringSync("__profile.afterLoad()");
   lua.doStringSync(EXTRACT_LUA);
   lua.doStringSync(OPTIONS_LUA);
+  lua.doStringSync(DIALOGS_LUA);
+  lua.doStringSync(NEW_AURA_LUA);
   const optionsAddon = plans.find((p) => p.addon === "WeakAurasOptions");
   const frameIndex = optionsAddon?.files.indexOf(OPTIONS_FRAME_FILE) ?? -1;
   const tabSources = frameIndex >= 0 ? parseOptionTabs(optionsAddon!.sources[frameIndex]) : undefined;

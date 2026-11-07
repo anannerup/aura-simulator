@@ -3,10 +3,11 @@ import { ADDON_FILES, DEFAULT_ADDON_REF, jsDelivrFetcher, normalizeNewlines, typ
 import { AURA_CORE, LOAD_LIBRARY, LOAD_TRANSMISSION } from "./lua-glue";
 import { LUA_STDLIB } from "./lua-stdlib";
 import { canonicalize, isLuaTable, toLuaLiteral, type AuraDocument, type AuraState, type LuaObject, type LuaValue } from "./lua-value";
-import { loadInlineAddonVM, loadWorkerAddonVM, type AddonVMMethod, type AsyncAddonVM } from "./addon-vm/remote";
+import { loadInlineAddonVM, loadWorkerAddonVM, type AddonVMMethod, type AsyncAddonVM } from "./addon-vm/host";
 import type { AddonVM, AddonVMReport, Registries } from "./addon-vm/vm";
 import type { ValidationResult } from "./addon-vm/validation";
-import type { AuraPacks, NewAuraPage, OptionAddress, OptionEdit, OptionsTree } from "./addon-vm/options";
+import type { OptionAddress, OptionEdit, OptionsTree } from "./addon-vm/options";
+import type { AuraPacks, NewAuraPage } from "./addon-vm/new-aura";
 import { createSpellPreloader, type SpellInfoSource } from "./addon-vm/spells";
 
 export type { AuraDocument, AuraState };

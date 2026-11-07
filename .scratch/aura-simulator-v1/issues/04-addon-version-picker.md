@@ -14,11 +14,14 @@
 
 ## Notes (implementation)
 
-- Server: `src/server/addon/` (refs, remote sources, disk cache in `data/addon/<version or sha>/`, option-table
-  extraction, diff). Routes: `/api/addon/versions`, `/api/addon/resolve?ref=`, `/api/addon/<ref>/file?path=`
-  (also `/api/addon/<ref>/files/<path>`), `/api/addon/diff?from=&to=`. UI: `src/app/_addon/`.
-- Tag names: jsDelivr normalises them (`1.15.0`); the real tags are `v1.15.0`, `1.13.0`, `1.15.0-beta2`,
+- Server: `src/server/addon/` (refs, remote sources, disk cache in `data/addon/<version or sha>/`, the server's aura
+  core per resolved ref (`core.ts`), diff). Routes: `/api/addon/versions`, `/api/addon/resolve?ref=`,
+  `/api/addon/<ref>/file?path=` (also `/api/addon/<ref>/files/<path>`), `/api/addon/diff?from=&to=`. UI:
+  `src/app/_addon/`. Wire types: `src/api/addon.ts`.
+- Tag names: jsDelivr normalizes them (`1.15.0`); the real tags are `v1.15.0`, `1.13.0`, `1.15.0-beta2`,
   `v1.15.0-beta1`. GitHub's tag list maps them back (saved on disk as a rate-limit fallback).
-- The "what changed" diff runs each `RegionTypes/*.lua` and `SubRegionTypes/*.lua` in a stubbed Lua sandbox and
-  compares the registered `default` tables and `properties` names, plus file lists (GitHub tree; jsDelivr's flat
-  listing stops at 1000 files) and new CHANGELOG sections. The options schema of tickets 05/10 should replace it.
+- The "what changed" diff compares each version's region and sub-region `default` tables and condition
+  `properties` from the aura core's `registries()` (the addon's own, in the full addon VM), plus file lists (GitHub
+  tree; jsDelivr's flat listing stops at 1000 files) and new CHANGELOG sections. Versions whose full addon VM doesn't
+  load (v1.10.0 and older: their .toc names files the repo lacks) still get the file and changelog diff, with a note
+  that their options couldn't be read.

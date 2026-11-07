@@ -16,7 +16,7 @@ export interface ClientSpell {
   icon: number | string | null;
 }
 
-/** Answers spell IDs (only the IDs asked for need be keys; a missing key or null means unknown). */
+/** Answers spell IDs: info, or null for a spell the client doesn't know. An ID left out of the answer is asked again later. */
 export type SpellInfoSource = (ids: number[]) => Promise<Record<number, ClientSpell | null>>;
 
 /** At most this many spell IDs are collected from one aura state. */
@@ -79,6 +79,7 @@ export function createSpellPreloader(source: SpellInfoSource | undefined) {
         try {
           const answers = await source(missing);
           for (const id of missing) {
+            if (!(id in answers)) continue;
             const a = answers[id];
             known.set(id, a && typeof a.name === "string" && a.name !== "" ? { name: a.name, icon: a.icon ?? null } : null);
           }

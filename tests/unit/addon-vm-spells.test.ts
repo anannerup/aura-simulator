@@ -8,9 +8,11 @@ import {
   sampleIconAura,
   type AuraCore,
   type AuraDocument,
+  type ClientSpell,
   type OptionNode,
   type OptionsTree,
 } from "@/core";
+import { createSpellPreloader } from "@/core/addon-vm/spells";
 import { clientSpells } from "@/server/addon/client-spells";
 import { createSpellCache, type SpellCache } from "@/server/spells";
 import { cachedAddonFetcher } from "../support/addon-source";
@@ -39,6 +41,22 @@ describe("collectSpellIds", () => {
       load: { spellknown: 3964, use_spellknown: true, level: 60 },
     };
     expect(collectSpellIds([aura])).toEqual([116, 133, 1459, 2598, 3964, 12471]);
+  });
+});
+
+describe("createSpellPreloader", () => {
+  test("an ID the source leaves out is asked again, not remembered as unknown", async () => {
+    const asked: number[][] = [];
+    const answers: Record<number, ClientSpell | null>[] = [{ 116: { name: "Frostbolt", icon: 135846 }, 133: null }, { 1459: { name: "Arcane Intellect", icon: 135932 } }];
+    const preloader = createSpellPreloader(async (ids) => {
+      asked.push(ids);
+      return answers[asked.length - 1];
+    });
+    const aura: AuraDocument = { triggers: { "[1]": { trigger: { auraspellids: ["116", "133", "1459"] } } } };
+    await preloader.fetch([aura]);
+    await preloader.fetch([aura]);
+    expect(asked).toEqual([[116, 133, 1459], [1459]]);
+    expect(preloader.take({}, [aura])).toEqual({ 116: { name: "Frostbolt", icon: 135846 }, 1459: { name: "Arcane Intellect", icon: 135932 } });
   });
 });
 

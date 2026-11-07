@@ -1,5 +1,5 @@
-/** Web Worker that hosts the full addon VM (see remote.ts for the page side). */
-import type { FromWorker, ToWorker } from "./remote";
+/** Web Worker that hosts the full addon VM (see host.ts for the page side). */
+import type { FromWorker, ToWorker } from "./host";
 import { loadAddonVM, type AddonVM } from "./vm";
 
 const scope = self as unknown as {

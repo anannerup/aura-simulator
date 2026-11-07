@@ -1,3 +1,4 @@
+import { DEFAULT_ADDON_REF } from "@/core";
 import { decodeTexture, type DecodedTexture } from "./decode";
 import { textureUrls, type TextureSource } from "./paths";
 import { cropTexture, shadePixels, type TextureVariant } from "./pixels";
@@ -32,7 +33,6 @@ export interface TextureUrl {
 }
 
 export const TEXTURE_CACHE_NAME = "aura-sim-textures-v1";
-export const DEFAULT_ADDON_REF = "1.15.0";
 
 async function defaultEncode(tex: DecodedTexture): Promise<string> {
   const pixels = new Uint8ClampedArray(tex.data);

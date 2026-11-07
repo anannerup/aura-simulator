@@ -10,3 +10,4 @@
 - [ ] Cooldown icon desaturates on cooldown
 - [ ] Debuff bar on target
 - [ ] Group of these imports and works
+- [ ] The Forever client profile's answers (`PROFILE_LUA` in `src/core/addon-vm/profile.ts`) match the game

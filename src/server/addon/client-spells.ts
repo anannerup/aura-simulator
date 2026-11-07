@@ -1,9 +1,6 @@
 import type { ClientSpell } from "@/core";
 import type { SpellCache } from "@/server/spells";
 
-/** At most this many spell IDs per request. */
-export const MAX_CLIENT_SPELL_IDS = 500;
-
 /**
  * What the Forever client knows about these spells, for the addon VM's C_Spell.GetSpellInfo and friends:
  * the synced Forever spell list's name and icon FileDataID (a texture path when only the icon name is
@@ -12,7 +9,7 @@ export const MAX_CLIENT_SPELL_IDS = 500;
  */
 export async function clientSpells(cache: SpellCache, ids: readonly number[]): Promise<Record<number, ClientSpell | null>> {
   const out: Record<number, ClientSpell | null> = {};
-  for (const id of ids.slice(0, MAX_CLIENT_SPELL_IDS)) {
+  for (const id of ids) {
     if (!Number.isSafeInteger(id) || id <= 0) continue;
     const spell = await cache.lookup(id, { fetchWowhead: false });
     const iconPath = (name: string | null) => (name ? `Interface\\Icons\\${name}` : null);

@@ -140,7 +140,8 @@ and checks them with the addon's own code. You (the agent) build an aura as a JS
 **workspace**; the player's open page (the **window** with the in-game **tabs**, beside a **game screen**) shows it
 live. The player checks it, exports it as a file and imports it in the game.
 
-This server follows ${version}. Lists marked *generated* below are read from that version.
+This server follows ${version}. Lists marked *generated* below are read from that version. For another version
+(release, branch or commit), add \`?ref=<version>\` to this page's address and to your pushes.
 
 Contents: Workflow · The aura document · Field reference · Triggers · Conditions · Combat rules · Validation ·
 Spells · Push API · Worked examples · Troubleshooting.

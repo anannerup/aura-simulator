@@ -13,155 +13,9 @@ import { toLuaLiteral, type LuaValue } from "../lua-value";
  * - in combat (the combat checks in validate()): C_Secrets answers as during a fight, so the
  *   addon's own "the game hides values of this trigger" logic reports what would stop working.
  *
- * None of these answers has been checked against the live Forever client yet; ticket 17 (in-game
- * check) should verify the entries marked `verified: false`.
+ * None of these answers has been checked against the live Forever client yet; ticket 17 (in-game check)
+ * should verify each one. (issecretvalue/canaccessvalue and InCombatLockdown in shim.ts are the verified ones.)
  */
-
-export interface ProfileEntry {
-  /** The client API or value. */
-  api: string;
-  /** What the profile answers. */
-  answer: string;
-  /** Why, and what it changes in validation. */
-  why: string;
-  /** Checked in the game? */
-  verified: boolean;
-}
-
-export const FOREVER_CLIENT_PROFILE: readonly ProfileEntry[] = [
-  {
-    api: "GetBuildInfo / WOW_PROJECT_ID",
-    answer: '"1.60.1", build 16001; WOW_PROJECT_ID = WOW_PROJECT_CLASSIC (2)',
-    why: "The addon reads the project ID in a few places only; Forever is a classic-era realm on the modern client.",
-    verified: false,
-  },
-  {
-    api: "C_Secrets.HasSecretRestrictions()",
-    answer: "false out of combat, true in combat",
-    why: "TriggerSecretWarnings skips every combat warning when it is false; the combat check asks the in-combat question.",
-    verified: false,
-  },
-  {
-    api: "C_Secrets.Should*BeSecret(...) (auras, cooldowns, spell auras/cooldowns, unit stats, health max, power, threat, aura instances)",
-    answer: "false out of combat, true in combat",
-    why: "Conservative: in combat everything the addon asks about is treated as hidden, so warnings err on the side of caution.",
-    verified: false,
-  },
-  {
-    api: "C_Secrets.ShouldUnitIdentityBeSecret(unit), ShouldUnitSpellCastingBeSecret(unit)",
-    answer: "false for player and pet; for other units the combat flag",
-    why: "Your own name and casts stay readable; other units' identity and casts are treated as hidden in combat.",
-    verified: false,
-  },
-  {
-    api: "C_Secrets.Get*Secrecy(...) (spell aura, spell cooldown, spell cast, power type)",
-    answer: "Enum.SecrecyLevel.ContextuallySecret",
-    why: "Static level: secret when restrictions apply. Makes classic Aura triggers with exact spell IDs warn, as the spec's combat model says. Some spells may really be NeverSecret (whitelisted).",
-    verified: false,
-  },
-  {
-    api: "Enum.SecrecyLevel",
-    answer: "{ NeverSecret = 0, AlwaysSecret = 1, ContextuallySecret = 2 }",
-    why: "Needed for the Get*Secrecy answers; numeric values are tokens only.",
-    verified: false,
-  },
-  {
-    api: "issecretvalue(v) / canaccessvalue(v)",
-    answer: "false / true",
-    why: "The VM never holds live game values, so no value is secret; checks on live trigger states find nothing.",
-    verified: true,
-  },
-  {
-    api: "C_CurveUtil (CreateCurve, CreateColorCurve, EvaluateColorValueFromBoolean), Enum.LuaCurveType",
-    answer: "present (inert curve objects); LuaCurveType = { Linear = 0, Step = 1 }",
-    why: "AuraDisplay.SupportsDurationColorCondition() needs them; without it Remaining Time filters and seconds-left conditions are 'not available on this client'.",
-    verified: false,
-  },
-  {
-    api: "Enum.DurationTextBindingProperty",
-    answer: "RemainingDuration, RemainingPercent, ElapsedDuration, ElapsedPercent, TotalDuration, StartTime, EndTime",
-    why: "An Aura (Modern) duration condition is only offered when its binding exists on the client.",
-    verified: false,
-  },
-  {
-    api: "C_StringUtil.CreateNumericRuleFormatter, C_DurationUtil",
-    answer: "present (inert objects)",
-    why: "Stack-count conditions and native countdown text are only offered when these exist.",
-    verified: false,
-  },
-  {
-    api: "Enum.StatusBarRenderMode",
-    answer: "present",
-    why: "Without it a circular Progress Texture on an Aura (Modern) trigger fails validation ('cannot draw circular Progress Textures').",
-    verified: false,
-  },
-  {
-    api: "AuraUtil.IsValidFilterString(filter)",
-    answer: "true for HELPFUL or HARMFUL followed by the addon's own Blizzard aura filters (optionally negated with !) and INCLUDE_NAME_PLATE_ONLY",
-    why: "A stub answers nil, which fails every Aura (Modern) with 'This client does not support the selected Blizzard aura filters'. The profile trusts the addon's filter list.",
-    verified: false,
-  },
-  {
-    api: "C_NamePlate.GetNamePlateForUnit",
-    answer: "present",
-    why: "Aura (Modern) triggers on nameplates fail validation without it.",
-    verified: false,
-  },
-  {
-    api: 'C_AddOns.IsAddOnLoaded("Blizzard_AuraContainer")',
-    answer: "true",
-    why: "Aura (Modern) displays are drawn by Blizzard's aura containers; without it every Aura (Modern) warns 'Cannot load Blizzard_AuraContainer'.",
-    verified: false,
-  },
-  {
-    api: 'CreateFrame("AuraContainer", ...):AddAuraSlot(key, filter, options)',
-    answer:
-      "creates the slot's aura button (a mock Button parented to the container) and calls options.initializeFrame(button) before returning",
-    why:
-      "The Remaining Time window on an Icon (secretUseRem) takes its button from initializeFrame right after AddAuraSlot " +
-      "(SecretAuraSingleRemaining.lua AcquireSlot). The generic frame stub never called it, so every such aura warned " +
-      "'Blizzard could not create the Remaining Time display: no slot'. Synchronous initialization is inferred from the " +
-      "addon (and ElvUI's aura containers), which use the button straight after the call. AddAuraGroup stays a no-op: " +
-      "groups initialize buttons only when auras show up, and nothing in validation waits for them.",
-    verified: false,
-  },
-  {
-    api: "PowerBarColor (FrameXML)",
-    answer: "MANA, RAGE, FOCUS, ENERGY, RUNIC_POWER with the modern client's UI-HUD-UnitFrame-Player-PortraitOff-Bar-* atlases",
-    why: "Types.lua registers these atlases as statusbar_atlas media; without any, the Progress Bar's Display tab fails to build.",
-    verified: false,
-  },
-  {
-    api: "C_Spell.GetSpellInfo / GetSpellName / GetSpellTexture, GetSpellInfo, GetSpellTexture",
-    answer: "name and icon FileDataID from the spell cache's Forever spell list (spells.ts preloads the IDs the aura refers to); nil for any other spell or a name",
-    why: 'Spell inputs read "1459 (Arcane Intellect)" instead of "(Unknown Spell)", and validation sees which spells exist. Names resolve only for spells the player knows in the game; the simulated player knows none.',
-    verified: false,
-  },
-  {
-    api: "EssentialCooldownViewer, UtilityCooldownViewer, BuffIconCooldownViewer, BuffBarCooldownViewer",
-    answer: "present, with no cooldown frames",
-    why: "The Cooldown Manager trigger lists the viewers' frames; without them its Trigger tab fails to build. Empty: the simulated player tracks no cooldowns.",
-    verified: false,
-  },
-  {
-    api: "GetDifficultyInfo, C_Item.GetItemSubClassInfo, GetNumTalentTabs/GetNumTalents/GetTalentInfo/GetTalentTabInfo",
-    answer: "Forever's DB2 data (client-data.json, generated by scripts/client-data.ts from wago.tools): difficulties, weapon and armour types, each class's talents (tabs by OrderIndex, talents by tier then column)",
-    why: "The Load tab's Instance Type, Item Type Equipped and Talent lists come from these; stubs left them empty. Talents are listed for every class (the game lists only your own), so a load condition can be built for any class. The talent order must match the game's GetTalentInfo index.",
-    verified: false,
-  },
-  {
-    api: "C_SpecializationInfo.GetSpecialization / GetNumSpecializationsForClassID / GetTalentInfo, GetSpecializationInfoForClassID, C_Traits, C_ClassTalents",
-    answer: "absent",
-    why: "Forever has classic talents and no specializations (Musca's Specialization load option covers its specs). Present, they make the addon take the retail paths: Class and Specialization appears and the Talent lists come out empty.",
-    verified: false,
-  },
-  {
-    api: "InCombatLockdown()",
-    answer: "false (also during the combat checks)",
-    why: "WeakAuras.Add defers work in combat lockdown; the combat checks only need the C_Secrets answers.",
-    verified: true,
-  },
-];
 
 /** The client data in Lua (`__clientData`), for PROFILE_LUA. Loaded before it. */
 export const CLIENT_DATA_LUA = `__clientData = ${toLuaLiteral(clientData as unknown as LuaValue)}`;
@@ -243,6 +97,11 @@ function PR.afterLoad()
   end
 end
 
+-- Client capabilities Aura (Modern) asks about: SecrecyLevel for the Get*Secrecy answers below; curves for
+-- SupportsDurationColorCondition (Remaining Time filters, seconds-left conditions); duration bindings for duration
+-- conditions; StatusBarRenderMode for circular Progress Textures; C_StringUtil/C_DurationUtil for stack-count
+-- conditions and native countdown text; C_NamePlate for nameplate triggers. Missing, the addon calls them
+-- "not available on this client".
 Enum = S.stubFallback({}, "Enum")
 Enum.SecrecyLevel = { NeverSecret = 0, AlwaysSecret = 1, ContextuallySecret = 2 }
 Enum.LuaCurveType = { Linear = 0, Step = 1 }
@@ -250,9 +109,13 @@ Enum.DurationTextBindingProperty = { RemainingDuration = 0, RemainingPercent = 1
   ElapsedPercent = 3, TotalDuration = 4, StartTime = 5, EndTime = 6 }
 Enum.StatusBarRenderMode = S.stubFallback({}, "Enum.StatusBarRenderMode")
 
+-- Aura (Modern) displays are drawn by Blizzard's aura containers ("Cannot load Blizzard_AuraContainer" otherwise).
 S.loadedAddons.Blizzard_AuraContainer = true
 
--- Aura container slots: one fixed aura button per key, initialized during AddAuraSlot.
+-- Aura container slots: one fixed aura button per key, initialized during AddAuraSlot. The Remaining Time window
+-- (SecretAuraSingleRemaining.lua AcquireSlot) uses the button straight after the call, as ElvUI does, so
+-- initialization is taken to be synchronous. AddAuraGroup stays a no-op: groups initialize buttons only when auras
+-- show up, and nothing in validation waits for them.
 S.kindMethods.AuraContainer = {
   AddAuraSlot = function(self, key, _filter, options)
     local slots = rawget(self, "__auraSlots") or {}
@@ -284,6 +147,9 @@ PowerBarColor[2] = PowerBarColor.FOCUS
 PowerBarColor[3] = PowerBarColor.ENERGY
 PowerBarColor[6] = PowerBarColor.RUNIC_POWER
 
+-- Secrets: nothing is secret out of combat (a player building auras in town); in combat everything the addon asks
+-- about is (conservative, so warnings err on the side of caution), except your own and your pet's identity and casts.
+-- Spells are ContextuallySecret: secret when restrictions apply (some may really be NeverSecret).
 local function inCombat() return PR.combat end
 local function contextual() return Enum.SecrecyLevel.ContextuallySecret end
 local function otherUnitInCombat(unit)
@@ -333,7 +199,8 @@ C_NamePlate = S.stubFallback({
   GetNamePlates = function() return {} end,
 }, "C_NamePlate")
 
--- Filter strings: HELPFUL or HARMFUL first, then the addon's own Blizzard aura filters.
+-- Filter strings: HELPFUL or HARMFUL first, then the addon's own Blizzard aura filters (a stub's nil fails every
+-- Aura (Modern) with "This client does not support the selected Blizzard aura filters").
 local function knownFilters()
   local display = S.private.WeakAuras and S.private.WeakAuras.BlizzardAuraDisplay
   local known = { INCLUDE_NAME_PLATE_ONLY = true }

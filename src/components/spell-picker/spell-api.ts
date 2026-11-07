@@ -1,7 +1,7 @@
 /** Browser client for the spell cache API (`/api/spells/*`). */
-import type { Spell, SpellCacheStatus, SpellFlag, SpellSearchResult, SyncResult } from "@/server/spells";
+import type { Spell, SpellCacheStatus, SpellFlag, SpellSearchResult, SyncResult } from "@/api/spells";
 
-export type { Spell, SpellCacheStatus, SpellFlag, SpellSearchHit, SyncResult } from "@/server/spells";
+export type { Spell, SpellCacheStatus, SpellFlag, SpellSearchHit, SyncResult } from "@/api/spells";
 
 async function json<T>(res: Response): Promise<T> {
   const body = (await res.json()) as T & { error?: string };

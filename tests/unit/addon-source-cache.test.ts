@@ -63,7 +63,7 @@ describe("versions", () => {
 });
 
 describe("resolve", () => {
-  it("resolves releases by either spelling to the real tag, keyed by normalised version", async () => {
+  it("resolves releases by either spelling to the real tag, keyed by normalized version", async () => {
     const { cache } = open();
     expect(await cache.resolve("1.14.0")).toMatchObject({ kind: "release", ref: "v1.14.0", key: "1.14.0" });
     expect(await cache.resolve("v1.13.0")).toMatchObject({ kind: "release", ref: "1.13.0", key: "1.13.0" });

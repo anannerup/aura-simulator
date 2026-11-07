@@ -5,10 +5,9 @@
  * the text uses a similar web font.
  */
 import { useEffect, useSyncExternalStore, type CSSProperties } from "react";
-import type { LuaValue } from "@/core";
+import { DEFAULT_ADDON_REF, jsDelivrUrl, type LuaValue } from "@/core";
 import { DEFAULT_FONT, FONTS } from "./media";
-import { DEFAULT_ADDON_REF } from "./textures/loader";
-import { MUSCA_AURAS_CDN, WAGO_CASC_URL } from "./textures/paths";
+import { WAGO_CASC_URL } from "./textures/paths";
 
 /** The CSS family a game font is registered under. */
 export const cssFamily = (name: string) => `WoW ${name}`;
@@ -32,7 +31,7 @@ export function fontFamily(value: LuaValue | undefined): string {
 export function fontUrl(source: number | string, addonRef = DEFAULT_ADDON_REF): string {
   if (typeof source === "number") return WAGO_CASC_URL + source;
   const rel = source.replace(/\\/g, "/").replace(/^interface\/addons\//i, "");
-  return MUSCA_AURAS_CDN + addonRef + "/" + rel.split("/").map(encodeURIComponent).join("/");
+  return jsDelivrUrl(addonRef, rel);
 }
 
 type Status = "loading" | "loaded" | "failed";

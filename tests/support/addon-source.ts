@@ -1,23 +1,20 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { jsDelivrFetcher, type AddonSourceFetcher } from "@/core/addon-source";
+import type { AddonSourceFetcher } from "@/core";
+import { createAddonSourceCache } from "@/server/addon/source-cache";
+import { createUpstreamFixtureFetch } from "@/server/addon/upstream-fixtures";
 
-/**
- * jsDelivr fetcher with a disk cache under .cache/addon/<ref>/ (gitignored), so tests run against
- * the real addon version but download each file only once.
- */
+/** Where tests keep addon files: the server's addon source cache layout, shared by unit and e2e tests (gitignored). */
+export const TEST_ADDON_CACHE_DIR = path.resolve(__dirname, "../../.cache/addon");
+/** Recorded GitHub/jsDelivr version lists, so refs resolve without the network (see upstream-fixtures.ts). */
+export const ADDON_UPSTREAM_FIXTURES = path.resolve(__dirname, "../fixtures/addon");
+
+let cache: ReturnType<typeof createAddonSourceCache> | undefined;
+
+/** Reads files of a real addon version through the server's source cache: each file is downloaded once. */
 export function cachedAddonFetcher(ref: string): AddonSourceFetcher {
-  const remote = jsDelivrFetcher(ref);
-  const root = path.resolve(__dirname, "../../.cache/addon", ref);
-  return async (file) => {
-    const local = path.join(root, file);
-    try {
-      return await readFile(local, "utf8");
-    } catch {
-      const text = await remote(file);
-      await mkdir(path.dirname(local), { recursive: true });
-      await writeFile(local, text);
-      return text;
-    }
-  };
+  cache ??= createAddonSourceCache({
+    root: TEST_ADDON_CACHE_DIR,
+    fetch: createUpstreamFixtureFetch(ADDON_UPSTREAM_FIXTURES, (input, init) => fetch(input, init)),
+  });
+  return (file) => cache!.readText(ref, file);
 }

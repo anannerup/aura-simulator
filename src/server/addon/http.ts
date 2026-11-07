@@ -1,9 +1,8 @@
 /** HTTP glue for the addon routes: error responses, file and bundle responses. */
 import { ADDON_BUNDLE_SETS, type AddonBundleSet } from "@/core";
 import { getEncodedAddonBundle } from "./bundle";
-import { getAddonSourceCache } from "./index";
 import { AddonRefError } from "./refs";
-import type { Resolution } from "./source-cache";
+import { getAddonSourceCache, type Resolution } from "./source-cache";
 
 export function errorResponse(e: unknown): Response {
   const status = e instanceof AddonRefError ? e.status : 500;

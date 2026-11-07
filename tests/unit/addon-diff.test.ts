@@ -1,48 +1,20 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { diffListings, diffOptionTables, newChangelogSections, summarise, type OptionTables } from "@/server/addon";
-import { extractOptionTables } from "@/server/addon/option-tables";
+import path from "node:path";
+import { loadAddon } from "@/core";
+import {
+  createAddonSourceCache,
+  diffAddonVersions,
+  diffListings,
+  diffOptionTables,
+  newChangelogSections,
+  optionTablesOf,
+  summarize,
+  type OptionTables,
+} from "@/server/addon";
 import { cachedAddonFetcher } from "../support/addon-source";
 
-describe("extractOptionTables", () => {
-  it("captures defaults and property names, with stubbed WoW values marked", async () => {
-    const src = `
-      if not WeakAuras.IsLibsOK() then return end
-      local AddonName, Private = ...
-      local L = WeakAuras.L
-      local default = { width = 64, color = {1, 1, 1, 1}, font = GetFontThing(), name = L["Icon"] }
-      Private.regionPrototype.AddAlphaToDefault(default)
-      local properties = { width = { display = L["Width"], type = "number", softMax = math.ceil(GetScreenWidth() / 20) * 20 } }
-      local function GetProperties(data)
-        local result = CopyTable(properties)
-        result.progressSource.values = {}
-        return result
-      end
-      Private.RegisterRegionType("thing", function() end, function() end, default, GetProperties)
-      while CreateFrame("Frame") do end -- never terminates on its own
-    `;
-    const sub = `
-      local default = function(parentType) return { glow = false, parent = parentType } end
-      WeakAuras.RegisterSubRegionType("subthing", "Thing", nil, nil, nil, nil, nil, default, nil, { glow = {} })
-    `;
-    const broken = "this is not lua";
-    const t = await extractOptionTables([
-      { path: "WeakAuras/RegionTypes/Thing.lua", text: src },
-      { path: "WeakAuras/SubRegionTypes/Thing.lua", text: sub },
-      { path: "WeakAuras/RegionTypes/Broken.lua", text: broken },
-    ]);
-    expect(t.regionTypes.thing).toEqual({
-      file: "WeakAuras/RegionTypes/Thing.lua",
-      defaults: { width: 64, color: [1, 1, 1, 1], font: "<dynamic>", name: "Icon" },
-      properties: ["width"],
-    });
-    expect(t.subRegionTypes.subthing.defaults).toEqual({ glow: false, parent: "icon" });
-    expect(t.subRegionTypes.subthing.properties).toEqual(["glow"]);
-    expect(t.failures.map((f) => f.file)).toEqual(["WeakAuras/RegionTypes/Broken.lua"]);
-  });
-});
-
 describe("diffs", () => {
-  const table = (defaults: Record<string, unknown>, properties: string[]) => ({ file: "f.lua", defaults, properties });
+  const table = (defaults: Record<string, unknown>, properties: string[]) => ({ defaults, properties });
 
   it("reports added, removed and changed options per type", () => {
     const changes = diffOptionTables(
@@ -79,47 +51,55 @@ describe("diffs", () => {
     expect(newChangelogSections(null, null)).toBeNull();
   });
 
-  it("summarises in one line per type", () => {
+  it("summarizes in one line per type", () => {
     const options = {
       regionTypes: diffOptionTables({ icon: table({ w: 1 }, []) }, { icon: table({ w: 2, x: 1 }, ["w"]) }),
       subRegionTypes: [],
-      unreadable: { from: [], to: [] },
+      unreadable: { from: null, to: null },
     };
     const files = { added: ["x"], removed: [], changed: [], source: [], complete: true };
-    expect(summarise(options, files)).toEqual([
+    expect(summarize(options, files)).toEqual([
       "Region type icon: new options x; new defaults w 1 → 2; conditions can now change w",
       "Files: 1 added, 0 removed, 0 changed",
     ]);
   });
 });
 
-describe("option tables of real addon versions", () => {
-  const read = async (ref: string, files: string[]) => {
-    const fetchSource = cachedAddonFetcher(ref);
-    return extractOptionTables(await Promise.all(files.map(async (p) => ({ path: p, text: await fetchSource(p) }))));
-  };
-  const FILES = [
-    "WeakAuras/RegionTypes/Icon.lua",
-    "WeakAuras/RegionTypes/Group.lua",
-    "WeakAuras/SubRegionTypes/Glow.lua",
-    "WeakAuras/SubRegionTypes/SubText.lua",
-  ];
-  let v1_3_1: OptionTables;
-  let v1_15_0: OptionTables;
+describe("option tables of a real addon version", () => {
+  let tables: OptionTables;
   beforeAll(async () => {
-    [v1_3_1, v1_15_0] = await Promise.all([read("v1.3.1", FILES), read("v1.15.0", FILES)]);
+    const core = await loadAddon("v1.15.0", { fetchSource: cachedAddonFetcher("v1.15.0") });
+    tables = optionTablesOf(await core.registries());
+    core.dispose();
   });
 
   it("reads the icon's defaults and conditions properties", () => {
-    expect(v1_15_0.failures).toEqual([]);
-    expect(v1_15_0.regionTypes.icon.defaults).toMatchObject({ width: 64, height: 64, zoom: 0, cooldown: true });
-    expect(v1_15_0.regionTypes.icon.properties).toEqual(expect.arrayContaining(["width", "height", "color", "zoom"]));
-    expect(v1_15_0.subRegionTypes.subglow.properties).toEqual(expect.arrayContaining(["glow", "glowColor", "glowType"]));
-    expect(v1_15_0.subRegionTypes.subtext.defaults).toHaveProperty("text_text");
+    expect(tables.regionTypes.icon.defaults).toMatchObject({ width: 64, height: 64, zoom: 0, cooldown: true });
+    expect(tables.regionTypes.icon.properties).toEqual(expect.arrayContaining(["width", "height", "color", "zoom"]));
+    expect(tables.subRegionTypes.subglow.properties).toEqual(expect.arrayContaining(["glow", "glowColor", "glowType"]));
+    expect(tables.subRegionTypes.subtext.defaults).toHaveProperty("text_text");
+    expect(tables.regionTypes.group.defaults).toHaveProperty("blizzardFlow");
   });
+});
 
-  it("finds the group options Musca Auras added after 1.3.1", () => {
-    const groupChange = diffOptionTables(v1_3_1.regionTypes, v1_15_0.regionTypes).find((c) => c.type === "group");
-    expect(groupChange?.addedOptions).toEqual(expect.arrayContaining(["blizzardFlow", "blizzardFlowGrowth"]));
+describe("diffAddonVersions", () => {
+  it("still diffs files and the changelog when a side's options can't be read", async () => {
+    const { createFixtureFetch } = await import("../fixtures/addon/fixture-fetch");
+    const { mkdtempSync, rmSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const root = mkdtempSync(path.join(tmpdir(), "addon-diff-"));
+    try {
+      const cache = createAddonSourceCache({ root, fetch: createFixtureFetch().fetch });
+      const registriesOf = async ({ ref }: { ref: string }) => {
+        if (ref === "v1.10.0") throw new Error("no full VM for this one");
+        return { regionTypes: { icon: { default: { width: 64 }, properties: { width: {} } } }, subRegionTypes: {} } as never;
+      };
+      const diff = await diffAddonVersions(cache, registriesOf, "v1.15.0", "v1.10.0");
+      expect(diff.options).toEqual({ regionTypes: [], subRegionTypes: [], unreadable: { from: null, to: "no full VM for this one" } });
+      expect(diff.summary).toContain("Options of the new version couldn't be read: no full VM for this one");
+      expect(diff.summary.at(-1)).toMatch(/^Files: /);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

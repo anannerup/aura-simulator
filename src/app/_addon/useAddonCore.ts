@@ -10,17 +10,15 @@ import {
   resolveRef,
   serverAddonFetcher,
   storeRef,
-  type DiffInfo,
-  type ResolutionInfo,
-  type VersionListInfo,
 } from "./addon-client";
+import type { AddonDiff, Resolution, VersionList } from "@/api/addon";
 
 const WASM_URI = "/lua/liblua5.1.wasm";
 
 export interface AddonDiffState {
   from: string;
   to: string;
-  result?: DiffInfo;
+  result?: AddonDiff;
   error?: string;
 }
 
@@ -28,20 +26,20 @@ export interface AddonCoreState {
   /** The last successfully loaded core; stays in place while another version loads or after one fails. */
   core: AuraCore | null;
   /** What the loaded core's ref resolved to on the server (null when loaded straight from jsDelivr). */
-  resolution: ResolutionInfo | null;
+  resolution: Resolution | null;
   /** The ref being loaded right now. */
   loadingRef: string | null;
   /** Why the last load failed. */
   error: string | null;
   /** Releases and branches for the picker (null until listed or if listing failed). */
-  versions: VersionListInfo | null;
+  versions: VersionList | null;
   /** What changed in the last switch. */
   diff: AddonDiffState | null;
   /** Loads another release, branch or commit. */
   load(ref: string): void;
 }
 
-async function loadCore(ref: string): Promise<{ core: AuraCore; resolution: ResolutionInfo | null }> {
+async function loadCore(ref: string): Promise<{ core: AuraCore; resolution: Resolution | null }> {
   const { loadAddon } = await import("@/core");
   const resolution = await resolveRef(ref);
   // Fetch by the immutable ref (tag or commit SHA) so every file comes from the same commit.
@@ -53,16 +51,16 @@ async function loadCore(ref: string): Promise<{ core: AuraCore; resolution: Reso
 /** Loads the aura core for the picked addon version (persisted in localStorage; newest release by default). */
 export function useAddonCore(): AddonCoreState {
   const [core, setCore] = useState<AuraCore | null>(null);
-  const [resolution, setResolution] = useState<ResolutionInfo | null>(null);
+  const [resolution, setResolution] = useState<Resolution | null>(null);
   const [loadingRef, setLoadingRef] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [versions, setVersions] = useState<VersionListInfo | null>(null);
+  const [versions, setVersions] = useState<VersionList | null>(null);
   const [diff, setDiff] = useState<AddonDiffState | null>(null);
   const generation = useRef(0);
   const coreRef = useRef<AuraCore | null>(null);
 
   /** Makes `next` the core in use and frees the one it replaces (its full VM is a Web Worker with its own Lua heap). */
-  const adopt = useCallback((next: { core: AuraCore; resolution: ResolutionInfo | null }) => {
+  const adopt = useCallback((next: { core: AuraCore; resolution: Resolution | null }) => {
     const replaced = coreRef.current;
     coreRef.current = next.core;
     setCore(next.core);

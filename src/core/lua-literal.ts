@@ -19,7 +19,7 @@
  * Unlike Lua it rejects a key given twice, since one of the two would silently be lost.
  */
 
-import { canonicalize, isLuaTable, keyFromString, keyToString, type LuaKey, type LuaObject, type LuaValue } from "./lua-value";
+import { canonicalize, isLuaTable, keyFromString, keyToString, luaNumberLiteral, type LuaKey, type LuaObject, type LuaValue } from "./lua-value";
 
 /** A literal that doesn't parse. `line` and `column` are 1-based and point at the offending token. */
 export class LuaLiteralError extends Error {
@@ -42,7 +42,7 @@ const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const MAX_INLINE = 72;
 
 /** A Lua string literal; non-ASCII text stays readable, control characters are escaped. */
-export function luaString(s: string): string {
+function luaString(s: string): string {
   let out = '"';
   for (const ch of s) {
     const c = ch.codePointAt(0)!;
@@ -57,15 +57,10 @@ export function luaString(s: string): string {
   return out + '"';
 }
 
-function luaNumber(n: number): string {
-  if (!Number.isFinite(n)) throw new Error(`Lua values must be finite numbers, got ${n}`);
-  return Object.is(n, -0) ? "-0" : String(n);
-}
-
 function luaScalar(v: LuaKey): string {
   if (typeof v === "string") return luaString(v);
   if (typeof v === "boolean") return String(v);
-  return luaNumber(v);
+  return luaNumberLiteral(v);
 }
 
 function luaKey(key: LuaKey): string {
@@ -382,45 +377,4 @@ class Parser {
 /** Parses a Lua literal into its canonical document value. Throws `LuaLiteralError` with a position. */
 export function parseLuaLiteral(text: string): LuaValue {
   return new Parser(new Lexer(text)).parseChunk();
-}
-
-// ------------------------------------------------------------------------------------------------- JSON
-
-function printJsonValue(value: LuaValue, indent: string): string {
-  if (!isLuaTable(value)) return JSON.stringify(value);
-  const inner = indent + "  ";
-  const items = Array.isArray(value)
-    ? value.map((v) => printJsonValue(v, inner))
-    : Object.entries(value).map(([k, v]) => `${JSON.stringify(k)}: ${printJsonValue(v, inner)}`);
-  if (items.length === 0) return Array.isArray(value) ? "[]" : "{}";
-  const [open, close] = Array.isArray(value) ? ["[", "]"] : ["{", "}"];
-  if (Array.isArray(value) && value.every((v) => !isLuaTable(v))) {
-    const flat = `${open}${items.join(", ")}${close}`;
-    if (flat.length + indent.length <= MAX_INLINE) return flat;
-  }
-  return `${open}\n${items.map((i) => inner + i).join(",\n")}\n${indent}${close}`;
-}
-
-/** The canonical JSON form (see lua-value.ts), indented, with short scalar arrays on one line. */
-export function printCanonicalJson(value: LuaValue): string {
-  return printJsonValue(canonicalize(value), "");
-}
-
-/** Parses the canonical JSON form (any accepted input form, canonicalized). Errors carry a position when known. */
-export function parseCanonicalJson(text: string): LuaValue {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    const m = /position (\d+)/.exec(message);
-    if (m) {
-      const pos = Number(m[1]);
-      const before = text.slice(0, pos).split("\n");
-      throw new LuaLiteralError(message.replace(/ in JSON at position.*$/, ""), before.length, before.at(-1)!.length + 1);
-    }
-    throw e;
-  }
-  if (parsed === null) throw new Error("The text must be a value, not null");
-  return canonicalize(parsed as LuaValue);
 }

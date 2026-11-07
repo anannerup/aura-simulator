@@ -16,7 +16,9 @@
 - `src/docs/addon-facts.ts` reads the generated parts from the loaded addon version: region and sub-element types
   (`registries()`), defaults (`fillDefaults`), the Aura (Modern) units, filters, Show On values, condition variables
   and the properties each may change, and a combat verdict per trigger type and per spell cooldown condition
-  variable (the addon's own `validate` on a probe aura). The server reads them once per process (~0.4 s).
+  variable (the addon's own `validate` on a probe aura). The server reads them once per process and version (~0.4 s).
+- The docs follow `?ref=<release, branch or commit>` (`/docs/agents`, `/llms.txt`; the window links to its own
+  version), and so does the push API; without it, the newest release (`resolveServerRef` in `src/server/addon/core.ts`).
 - `src/docs/agent-docs.ts` is the Markdown: workflow (push to `?w=<id>` → player checks the game screen and tabs →
   exports a file → imports in game), document rules, field reference, triggers, conditions, combat rules,
   validation and how to act on it, spells, push API with merge rules, worked examples, troubleshooting. It

@@ -1,3 +1,5 @@
+import { jsDelivrUrl } from "@/core";
+
 /**
  * Where a texture comes from. A number is a Blizzard FileDataID (fetched from wago.tools).
  * A string is a game texture path as the Lua writes it (`Interface\\Buttons\\WHITE8X8`):
@@ -16,7 +18,6 @@ export const KNOWN_FILE_DATA_IDS: Readonly<Record<string, number>> = {
 };
 
 export const WAGO_CASC_URL = "https://wago.tools/api/casc/";
-export const MUSCA_AURAS_CDN = "https://cdn.jsdelivr.net/gh/dldvlpr-addons-wow/Musca-Auras@";
 
 export function normalizeTexturePath(path: string): string {
   return path
@@ -39,7 +40,7 @@ export function textureUrls(source: TextureSource, addonRef: string): string[] {
   const addonMatch = /^interface\/addons\/(.+)$/i.exec(source.replace(/\\/g, "/").replace(/^\//, ""));
   if (addonMatch) {
     const rel = addonMatch[1];
-    const base = MUSCA_AURAS_CDN + addonRef + "/" + rel.split("/").map(encodeURIComponent).join("/");
+    const base = jsDelivrUrl(addonRef, rel);
     return /\.(tga|blp)$/i.test(rel) ? [base] : [base + ".tga", base + ".blp"];
   }
   throw new Error(`Unknown texture path (no FileDataID mapping): ${source}`);

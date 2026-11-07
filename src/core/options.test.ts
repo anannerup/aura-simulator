@@ -184,7 +184,7 @@ describe("setOption", () => {
     expect(state.aura.conditions).toHaveLength(1);
 
     let conditions = await core.options(state, { tab: "conditions" });
-    // Condition option keys hold tostring(table); they are addressed by their normalised key.
+    // Condition option keys hold tostring(table); they are addressed by their normalized key.
     const check = find(conditions, "condition1@if");
     const secondsLeft = check.values!.find(([, label]) => label.trim() === "Seconds left")!;
     await apply("conditions", ["condition1@if"], secondsLeft[0]);

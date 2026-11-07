@@ -16,4 +16,4 @@
 - Full addon VM: `src/core/addon-vm/` (shim, bridge, extract Lua as string modules; `profile.ts` is the
   Forever client profile; `contract.ts` the addon contract checked at load). Core API: `fillDefaults`,
   `validate`, `registries`, `loadFullAddon` on `AuraCore`; loads lazily (Web Worker in the browser).
-- Profile answers not yet checked in the game are listed in `FOREVER_CLIENT_PROFILE` (`verified: false`): for ticket 17.
+- Profile answers are not yet checked in the game (`PROFILE_LUA` in `src/core/addon-vm/profile.ts`, each with its reason): for ticket 17.

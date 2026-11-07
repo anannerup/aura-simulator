@@ -9,7 +9,7 @@ const CLIENT_HEADER = "x-aura-client";
  * POST /api/workspaces/<id>/aura with `{code}`, `{aura, children?}` or a bare state code (up to 32 MB):
  * validates it with the addon, makes it the workspace's state, notifies open pages.
  * Answers `{workspace, code, url, updatedAt, revision, validation}` (`url`: the `?w=` page; `?validate=false`
- * leaves `validation` null); 400/413/422 `{error}` on bad input.
+ * leaves `validation` null; `?ref=` picks the addon version, default the newest release); 400/413/422 `{error}` on bad input.
  */
 export async function POST(request: NextRequest, ctx: RouteContext<"/api/workspaces/[id]/aura">) {
   const { id } = await ctx.params;
@@ -17,8 +17,9 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/workspa
   try {
     const input = parsePushBody(await readBodyText(request), request.headers.get("content-type"));
     const source = request.headers.get(CLIENT_HEADER)?.slice(0, 64) || null;
-    const validate = request.nextUrl.searchParams.get("validate") !== "false";
-    return Response.json(await pushToWorkspace(id, input, request.nextUrl.origin, { source, validate }));
+    const params = request.nextUrl.searchParams;
+    const validate = params.get("validate") !== "false";
+    return Response.json(await pushToWorkspace(id, input, request.nextUrl.origin, { source, validate, ref: params.get("ref") }));
   } catch (e) {
     if (e instanceof PushError) return Response.json({ error: e.message }, { status: e.status });
     const message = e instanceof Error ? e.message : String(e);

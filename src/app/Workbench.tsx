@@ -32,6 +32,8 @@ import styles from "./Workbench.module.css";
 export function Workbench() {
   const addon = useAddonCore();
   const { core } = addon;
+  // The agent docs of the version this window uses.
+  const docsQuery = core ? `?ref=${encodeURIComponent(core.ref)}` : "";
   const [situation, setSituation] = useState(DEFAULT_SITUATION);
   const screen = useGameScreen();
   const [creating, setCreating] = useState(false);
@@ -108,7 +110,7 @@ export function Workbench() {
         portrait={<GameTexture source={ADDON_MEDIA("logo_musca_round")} size={62} />}
         title={<AddonVersionMenu addon={addon} />}
         titleActions={
-          <Link href="/docs/agents" className={styles.guide}>
+          <Link href={`/docs/agents${docsQuery}`} className={styles.guide}>
             Guide: agent docs
           </Link>
         }
@@ -235,11 +237,11 @@ export function Workbench() {
         }
         footer={
           <>
-            <Link href="/docs/agents" className={styles.footerLink}>
+            <Link href={`/docs/agents${docsQuery}`} className={styles.footerLink}>
               <GameTexture source={ADDON_MEDIA("GitHub")} size={16} />
               Agent docs
             </Link>
-            <a href="/llms.txt" className={styles.footerLink}>
+            <a href={`/llms.txt${docsQuery}`} className={styles.footerLink}>
               llms.txt
             </a>
             <span className={styles.footerSpacer} />

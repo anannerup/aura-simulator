@@ -3,7 +3,6 @@ export {
   createTextureLoader,
   textureLoader,
   TEXTURE_CACHE_NAME,
-  DEFAULT_ADDON_REF,
   type TextureLoader,
   type TextureLoaderOptions,
   type TextureUrl,

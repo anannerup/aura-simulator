@@ -3,7 +3,7 @@
  * fetching from jsDelivr on a miss.
  *
  * Layout under `root` (default `<repo>/data/addon`):
- *   <key>/src/<path>       file contents, where <key> is a release's normalised version or a full commit SHA
+ *   <key>/src/<path>       file contents, where <key> is a release's normalized version or a full commit SHA
  *   <key>/listing.json     the ref's file list (see FileListing)
  *   github-tags.json       last good GitHub tag list (fallback when GitHub is rate limited)
  * Releases and commits never change, so their files are cached forever. Branches resolve to a commit
@@ -20,8 +20,8 @@ import {
   fetchGitHubTags,
   fetchJsDelivrVersions,
   type FetchFn,
-  type FileListing,
-} from "./remote";
+} from "./upstream";
+import type { FileListing } from "@/api/addon";
 import {
   AddonRefError,
   assertValidPath,
@@ -31,35 +31,13 @@ import {
   isFullSha,
   looksLikeShortSha,
   mapReleases,
-  normaliseVersion,
-  type AddonRelease,
+  normalizeVersion,
   type GitHubTag,
 } from "./refs";
+import { createUpstreamFixtureFetch } from "./upstream-fixtures";
+import type { Resolution, VersionList } from "@/api/addon";
 
-export interface VersionList {
-  releases: AddonRelease[];
-  /** Tag of the newest stable release: the picker's default. */
-  defaultRef: string | null;
-  /** Branch names, when GitHub answered. */
-  branches: string[];
-  /** False when GitHub's tag list was unavailable and tag names are guesses. */
-  tagsConfirmed: boolean;
-}
-
-/** What a ref the user typed turned out to be. */
-export interface Resolution {
-  /** What was asked for. */
-  input: string;
-  kind: "release" | "branch" | "commit";
-  /** Immutable ref to fetch with: the real tag name, or a commit SHA. */
-  ref: string;
-  /** Disk cache directory name (normalised version or commit SHA). */
-  key: string;
-  /** Normalised version, for releases. */
-  version?: string;
-  /** Commit SHA, when known. */
-  sha?: string;
-}
+export type { Resolution, VersionList };
 
 export interface AddonSourceCache {
   versions(): Promise<VersionList>;
@@ -176,7 +154,7 @@ export function createAddonSourceCache(options: AddonSourceCacheOptions): AddonS
       return { input, kind: "release", ref: release.tag, key: release.version, version: release.version, sha: release.sha };
     }
     // Version lists unavailable (jsDelivr and GitHub down): a version-shaped ref is still a release.
-    const version = normaliseVersion(input);
+    const version = normalizeVersion(input);
     if (!list && version) return { input, kind: "release", ref: input, key: version, version };
     let sha: string | null;
     try {
@@ -238,4 +216,27 @@ export function createAddonSourceCache(options: AddonSourceCacheOptions): AddonS
     },
     memo,
   };
+}
+
+/** Default cache directory: `<repo>/data/addon`, overridable with ADDON_CACHE_DIR. */
+export function defaultAddonCacheDir(): string {
+  return process.env.ADDON_CACHE_DIR ?? path.join(process.cwd(), "data", "addon");
+}
+
+const globalForCache = globalThis as typeof globalThis & { __addonSourceCache?: AddonSourceCache };
+
+/**
+ * The app's shared addon source cache (kept on globalThis so dev hot reloads reuse its memory).
+ * With ADDON_UPSTREAM_FIXTURES=<dir> (tests), version lists and ref resolution come from recorded
+ * GitHub/jsDelivr answers in that directory instead of the network (see upstream-fixtures.ts).
+ */
+export function getAddonSourceCache(): AddonSourceCache {
+  const fixtures = process.env.ADDON_UPSTREAM_FIXTURES;
+  globalForCache.__addonSourceCache ??= createAddonSourceCache({
+    root: defaultAddonCacheDir(),
+    fetch: fixtures
+      ? createUpstreamFixtureFetch(path.resolve(fixtures), (input, init) => fetch(input, init))
+      : undefined,
+  });
+  return globalForCache.__addonSourceCache;
 }

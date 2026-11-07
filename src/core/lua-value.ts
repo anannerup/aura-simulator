@@ -135,11 +135,16 @@ function luaStringLiteral(s: string): string {
   return out + '"';
 }
 
+/** A Lua number literal (shortest round-trip form, `-0` kept). */
+export function luaNumberLiteral(n: number): string {
+  if (!Number.isFinite(n)) throw new Error(`Lua values must be finite numbers, got ${n}`);
+  return Object.is(n, -0) ? "-0" : String(n);
+}
+
 function luaScalarLiteral(value: LuaKey): string {
   if (typeof value === "string") return luaStringLiteral(value);
   if (typeof value === "boolean") return String(value);
-  if (!Number.isFinite(value)) throw new Error(`Lua values must be finite numbers, got ${value}`);
-  return Object.is(value, -0) ? "-0" : String(value);
+  return luaNumberLiteral(value);
 }
 
 /** Lua source for a value (a table constructor for tables). Pure ASCII. */

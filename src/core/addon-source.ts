@@ -6,8 +6,9 @@ export type AddonSourceFetcher = (path: string) => Promise<string>;
 export const DEFAULT_ADDON_REF = "v1.15.0";
 export const ADDON_REPO = "dldvlpr-addons-wow/Musca-Auras";
 
+/** A file of the addon repo at `ref` on jsDelivr (`path` relative to the repo root, `/`-separated). */
 export function jsDelivrUrl(ref: string, path: string): string {
-  return `https://cdn.jsdelivr.net/gh/${ADDON_REPO}@${encodeURIComponent(ref)}/${path}`;
+  return `https://cdn.jsdelivr.net/gh/${ADDON_REPO}@${encodeURIComponent(ref)}/${path.split("/").map(encodeURIComponent).join("/")}`;
 }
 
 /** Fetches files from GitHub through jsDelivr (sends CORS headers, so it works in the browser). */

@@ -95,7 +95,7 @@ async function sweepTab(base: AuraState, tab: string, out: SweepResult, label = 
       });
       out.edited++;
       if (edit.warning && !KNOWN_ADDON_ERRORS.some((r) => r.test(edit.warning!))) out.problems.push(`${where}: addon error ${edit.warning}`);
-      if (!edit.changed) continue; // e.g. an input the addon normalises back
+      if (!edit.changed) continue; // e.g. an input the addon normalizes back
       const after = await core.options({ aura: edit.aura, children: edit.children ?? base.children }, { tab });
       if (after.error) out.problems.push(`${where}: tab no longer builds: ${after.error}`);
       const shown = after.tree && walkOptions(after.tree).find((n) => n.path.join("/") === node.path.join("/"));

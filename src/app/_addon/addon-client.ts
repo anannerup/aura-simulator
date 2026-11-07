@@ -2,6 +2,7 @@
  * Browser side of the addon version picker: talks to /api/addon/* and builds the source fetcher the
  * aura core loads through (the server's cache first, jsDelivr directly if the server can't answer).
  */
+import { MAX_CLIENT_SPELL_IDS, type AddonDiff, type Resolution, type VersionList } from "@/api/addon";
 import {
   bundleFetcher,
   jsDelivrFetcher,
@@ -12,33 +13,6 @@ import {
   type SpellInfoSource,
 } from "@/core";
 
-export interface AddonReleaseInfo {
-  version: string;
-  tag: string;
-  prerelease: boolean;
-}
-
-export interface VersionListInfo {
-  releases: AddonReleaseInfo[];
-  defaultRef: string | null;
-  branches: string[];
-  tagsConfirmed: boolean;
-}
-
-export interface ResolutionInfo {
-  input: string;
-  kind: "release" | "branch" | "commit";
-  ref: string;
-  version?: string;
-  sha?: string;
-}
-
-export interface DiffInfo {
-  summary: string[];
-  changelog: string | null;
-  files: { added: string[]; removed: string[]; changed: string[]; complete: boolean };
-}
-
 async function errorText(res: Response): Promise<string> {
   try {
     const body = (await res.json()) as { error?: string };
@@ -47,7 +21,7 @@ async function errorText(res: Response): Promise<string> {
   return `HTTP ${res.status}`;
 }
 
-export async function fetchVersions(): Promise<VersionListInfo> {
+export async function fetchVersions(): Promise<VersionList> {
   const res = await fetch("/api/addon/versions");
   if (!res.ok) throw new Error(await errorText(res));
   return res.json();
@@ -57,7 +31,7 @@ export async function fetchVersions(): Promise<VersionListInfo> {
  * Resolves a ref on the server. A ref the server says doesn't exist (4xx) throws; when the server itself
  * can't answer, returns null so the caller can fall back to jsDelivr with the ref as typed.
  */
-export async function resolveRef(ref: string): Promise<ResolutionInfo | null> {
+export async function resolveRef(ref: string): Promise<Resolution | null> {
   let res: Response;
   try {
     res = await fetch(`/api/addon/resolve?ref=${encodeURIComponent(ref)}`);
@@ -148,15 +122,15 @@ export function serverAddonFetcher(ref: string, set: AddonBundleSet = "full"): A
 /** What the Forever client knows about spells, from the server's spell cache (for the addon VM). */
 export const fetchClientSpells: SpellInfoSource = async (ids) => {
   const out: Record<number, ClientSpell | null> = {};
-  for (let i = 0; i < ids.length; i += 500) {
-    const res = await fetch(`/api/addon/spells?ids=${ids.slice(i, i + 500).join(",")}`);
+  for (let i = 0; i < ids.length; i += MAX_CLIENT_SPELL_IDS) {
+    const res = await fetch(`/api/addon/spells?ids=${ids.slice(i, i + MAX_CLIENT_SPELL_IDS).join(",")}`);
     if (!res.ok) throw new Error(await errorText(res));
     Object.assign(out, await res.json());
   }
   return out;
 };
 
-export async function fetchDiff(from: string, to: string): Promise<DiffInfo> {
+export async function fetchDiff(from: string, to: string): Promise<AddonDiff> {
   const res = await fetch(`/api/addon/diff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
   if (!res.ok) throw new Error(await errorText(res));
   return res.json();
