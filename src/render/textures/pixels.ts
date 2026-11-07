@@ -13,6 +13,8 @@ export interface TextureVariant {
   tint?: Rgb;
   /** Crop to this texcoord rect first (e.g. one atlas member), so large atlases stay small. */
   crop?: TexCoord;
+  /** Then turn a quarter clockwise (`turnTexture`): how a backdrop's top and bottom edges use their pieces. */
+  turn?: boolean;
 }
 
 /**
@@ -54,6 +56,22 @@ export function cropTexture(tex: DecodedTexture, coord: TexCoord): DecodedTextur
     data.set(tex.data.subarray(start, start + r.width * 4), y * r.width * 4);
   }
   return { width: r.width, height: r.height, data };
+}
+
+/**
+ * The texture turned a quarter clockwise: its left column becomes the top row, read from the bottom up. What a
+ * SetTexCoord with the corners swapped round draws, as Blizzard's Backdrop does for its top and bottom edges.
+ */
+export function turnTexture(tex: DecodedTexture): DecodedTexture {
+  const { width: w, height: h } = tex;
+  const data = new Uint8ClampedArray(w * h * 4);
+  for (let y = 0; y < w; y++) {
+    for (let x = 0; x < h; x++) {
+      const from = ((h - 1 - x) * w + y) * 4;
+      data.set(tex.data.subarray(from, from + 4), (y * h + x) * 4);
+    }
+  }
+  return { width: h, height: w, data };
 }
 
 /**

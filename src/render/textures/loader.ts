@@ -1,9 +1,11 @@
 import { createContext, useContext } from "react";
+import type { Game } from "@/games/game";
 import { forever } from "@/games/forever";
+import { fetchJson } from "@/lib/fetch-json";
 import { decodeTexture, type DecodedTexture } from "./decode";
-import type { ResolvePath } from "./files";
+import { gameFilesFromApi, type ResolvePath } from "./files";
 import { fileDataIdUrl, isAddonPath, textureUrls, type AddonFileUrl, type TextureSource } from "./paths";
-import { cropTexture, shadePixels, type TextureVariant } from "./pixels";
+import { cropTexture, shadePixels, turnTexture, type TextureVariant } from "./pixels";
 
 export interface TextureLoaderOptions {
   /** fetch implementation (tests inject a mock). */
@@ -34,7 +36,7 @@ export interface TextureLoader {
   loadBytes(source: TextureSource): Promise<Uint8Array>;
   /** Decoded RGBA. */
   load(source: TextureSource): Promise<DecodedTexture>;
-  /** URL of the (optionally cropped / desaturated / tinted) texture, cached per variant. */
+  /** URL of the (optionally cropped / turned / desaturated / tinted) texture, cached per variant. */
   url(source: TextureSource, variant?: TextureVariant): Promise<TextureUrl>;
 }
 
@@ -154,11 +156,12 @@ export function createTextureLoader(options: TextureLoaderOptions = {}): Texture
   }
 
   function url(source: TextureSource, variant: TextureVariant = {}): Promise<TextureUrl> {
-    const k = `${key(source)}|${variant.desaturate ? 1 : 0}|${variant.tint?.join(",") ?? ""}|${variant.crop?.join(",") ?? ""}`;
+    const k = `${key(source)}|${variant.desaturate ? 1 : 0}|${variant.tint?.join(",") ?? ""}|${variant.crop?.join(",") ?? ""}|${variant.turn ? 1 : 0}`;
     let p = urlCache.get(k);
     if (!p) {
       p = load(source).then(async (tex) => {
-        const cropped = variant.crop ? cropTexture(tex, variant.crop) : tex;
+        const cut = variant.crop ? cropTexture(tex, variant.crop) : tex;
+        const cropped = variant.turn ? turnTexture(cut) : cut;
         const plain = !variant.desaturate && !variant.tint;
         const shaded = plain ? cropped : { ...cropped, data: shadePixels(cropped.data, variant) };
         return { url: await encode(shaded), width: shaded.width, height: shaded.height };
@@ -170,6 +173,25 @@ export function createTextureLoader(options: TextureLoaderOptions = {}): Texture
   }
 
   return { urls, loadBytes, load, url };
+}
+
+/**
+ * A game's texture loader at an addon release: the addon's own files from that release (`game.addon.fileUrl`) and
+ * every other game path by the FileDataID the game's file list gives (`/api/<game>/files`). Every page that draws a
+ * game's auras (the window's game screen, the render page) loads textures through one of these, so a texture path
+ * draws the same everywhere.
+ */
+export function gameTextureLoader(
+  game: Pick<Game, "id" | "addon">,
+  ref: string,
+  options: Omit<TextureLoaderOptions, "addonFileUrl" | "resolvePath"> = {},
+): TextureLoader {
+  const files = `/api/${game.id}/files`;
+  return createTextureLoader({
+    ...options,
+    addonFileUrl: (path) => game.addon.fileUrl(ref, path),
+    resolvePath: gameFilesFromApi(files, (url) => fetchJson(url, { fetch: options.fetch })),
+  });
 }
 
 let shared: TextureLoader | null = null;

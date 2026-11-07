@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { PixelGridContext, surfaceGrid } from "../pixel-grid";
 import { fitScale, uiParent, type UiParent } from "./geometry";
 import type { ScreenSettings } from "./settings";
 import styles from "./GameScreen.module.css";
@@ -66,6 +67,7 @@ export function GameScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, f
     el.scrollTop = (el.scrollHeight - el.clientHeight) / 2;
   }, [fill, zoom, fit]);
 
+  const grid = useMemo(() => surfaceGrid(cssPerUnit), [cssPerUnit]);
   const layerStyle = {
     width: ui.width,
     height: ui.height,
@@ -91,7 +93,8 @@ export function GameScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, f
             // eslint-disable-next-line @next/next/no-img-element
             <img className={styles.background} src={backgroundUrl} alt="Screenshot background" data-testid="screen-background" />
           )}
-          {children(ui)}
+          {/* The layer's corner is on the window's pixels, cssPerUnit CSS pixels per unit. */}
+          <PixelGridContext value={grid}>{children(ui)}</PixelGridContext>
         </div>
         {settings.showGrid && <Grid width={display.width} height={display.height} step={GRID_STEP * cssPerUnit} />}
       </div>

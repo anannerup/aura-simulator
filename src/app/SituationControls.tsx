@@ -11,6 +11,7 @@ import {
   type AddonGameId,
   type AuraDocument,
   type Situation,
+  type TriggerInfo,
   type TriggerKind,
   type TriggerSituation,
 } from "@/core";
@@ -24,6 +25,7 @@ const KIND_LABELS: Record<TriggerKind, { title: string; present: string; remaini
   itemCooldown: { title: "Item cooldown", present: "On cooldown", remaining: "Cooldown left", duration: "Cooldown", stacks: "Stacks" },
   weaponEnchant: { title: "Weapon enchant", present: "Enchanted", remaining: "Time left", duration: "Duration", stacks: "Charges" },
   itemCount: { title: "Item count", present: "In bags", remaining: "Time left", duration: "Duration", stacks: "Count" },
+  custom: { title: "Custom", present: "Active", remaining: "Time left", duration: "Duration", stacks: "Stacks" },
   other: { title: "Trigger", present: "Present", remaining: "Time left", duration: "Duration", stacks: "Stacks" },
 };
 
@@ -62,13 +64,13 @@ export function SituationControls({
   const auraId = typeof aura.id === "string" ? aura.id : undefined;
   const own = auraId !== undefined && situation.auras?.[auraId] !== undefined;
   const sees = situationForAura(situation, auraId);
-  const setTrigger = (index: number, patch: Partial<TriggerSituation>) =>
-    onChange(own && auraId !== undefined ? withAuraTrigger(situation, auraId, index, patch) : withTrigger(situation, index, patch));
+  const setTrigger = (trigger: TriggerInfo, patch: Partial<TriggerSituation>) =>
+    onChange(own && auraId !== undefined ? withAuraTrigger(situation, auraId, trigger, patch) : withTrigger(situation, trigger, patch));
   const setOwn = (on: boolean) => {
     if (auraId === undefined) return;
     if (!on) return onChange(withoutAura(situation, auraId));
     // Start the aura's own situation from what it sees now.
-    onChange(triggers.reduce((s, { index }) => withAuraTrigger(s, auraId, index, {}), situation));
+    onChange(triggers.reduce((s, trigger) => withAuraTrigger(s, auraId, trigger, {}), situation));
   };
   return (
     <section className={styles.panel} aria-label="Situation">
@@ -86,10 +88,11 @@ export function SituationControls({
           <Switch label="Only this aura" role="switch" checked={own} onChange={(e) => setOwn(e.target.checked)} />
         </div>
       )}
-      {triggers.map(({ index, kind }) => {
-        const t = triggerSituation(sees, index);
+      {triggers.map((trigger) => {
+        const { index, kind } = trigger;
+        const t = triggerSituation(sees, trigger);
         const labels = KIND_LABELS[kind];
-        const set = (patch: Partial<TriggerSituation>) => setTrigger(index, patch);
+        const set = (patch: Partial<TriggerSituation>) => setTrigger(trigger, patch);
         return (
           <fieldset key={index} className={styles.trigger}>
             <legend className={styles.legend}>

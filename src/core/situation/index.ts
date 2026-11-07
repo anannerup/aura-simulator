@@ -37,7 +37,7 @@ export interface AuraSituation {
 }
 
 export interface SituationFacts {
-  /** Per trigger number (1-based). Triggers without an entry use `defaultTriggerSituation`. */
+  /** Per trigger number (1-based). Triggers without an entry report their default (`defaultTriggerSituation`). */
   triggers: Record<number, TriggerSituation>;
   targetExists: boolean;
   inCombat: boolean;
@@ -55,17 +55,20 @@ export interface Situation extends SituationFacts {
   beforeCombat?: SituationFacts;
 }
 
-const defaultTriggerSituation: TriggerSituation = { present: true, remaining: 45, duration: 60, stacks: 0 };
+const GENERIC_DEFAULT: TriggerSituation = { present: true, remaining: 45, duration: 60, stacks: 0 };
 
 export const DEFAULT_SITUATION: Situation = { triggers: {}, targetExists: true, inCombat: false };
 
-/** What the situation controls offer for a trigger. `secretAura` (Aura (Modern)) exists only in Forever. */
-export type TriggerKind = "secretAura" | "aura2" | "spellCooldown" | "itemCooldown" | "itemCount" | "weaponEnchant" | "other";
+/**
+ * What the situation controls offer for a trigger. `secretAura` (Aura (Modern)) exists only in Forever; `custom` is a
+ * Custom trigger, whose state comes from its code.
+ */
+export type TriggerKind = "secretAura" | "aura2" | "spellCooldown" | "itemCooldown" | "itemCount" | "weaponEnchant" | "custom" | "other";
 
 /** The trigger kinds each game has. */
 export const TRIGGER_KINDS: Record<AddonGameId, readonly TriggerKind[]> = {
-  forever: ["secretAura", "aura2", "spellCooldown", "itemCooldown", "itemCount", "weaponEnchant", "other"],
-  tbc: ["aura2", "spellCooldown", "itemCooldown", "itemCount", "weaponEnchant", "other"],
+  forever: ["secretAura", "aura2", "spellCooldown", "itemCooldown", "itemCount", "weaponEnchant", "custom", "other"],
+  tbc: ["aura2", "spellCooldown", "itemCooldown", "itemCount", "weaponEnchant", "custom", "other"],
 };
 
 function triggerKind(trigger: LuaValue | undefined, game: AddonGameId): TriggerKind {
@@ -74,6 +77,7 @@ function triggerKind(trigger: LuaValue | undefined, game: AddonGameId): TriggerK
   // WeakAuras2 has no Aura (Modern) trigger type: on TBC such a trigger is just an unknown one.
   if (type === "secretAura") return game === "forever" ? "secretAura" : "other";
   if (type === "aura2") return "aura2";
+  if (type === "custom") return "custom";
   if (type === "spell" && getField(trigger, "event") === "Cooldown Progress (Spell)") return "spellCooldown";
   if (type === "item") {
     const event = getField(trigger, "event");
@@ -105,13 +109,35 @@ export function auraTriggers(aura: AuraDocument, game: AddonGameId = "forever"):
   return result.sort((a, b) => a.index - b.index);
 }
 
-export function triggerSituation(facts: SituationFacts, index: number): TriggerSituation {
-  return facts.triggers[index] ?? defaultTriggerSituation;
+/**
+ * What a trigger reports where the situation says nothing of it: the default moment (present, 45 of 60 seconds left,
+ * no stacks). A custom trigger's timer comes from its code, which the simulator doesn't run (GenericTrigger.lua: a
+ * trigger state update's states, a status or event trigger's Duration function), so it has none; only an event trigger
+ * hidden after a set time (`custom_hide` "timed", without dynamic duration) has its own: its Duration, from when the
+ * event fired (GenericTrigger.lua:1904-1909, 540-553).
+ */
+export function defaultTriggerSituation(info?: Pick<TriggerInfo, "kind" | "trigger">): TriggerSituation {
+  if (info?.kind !== "custom") return GENERIC_DEFAULT;
+  const g = (k: string) => getField(info.trigger, k);
+  const duration = Number(g("duration"));
+  const timed = g("custom_type") === "event" && g("custom_hide") === "timed" && g("dynamicDuration") !== true;
+  return timed && duration > 0
+    ? { present: true, remaining: duration, duration, stacks: 0 }
+    : { present: true, remaining: 0, duration: 0, stacks: 0 };
 }
 
-/** Returns a copy with one trigger's situation changed. */
-export function withTrigger(situation: Situation, index: number, patch: Partial<TriggerSituation>): Situation {
-  const current = triggerSituation(situation, index);
+/** What `trigger` reports in `facts`: its entry there, else its default (`defaultTriggerSituation`). */
+export function triggerSituation(facts: SituationFacts, trigger: TriggerInfo): TriggerSituation {
+  return facts.triggers[trigger.index] ?? defaultTriggerSituation(trigger);
+}
+
+/**
+ * Returns a copy with one trigger's situation changed: from its entry, else from `trigger`'s default (the generic one
+ * when only its number is given).
+ */
+export function withTrigger(situation: Situation, trigger: number | TriggerInfo, patch: Partial<TriggerSituation>): Situation {
+  const index = typeof trigger === "number" ? trigger : trigger.index;
+  const current = situation.triggers[index] ?? defaultTriggerSituation(typeof trigger === "number" ? undefined : trigger);
   const next = { ...current, ...patch };
   next.duration = Math.max(0, next.duration);
   next.remaining = Math.min(Math.max(0, next.remaining), next.duration > 0 ? next.duration : next.remaining);
@@ -130,8 +156,9 @@ export function situationForAura(situation: Situation, auraId: unknown): Situati
 }
 
 /** Returns a copy with one trigger of one aura's own situation changed (starting from what that aura sees). */
-export function withAuraTrigger(situation: Situation, auraId: string, index: number, patch: Partial<TriggerSituation>): Situation {
-  const sees = withTrigger(situationForAura(situation, auraId), index, patch);
+export function withAuraTrigger(situation: Situation, auraId: string, trigger: number | TriggerInfo, patch: Partial<TriggerSituation>): Situation {
+  const index = typeof trigger === "number" ? trigger : trigger.index;
+  const sees = withTrigger(situationForAura(situation, auraId), trigger, patch);
   const mine = situation.auras?.[auraId]?.triggers ?? {};
   return { ...situation, auras: { ...situation.auras, [auraId]: { triggers: { ...mine, [index]: sees.triggers[index] } } } };
 }
@@ -162,8 +189,11 @@ export function frozenFacts(situation: Situation): SituationFacts {
   return situation.inCombat ? (situation.beforeCombat ?? { ...situation, inCombat: false }) : situation;
 }
 
-/** The default of one trigger's situation, for the docs: the aura is up, 45 of 60 seconds left, no stacks. */
-export const DEFAULT_TRIGGER_SITUATION: Readonly<TriggerSituation> = defaultTriggerSituation;
+/**
+ * The default of one trigger's situation, for the docs: the aura is up, 45 of 60 seconds left, no stacks (a custom
+ * trigger's differs: `defaultTriggerSituation`).
+ */
+export const DEFAULT_TRIGGER_SITUATION: Readonly<TriggerSituation> = GENERIC_DEFAULT;
 
 /** A situation an agent sent that isn't one; the message says what's wrong. */
 export class SituationError extends Error {

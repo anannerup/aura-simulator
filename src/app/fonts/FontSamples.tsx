@@ -6,7 +6,7 @@ import { findGame } from "@/games";
 import type { AddonGameId } from "@/core";
 import { ensureFont, fontFamily, fontFlagsStyle } from "@/render/fonts";
 import { FONTS } from "@/render/media";
-import { createTextureLoader } from "@/render/textures";
+import { gameTextureLoader } from "@/render/textures";
 import styles from "./FontSamples.module.css";
 
 interface FontSamplesProps {
@@ -26,7 +26,7 @@ interface FontSamplesProps {
  */
 export function FontSamples({ gameId, addonRef, fonts, defaultFont, text, size, outline }: FontSamplesProps) {
   const game = findGame(gameId)!;
-  const loader = useMemo(() => createTextureLoader({ addonFileUrl: (path) => game.addon.fileUrl(addonRef, path) }), [game, addonRef]);
+  const loader = useMemo(() => gameTextureLoader(game, addonRef), [game, addonRef]);
   const [, setLoaded] = useState(0);
   useEffect(() => {
     for (const f of fonts) if (f.name in FONTS) ensureFont(f.name, loader);
