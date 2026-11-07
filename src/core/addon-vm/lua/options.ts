@@ -129,7 +129,8 @@ function O.load(input, children)
     if not r.ok and report ~= false then raised[#raised + 1] = tostring(d.id) .. ": " .. (r.error:match("^[^\n]*") or r.error) end
     return r
   end
-  for _, d in ipairs(order) do
+  -- (A lone aura has no relations in the loaded set: phase 1 would only add it twice.)
+  for _, d in ipairs(#order > 1 and order or {}) do
     local phase1 = deepcopy(d)
     phase1.parent = nil
     if phase1.controlledChildren then phase1.controlledChildren = {} end

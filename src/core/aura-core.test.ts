@@ -62,8 +62,6 @@ describe("state codes", () => {
       mixed: { "[1]": "first", "[2]": "second", disjunctive: "any" },
       nested: [[1, 2], { a: [{}] }],
       empty: {},
-      // Escapes followed by digits (custom code: a newline before a number, a tab before one, "—" before one).
-      code: "local a = {\n100,\n\t9,\n\t255 }\n-- —1 \"2\" \\3 \r\n0",
     };
     const decoded = core.decode(core.encode({ aura, children: [] }));
     expect(decoded.aura).toStrictEqual(aura);

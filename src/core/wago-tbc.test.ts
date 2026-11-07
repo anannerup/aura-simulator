@@ -47,7 +47,8 @@ function selection(all: AuraDocument[], aura: AuraDocument): AuraState {
   const byId = new Map(all.map((a) => [a.id, a]));
   const children: AuraDocument[] = [];
   const walk = (a: AuraDocument) => {
-    for (const id of (a.controlledChildren as string[] | undefined) ?? []) {
+    // An empty controlledChildren is an empty table ({}), not a list.
+    for (const id of Array.isArray(a.controlledChildren) ? (a.controlledChildren as string[]) : []) {
       const child = byId.get(id);
       if (!child) continue;
       children.push(child);
