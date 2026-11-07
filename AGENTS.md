@@ -190,6 +190,11 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
 - `src/lib/`: small generic helpers with no project knowledge; any layer may import them and they import nothing
   from `src` (`errors.ts`: `errorMessage`; `fetch-json.ts`: `fetchJson`, the one way page code fetches JSON, and
   `HttpError`; `idb.ts`: one IndexedDB object store, used by the workspace storage and the screenshot store).
+- The user's server on :3000 runs a production build from the main checkout (`next build` then `next start -p 3000`;
+  rebuild after updating main). Never run `next dev` there while agents work: Turbopack watches the whole project
+  folder, including agent worktrees under `.claude/worktrees/` (gitignored, still watched; Next has no option to
+  exclude them), so every file an agent's own dev server or tests write rebuilds and reloads the user's page in a loop.
+  Merge and verify in a separate worktree, then fast-forward main, so the user's checkout never holds a half-merged tree.
 - Tests: unit/seam A with Vitest (`npm test`), browser/HTTP seam B with Playwright (`npm run test:e2e`,
   `E2E_PORT` picks the port so parallel worktrees don't clash). Network-dependent tests use recorded
   fixtures in `tests/fixtures/<game>/`. The e2e dev server gets addon versions from recorded GitHub/jsDelivr
