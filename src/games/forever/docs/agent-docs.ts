@@ -166,6 +166,7 @@ export function agentDocsMarkdown(f: AgentDocsFacts): string {
   const sections = [
     intro,
     workflow,
+    builtInBeforeLua,
     wagoJson,
     auraDocument,
     fieldReference,
@@ -197,7 +198,7 @@ live. The player checks it, exports it as a file and imports it in the game.
 This server follows ${version}. Lists marked *generated* below are read from that version. For another release,
 add \`?ref=<version>\` to this page's address and to your pushes.
 
-Contents: Workflow · wago JSON · The aura document · Field reference · Triggers · Conditions ·
+Contents: Workflow · Built-in ways before Lua · wago JSON · The aura document · Field reference · Triggers · Conditions ·
 Option ↔ table reference · Combat rules · Validation · Situation · Pictures · Spells · Items, icons and media ·
 Push API · Wago links · Worked examples · Troubleshooting.
 `;
@@ -205,6 +206,12 @@ Push API · Wago links · Worked examples · Troubleshooting.
 
 function workflow({ o, d }: Ctx): string {
   return `## Workflow
+
+**Don't write custom Lua unless it is absolutely necessary.** Build the aura from the addon's own triggers,
+conditions, text replacements and options: they cover far more than they seem to (see Built-in ways before Lua).
+Custom Lua is slow, brittle and unsafe; the simulator doesn't run it, so the preview can't show that it works; and
+the player has to trust it on import. Write it only when no built-in way exists, and then tell the player why.
+Validation lists every place of custom Lua as a \`custom.lua\` info.
 
 1. **Pick a workspace.** Ask the player for theirs (the page shows its workspace id; it is the \`w\` in the address)
    or choose one (1-64 of \`A-Z a-z 0-9 _ -\`) and ask them to open \`${o}/forever?w=<id>\`. Without \`?w=\` the page follows
@@ -225,6 +232,40 @@ function workflow({ o, d }: Ctx): string {
 7. **The player imports in the game**: open Musca Auras, click Import, paste the file's text, Import.
 
 Don't paste import strings or links into the chat: push to the workspace and let the player export.
+`;
+}
+
+/** The rule against custom Lua, with the built-in way for the cases that look as if they need it. */
+function builtInBeforeLua(): string {
+  return `## Built-in ways before Lua
+
+Cases that look as if they need custom Lua, and the built-in way (keys in the option ↔ table reference):
+
+- **A weapon enchant (oil, stone, poison) present, missing or running out**: the Weapon Enchant trigger,
+  \`{"type": "item", "event": "Weapon Enchant", "weapon": "main"}\` (\`off\`, \`ranged\`), Show On \`showOn\`
+  \`showOnActive\`/\`showOnMissing\`/\`showAlways\`, optional \`use_remaining\` + \`remaining_operator\` + \`remaining\`,
+  \`use_enchant\` + \`enchant\`. Its condition \`enchanted\` dims or colours the icon while missing.
+- **How many of an item are in the bags** (consumables, reagents): the Item Count trigger,
+  \`{"type": "item", "event": "Item Count", "use_itemName": true, "itemName": <item ID>}\`; \`%s\` in a text is the
+  count; \`use_count\` + \`count_operator\` + \`count\` filters it (e.g. show only under 5).
+- **A missing buff**: Aura (Modern) with Show On \`secretShowOn\` \`showOnMissing\` (shows only while missing), or
+  \`showAlways\` with the condition \`faAuraMissing\` to dim, colour or glow the icon (see Combat rules).
+- **Several things at once**: one condition with \`{"trigger": -2, "variable": "AND", "checks": [...]}\` (or
+  \`"OR"\`), \`"linked": true\` for Else If, for generic checks (Aura (Modern) checks can't be combined: one condition
+  per check); several triggers with \`disjunctive\` \`"all"\`/\`"any"\`; the global checks \`incombat\`, \`hastarget\`
+  (trigger \`-1\`).
+- **Only in combat, only in a group, only for one class**: the Load tab (\`load.use_combat\`, \`load.use_class\` +
+  \`load.class\`, …), not code that hides the aura.
+- **Text**: the text replacements \`%p\` (time left), \`%t\` (total), \`%n\` (name), \`%s\` (stacks or count), \`%i\`
+  (icon); \`%1.s\`, \`%2.p\`, … read trigger 1, 2, … instead of the one that supplies the dynamic info.
+- **A row or grid of icons that closes up**: a dynamic group (\`"regionType": "dynamicgroup"\` with \`grow\`, \`sort\`,
+  \`space\`), not custom grow or sort functions.
+- **Cooldown ready or not**: the spell cooldown trigger with \`genericShowOn\` and the condition \`onCooldown\` (or
+  \`desaturateOnCooldown\`); items: Cooldown Progress (Item) / (Equipment Slot).
+
+When nothing built-in fits and Lua is necessary, keep it small, say which part is Lua and why, and check it in game:
+the preview doesn't evaluate it (\`notEvaluated\` in \`preview\`, \`custom.lua\` in \`validation\`). On Forever, custom
+Lua also meets the combat restrictions (hidden values, no combat log), which the built-in triggers already handle.
 `;
 }
 
@@ -516,7 +557,9 @@ Every push answer has a \`validation\` field, from the real Musca Auras code:
   "Condition 1, change 1 (desaturate)") and, in a group, the \`auraId\` it is about. Codes: \`modern.invalid\`
   (an Aura (Modern) rule is broken), \`modern.status\`, \`modern.notEligible\` (the display can't use the trigger),
   \`modern.note\` (a caution, e.g. "Hostile units only."), \`combat.hiddenValues\` (the game hides values this
-  trigger compares), \`defaults.error\`, \`addon.<key>\` (warnings the addon raises, e.g. \`addon.forever_combat_log\`).
+  trigger compares), \`defaults.error\`, \`addon.<key>\` (warnings the addon raises, e.g. \`addon.forever_combat_log\`),
+  \`custom.lua\` (info: one place of custom Lua, which the preview doesn't evaluate; in your own auras, replace it with
+  a built-in way where one exists).
 
 How to act:
 

@@ -72,6 +72,7 @@ export const MIRRORED: Record<AddonGameId, GameMirror> = {
       "WeakAuras/TextStyle.lua": "370f68a42e56d76a",
       "WeakAuras/Types.lua": "7dc43a88f2f3ebee",
       "WeakAuras/WeakAuras.lua": "f231f6547faac787",
+      "WeakAurasOptions/OptionsFrames/Update.lua": "08ea08b818609ee4",
       "WeakAurasOptions/RegionOptions/DynamicGroup.lua": "7542ee80a9e280d2",
     },
   },
@@ -112,6 +113,7 @@ export const MIRRORED: Record<AddonGameId, GameMirror> = {
       "WeakAuras/SubRegionTypes/Tick.lua": "900feb2d2b0b5aab",
       "WeakAuras/Types.lua": "fe142d639b8f20c9",
       "WeakAuras/WeakAuras.lua": "ec1ec5bbbf27c422",
+      "WeakAurasOptions/OptionsFrames/Update.lua": "801dc3a3577cc89b",
       "WeakAurasOptions/RegionOptions/DynamicGroup.lua": "33ed6096c915898f",
     },
   },
@@ -160,11 +162,12 @@ export const SHARED_PORTS: SharedPort[] = [
   },
   {
     module: "src/core/conditions/custom-code.ts",
-    files: ["WeakAuras/Conditions.lua", "WeakAuras/WeakAuras.lua", "WeakAuras/Animations.lua"],
+    files: ["WeakAurasOptions/OptionsFrames/Update.lua", "WeakAuras/SubRegionTypes/SubText.lua"],
     differs: {
-      "WeakAuras/Conditions.lua": "The customcheck and customcode keys are the same; Musca's additions are its Aura (Modern) hooks.",
-      "WeakAuras/WeakAuras.lua": "The custom action keys (do_custom, custom) and the %c placeholders are the same.",
-      "WeakAuras/Animations.lua": "The custom animation keys (type custom, <x>Type custom) are the same; Musca adds secret guards.",
+      "WeakAurasOptions/OptionsFrames/Update.lua":
+        "scamCheck (the import dialog's custom Lua list) is the same in both; Musca adds its Forever compatibility " +
+        "report (combat log, secret auras, removed functions) after it.",
+      "WeakAuras/SubRegionTypes/SubText.lua": "customText is compiled the same way (only when a text uses %c); Musca adds secret-value paths.",
     },
   },
   {

@@ -126,6 +126,41 @@ describe("validate", () => {
     const result = await core.validate(single({ id: "x", regionType: "icon", triggers: { nonsense: true } }));
     expect(result.combat?.status).toBeDefined();
   });
+
+  test("the Weapon Enchant trigger validates clean: its leaked 'shortenedName' is no client global, as in game", async () => {
+    // Prototypes.lua's Weapon Enchant code assigns shortenedName without 'local'; the addon warns about overwriting a
+    // global only when _G already has it, which the client doesn't (the shim's auto-stub must not invent it).
+    const icon = await core.newAura("icon");
+    const aura = {
+      ...icon,
+      id: "Weapon oil",
+      triggers: { "[1]": { trigger: { type: "item", event: "Weapon Enchant", weapon: "main", showOn: "showOnMissing" }, untrigger: [] }, activeTriggerMode: -10 },
+    };
+    const result = await core.validate(single(aura));
+    expect([...result.errors, ...result.warnings]).toEqual([]);
+  });
+
+  test("custom Lua gets a custom.lua info per place (the addon's own scam-check list); a plain aura gets none", async () => {
+    const icon = await core.newAura("icon");
+    expect((await core.validate(single({ ...icon, id: "Plain" }))).warnings.filter((m) => m.code === "custom.lua")).toEqual([]);
+    const aura = {
+      ...icon,
+      id: "Lua",
+      triggers: {
+        "[1]": {
+          trigger: { type: "custom", custom_type: "status", check: "update", custom: "function() return true end", customDuration: "function() return 10, GetTime() + 10 end" },
+          untrigger: { custom: "function() return true end" },
+        },
+        activeTriggerMode: -10,
+      },
+      actions: { init: { do_custom: true, custom: "aura_env.n = 1" }, start: {}, finish: {} },
+    };
+    const lua = (await core.validate(single(aura))).warnings.filter((m) => m.code === "custom.lua");
+    expect(lua.map((m) => [m.severity, m.pointer?.tab, m.message.split(". ")[0]])).toEqual([
+      ["info", "trigger", "Custom Lua: trigger 1: custom (status); trigger, untrigger, duration"],
+      ["info", "action", "Custom Lua: On Init custom code"],
+    ]);
+  });
 });
 
 describe("Aura (Modern) Remaining Time (the trigger's own window, secretUseRem)", () => {

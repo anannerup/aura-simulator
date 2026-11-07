@@ -1,4 +1,5 @@
-import type { LuaKey } from "../lua-value";
+import { customLua } from "../conditions/custom-code";
+import type { AuraDocument, LuaKey } from "../lua-value";
 import { plainText } from "../wow-text";
 
 /** The part of the in-game options that causes a message: `tab` is the options window's tab key (`OptionTab.key`). Indexes are 1-based, as in the game. */
@@ -33,7 +34,9 @@ export interface ValidationMessage {
    *   file, which doesn't play;
    * - `add.error`: the addon's WeakAuras.Add raised a Lua error for the aura, so it was not registered;
    * - `addon.<key>`: a warning the addon raised when the aura was added (e.g. `addon.forever_combat_log`);
-   *   `addon.LuaError` when running the aura in the simulated client raised a Lua error.
+   *   `addon.LuaError` when running the aura in the simulated client raised a Lua error;
+   * - `custom.lua` (info): one place of the aura's custom Lua (the addon's import "scam check" list: custom trigger,
+   *   condition, text, action, animation, anchor or group function), which the preview doesn't evaluate.
    */
   code: string;
   severity: "error" | "warning" | "info";
@@ -318,6 +321,23 @@ function interpretOne(raw: RawValidation, auraId: string | undefined): Required<
     combatMessages.push(status === "ok" ? OK_MESSAGE : "");
   }
   return { errors, warnings, combat: { status, messages: combatMessages.filter(Boolean) } };
+}
+
+/**
+ * One `custom.lua` info per place of the aura's custom Lua (`customLua`): the simulator doesn't run it, so the preview
+ * doesn't evaluate it. Info, not a warning: imported packs legitimately have Lua.
+ */
+export function customLuaMessages(aura: AuraDocument, auraId?: string): ValidationMessage[] {
+  return customLua(aura).map((part) => ({
+    code: "custom.lua",
+    severity: "info",
+    message:
+      `Custom Lua: ${part.where}${part.functions ? `; ${part.functions.join(", ")}` : ""}. The simulator doesn't run custom Lua, ` +
+      "so the preview doesn't evaluate it; check it in game. Where the addon has a built-in way (a trigger, condition, " +
+      "text replacement or option), use that instead.",
+    pointer: part.pointer,
+    ...(auraId === undefined ? {} : { auraId }),
+  }));
 }
 
 /**
