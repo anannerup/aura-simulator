@@ -69,6 +69,11 @@ describe("state codes", () => {
     expect(decoded.aura).toStrictEqual(aura);
   });
 
+  test("control characters followed by digits survive (custom code: a newline, then a number)", () => {
+    const aura: AuraDocument = { id: "digits", customText: "a\n1\n25\n256\t7é 9" };
+    expect(core.decode(core.encode({ aura, children: [] })).aura).toStrictEqual(aura);
+  });
+
   test("whole numbers LibSerialize can't store are refused instead of garbled", () => {
     expect(() => core.encode({ aura: { id: "x", big: 1e21 }, children: [] })).toThrow(/2\^53/);
   });
