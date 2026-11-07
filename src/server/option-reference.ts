@@ -22,13 +22,21 @@ function queued<T>(work: () => Promise<T>): Promise<T> {
   return run;
 }
 
+const MEMO = `option-reference-v${OPTION_REFERENCE_FORMAT}`;
+
+/** The file a game's reference for an addon version (default: the newest) is kept in, and that version's ref. */
+export async function optionReferenceFile(server: ServerGame, requestedRef?: string | null): Promise<{ file: string; ref: string }> {
+  const resolution = await resolveServerRef(server, requestedRef);
+  return { file: server.addon.memoFile(resolution, MEMO), ref: resolution.ref };
+}
+
 async function job(server: ServerGame, requestedRef?: string | null): Promise<Job> {
   const resolution = await resolveServerRef(server, requestedRef);
   const jobs = (g.__optionReferences ??= new Map());
   const key = `${server.game.id}\n${resolution.key}`;
   let found = jobs.get(key);
   if (!found) {
-    const promise = server.addon.memo(resolution, `option-reference-v${OPTION_REFERENCE_FORMAT}`, () =>
+    const promise = server.addon.memo(resolution, MEMO, () =>
       queued(async () => (await getServerAuraCore(server, resolution.ref)).optionReference({ background: true })),
     );
     const started: Job = { promise };

@@ -11,10 +11,11 @@
  * The WeakAuras2 zip is downloaded once into .cache/weakauras2; without it (offline) these skip.
  */
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { fromWagoJson, loadAddon, toWagoJson, type AuraCore, type AuraState, type OptionNode } from "@/core";
+import { currentShard, isFirstShard, shardUnits } from "../../tests/support/shards";
 import { TBC_TEST_VERSION, weakAuras2Available, weakAuras2Fetcher } from "../../tests/support/weakauras2";
 
 const DIR = path.resolve(__dirname, "../../tests/fixtures/wago/tbc");
@@ -45,7 +46,11 @@ function tbc(ctx: { skip: () => void }): AuraCore {
 
 const same = (a: AuraState, b: AuraState) => expect({ aura: a.aura, children: a.children }).toStrictEqual({ aura: b.aura, children: b.children });
 
-describe.each(MANIFEST)("$name (wago $id)", (recorded) => {
+// The auras are split between the shards of `npm run test:all` by size (about how long their checks take).
+const shard = currentShard();
+const mine = shardUnits(MANIFEST, (r) => statSync(path.join(DIR, `${r.id}.txt`)).size, shard);
+
+describe.each(mine)("$name (wago $id)", (recorded) => {
   const code = () => readFileSync(path.join(DIR, `${recorded.id}.txt`), "utf8").trim();
 
   test("round-trips as a state code and as wago's own JSON", (ctx) => {
@@ -76,7 +81,8 @@ describe.each(MANIFEST)("$name (wago $id)", (recorded) => {
       const opened = await c.options(state, { selected });
       if (opened.warning) problems.push(`loading: ${opened.warning}`);
       for (const { key } of opened.tabs) {
-        const r = await c.options(state, { selected, tab: key });
+        // (Opening built the first tab already.)
+        const r = key === opened.tab ? opened : await c.options(state, { selected, tab: key });
         if (r.error) problems.push(`${selected} ${key}: ${r.error}`);
       }
     }
@@ -89,7 +95,7 @@ describe.each(MANIFEST)("$name (wago $id)", (recorded) => {
  * top-level aura and selects the aura in it). [Merfin] Cube Assigner: "Cube Assigner Mark 1" is in the dynamic group
  * "[Merfin] Cube Assigner Marks", itself in the top-level group.
  */
-describe("a nested child of a real pack in the editor", () => {
+describe.runIf(isFirstShard(shard))("a nested child of a real pack in the editor", () => {
   const CHILD = "Cube Assigner Mark 1";
   const PARENT = "[Merfin] Cube Assigner Marks";
   const pack = (c: AuraCore) => c.decode(readFileSync(path.join(DIR, "a7mRKvNf8.txt"), "utf8").trim());
@@ -144,7 +150,7 @@ describe("a nested child of a real pack in the editor", () => {
   });
 });
 
-describe("custom Lua is flagged where it is", () => {
+describe.runIf(isFirstShard(shard))("custom Lua is flagged where it is", () => {
   test("nanShield (wago G6FHkDAOv, a TSU trigger) gets a custom.lua info per place of its Lua, pointing at it", async (ctx) => {
     const c = tbc(ctx);
     const state = c.decode(readFileSync(path.join(DIR, "G6FHkDAOv.txt"), "utf8").trim());

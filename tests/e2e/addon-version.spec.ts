@@ -66,7 +66,8 @@ test("the picker offers released tags only; an unknown release shows an error an
 
   // Branches and commits don't resolve, on the server either.
   const res = await request.get("/api/forever/addon/resolve?ref=main");
-  expect(res.status()).toBe(404);
-  expect((await res.json()).error).toBe('Musca Auras has no release called "main"');
+  const body = await res.text();
+  expect(res.status(), body).toBe(404);
+  expect(JSON.parse(body).error).toBe('Musca Auras has no release called "main"');
   expect((await request.get("/api/forever/addon/versions").then((r) => r.json())).branches).toBeUndefined();
 });

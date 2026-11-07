@@ -29,6 +29,8 @@ export interface AddonSourceCache {
   listFiles(input: string): Promise<{ resolution: Resolution; listing: FileListing }>;
   /** Cached JSON per release (used by the diff for extracted option tables). */
   memo<T>(resolution: Resolution, name: string, compute: () => Promise<T>): Promise<T>;
+  /** The file a memo is kept in (e.g. for tests that seed or drop one). */
+  memoFile(resolution: Resolution, name: string): string;
   readonly root: string;
 }
 
@@ -121,8 +123,10 @@ export function createAddonSourceCache(options: AddonSourceCacheOptions): AddonS
     }
   }
 
+  const memoFile = (resolution: Resolution, memoName: string) => path.join(root, resolution.key, `${memoName}.json`);
+
   async function memo<T>(resolution: Resolution, memoName: string, compute: () => Promise<T>): Promise<T> {
-    const file = path.join(root, resolution.key, `${memoName}.json`);
+    const file = memoFile(resolution, memoName);
     const hit = await readJson<T>(file);
     if (hit !== null) return hit;
     return once(`memo:${file}`, async () => {
@@ -148,5 +152,6 @@ export function createAddonSourceCache(options: AddonSourceCacheOptions): AddonS
       return { resolution, listing };
     },
     memo,
+    memoFile,
   };
 }

@@ -7,8 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run",
-    "test:e2e": "playwright test",
+    "test": "vitest run --project unit",
+    "test:all": "vitest run && playwright test",
+    "test:e2e": "playwright test --grep-invert @exhaustive",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {

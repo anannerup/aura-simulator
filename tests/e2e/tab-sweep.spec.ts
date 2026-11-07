@@ -4,6 +4,9 @@
  * dropdown, slider box, text, colour, multiselect), then checks that no field reports an error and the page logged
  * none. It walks the DOM the editor builds from the addon's option tables, so new addon options are covered too.
  * (Seam A's src/core/options-sweep.test.ts sets every option; this checks the form around them.)
+ *
+ * `npm run test:e2e` sweeps a few display types per game, which between them show every kind of field and both
+ * window layouts (an aura's tabs, a group's); the others are tagged @exhaustive and run in `npm run test:all`.
  */
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { ownWorkspacePage } from "../support/e2e-workspace";
@@ -20,6 +23,9 @@ const TYPES: [string, string][] = [
   ["group", "Group"],
   ["dynamicgroup", "Dynamic Group"],
 ];
+
+/** Swept in every run: every kind of field (a bar adds the media dropdowns) and a group's window. */
+const REPRESENTATIVE = new Set(["icon", "aurabar", "group"]);
 
 test.use({ actionTimeout: 15_000 });
 
@@ -134,7 +140,7 @@ const KINDS = ["toggle", "select", "range", "input", "color", "multiselect"];
 // Every game: each builds its tabs from its own addon (Musca Auras on /forever, WeakAuras2 on /tbc).
 for (const game of ["forever", "tbc"] as const)
 for (const [type, label] of TYPES) {
-  test(`tab sweep (${game}): ${label}`, async ({ page }) => {
+  test(`tab sweep (${game}): ${label}`, { tag: REPRESENTATIVE.has(type) ? [] : ["@exhaustive"] }, async ({ page }) => {
     test.setTimeout(Number(process.env.SWEEP_TIMEOUT ?? 600_000));
     const errors = watchErrors(page);
     await page.goto(ownWorkspacePage(`sweep-${type}`, game));

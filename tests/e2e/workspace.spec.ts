@@ -231,7 +231,8 @@ test("export an aura as a .txt file holding exactly its code, and import it into
   await expectIconSize(fresh, 64);
   await openWorkspaceMenu(fresh);
   await fresh.getByLabel("Import files").setInputFiles(path);
-  await expect(fresh.getByRole("treeitem", { name: "Arcane Intellect 2", exact: true })).toBeVisible();
+  // The import asks the addon's own import first: the fresh page's full addon VM, loaded on first use.
+  await expect(fresh.getByRole("treeitem", { name: "Arcane Intellect 2", exact: true })).toBeVisible({ timeout: 60_000 });
   await expect(fresh.getByRole("treeitem", { name: "Arcane Intellect 2", exact: true })).toHaveAttribute("aria-selected", "true");
   // The same aura (only its id made unique): the file's code decodes to the sample's document.
   await fresh.getByRole("treeitem", { name: "Arcane Intellect", exact: true }).click();

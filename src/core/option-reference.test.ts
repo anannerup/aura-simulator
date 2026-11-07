@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import {
   isLuaTable,
   loadAddon,
+  OPTION_REFERENCE_FORMAT,
   plainText,
   toWagoJson,
   type AddonGameId,
@@ -23,25 +24,47 @@ import {
   type OptionScope,
 } from "@/core";
 import { cachedAddonFetcher } from "../../tests/support/addon-source";
+import { generatedCache } from "../../tests/support/generated-cache";
 import { walkOptions } from "../../tests/support/options-sweep";
+import { currentShard, isFirstShard, runsGame, shardUnits } from "../../tests/support/shards";
 import { TBC_TEST_VERSION, weakAuras2Available, weakAuras2Fetcher } from "../../tests/support/weakauras2";
 
 const FOREVER_REF = "v1.15.0";
-const GAMES: { game: AddonGameId; ref: string; load(): Promise<AuraCore | undefined> }[] = [
-  { game: "forever", ref: FOREVER_REF, load: async () => loadAddon(FOREVER_REF, { fetchSource: cachedAddonFetcher(FOREVER_REF) }) },
+interface ReferenceGame {
+  game: AddonGameId;
+  ref: string;
+  load: {
+    /** Whether the game's addon can be loaded here (TBC: false offline). */
+    available(): Promise<boolean>;
+    core(): Promise<AuraCore>;
+  };
+}
+const GAMES: ReferenceGame[] = [
+  {
+    game: "forever",
+    ref: FOREVER_REF,
+    load: { available: async () => true, core: () => loadAddon(FOREVER_REF, { fetchSource: cachedAddonFetcher(FOREVER_REF) }) },
+  },
   {
     game: "tbc",
     ref: TBC_TEST_VERSION,
-    load: async () =>
-      (await weakAuras2Available()) ? loadAddon(TBC_TEST_VERSION, { fetchSource: weakAuras2Fetcher(), game: "tbc" }) : undefined,
+    load: {
+      available: () => weakAuras2Available(),
+      core: () => loadAddon(TBC_TEST_VERSION, { fetchSource: weakAuras2Fetcher(), game: "tbc" }),
+    },
   },
 ];
 
 /** The game whose tests run now (games run one after the other); undefined core: skipped (TBC offline). */
 let core: AuraCore | undefined;
+/**
+ * The game's reference: generated when this addon version's isn't cached for the generator's current code
+ * (`generatedCache`: any change to the code generating it is a new key), else the cached one.
+ */
 let reference: OptionReference;
-let generationMs: number;
 const bases = new Map<string, Promise<AuraState>>();
+/** Each display type's new aura with every tab settled (what the bases of its tabs and its condition properties start from). */
+const allSettled = new Map<string, Promise<AuraState>>();
 
 /**
  * Follows a table path through JSON as the reference says to read it: a number is the n-th element of an array, any
@@ -147,6 +170,21 @@ async function settle(state: AuraState, tab: string): Promise<AuraState> {
   return state;
 }
 
+/** A display type's new aura with every tab settled, made once per display type (it takes hundreds of edits). */
+function settledTabs(regionType: string): Promise<AuraState> {
+  let settled = allSettled.get(regionType);
+  if (!settled) {
+    settled = (async () => {
+      const fresh = await newState(regionType);
+      let all = fresh;
+      for (const { key } of (await core!.options(fresh)).tabs) all = await settle(all, key);
+      return all;
+    })();
+    allSettled.set(regionType, settled);
+  }
+  return settled;
+}
+
 /** The settled aura a scope's probes start from (undefined for scopes this test doesn't rebuild: choices made first). */
 function baseFor(scope: OptionScope, tab: string): Promise<AuraState> | undefined {
   if (scope.after) return undefined;
@@ -166,10 +204,7 @@ function baseFor(scope: OptionScope, tab: string): Promise<AuraState> | undefine
         }
         return state;
       }
-      const { tabs } = await core!.options(fresh);
-      let all = fresh;
-      for (const t of tabs) all = await settle(all, t.key);
-      const settled = await settle(all, tab);
+      const settled = await settle(await settledTabs(scope.regionType), tab);
       if (!scope.added) return settled;
       const e = await core!.setOption(settled, { tab, path: scope.added.option });
       return settle(e.state, tab);
@@ -179,15 +214,56 @@ function baseFor(scope: OptionScope, tab: string): Promise<AuraState> | undefine
   return base;
 }
 
-describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
+/**
+ * The suite's units, each run whole by one shard: a display type (its options, their probes, its condition
+ * properties) or a trigger type (its probes on every event, its condition checks). A unit's bases are made in its
+ * shard only.
+ */
+const displayUnit = (regionType: string) => `display:${regionType}`;
+const triggerUnit = (triggerType: string) => `trigger:${triggerType}`;
+const unitOf = (scope: OptionScope) => (scope.triggerType !== undefined ? triggerUnit(scope.triggerType) : displayUnit(scope.regionType));
+
+/** Each unit's weight: about how many edits its checks make (shards are dealt out by it). */
+function unitWeights(ref: OptionReference): Map<string, number> {
+  const w = new Map<string, number>([...ref.regionTypes.map(displayUnit), ...ref.triggerTypes.map((t) => triggerUnit(t.type))].map((u) => [u, 0]));
+  const add = (unit: string, n: number) => w.set(unit, (w.get(unit) ?? 0) + n);
+  for (const e of ref.entries) {
+    if (e.error) continue;
+    // A display type's own options are checked twice: for an entry (with the window built) and replayed.
+    for (const s of e.scopes) add(unitOf(s), !s.triggerType && !s.added && !s.after ? 2 : 1);
+  }
+  for (const set of ref.conditions.checks) add(triggerUnit(set.triggerType), set.checks.reduce((n, c) => n + 1 + c.fields.length, 0));
+  for (const set of ref.conditions.properties) add(displayUnit(set.regionType), set.properties.reduce((n, p) => n + 1 + p.fields.length, 0));
+  return w;
+}
+
+const shard = currentShard();
+
+describe.each(GAMES.filter((g) => runsGame(shard, g.game)))("option reference of $game $ref", ({ game, ref, load }) => {
+  /** This shard's units. */
+  let units: Set<string>;
+  let fresh: boolean;
   beforeAll(async () => {
     bases.clear();
-    core = await load();
-    if (!core) return;
-    await core!.loadFullAddon();
-    const t0 = performance.now();
-    reference = await core!.optionReference();
-    generationMs = performance.now() - t0;
+    allSettled.clear();
+    shownCache.clear();
+    if (!(await load.available())) return;
+    // Generated (when not cached for this addon version and generator code) on a core of its own, so the core the
+    // checks use starts the same either way.
+    const cached = await generatedCache(`option-reference-${game}-${ref}`, "src/core/addon-vm/vm.ts", async () => {
+      const generator = await load.core();
+      try {
+        return await generator.optionReference();
+      } finally {
+        generator.dispose();
+      }
+    });
+    reference = cached.value;
+    fresh = cached.fresh;
+    core = await load.core();
+    await core.loadFullAddon();
+    const weights = unitWeights(reference);
+    units = new Set(shardUnits([...weights.keys()], (u) => weights.get(u)!, shard));
   }, 600_000);
   afterAll(() => {
     core?.dispose();
@@ -197,21 +273,36 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
   const ready = (ctx: { skip: () => void }) => {
     if (!core) ctx.skip();
   };
-
-  test("is plain JSON, generated in acceptable time", (ctx) => {
+  /** Checks of the whole reference (not split into units) run in the first shard. */
+  const whole = (ctx: { skip: () => void }) => {
     ready(ctx);
-    console.log(`option reference (${game}): ${reference.entries.length} entries, ${JSON.stringify(reference).length} bytes, ${Math.round(generationMs)} ms`);
+    if (!isFirstShard(shard)) ctx.skip();
+  };
+
+  test("is plain JSON, generated in acceptable time, by this addon version and generator", (ctx) => {
+    whole(ctx);
+    console.log(
+      `option reference (${game}): ${reference.entries.length} entries, ${JSON.stringify(reference).length} bytes, ${reference.generatedMs} ms (${fresh ? "generated now" : "cached"})`,
+    );
     expect(JSON.parse(JSON.stringify(reference))).toEqual(reference);
+    expect(reference).toMatchObject({ format: OPTION_REFERENCE_FORMAT, ref });
     // About a minute and a half per game on an idle machine (the condition checks and properties take a third of it).
-    expect(generationMs).toBeLessThan(300_000);
+    // Timed when generated here: a cached one may come from the e2e server, which generates in the background.
+    if (fresh) expect(reference.generatedMs).toBeLessThan(300_000);
     expect(reference.regionTypes).toEqual(expect.arrayContaining(["icon", "aurabar", "text", "group", "dynamicgroup"]));
+    // Big enough that the replays below mean something (each probe and check is replayed in some shard).
+    const probes = reference.entries.filter((e) => !e.error).reduce((n, e) => n + e.scopes.filter((s) => !s.after).length, 0);
+    expect(probes).toBeGreaterThan(3000);
+    expect(reference.conditions.checks.reduce((n, s) => n + s.checks.length, 0)).toBeGreaterThan(300);
+    expect(reference.conditions.properties.reduce((n, s) => n + s.properties.length, 0)).toBeGreaterThan(300);
   });
 
   test("every option of every tab of every display type has an entry", { timeout: 300_000 }, async (ctx) => {
     ready(ctx);
     const missing: string[] = [];
     let options = 0;
-    for (const regionType of reference.regionTypes) {
+    const regionTypes = reference.regionTypes.filter((t) => units.has(displayUnit(t)));
+    for (const regionType of regionTypes) {
       for (const { key: tab } of (await core!.options(await newState(regionType))).tabs) {
         // The window as it shows the display type's new aura, settled as the reference's probes start from it.
         const base = await baseFor({ regionType }, tab)!;
@@ -227,12 +318,13 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
         }
       }
     }
-    expect(options).toBeGreaterThan(1000);
+    // Every display type has many options (over a thousand in all).
+    expect(options).toBeGreaterThanOrEqual(50 * regionTypes.length);
     expect(missing).toEqual([]);
   });
 
   test("every trigger type and event has entries", (ctx) => {
-    ready(ctx);
+    whole(ctx);
     expect(reference.triggerTypes.length).toBeGreaterThan(3);
     for (const { type, events } of reference.triggerTypes) {
       for (const event of events?.map(([e]) => String(e)) ?? [undefined]) {
@@ -278,17 +370,21 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
     // Buttons last: Move Up, Delete, … move the window's opened/closed sections along, which the reference resets
     // after each and this test can't.
     const fieldsFirst = [...reference.entries.filter((e) => e.type !== "execute"), ...reference.entries.filter((e) => e.type === "execute")];
+    let mine = 0;
     for (const entry of fieldsFirst) {
       if (entry.error) continue;
-      for (const scope of entry.scopes) await replay(entry, scope);
+      for (const scope of entry.scopes.filter((s) => units.has(unitOf(s)))) {
+        mine++;
+        await replay(entry, scope);
+      }
     }
-    console.log(`replayed ${replayed} probes`);
-    expect(replayed).toBeGreaterThan(3000);
+    console.log(`replayed ${replayed} of this shard's ${mine} probes`);
+    if (mine > 0) expect(replayed).toBeGreaterThan(0);
     expect(wrong).toEqual([]);
   });
 
   test("the reverse index finds the options writing a path", (ctx) => {
-    ready(ctx);
+    whole(ctx);
     const at = (path: string) => (reference.byPath[path] ?? []).map((i) => reference.entries[i]);
     expect(at("triggers.#.trigger.type").some((e) => e.tab === "trigger" && e.type === "select")).toBe(true);
     expect(at("alpha").some((e) => e.tab === "region")).toBe(true);
@@ -310,8 +406,25 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
       for (const i of indices) expect(reference.entries[i].writes.map((p) => p.replace(/(^|\.)\d+(?=\.|$)/g, "$1#")), path).toContain(path);
     }
   });
+
+  test("the condition checks agents found missing are there", (ctx) => {
+    whole(ctx);
+    const { conditions } = reference;
+    const variables = (type: string, event?: string) =>
+      conditions.checks.find((s) => s.triggerType === type && s.event === event)?.checks.map((c) => c.variable) ?? [];
+    // Aura(s) Found (with Show On "Always"), Item Count's stacks, item cooldown and weapon enchant checks.
+    expect(variables("aura2")).toContain("buffed");
+    expect(conditions.checks.find((s) => s.triggerType === "aura2")!.checks.find((c) => c.variable === "buffed")!.requires!.wrote).toEqual({
+      "triggers.1.trigger.matchesShowOn": "showAlways",
+    });
+    expect(variables("item", "Item Count")).toContain("stacks");
+    expect(variables("item", "Cooldown Progress (Item)")).toContain("onCooldown");
+    expect(variables("item", "Weapon Enchant")).toContain("enchanted");
+    expect(conditions.global.map((c) => c.variable)).toEqual(expect.arrayContaining(["AND", "OR", "incombat", "alwaystrue"]));
+  });
+
   test("hidden options say what shows them, options say their names in other modes, and choices write their side keys", { timeout: 600_000 }, async (ctx) => {
-    ready(ctx);
+    whole(ctx);
     const on = (option: RegExp) => reference.entries.filter((e) => option.test(e.option.join(".")) && e.scopes.some((s) => s.regionType === "icon" && s.added));
     // A sub element's X Offset: shown by opening its section, and called "Extra Width" in area mode, "X Offset" in point mode.
     const xOffset = on(/^sub\.\d+\.subtexture\.xOffset$/);
@@ -358,7 +471,9 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
     const { conditions } = reference;
     const wrong: string[] = [];
     let replayed = 0;
-    const sets = reference.triggerTypes.flatMap(({ type, events }) => (events?.map(([e]) => String(e)) ?? [undefined]).map((event) => ({ type, event })));
+    const sets = reference.triggerTypes
+      .filter(({ type }) => units.has(triggerUnit(type)))
+      .flatMap(({ type, events }) => (events?.map(([e]) => String(e)) ?? [undefined]).map((event) => ({ type, event })));
     for (const { type, event } of sets) {
       const where = `${type} ${event ?? ""}`;
       const set = conditions.checks.find((s) => s.triggerType === type && s.event === event);
@@ -407,20 +522,8 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
         wrong.push(...(await replayFields(edit.state, c.fields, `${where} ${c.label}`)));
       }
     }
-    const variables = (type: string, event?: string) =>
-      conditions.checks.find((s) => s.triggerType === type && s.event === event)?.checks.map((c) => c.variable) ?? [];
-    // The variables an agent found missing: Aura(s) Found (with Show On "Always"), Item Count's stacks, item cooldown
-    // and weapon enchant checks.
-    expect(variables("aura2")).toContain("buffed");
-    expect(conditions.checks.find((s) => s.triggerType === "aura2")!.checks.find((c) => c.variable === "buffed")!.requires!.wrote).toEqual({
-      "triggers.1.trigger.matchesShowOn": "showAlways",
-    });
-    expect(variables("item", "Item Count")).toContain("stacks");
-    expect(variables("item", "Cooldown Progress (Item)")).toContain("onCooldown");
-    expect(variables("item", "Weapon Enchant")).toContain("enchanted");
-    expect(conditions.global.map((c) => c.variable)).toEqual(expect.arrayContaining(["AND", "OR", "incombat", "alwaystrue"]));
     console.log(`replayed ${replayed} condition checks`);
-    expect(replayed).toBeGreaterThan(300);
+    if (sets.length > 0) expect(replayed).toBeGreaterThan(0);
     expect(wrong).toEqual([]);
   });
 
@@ -428,15 +531,13 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
     ready(ctx);
     const wrong: string[] = [];
     let replayed = 0;
-    for (const regionType of reference.regionTypes.filter((t) => !t.endsWith("group"))) {
+    for (const regionType of reference.regionTypes.filter((t) => !t.endsWith("group") && units.has(displayUnit(t)))) {
       if (!reference.conditions.properties.some((p) => p.regionType === regionType)) wrong.push(`${regionType}: no properties`);
     }
-    for (const set of reference.conditions.properties) {
+    for (const set of reference.conditions.properties.filter((s) => units.has(displayUnit(s.regionType)))) {
       const where = `${set.regionType} (${set.added.name})`;
       // The display's new aura, settled, with one sub element of each kind the Display tab's Add buttons add.
-      const fresh = await newState(set.regionType);
-      let state = fresh;
-      for (const { key } of (await core!.options(fresh)).tabs) state = await settle(state, key);
+      let state = await settledTabs(set.regionType);
       const adds = walkOptions(await tree(state, "region")).filter((n) => n.type === "execute" && n.canRun && !n.hidden && !n.disabled && /^Add\b/.test(n.name ?? ""));
       for (const add of adds) {
         const e = await core!.setOption(state, { tab: "region", path: add.path });
@@ -463,7 +564,6 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
       }
     }
     console.log(`replayed ${replayed} condition properties`);
-    expect(replayed).toBeGreaterThan(300);
     expect(wrong).toEqual([]);
   });
 });

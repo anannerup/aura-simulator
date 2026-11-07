@@ -1,4 +1,5 @@
 import { Lua } from "wasmoon-lua5.1";
+import { runLua } from "./lua-run";
 import { ADDON_FILES, normalizeNewlines, type AddonSourceFetcher } from "./addon-source";
 import { AURA_CORE, LOAD_LIBRARY, LOAD_TRANSMISSION } from "./lua-glue";
 import { LUA_STDLIB } from "./lua-stdlib";
@@ -147,17 +148,17 @@ export async function loadAddon(ref: string, options: LoadAddonOptions): Promise
   const internalVersion = readInternalVersion(src.weakAuras);
 
   const lua = await Lua.create(options.wasmUri ? { customWasmUri: options.wasmUri } : {});
-  lua.doStringSync(LUA_STDLIB);
+  runLua(lua, LUA_STDLIB);
   for (const name of ["libStub", "libDeflate", "libSerialize"] as const) {
     lua.global.set("__src", src[name]);
     lua.global.set("__name", ADDON_FILES[name]);
-    lua.doStringSync(LOAD_LIBRARY);
+    runLua(lua, LOAD_LIBRARY);
   }
   lua.global.set("__src", src.transmission);
   lua.global.set("__name", ADDON_FILES.transmission);
   lua.global.set("__versionString", addonVersion);
-  lua.doStringSync(LOAD_TRANSMISSION);
-  lua.doStringSync(AURA_CORE);
+  runLua(lua, LOAD_TRANSMISSION);
+  runLua(lua, AURA_CORE);
 
   const fullAddonMode = options.fullAddon ?? (typeof window !== "undefined" && typeof Worker !== "undefined" ? "worker" : "inline");
   let fullVM: Promise<AsyncAddonVM> | undefined;
@@ -232,7 +233,7 @@ export async function loadAddon(ref: string, options: LoadAddonOptions): Promise
         s: addonVersion,
       };
       if (children.length > 0) transmit.c = children;
-      const code: unknown = lua.doStringSync(`return AuraCore.encode(${toLuaLiteral(transmit)})`);
+      const code: unknown = runLua(lua, `return AuraCore.encode(${toLuaLiteral(transmit)})`);
       if (typeof code !== "string" || !isStateCode(code)) throw new Error("Encoding failed");
       return code;
     },
@@ -240,7 +241,7 @@ export async function loadAddon(ref: string, options: LoadAddonOptions): Promise
     decode(code) {
       const trimmed = code.trim();
       if (!isStateCode(trimmed)) throw new Error("Not a state code (!WA:2!…)");
-      const result: unknown = lua.doStringSync(`return AuraCore.decode(${toLuaLiteral(trimmed)})`);
+      const result: unknown = runLua(lua, `return AuraCore.decode(${toLuaLiteral(trimmed)})`);
       if (typeof result !== "string") throw new Error("Decoding failed");
       if (result.startsWith("E")) throw new Error(result.slice(1));
       const received = JSON.parse(result.slice(1)) as LuaValue;
