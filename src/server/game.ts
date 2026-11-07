@@ -6,6 +6,7 @@ import path from "node:path";
 import type { Game } from "@/games/game";
 import type { AddonSourceCache } from "./addon/source-cache";
 import { createGameFiles, type GameFiles } from "./game-files";
+import { createIconIndex, type IconIndex } from "./icon-index";
 import { createItemCache, type ItemCache } from "./items";
 import type { SpellCache, SpellSource } from "./spells";
 
@@ -19,6 +20,8 @@ export interface ServerGame {
   readonly files: GameFiles;
   /** The game client's items. */
   readonly items: ItemCache;
+  /** The game's icons by how they look (`POST /api/<game>/icons/similar`). */
+  readonly iconIndex: IconIndex;
   /** The agent docs (Markdown) for an origin, generated from the requested addon version (default: the newest). */
   agentDocs(origin: string, requestedRef?: string | null): Promise<string>;
 }
@@ -30,12 +33,14 @@ export function gameDataDir(gameId: string): string {
 
 /**
  * A game client's file list and items from wago.tools (`<data>/<game>/files.sqlite`, `items.sqlite`), for the product
- * and Wowhead environment its spell source names. Each is downloaded on first use.
+ * and Wowhead environment its spell source names, each downloaded on first use; and its icon index
+ * (`icon-features.sqlite`), filled from the icons' files as searches need them.
  */
-export function createClientCaches(gameId: string, source: SpellSource): { files: GameFiles; items: ItemCache } {
+export function createClientCaches(gameId: string, source: SpellSource): { files: GameFiles; items: ItemCache; iconIndex: IconIndex } {
   const files = createGameFiles({ source, dbPath: path.join(gameDataDir(gameId), "files.sqlite") });
   const items = createItemCache({ source, files, dbPath: path.join(gameDataDir(gameId), "items.sqlite") });
-  return { files, items };
+  const iconIndex = createIconIndex({ files, dbPath: path.join(gameDataDir(gameId), "icon-features.sqlite") });
+  return { files, items, iconIndex };
 }
 
 /**

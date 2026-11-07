@@ -134,8 +134,12 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   Server data is per game under `DATA_DIR` (default `data/`, gitignored): `data/<game>/spells.sqlite` (a
   `SpellSource` names the wago product and Wowhead environment: `FOREVER_SPELLS`, `TBC_SPELLS`),
   `data/<game>/files.sqlite` (`server/game-files/`: the game's file list, wago's ManifestInterfaceData: path ↔
-  FileDataID, icon search), `data/<game>/items.sqlite` (`server/items/`: ItemSparse + Item), both for the same
-  `SpellSource` and downloaded on first use (`createClientCaches`; `ServerGame.files`/`.items`), and
+  FileDataID, icon search), `data/<game>/items.sqlite` (`server/items/`: ItemSparse + Item, searchable by icon), both
+  for the same `SpellSource` and downloaded on first use (`createClientCaches`; `ServerGame.files`/`.items`; both
+  searches page through `parseSearchPage` in `server/name-search.ts`), `data/<game>/icon-features.sqlite`
+  (`server/icon-index/`, `ServerGame.iconIndex`: icons by how they look, `POST /api/<game>/icons/similar`; a small RGB
+  grid per icon from its file on wago.tools, filled on demand or in the background; uploads decoded with `sharp`;
+  tests serve synthetic TGAs through an injected fetch, `tests/unit/icon-index.test.ts`), and
   `data/<game>/addon/` (or `ADDON_CACHE_DIR/<game>`). `server/media.ts` reads the addon's LibSharedMedia lists from
   the server's aura core (`registries().media`; `/api/<game>/media`, the `/<game>/fonts` sample page);
   `server/media-check.ts` adds `media.texture` infos to push answers for texture paths the game can't draw. The test
