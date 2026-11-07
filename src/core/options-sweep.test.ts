@@ -7,7 +7,7 @@
  * from its release zip; skipped when the zip can't be downloaded).
  */
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { loadAddon, type AddonGameId, type AuraCore, type AuraDocument, type AuraState, type OptionNode } from "@/core";
+import { loadAddon, type AddonGameId, type AuraCore, type AuraState, type OptionNode } from "@/core";
 import { cachedAddonFetcher } from "../../tests/support/addon-source";
 import { sweepValue, walkOptions } from "../../tests/support/options-sweep";
 import { TBC_TEST_VERSION, weakAuras2Available, weakAuras2Fetcher } from "../../tests/support/weakauras2";
@@ -112,7 +112,7 @@ async function sweepTab(base: AuraState, tab: string, out: SweepResult, label = 
       out.edited++;
       if (edit.warning && !KNOWN_ADDON_ERRORS.some((r) => r.test(edit.warning!))) out.problems.push(`${where}: addon error ${edit.warning}`);
       if (!edit.changed) continue; // e.g. an input the addon normalizes back
-      const after = await core.options({ aura: edit.aura, children: edit.children ?? base.children }, { tab });
+      const after = await core.options(edit.state, { tab });
       if (after.error) out.problems.push(`${where}: tab no longer builds: ${after.error}`);
       const shown = after.tree && walkOptions(after.tree).find((n) => n.path.join("/") === node.path.join("/"));
       if (shown && !shown.hidden && !shownAgain(node, value, shown.value)) {
@@ -138,7 +138,7 @@ async function pressAll(base: AuraState, tab: string, out: SweepResult, label = 
       out.edited++;
       if (edit.warning) out.problems.push(`${where}: addon error ${edit.warning}`);
       if (edit.changed) {
-        const after = await core.options({ aura: edit.aura as AuraDocument, children: edit.children ?? base.children }, { tab });
+        const after = await core.options(edit.state, { tab });
         if (after.error) out.problems.push(`${where}: tab no longer builds: ${after.error}`);
       }
     } catch (e) {
@@ -196,7 +196,7 @@ describe.each(GAMES)("$game", ({ game, load }) => {
       const typeSelect = walkOptions(trigger).find((n) => n.type === "select" && /^trigger\.1\.[^.]+\.type$/.test(n.key))!;
       expect(typeSelect).toBeDefined();
       for (const [type] of typeSelect.values ?? []) {
-        const typed = { aura: (await core.setOption(base, { tab: "trigger", path: typeSelect.path }, type)).aura, children: [] };
+        const typed = (await core.setOption(base, { tab: "trigger", path: typeSelect.path }, type)).state;
         const built = await core.options(typed, { tab: "trigger" });
         if (!built.tree) {
           out.problems.push(`[${String(type)}] trigger tab: ${built.error}`);
@@ -208,7 +208,7 @@ describe.each(GAMES)("$game", ({ game, load }) => {
         const states = [typed];
         for (const [event] of sub?.values ?? []) {
           if (event === sub!.value) continue;
-          states.push({ aura: (await core.setOption(typed, { tab: "trigger", path: sub!.path }, event)).aura, children: [] });
+          states.push((await core.setOption(typed, { tab: "trigger", path: sub!.path }, event)).state);
         }
         for (const state of states) await sweepTab(state, "trigger", out, `[${String(type)}] `);
       }
@@ -226,7 +226,7 @@ describe.each(GAMES)("$game", ({ game, load }) => {
         for (const add of adds) {
           const edit = await core.setOption(base, { tab, path: add.path });
           if (!edit.changed) continue;
-          const state = { aura: edit.aura, children: [] };
+          const state = edit.state;
           await sweepTab(state, tab, out, `[${add.name ?? add.key}] `);
           await pressAll(state, tab, out, `[${add.name ?? add.key}] `);
         }
@@ -246,8 +246,8 @@ describe.each(GAMES)("$game", ({ game, load }) => {
       // With a single class chosen, that class's talents.
       const base = await newState("icon");
       const used = await core.setOption(base, { tab: "load", path: ["use_class"] }, true);
-      const mage = await core.setOption({ aura: used.aura, children: [] }, { tab: "load", path: ["class"] }, "MAGE");
-      const t2 = (await core.options({ aura: mage.aura, children: [] }, { tab: "load" })).tree!;
+      const mage = await core.setOption(used.state, { tab: "load", path: ["class"] }, "MAGE");
+      const t2 = (await core.options(mage.state, { tab: "load" })).tree!;
       expect(labels(t2, "multiselect_talent").join()).toMatch(/Arcane Subtlety/);
     });
   });

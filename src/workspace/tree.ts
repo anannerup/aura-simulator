@@ -326,11 +326,22 @@ export function updateNode(items: WorkspaceNode[], id: string, doc: AuraDocument
   }
   let next = newId !== id ? renameNode(items, id, newId) : items;
   aura = { ...aura, id: newId };
-  const rec = (list: WorkspaceNode[]): WorkspaceNode[] =>
-    list.map((node) => {
-      if (nodeId(node) === newId) return group ? { aura, items: node.items ?? [] } : { aura };
-      return node.items ? { ...node, items: rec(node.items) } : node;
+  // Only the nodes on the way to the aura are new; every other subtree keeps its nodes.
+  const rec = (list: WorkspaceNode[]): WorkspaceNode[] => {
+    let changed = false;
+    const out = list.map((node) => {
+      if (nodeId(node) === newId) {
+        changed = true;
+        return group ? { aura, items: node.items ?? [] } : { aura };
+      }
+      if (!node.items) return node;
+      const items = rec(node.items);
+      if (items === node.items) return node;
+      changed = true;
+      return { ...node, items };
     });
+    return changed ? out : list;
+  };
   next = rec(next);
   return { items: normalizeItems(next), id: newId };
 }
@@ -367,24 +378,23 @@ export function replaceNode(items: WorkspaceNode[], id: string, node: WorkspaceN
 }
 
 /**
- * Replaces a group's document together with its descendants' (the window's tabs edit a group's children too, as in
- * the game). Descendants whose document didn't change keep their node.
+ * Takes an edited top-level aura back (the options editor's edits: one edit can change any aura of it, as in the
+ * game): `state` is the top-level aura `id` as `stateFromNode` gives it (the same auras in the same order), with some
+ * documents changed. Each changed one replaces its aura's document as `updateNode` does (a changed `id` is a rename);
+ * the tree still decides `controlledChildren` and `parent`. Auras whose document didn't change keep their node.
  */
-export function updateWithDescendants(
-  items: WorkspaceNode[],
-  id: string,
-  doc: AuraDocument,
-  descendants: AuraDocument[],
-): { items: WorkspaceNode[]; id: string } {
+export function updateTopLevel(items: WorkspaceNode[], id: string, state: AuraState): WorkspaceNode[] {
+  const top = items.find((n) => nodeId(n) === id);
+  if (!top) throw new TreeError(`No top-level aura "${id}"`);
+  const nodes = [top, ...traverse(top.items ?? [])];
+  const docs = [state.aura, ...state.children];
+  if (docs.length !== nodes.length) throw new TreeError(`"${id}" holds ${nodes.length} auras, the edit ${docs.length}`);
   let next = items;
-  for (const child of descendants) {
-    const childId = typeof child.id === "string" ? child.id : null;
-    const found = childId ? findNode(next, childId) : null;
-    if (childId && found && JSON.stringify(found.node.aura) !== JSON.stringify(canonicalize(child))) {
-      next = updateNode(next, childId, child).items;
-    }
-  }
-  return updateNode(next, id, doc);
+  nodes.forEach((node, i) => {
+    const doc = docs[i];
+    if (doc !== node.aura && JSON.stringify(doc) !== JSON.stringify(node.aura)) next = updateNode(next, nodeId(node), doc).items;
+  });
+  return next;
 }
 
 /**

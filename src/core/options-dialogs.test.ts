@@ -26,7 +26,7 @@ test("Manual Icon's Choose opens the icon picker; the choice sets the icon", asy
   const chosen = await core.setOption(s, { tab: "region", path: choose.path }, "Interface\\Icons\\Spell_Holy_MagicalSentry");
   expect(chosen.changed).toBe(true);
   expect(chosen.dialog).toBeUndefined();
-  expect(chosen.aura.displayIcon).toBe("Interface\\Icons\\Spell_Holy_MagicalSentry");
+  expect(chosen.state.aura.displayIcon).toBe("Interface\\Icons\\Spell_Holy_MagicalSentry");
 });
 
 test("a texture's Choose opens the texture picker with the addon's texture lists", async () => {
@@ -39,13 +39,13 @@ test("a texture's Choose opens the texture picker with the addon's texture lists
   expect(asked.dialog.categories.length).toBeGreaterThan(1);
   const [path] = asked.dialog.categories[0].textures[0];
   const chosen = await core.setOption(s, { tab: "region", path: choose.path }, path);
-  expect(chosen.aura[asked.dialog.property!]).toBe(path);
+  expect(chosen.state.aura[asked.dialog.property!]).toBe(path);
 });
 
 test("deleting a trigger asks first, and deletes once confirmed", async () => {
   let s = await state("icon");
   const add = find(await core.options(s, { tab: "trigger" }), (n) => n.type === "execute" && /Add Trigger/.test(n.name ?? ""));
-  s = { aura: (await core.setOption(s, { tab: "trigger", path: add.path })).aura, children: [] };
+  s = (await core.setOption(s, { tab: "trigger", path: add.path })).state;
   const tree = await core.options(s, { tab: "trigger" });
   const del = find(tree, (n) => n.type === "execute" && /^trigger\.2\..*deleteButton$/.test(n.key));
   const asked = await core.setOption(s, { tab: "trigger", path: del.path });
@@ -55,7 +55,7 @@ test("deleting a trigger asks first, and deletes once confirmed", async () => {
   expect(done.changed).toBe(true);
   const count = (a: AuraDocument) => Object.keys(a.triggers as AuraDocument).filter((k) => /^\[\d+\]$/.test(k)).length;
   expect(count(s.aura)).toBe(2);
-  expect(count(done.aura)).toBe(1);
+  expect(count(done.state.aura)).toBe(1);
 });
 
 test("a group's Trigger tab edits its children, and the edit returns them", async () => {
@@ -67,6 +67,6 @@ test("a group's Trigger tab edits its children, and the edit returns them", asyn
   const other = unit.values!.find(([k]) => k !== unit.value)![0];
   const edit = await core.setOption(s, { tab: "trigger", path: unit.path }, other);
   expect(edit.changed).toBe(true);
-  expect(edit.children).toHaveLength(1);
-  expect(JSON.stringify(edit.children![0].triggers)).toContain(JSON.stringify(other));
+  expect(edit.state.children).toHaveLength(1);
+  expect(JSON.stringify(edit.state.children[0].triggers)).toContain(JSON.stringify(other));
 });

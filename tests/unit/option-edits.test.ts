@@ -13,11 +13,11 @@ function setup(onChange: OptionEditsDeps["onChange"] = () => undefined) {
     setOption: async (state, address, value) => {
       calls.push({ state, value });
       const aura = { ...state.aura, [address.path.at(-1)!]: value } as AuraDocument;
-      return { changed: true, aura, children: state.children } as Awaited<ReturnType<OptionEditsDeps["setOption"]>>;
+      return { changed: true, state: { aura, children: state.children }, selected: address.selected ?? "A" };
     },
     onChange,
   };
-  const edits = new OptionEdits(deps, { aura: doc({}), children: [] });
+  const edits = new OptionEdits(deps, { state: { aura: doc({}), children: [] }, selected: "A" });
   return { edits, calls };
 }
 
@@ -38,7 +38,7 @@ describe("OptionEdits", () => {
   });
 
   it("rolls back and rebuilds when the page refuses the change", async () => {
-    const { edits, calls } = setup((aura) => ((aura as { a?: unknown }).a === "bad" ? { ok: false, error: "no" } : undefined));
+    const { edits, calls } = setup(({ state }) => ((state.aura as { a?: unknown }).a === "bad" ? { ok: false, error: "no" } : undefined));
     edits.edit("region", node("input", ["a"]), "bad");
     edits.edit("region", node("input", ["b"]), 2);
     await settled();

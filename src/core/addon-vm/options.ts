@@ -3,13 +3,23 @@
  * AceConfig option tree evaluated for one aura (see lua/options.ts). Plain JSON, safe to post
  * between a Web Worker and the page.
  */
-import type { AuraDocument, LuaKey } from "../lua-value";
+import type { AuraState, LuaKey } from "../lua-value";
 
 /** Option key path inside a tab. Keys are the addon's own, with `table: 0x…` parts replaced by `@`. */
 export type OptionPath = string[];
 
-/** Where an option lives: a tab of the options window and the path inside it. */
+/**
+ * What the options window shows of a top-level aura: the aura in it that is selected (by id; default: the top-level
+ * aura itself), as clicking it in the game's aura list selects it, and one of its tabs (default: the first).
+ */
+export interface OptionsRequest {
+  selected?: string;
+  tab?: string;
+}
+
+/** Where an option lives: the selected aura of the top-level aura (see OptionsRequest), its tab and the path in it. */
 export interface OptionAddress {
+  selected?: string;
   tab: string;
   path: OptionPath;
 }
@@ -75,6 +85,8 @@ export interface OptionTab {
 }
 
 export interface OptionsTree {
+  /** The id of the aura the tabs are for (the selected one). */
+  selected: string;
   /** The tabs the options window shows for this aura, in the window's order. */
   tabs: OptionTab[];
   /** The requested tab. */
@@ -83,8 +95,8 @@ export interface OptionsTree {
   tree?: OptionNode;
   error?: string;
   /**
-   * The addon raised an error while registering this aura or one of its descendants for the editor (in the game, a
-   * Lua error), one line per aura: "<id>: <error>". The tabs show what the addon did register.
+   * The addon raised an error while registering the top-level aura or one of its descendants for the editor (in the
+   * game, a Lua error), one line per aura: "<id>: <error>". The tabs show what the addon did register.
    */
   warning?: string;
   /** WeakAuras.doubleWidth: the width of a full row in `width` units. */
@@ -92,20 +104,21 @@ export interface OptionsTree {
 }
 
 export interface OptionEdit {
-  /** The aura after the edit: the document as given, plus what the edit changed. */
-  aura: AuraDocument;
   /**
-   * A group's descendants after the edit, in the order given, when the edit changed any of them (a group's Display,
-   * Trigger, … tabs edit its children, as in the game).
+   * The top-level aura after the edit, in the order given: every aura the edit changed is the document as given plus
+   * what the edit changed (an edit can change more than the selected aura: a group's Display, Trigger, … tabs edit its
+   * children, a rename changes the parent's `controlledChildren`, as in the game); every other aura is the given one.
    */
-  children?: AuraDocument[];
+  state: AuraState;
+  /** The selected aura's id after the edit (a rename changes it). */
+  selected: string;
   /** False when the edit only changed the editor (e.g. expanding a section). */
   changed: boolean;
   /** The addon raised an error during the edit, but the change it made so far was kept (as in the game). */
   warning?: string;
   /**
    * The button opened one of the window's dialogs (icon, texture or model picker, code editor, a confirmation). The
-   * page shows its own and sends the choice back with the same button: `setOption(state, { tab, path: button }, choice)`
+   * page shows its own and sends the choice back with the same button: `setOption(state, { selected, tab, path: button }, choice)`
    * (a confirmation: `true`).
    */
   dialog?: OptionDialog;

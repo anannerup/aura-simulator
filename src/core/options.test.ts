@@ -135,13 +135,13 @@ describe("setOption", () => {
   test("changing the width changes only the width", async () => {
     const edit = await core.setOption(sample, { tab: "region", path: ["position.width"] }, 100);
     expect(edit.changed).toBe(true);
-    expect(edit.aura).toEqual({ ...sample.aura, width: 100 });
+    expect(edit.state.aura).toEqual({ ...sample.aura, width: 100 });
   });
 
   test("toggling Remaining Time sets secretUseRem, and the hidden operator and value appear", async () => {
     const edit = await core.setOption(sample, { tab: "trigger", path: ["trigger.1.secretAura.useRem"] }, true);
-    expect(trigger1(edit.aura).secretUseRem).toBe(true);
-    const trigger = await core.options(single(edit.aura), { tab: "trigger" });
+    expect(trigger1(edit.state.aura).secretUseRem).toBe(true);
+    const trigger = await core.options(edit.state, { tab: "trigger" });
     expect(find(trigger, "trigger.1.secretAura.useRem").value).toBe(true);
     expect(find(trigger, "trigger.1.secretAura.rem").hidden).toBe(false);
     expect(find(trigger, "trigger.1.secretAura.remOperator").hidden).toBe(false);
@@ -149,25 +149,25 @@ describe("setOption", () => {
 
   test("disabled follows other values: the custom glow colour needs Use Custom Color", async () => {
     let state = single(structuredClone(sample.aura));
-    state.aura = (await core.setOption(state, { tab: "region", path: ["sub.subglow"] })).aura;
+    state = (await core.setOption(state, { tab: "region", path: ["sub.subglow"] })).state;
     let display = await core.options(state, { tab: "region" });
     expect(find(display, "sub.2.subglow.glowColor").disabled).toBe(true);
-    state = single((await core.setOption(state, { tab: "region", path: ["sub.2.subglow.useGlowColor"] }, true)).aura);
+    state = (await core.setOption(state, { tab: "region", path: ["sub.2.subglow.useGlowColor"] }, true)).state;
     display = await core.options(state, { tab: "region" });
     expect(find(display, "sub.2.subglow.glowColor").disabled).toBe(false);
     const colour = await core.setOption(state, { tab: "region", path: ["sub.2.subglow.glowColor"] }, [1, 0, 0, 1]);
-    expect((colour.aura.subRegions as AuraDocument[])[1].glowColor).toEqual([1, 0, 0, 1]);
+    expect((colour.state.aura.subRegions as AuraDocument[])[1].glowColor).toEqual([1, 0, 0, 1]);
   });
 
   test("a colour the aura didn't set yet is written whole", async () => {
     const edit = await core.setOption(sample, { tab: "region", path: ["icon.color"] }, [1, 0, 0, 1]);
-    expect(edit.aura.color).toEqual([1, 0, 0, 1]);
+    expect(edit.state.aura.color).toEqual([1, 0, 0, 1]);
   });
 
   test("expanding a section is not an edit of the aura", async () => {
     const edit = await core.setOption(sample, { tab: "region", path: ["positioncollapseButton"] });
     expect(edit.changed).toBe(false);
-    expect(edit.aura).toEqual(sample.aura);
+    expect(edit.state.aura).toEqual(sample.aura);
     expect(find(await core.options(sample, { tab: "region" }), "position.width").hidden).toBe(false);
     await core.setOption(sample, { tab: "region", path: ["positioncollapseButton"] });
   });
@@ -177,7 +177,7 @@ describe("setOption", () => {
     const apply = async (tab: string, path: string[], value?: unknown) => {
       const edit = await core.setOption(state, { tab, path }, value);
       expect(edit.warning, path.join("/")).toBeUndefined();
-      state = single(edit.aura);
+      state = edit.state;
     };
     await apply("region", ["sub.subglow"]);
     await apply("conditions", ["addCondition"]);

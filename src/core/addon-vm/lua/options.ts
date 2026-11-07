@@ -23,13 +23,15 @@ O.optionCache = {}
 -- Tabs and generators, read from the options window's own source by the JS side (parseOptionTabs) and set here.
 O.tabs = {}
 
--- The aura being edited: registered with WeakAuras.Add (the addon's add path), found again by uid.
-local session -- { uid, input = <the document as the page holds it> }
+-- The top-level aura loaded into the editor (a group with all its descendants, or a lone aura), registered with
+-- WeakAuras.Add (the addon's add path) and found again by uid, and the aura in it the window has selected.
+-- Per aura: input = the document as the page holds it, registered = its data as the addon registered it.
+local session -- { auras = { { uid, input, registered }, ... } (top first), selected = uid }
 local uidCounter = 0
 
 local function currentData()
-  if not session then return nil end
-  return P.GetDataByUID(session.uid)
+  if not session or not session.selected then return nil end
+  return P.GetDataByUID(session.selected)
 end
 O.currentData = currentData
 
@@ -81,52 +83,57 @@ function O.restoreCollapsed()
   for k, v in pairs(copyValues(savedCollapsed)) do collapsed[k] = v end
 end
 
--- Unregisters the edited aura. Returns its expanded/collapsed sections, which are kept when the
--- same aura is loaded again (after an undo, a push, …).
+-- Unregisters the loaded aura with everything in it. Returns each aura's expanded/collapsed sections by id, which are
+-- kept when the same auras are loaded again (after an undo, a push, …).
 local function deleteCurrent()
-  local data = currentData()
-  local kept
-  if data then
-    local collapsed = collapsedTable()
-    kept = collapsed and { id = data.id, state = collapsed[data.id] }
-    pcall(WeakAuras.Delete, data)
+  if not session then return nil end
+  local collapsed = collapsedTable()
+  local kept = {}
+  -- Descendants before their groups (reverse export order): deleting a group first re-adds its children on their own.
+  for i = #session.auras, 1, -1 do
+    local data = P.GetDataByUID(session.auras[i].uid)
+    if data then
+      if collapsed then kept[data.id] = collapsed[data.id] end
+      pcall(WeakAuras.Delete, data)
+    end
   end
   session = nil
   return kept
 end
 
--- Registers the aura (and, for a group, its descendants) and makes it the edited aura, in the two phases of the game's
--- import (WeakAurasOptions/OptionsFrames/Update.lua, ImportPhase1/ImportPhase2): first every aura top-down without its
--- parent and children (GetPhase1Data), then every aura bottom-up as it is. Adding a group walks its children
--- (ScanForLoadsGroup) and adding a child makes its parents' regions (EnsureRegion), so in one pass either order fails
--- for nested groups. Descendants come in export order (each group before its children).
--- An Add that raises (in the game: a Lua error) is reported as the load warning; the editor shows what was registered.
--- Not for the edited aura when it is in a group: the editor gets only the aura and its descendants, so its parent is
--- not registered, and adding a nested group fails on that (EnsureRegion walks up to it) where the game has the parent.
-function O.load(input, children)
+-- Registers a top-level aura and its descendants (in export order: each group before its children) the way the game's
+-- import does (WeakAurasOptions/OptionsFrames/Update.lua, ImportPhase1/ImportPhase2): first every aura top-down
+-- without its parent and children (GetPhase1Data), then every aura bottom-up as it is. Adding a group walks its
+-- children (ScanForLoadsGroup) and adding a child makes its parents' regions (EnsureRegion), so in one pass either
+-- order fails for nested groups. The top-level aura is added without a parent, as the import adds it.
+-- An Add that raises (in the game: a Lua error) is reported as the load warning, one line per aura; the editor shows
+-- what was registered. The top-level aura is selected until O.select picks another.
+function O.load(top, descendants)
   setup()
   local kept = deleteCurrent()
-  local function prepared(doc)
+  local inputs = { top }
+  for i, doc in ipairs(descendants or {}) do inputs[i + 1] = doc end
+  local order, auras = {}, {}
+  for i, doc in ipairs(inputs) do
     local d = X.prepare(doc)
     if type(d.uid) ~= "string" then
       uidCounter = uidCounter + 1
       d.uid = "__aurasimE" .. uidCounter
     end
-    return d
-  end
-  local data = prepared(input)
-  local order, kids = { data }, {}
-  for i, child in ipairs(children or {}) do
-    local c = prepared(child)
-    order[#order + 1] = c
-    kids[i] = { uid = c.uid, input = deepcopy(child) }
+    if i == 1 then d.parent = nil end
+    order[i] = d
+    auras[i] = { uid = d.uid, input = deepcopy(doc) }
   end
   local collapsed = collapsedTable()
-  if kept and collapsed and kept.id == data.id then collapsed[data.id] = kept.state end
+  if kept and collapsed then
+    for _, d in ipairs(order) do
+      if kept[d.id] ~= nil then collapsed[d.id] = kept[d.id] end
+    end
+  end
   local raised = {}
-  local function add(d, report)
+  local function add(d)
     local r = B.try(WeakAuras.Add, d)
-    if not r.ok and report ~= false then raised[#raised + 1] = tostring(d.id) .. ": " .. (r.error:match("^[^\n]*") or r.error) end
+    if not r.ok then raised[#raised + 1] = tostring(d.id) .. ": " .. (r.error:match("^[^\n]*") or r.error) end
     return r
   end
   -- (A lone aura has no relations in the loaded set: phase 1 would only add it twice.)
@@ -137,14 +144,36 @@ function O.load(input, children)
     if phase1.sortHybridTable then phase1.sortHybridTable = {} end
     add(phase1)
   end
-  for i = #order, 2, -1 do add(order[i]) end
-  local r = add(data, data.parent == nil)
-  session = { uid = data.uid, input = deepcopy(input), children = kids }
+  local r
+  for i = #order, 1, -1 do r = add(order[i]) end
+  -- What each aura is once registered: edits start from it (restore) and keep it up to date.
+  for _, a in ipairs(auras) do
+    local d = P.GetDataByUID(a.uid)
+    a.registered = d and deepcopy(d)
+  end
+  session = { auras = auras, selected = order[1].uid }
   if not currentData() then
     session = nil
     return { ok = false, error = r.error or "The addon did not register the aura" }
   end
   return { ok = true, warning = #raised > 0 and table.concat(raised, "\n") or nil }
+end
+
+-- Selects the aura (by id) of the loaded top-level aura that the window shows, as clicking it in the game's aura list
+-- does: its tabs are built for it with its groups around it.
+function O.select(id)
+  if not session then return { ok = false, error = "No aura is loaded in the editor" } end
+  local given = false
+  for _, a in ipairs(session.auras) do
+    local data = P.GetDataByUID(a.uid)
+    if data and data.id == id then
+      session.selected = a.uid
+      return { ok = true }
+    end
+    given = given or a.input.id == id
+  end
+  if given then return { ok = false, error = "The addon did not register " .. tostring(id) } end
+  return { ok = false, error = "There is no aura called " .. tostring(id) .. " in this aura" }
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -409,22 +438,35 @@ local function applyDiff(target, before, after)
   end
 end
 
--- Runs one edit: set(info, value) for a field (colour: r, g, b, a; multiselect: key, checked),
--- func(info) for an execute option. Returns { ok, changed, aura (JSON), warning } or { ok = false, error }.
+-- Puts back every aura whose data in the VM is no longer what was registered (evaluating a tab can write into it: some
+-- get()s fill in defaults, a group's region re-anchors), so an edit always starts from the documents as given.
+-- Bottom-up, as the load adds them; only the auras that changed are added again.
+local function restore()
+  for i = #session.auras, 1, -1 do
+    local a = session.auras[i]
+    local d = P.GetDataByUID(a.uid)
+    if d and a.registered and not equal(d, a.registered) then B.try(WeakAuras.Add, deepcopy(a.registered)) end
+  end
+end
+
+-- Runs one edit: set(info, value) for a field (colour: r, g, b, a; multiselect: key, checked), func(info) for an
+-- execute option, on the selected aura. Returns { ok, changes = { { index, aura (JSON) }, ... } (the auras of the
+-- loaded one it changed), selected (its id after the edit), warning, dialog } or { ok = false, error }.
 function O.edit(tabKey, ids, value)
   local data = currentData()
   if not data then return { ok = false, error = "No aura is loaded in the editor" } end
+  restore()
   local root, err = buildRoot(tabKey)
   if not root then return { ok = false, error = shortError(err) } end
   local node, keys, inh = resolve(root, ids)
   if not node then return { ok = false, error = "This option no longer exists: " .. table.concat(ids, " / ") } end
   local info = makeInfo(root, keys, node, inh)
-  local before = deepcopy(data)
-  -- Group options edit the group's children too (the Display and Trigger tabs of a group are its children's).
-  local childrenBefore = {}
-  for i, kid in ipairs(session.children) do
-    local d = P.GetDataByUID(kid.uid)
-    childrenBefore[i] = d and deepcopy(d)
+  -- An edit can change any aura of the loaded one: a group's Display and Trigger tabs are its children's, a child's
+  -- anchoring and order change its group, a rename renames the parent's controlledChildren.
+  local before = {}
+  for i, a in ipairs(session.auras) do
+    local d = P.GetDataByUID(a.uid)
+    before[i] = d and deepcopy(d)
   end
   local kind = node.type == "execute" and "run" or "set"
   local args, n = { value }, 1
@@ -467,7 +509,6 @@ function O.edit(tabKey, ids, value)
     -- The edit replaced the data table (e.g. a rename): take whatever the addon registered under the uid.
     return { ok = false, error = r.error and shortError(r.error) or "The aura disappeared after this edit" }
   end
-  local changed = not equal(before, after)
   local function written(input, b, a)
     if input.internalVersion ~= nil and input.internalVersion ~= WeakAuras.InternalVersion() then
       -- Migrated on load: the document as written no longer matches the addon's shape.
@@ -477,25 +518,18 @@ function O.edit(tabKey, ids, value)
     applyDiff(out, b, a)
     return out
   end
-  local childrenChanged = false
-  local childResults = {}
-  for i, kid in ipairs(session.children) do
-    local a = P.GetDataByUID(kid.uid)
-    local b = childrenBefore[i]
-    if a and b and not equal(a, b) then
-      childrenChanged = true
-      kid.input = written(kid.input, b, a)
+  -- The auras the edit changed, by their place in the loaded aura (0: the top-level aura, then the descendants).
+  local changes = {}
+  for i, a in ipairs(session.auras) do
+    local now, was = P.GetDataByUID(a.uid), before[i]
+    if now and was and not equal(now, was) then
+      a.input = written(a.input, was, now)
+      if a.registered then applyDiff(a.registered, was, now) end
+      changes[#changes + 1] = { index = i - 1, aura = B.doc(a.input) }
     end
-    childResults[i] = kid.input
   end
-  if not r.ok and not changed and not childrenChanged then return { ok = false, error = shortError(r.error) } end
-  local result = written(session.input, before, after)
-  if changed then
-    session.input = deepcopy(result)
-  end
-  changed = changed or childrenChanged
-  return { ok = true, changed = changed, aura = B.doc(result),
-    children = childrenChanged and B.doc(childResults) or nil,
+  if not r.ok and #changes == 0 then return { ok = false, error = shortError(r.error) } end
+  return { ok = true, changes = changes, selected = after.id,
     warning = not r.ok and shortError(r.error) or nil,
     dialog = dialog and (value == nil or not dialogs[dialog.kind]) and dialog.info or nil }
 end

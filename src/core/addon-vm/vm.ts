@@ -19,6 +19,7 @@ import {
   type OptionAddress,
   type OptionEdit,
   type OptionNode,
+  type OptionsRequest,
   type OptionsTree,
   type OptionTab,
 } from "./options";
@@ -54,9 +55,9 @@ export interface AddonVM {
   fillDefaults(state: AuraState): AuraState;
   validate(state: AuraState): ValidationResult;
   registries(): Registries;
-  /** The options window's tabs and one tab's evaluated option tree for the aura (first tab by default). */
-  options(state: AuraState, request?: { tab?: string }): OptionsTree;
-  /** Applies an edit through the option's own set() (or runs an execute option's func()). */
+  /** The options window's tabs and one tab's evaluated option tree for the selected aura of a top-level aura (AuraCore.options). */
+  options(state: AuraState, request?: OptionsRequest): OptionsTree;
+  /** Applies an edit to the selected aura through the option's own set() (or func()); returns the whole top-level aura. */
   setOption(state: AuraState, address: OptionAddress, value: unknown): OptionEdit;
   /** What the window's New Aura page offers (display types, Modern Aura Group, Packs, Premade Auras). */
   newAuraPage(): NewAuraPage;
@@ -206,28 +207,30 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
   let packsCache: AuraPacks | undefined;
   const fullWidth = Number(lua.doStringSync("return WeakAuras.doubleWidth or 2.6")) || 2.6;
 
-  // The aura the options editor works on stays registered in the VM between calls; it is loaded
-  // again only when the page sends a different document, and before an edit after a tab was evaluated: evaluating a
-  // tab can write into the VM's copy (some get()s fill in defaults, a group's region re-anchors), and an edit always
-  // starts from the document as given.
+  // The options editor works on a whole top-level aura (a group with everything in it), as the game's window has every
+  // aura registered, and selects one aura in it. It stays registered in the VM between calls, so another tab or
+  // another aura of it costs no load; it is loaded again only when the page sends a different top-level aura (an
+  // edit's own result counts as loaded). What evaluating a tab writes into the VM's copy is put back before an edit
+  // (lua/options.ts, restore).
+  const stateKey = (state: AuraState) => JSON.stringify([state.aura, state.children]);
   let loadedKey: string | undefined;
   let loadWarning: string | undefined;
-  let evaluated = false;
-  const ensureSession = (state: AuraState, forEdit = false) => {
-    const aura = toAura(state.aura);
-    const children = state.children.map(toAura);
-    const key = JSON.stringify({ aura, children });
-    if (key === loadedKey && !(forEdit && evaluated)) return;
-    evaluated = false;
-    const r = json<{ ok: boolean; error?: string; warning?: string }>(
-      `__options.load(${toLuaLiteral(aura)}, ${toLuaLiteral(children as unknown as LuaValue)})`,
-    );
-    loadWarning = r.warning;
-    if (!r.ok) {
+  const ensureSession = (state: AuraState, selected: string | undefined): string => {
+    const key = stateKey(state);
+    if (key !== loadedKey) {
       loadedKey = undefined;
-      throw new OptionEditError(r.error ?? "The addon could not load this aura into the editor");
+      const r = json<{ ok: boolean; error?: string; warning?: string }>(
+        `__options.load(${toLuaLiteral(toAura(state.aura))}, ${toLuaLiteral(state.children.map(toAura) as unknown as LuaValue)})`,
+      );
+      loadWarning = r.warning;
+      if (!r.ok) throw new OptionEditError(r.error ?? "The addon could not load this aura into the editor");
+      loadedKey = key;
     }
-    loadedKey = key;
+    const id = selected ?? state.aura.id;
+    if (typeof id !== "string") throw new OptionEditError("The aura has no id");
+    const r = json<{ ok: boolean; error?: string }>(`__options.select(${toLuaLiteral(id)})`);
+    if (!r.ok) throw new OptionEditError([r.error ?? `There is no aura called ${id} in this aura`, loadWarning].filter(Boolean).join(": "));
+    return id;
   };
 
   let referenceCache: Promise<OptionReference> | undefined;
@@ -247,32 +250,35 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
       return mergeValidation(results, ids);
     },
     options(state, request) {
-      ensureSession(state);
+      const selected = ensureSession(state, request?.selected);
       const tabs = json<OptionTab[]>("__options.tabList()");
       const tab = request?.tab ?? tabs[0]?.key ?? "region";
-      const base = { tabs, tab, fullWidth, ...(loadWarning && { warning: loadWarning }) };
+      const base = { selected, tabs, tab, fullWidth, ...(loadWarning && { warning: loadWarning }) };
       if (tabSources === undefined) {
         return { ...base, error: `This addon version's options window (${OPTIONS_FRAME_FILE}) no longer has the tab list the editor reads` };
       }
       const r = json<{ tree?: OptionNode; error?: string }>(`__options.tree(${toLuaLiteral(tab)})`);
-      evaluated = true;
       return { ...base, ...r };
     },
     setOption(state, address, value) {
-      ensureSession(state, true);
+      ensureSession(state, address.selected);
       const v = value === undefined || value === null ? "nil" : toLuaLiteral(value as LuaValue);
-      const r = json<Partial<OptionEdit> & { ok: boolean; error?: string }>(
+      const r = json<{ ok: boolean; error?: string; changes?: { index: number; aura: AuraDocument }[]; selected?: string } & Pick<OptionEdit, "warning" | "dialog">>(
         `__options.edit(${toLuaLiteral(address.tab)}, ${toLuaLiteral(address.path)}, ${v})`,
       );
-      if (!r.ok || r.aura === undefined) throw new OptionEditError(r.error ?? "The edit failed");
+      if (!r.ok || r.changes === undefined || r.selected === undefined) throw new OptionEditError(r.error ?? "The edit failed");
+      // The given documents, with the ones the edit changed replaced (the others stay the very objects given).
+      const auras = [state.aura, ...state.children];
+      for (const { index, aura } of r.changes) auras[index] = toAura(aura);
+      const [aura, ...children] = auras;
       const edit: OptionEdit = {
-        aura: toAura(r.aura),
-        changed: r.changed === true,
-        ...(r.children && { children: r.children.map(toAura) }),
+        state: { aura, children },
+        selected: r.selected,
+        changed: r.changes.length > 0,
         ...(r.warning && { warning: r.warning }),
         ...(r.dialog && { dialog: r.dialog }),
       };
-      if (edit.changed) loadedKey = JSON.stringify({ aura: edit.aura, children: edit.children ?? state.children.map(toAura) });
+      if (edit.changed) loadedKey = stateKey(edit.state);
       return edit;
     },
     newAuraPage() {
