@@ -2,7 +2,7 @@ import { findServerGame } from "@/games/server";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeAll, describe, expect, test } from "vitest";
-import { loadAddon, type AuraCore, type AuraDocument } from "@/core";
+import { canonicalize, fromWagoJson, loadAddon, type AuraCore, type AuraDocument } from "@/core";
 import { collectAddonFacts, type AddonFacts } from "@/games/forever/docs/addon-facts";
 import { agentDocsMarkdown, DOCUMENTED_ENDPOINTS } from "@/games/forever/docs/agent-docs";
 import { ALL_DOC_EXAMPLES } from "@/games/forever/docs/worked-examples";
@@ -20,23 +20,24 @@ beforeAll(async () => {
   md = agentDocsMarkdown({ origin: ORIGIN, addonRef: REF, addon: facts });
 }, 120_000);
 
-/** The JSON blocks tagged ```json example=<key> combat=<status>. */
+/** The wago JSON blocks tagged ```json example=<key> combat=<status>, read by wago's rules. */
 function exampleBlocks(markdown: string) {
   return [...markdown.matchAll(/^```json example=(\S+) combat=(\S+)\n([\s\S]*?)\n```$/gm)].map((m) => ({
     key: m[1],
     combat: m[2],
-    body: JSON.parse(m[3]) as { aura: AuraDocument; children?: AuraDocument[] },
+    state: fromWagoJson(m[3]),
   }));
 }
 
 describe("worked examples", () => {
-  test("every example is in the docs as a tagged block, equal to the shared document", () => {
+  test("every example is in the docs as a tagged wago JSON block that reads back as the shared document", () => {
     const blocks = exampleBlocks(md);
     expect(blocks.map((b) => b.key)).toEqual(ALL_DOC_EXAMPLES.map((e) => e.key));
     for (const e of ALL_DOC_EXAMPLES) {
       const block = blocks.find((b) => b.key === e.key)!;
       expect(block.combat).toBe(e.combat);
-      expect(block.body).toEqual(JSON.parse(JSON.stringify(e.body)));
+      expect(block.state.aura).toEqual(canonicalize(e.body.aura));
+      expect(block.state.children).toEqual((e.body.children ?? []).map((c: AuraDocument) => canonicalize(c)));
     }
   });
 

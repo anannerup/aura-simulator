@@ -3,6 +3,20 @@
  * Playwright can load it). The full worked examples as wago JSON are ticket 08.
  */
 
+/** The same aura as wago JSON (number keys as strings; keys sorted, as wago writes them): the docs' push example. */
+export const TBC_MINIMAL_WAGO_JSON = {
+  d: {
+    displayIcon: 135932,
+    id: "Arcane Intellect",
+    regionType: "icon",
+    triggers: {
+      "1": { trigger: { auraspellids: ["27126"], debuffType: "HELPFUL", type: "aura2", unit: "player", useExactSpellId: true }, untrigger: [] },
+      activeTriggerMode: -10,
+    },
+  },
+  m: "d",
+};
+
 /** A complete push body: an icon for the player's Arcane Intellect (rank 6, 27126) on the plain Aura trigger. */
 export const TBC_MINIMAL_PUSH = {
   aura: {

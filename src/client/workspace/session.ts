@@ -1,4 +1,16 @@
-import { canonicalize, sampleIconAura, toWagoJson, type AddonGameId, type AuraCore, type AuraDocument, type AuraState, type LuaObject } from "@/core";
+import {
+  canonicalize,
+  fromWagoJson,
+  isStateCode,
+  sampleIconAura,
+  toWagoJson,
+  type AddonGameId,
+  type AuraCore,
+  type AuraDocument,
+  type AuraState,
+  type DecodedState,
+  type LuaObject,
+} from "@/core";
 import {
   addSubtree,
   auraFileName,
@@ -9,13 +21,16 @@ import {
   mergeWorkspaces,
   nodeFromState,
   nodeId,
+  parseWagoLink,
   parseWorkspaceId,
   placeNewAura,
   readWorkspace,
+  replaceNode,
   serializeWorkspace,
   stateFromNode,
   updateNode,
   updateWithDescendants,
+  wagoRouteUrl,
   workspaceFileName,
   type PushInput,
   type Workspace,
@@ -26,6 +41,7 @@ import { StateCodes } from "./codes";
 import { ServerLink } from "./server-link";
 import { pageWorkspaceStore, type WorkspaceStore } from "./storage";
 import { errorMessage } from "@/lib/errors";
+import { fetchJson } from "@/lib/fetch-json";
 
 /** What the page shows of the workspace. */
 export interface WorkspaceView {
@@ -88,6 +104,8 @@ export interface ImportFilesResult {
 export interface SessionDeps {
   store?: WorkspaceStore;
   link?: (workspace: WorkspaceAddress) => ServerLink;
+  /** A wago aura's import string by its id; default: the game's server route (`wagoRouteUrl`). */
+  wagoCode?: (id: string) => Promise<string>;
 }
 
 const now = () => new Date().toISOString();
@@ -108,6 +126,7 @@ export class WorkspaceSession {
   private readonly codes: StateCodes;
   private readonly store: WorkspaceStore;
   private readonly makeLink: (workspace: WorkspaceAddress) => ServerLink;
+  private readonly wagoCode: (id: string) => Promise<string>;
 
   constructor(
     private readonly core: AuraCore,
@@ -118,6 +137,8 @@ export class WorkspaceSession {
     this.codes = new StateCodes(core);
     this.store = deps.store ?? pageWorkspaceStore();
     this.makeLink = deps.link ?? ((w) => new ServerLink(w));
+    this.wagoCode =
+      deps.wagoCode ?? (async (id) => (await fetchJson<{ code: string }>(wagoRouteUrl(game, id))).code);
   }
 
   readonly getView = () => this.view;
@@ -159,16 +180,49 @@ export class WorkspaceSession {
   }
 
   /**
+   * Imports what the player pasted into Import: a state code, wago JSON, or a wago link or id (its import string is
+   * fetched through the server). "load" opens it as the whole workspace, "add" puts it beside what's there.
+   */
+  async importText(text: string, action: "load" | "add"): Promise<EditResult> {
+    const trimmed = text.trim();
+    if (!trimmed) return { ok: false, error: "Paste an import string, wago JSON or a wago link first" };
+    let code = trimmed;
+    if (trimmed.startsWith("{")) {
+      try {
+        code = this.core.encode(fromWagoJson(trimmed));
+      } catch (e) {
+        return { ok: false, error: errorMessage(e) };
+      }
+    } else if (!isStateCode(trimmed)) {
+      const link = parseWagoLink(trimmed, { bareId: true });
+      if (link && !link.ok) return { ok: false, error: link.error };
+      if (link) {
+        try {
+          code = await this.wagoCode(link.id);
+        } catch (e) {
+          return { ok: false, error: `Could not fetch ${link.id} from wago.io: ${errorMessage(e)}` };
+        }
+        if (this.disposed) return { ok: false, error: "The page changed while fetching" };
+      }
+    }
+    const result = await (action === "load" ? this.openCode(code) : this.addCode(code));
+    return result.ok ? { ok: true } : result;
+  }
+
+  /**
    * Loads an aura the way a push does (`window.auraSimulator.load`): replaces the top-level aura with its uid (else
    * id), or adds it; selects it. Returns its id and state code.
    */
   async load(input: PushInput): Promise<{ ok: true; id: string; code: string } | { ok: false; error: string }> {
     if (!this.view.workspaceId) return NOT_READY;
     try {
+      if ("wagoId" in input) throw new Error("A wago link needs the server: push it over HTTP, or paste it into Import");
       const state =
         "code" in input
           ? this.codes.decode(input.code)
-          : { aura: canonicalize(input.aura) as AuraDocument, children: input.children.map((c) => canonicalize(c) as AuraDocument) };
+          : "wagoJson" in input
+            ? this.fromWagoJson(input.wagoJson)
+            : { aura: canonicalize(input.aura) as AuraDocument, children: input.children.map((c) => canonicalize(c) as AuraDocument) };
       await this.assertImportable(state);
       const id = this.view.workspaceId;
       if (!id || this.disposed) return NOT_READY;
@@ -217,6 +271,33 @@ export class WorkspaceSession {
         : updateNode(this.view.items, selected, doc);
       this.commit(id, updated.items, updated.id, "page");
     });
+  }
+
+  /**
+   * The selected aura (a group with everything in it) as wago JSON, the form wago.io's Editor shows. Throws
+   * WagoJsonError when wago can't hold the aura (a boolean key). Null when nothing is selected.
+   */
+  wagoJson(auraId: string | null = this.view.selectedId): string | null {
+    const code = this.codeOf(auraId);
+    return code ? toWagoJson(this.core.decode(code)) : null;
+  }
+
+  /**
+   * Replaces the selected aura (a group with its whole subtree) with edited wago JSON, read by wago's rules
+   * (`fromWagoJson`) and checked by the addon's own import as a pasted code would be. Returns the aura's wago JSON
+   * as it now is.
+   */
+  applyWagoJson(text: string): { ok: true; json: string } | { ok: false; error: string } {
+    const id = this.view.workspaceId;
+    const selected = this.view.selectedId;
+    if (!id || !selected) return { ok: false, error: "Nothing is selected" };
+    try {
+      const updated = replaceNode(this.view.items, selected, nodeFromState(this.fromWagoJson(text)));
+      this.commit(id, updated.items, updated.id, "page");
+      return { ok: true, json: this.wagoJson(updated.id)! };
+    } catch (e) {
+      return { ok: false, error: errorMessage(e) };
+    }
   }
 
   /** Makes a new aura with the addon's own New Aura (`WeakAuras.NewAura`) and places it where the game would. */
@@ -290,6 +371,10 @@ export class WorkspaceSession {
       const content = classifyImportText(text);
       if (content.kind === "none") {
         fail(content.error);
+      } else if (content.kind === "wago-json") {
+        const r = await this.withState(() => this.fromWagoJson(content.text), (node) => addSubtree(this.view.items, node, { parentId: null }));
+        if (r.ok) result.added.push(r.id);
+        else fail(r.error);
       } else if (content.kind === "codes") {
         for (const [i, code] of content.codes.entries()) {
           const r = await this.addCode(code);
@@ -354,11 +439,19 @@ export class WorkspaceSession {
     code: string,
     apply: (node: WorkspaceNode) => R,
   ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-    if (!this.view.workspaceId) return NOT_READY;
     const trimmed = code.trim();
     if (!trimmed) return { ok: false, error: "Paste a state code first" };
+    return this.withState(() => this.codes.decode(trimmed), apply);
+  }
+
+  /** Reads an aura, lets the addon's import decide on it (`assertImportable`), then applies it. */
+  private async withState<R extends { items: WorkspaceNode[]; id: string }>(
+    read: () => AuraState & { senderVersion?: string },
+    apply: (node: WorkspaceNode) => R,
+  ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+    if (!this.view.workspaceId) return NOT_READY;
     try {
-      const state = this.codes.decode(trimmed);
+      const state = read();
       await this.assertImportable(state);
       const id = this.view.workspaceId;
       if (!id || this.disposed) return NOT_READY;
@@ -368,6 +461,14 @@ export class WorkspaceSession {
     } catch (e) {
       return { ok: false, error: errorMessage(e) };
     }
+  }
+
+  /**
+   * wago JSON as the aura wago would give: rebuilt by wago's rules, then encoded and decoded by the addon, so the
+   * addon's own import checks it as it checks a pasted code (and the code is remembered for its content).
+   */
+  private fromWagoJson(text: string): DecodedState {
+    return this.codes.decode(this.core.encode(fromWagoJson(text)));
   }
 
   private tryNode(code: string): WorkspaceNode | null {

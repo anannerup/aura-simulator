@@ -8,7 +8,9 @@
  *
  * The server keeps only the latest few pushes per workspace, in memory: one aura or group each, not a Workspace.
  */
-import { isLuaTable, type AuraDocument, type LuaValue } from "@/core";
+import { isLuaTable, isStateCode, type AuraDocument, type LuaValue } from "@/core";
+import { isWagoJsonObject } from "./files";
+import { parseWagoLink } from "./wago-link";
 
 /** Header a page sends with its own pushes. HTTP header names are case-insensitive. */
 export const CLIENT_HEADER = "x-aura-client";
@@ -29,27 +31,61 @@ export interface WorkspaceSnapshot {
 /** What listeners hear about a push: everything but the code. */
 export type WorkspaceNotice = Omit<WorkspaceSnapshot, "code">;
 
-/** What a push carries: a state code, or an aura document plus a group's descendants. */
-export type PushInput = { code: string } | { aura: AuraDocument; children: AuraDocument[] };
+/**
+ * What a push carries: a state code, an aura document plus a group's descendants, wago JSON (its text, pretty or
+ * compact), or a wago link's id (the server fetches the aura's import string from wago).
+ */
+export type PushInput =
+  | { code: string }
+  | { aura: AuraDocument; children: AuraDocument[] }
+  | { wagoJson: string }
+  | { wagoId: string };
 
 const isAuraObject = (v: unknown): v is AuraDocument => isLuaTable(v as LuaValue) && !Array.isArray(v);
 
+/** A wago link (with `bareId`, also a bare id) as a push, or null when the text isn't one; throws for a link we can't import. */
+function wagoLinkInput(text: string, bareId = false): PushInput | null {
+  const link = parseWagoLink(text, { bareId });
+  if (!link) return null;
+  if (!link.ok) throw new Error(link.error);
+  return { wagoId: link.id };
+}
+
 /**
- * Reads a push from a JS value: a state code string, `{code}`, or `{aura, children?}`. Used by the push API (on the
- * parsed body) and the page's `window.auraSimulator.load`. Throws an Error that says what's wrong.
+ * Reads a push from a JS value: a string (a state code, wago JSON text, or a wago link), `{code}`,
+ * `{aura, children?}`, wago JSON as an object (`{d, c?, ...}`), or `{wago: "<link or id>"}`. Used by the push API
+ * (on the parsed body) and the page's `window.auraSimulator.load`. Throws an Error that says what's wrong.
  */
 export function readPushInput(value: unknown): PushInput {
-  if (typeof value === "string") return { code: value.trim() };
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (text.startsWith("{")) {
+      try {
+        JSON.parse(text);
+      } catch (e) {
+        throw new Error(`Not JSON: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      return { wagoJson: text };
+    }
+    if (isStateCode(text)) return { code: text };
+    return wagoLinkInput(text) ?? { code: text };
+  }
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("The body must be a JSON object");
   const b = value as Record<string, unknown>;
   if (typeof b.code === "string") return { code: b.code.trim() };
+  if (isWagoJsonObject(b)) return { wagoJson: JSON.stringify(b) };
+  if (typeof b.wago === "string") {
+    const input = wagoLinkInput(b.wago, true);
+    if (!input) throw new Error('`wago` must be a wago link (https://wago.io/<id>) or id');
+    return input;
+  }
   if (b.aura !== undefined) {
     if (!isAuraObject(b.aura)) throw new Error("`aura` must be an object (the aura's Lua table)");
     const children = b.children ?? [];
     if (!Array.isArray(children) || !children.every(isAuraObject)) throw new Error("`children` must be an array of aura objects");
     return { aura: b.aura, children };
   }
-  throw new Error('Send either "code" (a state code) or "aura" (an aura document)');
+  throw new Error('Send wago JSON (the aura in "d"), "code" (a state code), "aura" (an aura document) or "wago" (a wago link)');
 }
 
 /** A game's workspace on the server: workspaces are namespaced per game. */

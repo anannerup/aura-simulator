@@ -7,13 +7,13 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { loadAddon, type AuraCore, type OptionNode } from "@/core";
+import { canonicalize, fromWagoJson, loadAddon, type AuraCore, type OptionNode } from "@/core";
 import { clientSpells } from "@/server/addon/client-spells";
 import { createSpellCache, type SpellCache } from "@/server/spells";
 import { TBC_SPELLS } from "@/games/tbc/sources";
 import { collectTbcAddonFacts, type TbcAddonFacts } from "@/games/tbc/docs/addon-facts";
 import { TBC_DOCUMENTED_ENDPOINTS, tbcAgentDocsMarkdown } from "@/games/tbc/docs/agent-docs";
-import { TBC_MINIMAL_PUSH } from "@/games/tbc/examples";
+import { TBC_MINIMAL_PUSH, TBC_MINIMAL_WAGO_JSON } from "@/games/tbc/examples";
 import { createTbcFixtureFetch } from "../fixtures/tbc/spells/fixture-fetch";
 import { TBC_TEST_VERSION, weakAuras2Available, weakAuras2Fetcher } from "../support/weakauras2";
 
@@ -69,8 +69,10 @@ describe("TBC agent docs", () => {
   test("their push example is accepted by the addon's import and validates without errors", async (ctx) => {
     const c = loaded(ctx);
     const block = /^```json push\n(.*)\n```$/m.exec(md);
-    expect(JSON.parse(block![1])).toEqual(TBC_MINIMAL_PUSH);
-    const state = { aura: TBC_MINIMAL_PUSH.aura, children: [] };
+    expect(JSON.parse(block![1])).toEqual(TBC_MINIMAL_WAGO_JSON);
+    // The wago JSON is the document form's aura, by wago's rules.
+    const state = fromWagoJson(block![1]);
+    expect(state.aura).toEqual(canonicalize(TBC_MINIMAL_PUSH.aura));
     expect(await c.importCheck(state)).toEqual({ importable: true });
     const result = await c.validate(state);
     expect(result.errors).toEqual([]);

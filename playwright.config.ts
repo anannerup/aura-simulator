@@ -23,6 +23,8 @@ export default defineConfig({
       ADDON_CACHE_DIR: path.resolve(__dirname, ".cache/addon"),
       // TBC's WeakAuras2 release zips: the unit tests' cache (tests/support/weakauras2.ts), unpacked by the global setup.
       ADDON_CACHE_DIR_TBC: path.resolve(__dirname, ".cache/weakauras2"),
+      // Wago links answer from recorded import strings (`<id>.txt`); any other id is wago's 404.
+      WAGO_FIXTURES: path.resolve(__dirname, "tests/fixtures/wago"),
     },
   },
 });

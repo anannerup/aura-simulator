@@ -5,7 +5,8 @@ const uniqueId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math
 
 const editor = (page: Page) => page.getByRole("region", { name: "Aura options" });
 const option = (page: Page, path: string) => editor(page).locator(`[data-option="${path}"]`);
-const raw = (page: Page) => page.getByLabel("Raw table text");
+/** The JSON tab's text (the drawer keeps it mounted while closed). */
+const raw = (page: Page) => page.getByLabel("wago JSON text");
 
 async function openTab(page: Page, name: string) {
   const tab = editor(page).getByRole("tab", { name, exact: true });
@@ -59,7 +60,7 @@ test("changing the width in the Display tab resizes the preview and changes the 
 
   await expect.poll(() => iconSize(page), { timeout: 30_000 }).toBe(100);
   await expect.poll(() => stateCode(page)).not.toBe(before);
-  await expect(raw(page)).toHaveValue(/\n {2}width = 100,\n/);
+  await expect(raw(page)).toHaveValue(/\n {4}"width": 100,?\n/);
   await expect(width).toHaveValue("100");
 });
 
@@ -84,7 +85,7 @@ test("enabling Remaining Time in the Trigger tab keeps the icon fully usable in 
 
   await expect(useRem).toBeChecked();
   await expect(option(page, "trigger.1.secretAura.rem").locator("input")).toBeVisible();
-  await expect(raw(page)).toHaveValue(/secretUseRem = true/);
+  await expect(raw(page)).toHaveValue(/"secretUseRem": true/);
   // The checks rerun for the new state code. Blizzard's aura container gives the Remaining Time window its slot,
   // as in the game: no "could not create the Remaining Time display" warning.
   await expect.poll(() => stateCode(page)).not.toBe(before);
@@ -98,7 +99,7 @@ test("adds a glow and a condition that shows it, with the addon's own buttons", 
   await page.goto(`/forever?w=${uniqueId("opts")}`);
   await openTab(page, "Display");
   await editor(page).getByRole("button", { name: "Add Glow", exact: true }).click();
-  await expect(raw(page)).toHaveValue(/type = "subglow"/, { timeout: 30_000 });
+  await expect(raw(page)).toHaveValue(/"type": "subglow"/, { timeout: 30_000 });
 
   await openTab(page, "Conditions");
   await editor(page).getByRole("button", { name: "Add Condition", exact: true }).click();
@@ -117,7 +118,7 @@ test("adds a glow and a condition that shows it, with the addon's own buttons", 
   await expect(show).toBeVisible();
   await show.check();
 
-  await expect(raw(page)).toHaveValue(/property = "sub\.2\.glow"/);
-  await expect(raw(page)).toHaveValue(/variable = "faAuraRemaining"/);
+  await expect(raw(page)).toHaveValue(/"property": "sub\.2\.glow"/);
+  await expect(raw(page)).toHaveValue(/"variable": "faAuraRemaining"/);
   await expect(page.getByTestId("validation-panel")).toHaveAttribute("data-combat-status", "ok", { timeout: 30_000 });
 });

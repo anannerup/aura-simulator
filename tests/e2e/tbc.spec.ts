@@ -6,7 +6,7 @@
  */
 import { readFile } from "node:fs/promises";
 import { expect, test, type Page } from "@playwright/test";
-import { TBC_MINIMAL_PUSH } from "@/games/tbc/examples";
+import { TBC_MINIMAL_PUSH, TBC_MINIMAL_WAGO_JSON } from "@/games/tbc/examples";
 import { ownWorkspacePage } from "../support/e2e-workspace";
 import { stateCode } from "../support/state-code";
 
@@ -123,12 +123,34 @@ test("story 7: an aura made with a newer WeakAuras is refused as the game's impo
   await page.getByRole("button", { name: "Import", exact: true }).click();
   await page.getByRole("textbox", { name: "Paste a code to load" }).fill(muscaCode);
   await page.getByRole("button", { name: "Add to workspace" }).click();
-  await expect(page.getByRole("alert").filter({ hasText: "Could not load that state code" })).toContainText(NEWER, { timeout: 60_000 });
+  await expect(page.getByRole("alert").filter({ hasText: "Could not import that" })).toContainText(NEWER, { timeout: 60_000 });
   expect(await stateCode(page)).toBe(before);
 
   // In the page: window.auraSimulator.load answers with the addon's message, and nothing changes.
   const loaded = await page.evaluate((input) => window.auraSimulator!.load(input), newer);
   expect(loaded).toEqual({ ok: false, error: expect.stringMatching(NEWER) });
+});
+
+test("wago JSON and wago links work on /tbc: push, paste into Import", async ({ page, request }) => {
+  // wago JSON, pretty, as the docs show it.
+  const workspace = uniqueId("tbc-json");
+  const json = await request.post(`/api/tbc/workspaces/${workspace}/aura`, {
+    headers: { "Content-Type": "application/json" },
+    data: JSON.stringify(TBC_MINIMAL_WAGO_JSON, null, 2),
+  });
+  expect(json.status(), await json.text()).toBe(200);
+  expect((await json.json()).validation.errors).toEqual([]);
+
+  // A wago link (recorded wago answer: a WeakAuras 5.21.9 aura, internalVersion 90, which WeakAuras2 5.22.1 imports).
+  const link = await request.post(`/api/tbc/workspaces/${workspace}/aura?validate=false`, { data: "https://wago.io/LEPRolmHn" });
+  expect(link.status(), await link.text()).toBe(200);
+
+  await page.goto(ownWorkspacePage("tbc-wago", "tbc"));
+  await page.waitForFunction(() => window.auraSimulator, undefined, { timeout: 90_000 });
+  await page.getByRole("button", { name: "Import", exact: true }).click();
+  await page.getByRole("textbox", { name: "Paste a code to load" }).fill("https://wago.io/LEPRolmHn");
+  await page.getByRole("button", { name: "Add to workspace" }).click();
+  await expect(tbcWindow(page).getByRole("treeitem", { name: /Eye buff missing/ })).toBeVisible({ timeout: 60_000 });
 });
 
 test("WeakAuras2's media (logo, addon textures) come from its release zip through the server", async ({ page, request }) => {

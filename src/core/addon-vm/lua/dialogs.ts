@@ -150,11 +150,11 @@ local dialogs = {
 -- The dialogs the page can't show: the button reports that instead of failing.
 local unsupported = {
   OpenTriggerTemplate = "Premade auras (the WeakAurasTemplates addon) aren't available in the simulator",
-  OpenCodeReview = "The code review dialog isn't available in the simulator; see the Raw table",
+  OpenCodeReview = "The code review dialog isn't available in the simulator; see the JSON tab",
   ToggleTextReplacements = "text replacements",
   OpenDebugLog = "The debug log isn't available in the simulator",
   ExportToString = "Use Export in the window to get the state code",
-  ExportToTable = "Use the Raw table to see the aura as a table",
+  ExportToTable = "Use the JSON tab to see the aura as a table",
   ImportFromString = "Use Import in the window's toolbar",
   OpenUpdate = "Updates from wago.io aren't available in the simulator",
 }

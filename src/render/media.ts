@@ -1,7 +1,7 @@
 /**
  * LibSharedMedia names the addon offers in its option lists, mapped to where the renderers load them from.
  * Blizzard files are FileDataIDs (wago.tools, IDs from the `wowf` ManifestInterfaceData export and the
- * community listfile); Musca Auras' own files are addon paths (Musca Auras repository).
+ * community listfile); the addon's own files are addon paths (the game's addon source, `Game.addon.fileUrl`).
  *
  * Sources: Libs/LibSharedMedia-3.0/LibSharedMedia-3.0.lua:84-197 (western locale) and Types.lua:3250-3266.
  */
@@ -10,7 +10,7 @@ import type { TextureSource } from "./textures/paths";
 
 const ADDON = "Interface\\AddOns\\WeakAuras\\Media\\";
 
-/** Musca Auras' own UI media (logo, toolbar and footer icons), fetched at runtime and never committed. */
+/** The game's addon's own UI media (toolbar and footer icons), fetched at runtime from the game's addon source and never committed. */
 export const ADDON_MEDIA = (name: string): string => `${ADDON}Textures\\${name}`;
 
 /** LSM "statusbar" (LibSharedMedia-3.0.lua:194-197, Types.lua:3262-3265). */
