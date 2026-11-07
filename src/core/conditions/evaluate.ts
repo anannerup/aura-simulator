@@ -8,6 +8,7 @@ import { entries, field, finite, getField, isLuaTable, list, type LuaTable, type
 import type { SituationFacts } from "../situation";
 import { compare } from "./compare";
 import { regionDefaults, subRegionDefaults } from "./region-defaults";
+import type { DrawnText } from "./text";
 import type { TriggerState } from "./triggers";
 
 export interface GlowState {
@@ -42,6 +43,15 @@ export interface AuraRenderState {
   nativeStackText: Record<number, string>;
   /** Glow sub-regions with their computed state. */
   glows: GlowState[];
+  /** What each sub text draws, by its 1-based place in `subRegions` (`text.ts`): the game screen and the preview read these. */
+  texts: Record<number, DrawnText>;
+  /** A text region's own text. */
+  displayText?: DrawnText;
+  /**
+   * The aura's custom code the simulator didn't run (`customCodeParts`): custom triggers, custom checks, custom text,
+   * custom actions and animations. Empty when there is none; the game screen marks the aura otherwise.
+   */
+  customCode: string[];
 }
 
 export function parseSubPath(path: string): { position: number; key: string } | undefined {
@@ -102,6 +112,12 @@ function evaluateCheck(check: LuaValue | undefined, ctx: CheckContext): boolean 
     return variable in globals && boolCheck(globals[variable], value);
   }
   const state = ctx.states.get(trigger);
+  if (variable === "show") {
+    // "Active" (WeakAuras.lua GetTriggerConditions): a test function, so no `state[trigger]` guard: it compares
+    // whether the trigger is active with `needle == 1`, and a value-less check builds no test (Conditions.lua:292).
+    if (value === undefined) return false;
+    return (state?.active ?? false) === (value === 1);
+  }
   if (!state || !state.active) return false; // `state[trigger] and ...`
   const current = state.values[variable];
   if (current === undefined) return false; // `state[trigger][variable] ~= nil`

@@ -3,7 +3,6 @@
 import { Fragment, type ReactNode } from "react";
 import { getField, isLuaTable, list, type AuraDocument, type AuraRenderState } from "@/core";
 import { regionInfo } from "../region-types";
-import { textValues } from "../text-format";
 import { Border } from "./Border";
 import type { SubRegionHost } from "./host";
 import { SubGlow } from "./SubGlow";
@@ -49,21 +48,17 @@ export function drawOrder(aura: AuraDocument): { kind: SubRegionKind; position: 
 export function SubRegions({
   aura,
   state,
-  name,
   host,
   background,
   foreground,
 }: {
   aura: AuraDocument;
   state: AuraRenderState;
-  /** The aura's name, for %n. */
-  name: string;
   host: SubRegionHost;
   background: ReactNode;
   foreground?: ReactNode;
 }) {
   const entries = list(aura.subRegions);
-  const values = textValues(state, name);
   return (
     <>
       {drawOrder(aura).map(({ kind, position }) => {
@@ -74,7 +69,7 @@ export function SubRegions({
         if (!isLuaTable(element)) return null;
         switch (kind) {
           case "subtext":
-            return <SubText key={key} element={element} position={position} state={state} values={values} host={host} />;
+            return <SubText key={key} element={element} position={position} state={state} host={host} />;
           case "subborder":
             return <Border key={key} element={element} position={position} state={state} host={host} />;
           case "subtick":

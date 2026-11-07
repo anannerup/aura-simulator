@@ -21,7 +21,7 @@ function unsupportedTexture(value: LuaValue | undefined): string | undefined {
  * texcoords (`rotation`, counter-clockwise; "Allow full rotation" shrinks it by √2 so the corners stay inside),
  * mirrored, desaturated, coloured and blended. Atlas names aren't drawn (labelled instead).
  */
-export function TextureRegion({ aura, state, name, width, height, anim }: RegionProps) {
+export function TextureRegion({ aura, state, width, height, anim }: RegionProps) {
   const p = state.properties;
   const textureValue = p.texture;
   const corners = textureCorners({
@@ -48,7 +48,7 @@ export function TextureRegion({ aura, state, name, width, height, anim }: Region
   );
   return (
     <div className={styles.regionFrame}>
-      <SubRegions aura={aura} state={state} host={regionHost("texture", width, height)} name={name} background={background} />
+      <SubRegions aura={aura} state={state} host={regionHost("texture", width, height)} background={background} />
     </div>
   );
 }

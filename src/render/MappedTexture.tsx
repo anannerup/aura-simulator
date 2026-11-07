@@ -4,7 +4,7 @@ import { useId, type CSSProperties, type ReactNode } from "react";
 import type { Box } from "./screen/geometry";
 import { clipPolygon, cssMatrix, IDENTITY, textureElementMatrix, type Affine, type Pt } from "./texture-geometry";
 import type { TextureSource } from "./textures/paths";
-import { useTextureUrl } from "./textures";
+import { useTextureState } from "./textures";
 
 import type { Rgba } from "./color";
 
@@ -72,7 +72,7 @@ export function MappedTexture({
   data?: Record<string, string>;
   children?: ReactNode;
 }) {
-  const tex = useTextureUrl(source);
+  const { texture: tex, missing } = useTextureState(source);
   const filterId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const shade = needsShade(color, desaturate);
   const matrix = textureElementMatrix(map, box.width, box.height);
@@ -81,7 +81,8 @@ export function MappedTexture({
   return (
     <div
       data-testid={testId}
-      data-texture={tex ? "loaded" : source === null ? "none" : "pending"}
+      data-texture={tex ? "loaded" : source === null ? "none" : missing ? "missing" : "pending"}
+      title={missing ?? undefined}
       {...dataAttrs}
       style={{
         position: "absolute",
@@ -116,7 +117,26 @@ export function MappedTexture({
           }}
         />
       )}
+      {missing && <MissingTexture />}
       {children}
     </div>
+  );
+}
+
+/**
+ * Where a texture can't be drawn (the game has no such file): a magenta and black checkerboard, so it is plainly not
+ * the aura's art. The box's title says why; validation reports it too (`media.texture`).
+ */
+export function MissingTexture() {
+  return (
+    <div
+      data-testid="missing-texture"
+      style={{
+        position: "absolute",
+        inset: 0,
+        opacity: 0.8,
+        background: "repeating-conic-gradient(#ff00ff 0 25%, #000 0 50%) 0 0 / 16px 16px",
+      }}
+    />
   );
 }

@@ -251,6 +251,22 @@ C_AddOns = {
   DoesAddOnExist = function(name) return S.toc[name] ~= nil end,
 }
 
+-- C_UIFileAsset.IsKnownFile(path): whether the client has a file. An installed addon's files are on disk, so a path
+-- inside an addon the VM loaded (Interface\AddOns\<addon>\..., in any case) is known. The VM has no list of the game's
+-- own files, so any other path answers false. LibSharedMedia's Register asks it, so the addon's own fonts, borders
+-- and bar textures reach its media lists as they do in game.
+C_UIFileAsset = {
+  IsKnownFile = function(path)
+    if type(path) ~= "string" then return false end
+    local addon = path:lower():gsub("/", "\\"):match("^interface\\addons\\([^\\]+)\\.")
+    if not addon then return false end
+    for name in pairs(S.toc) do
+      if name:lower() == addon then return true end
+    end
+    return false
+  end,
+}
+
 -- Spell API: answers come from S.spells (JS can fill it from the spell cache); otherwise nil.
 S.spells = S.spells or {}
 local function spellInfo(id)

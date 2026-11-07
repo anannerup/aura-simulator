@@ -15,7 +15,7 @@ import { AuraList } from "@/components/aura-list/AuraList";
 import { Button, Popover, ToastProvider } from "@/components/ui";
 import { ensureFont } from "@/render/fonts";
 import { ADDON_MEDIA } from "@/render/media";
-import { createIconStore, createTextureLoader, GameTexture, IconStoreContext, iconsFromApi, TextureLoaderContext } from "@/render/textures";
+import { createIconStore, createTextureLoader, gameFilesFromApi, GameTexture, IconStoreContext, iconsFromApi, TextureLoaderContext } from "@/render/textures";
 import { findGame } from "@/games";
 import { GameScreenAuras } from "@/render/screen/GameScreenAuras";
 import { DEFAULT_WORKSPACE_ID, type WorkspaceNode } from "@/workspace";
@@ -46,7 +46,12 @@ export function AuraSimulator({ gameId }: { gameId: string }) {
   const rules = auraRules(game.id);
   // The game's addon media (logo, toolbar icons, addon textures and fonts) at the release the window follows.
   const mediaRef = core?.ref ?? game.addon.fallbackRef;
-  const textures = useMemo(() => createTextureLoader({ addonFileUrl: (path) => game.addon.fileUrl(mediaRef, path) }), [game, mediaRef]);
+  // Game texture paths (`Interface\Cursor\Cast`, `Interface\Icons\NAME`) load by FileDataID from the game's file list.
+  const resolvePath = useMemo(() => gameFilesFromApi(`${api}/files`), [api]);
+  const textures = useMemo(
+    () => createTextureLoader({ addonFileUrl: (path) => game.addon.fileUrl(mediaRef, path), resolvePath }),
+    [game, mediaRef, resolvePath],
+  );
   // The agent docs of the game and the version this window uses.
   const docsQuery = core ? `?ref=${encodeURIComponent(core.ref)}` : "";
   const docs = `/${game.id}/docs/agents${docsQuery}`;

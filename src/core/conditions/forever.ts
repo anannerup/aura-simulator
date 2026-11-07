@@ -7,7 +7,7 @@
 import type { AuraDocument } from "../aura-core";
 import type { ValidationResult } from "../addon-vm/validation";
 import { field, finite, getField, isLuaTable, list, type LuaValue } from "../lua-value";
-import { auraTriggers, frozenFacts, triggerSituation, type Situation, type SituationFacts, type TriggerInfo } from "../situation";
+import { auraTriggers, frozenFacts, situationForAura, triggerSituation, type Situation, type SituationFacts, type TriggerInfo } from "../situation";
 import { compare } from "./compare";
 import {
   baseProperty,
@@ -36,6 +36,8 @@ import {
   secretTrigger,
   textKind,
 } from "./secret-aura-rules";
+import { customCodeParts } from "./custom-code";
+import { auraTexts } from "./text";
 import { aura2State, timer, triggerState, unitExists, type TriggerState } from "./triggers";
 
 /** An Aura (Modern) condition the addon rejects: while there is one, the aura's generic conditions don't run. */
@@ -135,7 +137,8 @@ function durationPoint(variable: string, state: TriggerState): number | undefine
  * What the aura shows in the situation, by Forever's rules. `problem` is the core's verdict on its Aura (Modern)
  * conditions (`conditionProblem`); while there is one, the generic conditions don't run.
  */
-export function evaluateAura(aura: AuraDocument, situation: Situation, problem?: ConditionProblem): AuraRenderState {
+export function evaluateAura(aura: AuraDocument, workspaceSituation: Situation, problem?: ConditionProblem): AuraRenderState {
+  const situation = situationForAura(workspaceSituation, aura.id);
   const before = frozenFacts(situation);
   const statesMap = triggerStates(aura, situation, before, situation.inCombat);
   const states = [...statesMap.values()];
@@ -197,6 +200,8 @@ export function evaluateAura(aura: AuraDocument, situation: Situation, problem?:
     heldInCombat,
     nativeStackText,
     glows: glowStates(aura, properties),
+    ...auraTexts(aura, properties, states, dynamic, nativeStackText),
+    customCode: customCodeParts(aura),
   };
 }
 

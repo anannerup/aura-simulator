@@ -95,7 +95,7 @@ export interface RegionAnim {
 export interface RegionProps {
   aura: AuraDocument;
   state: AuraRenderState;
-  /** The aura's name (id), for %n. */
+  /** The aura's name (id): the icon's alt text. %n in texts comes from the evaluation (`state.texts`). */
   name: string;
   /** The region's size in UI units (for auto-sized regions, the document's width/height). */
   width: number;

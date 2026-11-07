@@ -17,7 +17,7 @@ import { fontFlagsStyle, fontFamily, fontUrl } from "./fonts";
 import { createTextureLoader } from "./textures";
 import { forever } from "@/games/forever";
 import { statusBarTexture } from "./media";
-import { formatText } from "./text-format";
+import { auraRules, withTrigger, DEFAULT_SITUATION } from "@/core";
 
 describe("bar progress", () => {
   it("is time left over duration, inverted by Inverse, clamped", () => {
@@ -180,8 +180,14 @@ describe("media and fonts", () => {
 
 describe("text format codes", () => {
   it("formats the text region's codes with its own options", () => {
-    const states = new Map([[0, { index: 1, kind: "other" as const, active: true, missing: false, remaining: 125, duration: 300, stacks: 3, values: {}, frozen: false }]]);
-    const opts: Record<string, number> = { p_time_dynamic_threshold: 0 };
-    expect(formatText("%n: %p (%s) %t %%", (k) => opts[k], { states, name: "Shield" })).toBe("Shield: 2:05 (3) 5:00 %");
+    const aura = {
+      id: "Shield",
+      regionType: "text",
+      displayText: "%n: %p (%s) %t %%",
+      displayText_format_p_time_dynamic_threshold: 0,
+      triggers: { "[1]": { trigger: { type: "unit", event: "Health" }, untrigger: {} } },
+    };
+    const situation = withTrigger(DEFAULT_SITUATION, 1, { present: true, remaining: 125, duration: 300, stacks: 3 });
+    expect(auraRules("tbc").evaluate(aura, situation).displayText?.text).toBe("Shield: 2:05 (3) 5:00 %");
   });
 });

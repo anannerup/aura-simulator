@@ -147,12 +147,24 @@ export const SHARED_PORTS: SharedPort[] = [
   // --- Rules (src/core) ---
   {
     module: "src/core/conditions/evaluate.ts",
-    files: ["WeakAuras/Conditions.lua"],
+    files: ["WeakAuras/Conditions.lua", "WeakAuras/WeakAuras.lua"],
     differs: {
+      "WeakAuras/WeakAuras.lua":
+        "GetTriggerConditions' 'Active' (show) test is the same in both; Musca adds native-display anchors, combat " +
+        "deferral and secret-value paths elsewhere in the file.",
       "WeakAuras/Conditions.lua":
         "Musca adds the Aura (Modern) hooks (skip native checks, ValidateConditions gate, SetSecretAuraConditionProperty " +
         "in combat), IsSecret guards, resetValue for unset bases and group conditions. The generic checks, linked " +
         "chains and property merging are the same; the Forever hooks live in forever.ts (the `skip` check, held properties).",
+    },
+  },
+  {
+    module: "src/core/conditions/custom-code.ts",
+    files: ["WeakAuras/Conditions.lua", "WeakAuras/WeakAuras.lua", "WeakAuras/Animations.lua"],
+    differs: {
+      "WeakAuras/Conditions.lua": "The customcheck and customcode keys are the same; Musca's additions are its Aura (Modern) hooks.",
+      "WeakAuras/WeakAuras.lua": "The custom action keys (do_custom, custom) and the %c placeholders are the same.",
+      "WeakAuras/Animations.lua": "The custom animation keys (type custom, <x>Type custom) are the same; Musca adds secret guards.",
     },
   },
   {
@@ -249,9 +261,15 @@ export const SHARED_PORTS: SharedPort[] = [
     foreverOnly: ["WeakAuras/TextStyle.lua"],
   },
   {
-    module: "src/render/text-format.ts",
-    files: ["WeakAuras/Types.lua", "WeakAuras/Prototypes.lua"],
+    module: "src/core/conditions/text.ts",
+    files: ["WeakAuras/Types.lua", "WeakAuras/Prototypes.lua", "WeakAuras/SubRegionTypes/SubText.lua", "WeakAuras/WeakAuras.lua"],
     differs: {
+      "WeakAuras/SubRegionTypes/SubText.lua":
+        "ChangeText (a condition's sub.N.text_text) and the text update are the same; Musca splits helpers out and " +
+        "adds native-text and secret-value paths.",
+      "WeakAuras/WeakAuras.lua":
+        "ReplacePlaceHolders and the custom text placeholders (%c, %cN) are the same; Musca's differences are " +
+        "elsewhere in the file (native-display anchors, combat deferral, secret values).",
       "WeakAuras/Types.lua":
         "The timed formatters the module ports are the same; WeakAuras2's extra format 2 ('Modern Blizzard') is " +
         "retail-only (false on TBC), and Musca adds secret-number guards.",

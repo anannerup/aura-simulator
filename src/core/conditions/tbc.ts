@@ -6,12 +6,15 @@
  */
 import type { AuraDocument } from "../aura-core";
 import type { LuaValue } from "../lua-value";
-import { auraTriggers, type Situation } from "../situation";
+import { auraTriggers, situationForAura, type Situation } from "../situation";
 import { documentProperties, dynamicTrigger, genericConditions, glowStates, isShown, type AuraRenderState } from "./evaluate";
+import { customCodeParts } from "./custom-code";
+import { auraTexts } from "./text";
 import { triggerState, type TriggerState } from "./triggers";
 
 /** What the aura shows in the situation, by TBC's (plain WeakAuras2) rules. */
-export function evaluateTbcAura(aura: AuraDocument, situation: Situation): AuraRenderState {
+export function evaluateTbcAura(aura: AuraDocument, workspaceSituation: Situation): AuraRenderState {
+  const situation = situationForAura(workspaceSituation, aura.id);
   const statesMap = new Map<number, TriggerState>();
   for (const info of auraTriggers(aura, "tbc")) statesMap.set(info.index, triggerState(info, situation));
   const states = [...statesMap.values()];
@@ -26,16 +29,19 @@ export function evaluateTbcAura(aura: AuraDocument, situation: Situation): AuraR
     for (const [path, value] of now.values) properties[path] = value;
   }
 
+  const dynamic = dynamicTrigger(aura, states);
   return {
     shown,
     missing: false,
     frozenMarker: false,
     triggers: states,
-    dynamic: dynamicTrigger(aura, states),
+    dynamic,
     properties,
     activeConditions,
     heldInCombat: [],
     nativeStackText: {},
     glows: glowStates(aura, properties),
+    ...auraTexts(aura, properties, states, dynamic),
+    customCode: customCodeParts(aura),
   };
 }

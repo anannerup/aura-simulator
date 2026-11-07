@@ -26,6 +26,11 @@ export interface ValidationMessage {
    * - `combat.hiddenValues`: in combat the game hides values this trigger compares;
    * - `defaults.error`: the addon failed while filling defaults / migrating;
    * - `defaults.message`: a line the addon printed while filling defaults (an error when it says ERROR);
+   * - `media.<type>` (`media.font`, `media.border`, `media.background`, `media.statusbar`): a LibSharedMedia name
+   *   the aura uses that a stock client with only this addon doesn't have, so the game draws the type's default;
+   * - `media.texture` (info): a texture the game can't draw (not in the game's file list, or in another addon's
+   *   folder), added by the server's push check (`src/server/media-check.ts`); `media.sound` the same for a sound
+   *   file, which doesn't play;
    * - `add.error`: the addon's WeakAuras.Add raised a Lua error for the aura, so it was not registered;
    * - `addon.<key>`: a warning the addon raised when the aura was added (e.g. `addon.forever_combat_log`);
    *   `addon.LuaError` when running the aura in the simulated client raised a Lua error.
@@ -91,7 +96,50 @@ export interface RawValidation {
     casterMessage: string;
   }[];
   auraWarnings?: { key: string; severity: string; message: string }[];
+  /** LibSharedMedia names the aura uses that the client doesn't have (lua/extract.ts X.unknownMedia). */
+  unknownMedia?: UnknownMedia[];
   add?: { ok: boolean; error?: string; handlerErrors?: string[] };
+}
+
+interface UnknownMedia {
+  kind: string;
+  name: string;
+  /** The aura's key (`font`, `texture`, ...) or, with `sub`, the sub element's (`text_font`, `border_edge`). */
+  key: string;
+  /** 1-based index in `subRegions`. */
+  sub?: number;
+  /** LibSharedMedia's default for the type, which the game draws instead. */
+  default?: string;
+}
+
+const MEDIA_WORDS: Record<string, { noun: string; plural: string; instead: (d: string | undefined) => string }> = {
+  font: { noun: "Font", plural: "fonts", instead: (d) => `the game draws the default font${d ? ` ("${d}")` : ""} instead` },
+  border: { noun: "Border style", plural: "borders", instead: () => "the game draws no border" },
+  background: { noun: "Background", plural: "backgrounds", instead: () => "the game draws no background" },
+  statusbar: {
+    noun: "Bar texture",
+    plural: "bar textures",
+    instead: (d) => `the game draws the default bar texture${d ? ` ("${d}")` : ""} instead`,
+  },
+};
+
+function mediaMessage(m: UnknownMedia): ValidationMessage {
+  const words = MEDIA_WORDS[m.kind] ?? { noun: `Media (${m.kind})`, plural: m.kind, instead: () => "the game uses its default" };
+  const where = m.sub ? `sub element ${m.sub}, ${m.key}` : m.key;
+  return {
+    code: `media.${m.kind}`,
+    severity: "warning",
+    message:
+      `${words.noun} "${m.name}" (${where}) isn't available in a stock client: it is none of the game's or the addon's own ` +
+      `LibSharedMedia ${words.plural}, so ${words.instead(m.default)}. It only shows for players with an addon that ` +
+      "registers it (SharedMedia, ElvUI, ...); use one of the listed ones.",
+    pointer: {
+      tab: "region",
+      property: m.sub ? `sub.${m.sub}.${m.key}` : m.key,
+      path: m.sub ? ["subRegions", m.sub, m.key] : [m.key],
+      label: `Display (${where})`,
+    },
+  };
 }
 
 /** How addon warnings raised on Add affect use in combat. Others don't change the combat status. */
@@ -186,6 +234,8 @@ function interpretOne(raw: RawValidation, auraId: string | undefined): Required<
       tag({ code: "defaults.message", severity: isError ? "error" : "info", message: plainText(line) }),
     );
   }
+
+  for (const m of Array.isArray(raw.unknownMedia) ? raw.unknownMedia : []) warnings.push(tag(mediaMessage(m)));
 
   if (raw.eligible) {
     for (const p of raw.problems ?? []) {

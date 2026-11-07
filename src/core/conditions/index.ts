@@ -21,6 +21,8 @@ export type { ConditionProblem } from "./forever";
 export { evaluateTbcAura } from "./tbc";
 export type { AuraRenderState, GlowState } from "./evaluate";
 export type { TriggerState } from "./triggers";
+export { customTextMarker, formatTime } from "./text";
+export type { DrawnText, TextPart } from "./text";
 
 /** One game's situation and evaluation rules: what the preview and the situation controls use for that game. */
 export interface AuraRules {
