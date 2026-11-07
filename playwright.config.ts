@@ -1,33 +1,30 @@
-import path from "node:path";
 import { defineConfig } from "@playwright/test";
-import { e2eDataDir } from "./tests/support/e2e-spell-db";
+import { e2eServerEnv } from "./tests/support/e2e-server";
 
 const port = Number(process.env.E2E_PORT ?? 3100);
 
 export default defineConfig({
   testDir: "tests/e2e",
-  // Above the 60 s the specs allow a page's first load (a cold dev server compiles the route and loads the addon VM);
-  // with the default 30 s a test could fail before its own wait ran out.
+  // Every test runs in a workspace of its own, so the tests of a file run in parallel too (a long file such as the
+  // tab sweep is spread over all workers instead of running on one).
+  fullyParallel: true,
+  // Above the 60 s the specs allow a page's first load (the page loads the addon VM); with the default 30 s a test
+  // could fail before its own wait ran out.
   timeout: 120_000,
-  // Seeds the spell database the dev server uses (in DATA_DIR) from fixtures: no network in tests.
+  // Seeds the spell databases the server uses (in DATA_DIR) from fixtures (no network in tests), and the server's
+  // option references from the generated cache (tests/support/e2e-server.ts).
   globalSetup: "./tests/e2e/global-setup.ts",
+  globalTeardown: "./tests/e2e/global-teardown.ts",
   use: { baseURL: `http://localhost:${port}` },
   webServer: {
-    command: `npx next dev -p ${port}`,
+    // A production build, as the user's server runs: pages are compiled once by the build (about 10 s, less when
+    // little changed) instead of on each first request, and React runs without its development checks; the whole
+    // run takes about half the time and a third of the CPU of `next dev`. The build type checks, like
+    // `npm run typecheck`. E2E_DEV=1 runs the tests against `next dev` instead (e.g. to compare).
+    command: process.env.E2E_DEV ? `npx next dev -p ${port}` : `npx next build && npx next start -p ${port}`,
     url: `http://localhost:${port}`,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    env: {
-      DATA_DIR: e2eDataDir(port),
-      // Addon version lists and ref resolution from recorded GitHub/jsDelivr answers (GitHub's
-      // unauthenticated rate limit must not fail tests). Addon files are cached on disk across runs
-      // (shared by every port and the unit tests), so only the first run downloads them. Live check: LIVE=1, addon-live.test.ts.
-      ADDON_UPSTREAM_FIXTURES: path.resolve(__dirname, "tests/fixtures"),
-      ADDON_CACHE_DIR: path.resolve(__dirname, ".cache/addon"),
-      // TBC's WeakAuras2 release zips: the unit tests' cache (tests/support/weakauras2.ts), unpacked by the global setup.
-      ADDON_CACHE_DIR_TBC: path.resolve(__dirname, ".cache/weakauras2"),
-      // Wago links answer from recorded import strings (`<id>.txt`); any other id is wago's 404.
-      WAGO_FIXTURES: path.resolve(__dirname, "tests/fixtures/wago"),
-    },
+    timeout: 300_000,
+    env: e2eServerEnv(port),
   },
 });

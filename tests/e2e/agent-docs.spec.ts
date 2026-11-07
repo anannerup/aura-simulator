@@ -68,10 +68,16 @@ test("the docs are generated from the server's addon version", async ({ request 
   expect(md).toContain("`faAuraRemaining` (Seconds left)");
 });
 
+/**
+ * How long the first request for a game's reference may wait. The server keeps them, and the e2e setup gives it the
+ * ones cached for the generator's current code (tests/support/e2e-server.ts); when that code changed, the server
+ * generates them: a few minutes each in the background, one game after the other, and both tests ask at once.
+ */
+const GENERATION_MS = 900_000;
+
 test("the option ↔ table reference maps a known option and table key both ways, as JSON and Markdown", async ({ request }) => {
-  // The first request for a version waits while the server generates the reference (about a minute).
-  test.setTimeout(420_000);
-  const res = await request.get("/forever/docs/agents/options.json", { timeout: 400_000 });
+  test.setTimeout(GENERATION_MS + 20_000);
+  const res = await request.get("/forever/docs/agents/options.json", { timeout: GENERATION_MS });
   expect(res.status()).toBe(200);
   const reference = (await res.json()) as {
     entries: { tab: string; option: string[]; writes: string[]; scopes: { regionType: string }[] }[];
@@ -101,8 +107,8 @@ test("the option ↔ table reference maps a known option and table key both ways
 });
 
 test("TBC's option ↔ table reference comes from WeakAuras2: a known option and key, as JSON and Markdown", async ({ request }) => {
-  test.setTimeout(420_000);
-  const res = await request.get("/tbc/docs/agents/options.json", { timeout: 400_000 });
+  test.setTimeout(GENERATION_MS + 20_000);
+  const res = await request.get("/tbc/docs/agents/options.json", { timeout: GENERATION_MS });
   expect(res.status()).toBe(200);
   const reference = (await res.json()) as {
     ref: string;

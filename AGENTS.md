@@ -114,10 +114,12 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   there. It takes about two minutes per game and version (more in the background), so the server caches it per game and
   version (`server/option-reference.ts`; served at `/<game>/docs/agents/options.json`, and as Markdown from
   `src/games/docs/option-reference.ts`: `options.md` is an index of parts, `options/<part>.md` each part in full: key
-  → options, each tab, the Display tab per display type, the Trigger tab per trigger type, the Conditions tab's checks per trigger type and event (`conditions-trigger-<type>`, on an icon, with checks other Trigger options offer) and its properties per display type with one sub element of each kind (`conditions-display-<type>`); the JSON's `conditions`), and `option-reference.test.ts` replays every probe, check and property for each game. Bump
-  `OPTION_REFERENCE_FORMAT` when the generator's output changes.
+  → options, each tab, the Display tab per display type, the Trigger tab per trigger type, the Conditions tab's checks per trigger type and event (`conditions-trigger-<type>`, on an icon, with checks other Trigger options offer) and its properties per display type with one sub element of each kind (`conditions-display-<type>`); the JSON's `conditions`), and `option-reference.test.ts` replays every probe, check and property for each game (on
+  the reference from the generated cache, see Tests). Bump `OPTION_REFERENCE_FORMAT` when the generator's output
+  changes.
   The tab sweeps (`src/core/options-sweep.test.ts`, `tests/e2e/tab-sweep.spec.ts`) walk every tab of every display
-  type generically; keep them green when the editor or the profile changes.
+  type generically (the e2e one: a few representative types per run, all of them in `npm run test:all`); keep them
+  green when the editor or the profile changes.
 - `src/render/`: hand-written renderers (React components + CSS) per region and sub-region type.
   Pure props in (aura document + evaluated state), nothing fetched inside except game files (textures, fonts) via the
   loader in `src/render/textures` (`GameTexture` draws one as an image; `media.ts` names the addon's media,
@@ -215,15 +217,35 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   folder, including agent worktrees under `.claude/worktrees/` (gitignored, still watched; Next has no option to
   exclude them), so every file an agent's own dev server or tests write rebuilds and reloads the user's page in a loop.
   Merge and verify in a separate worktree, then fast-forward main, so the user's checkout never holds a half-merged tree.
-- Tests: unit/seam A with Vitest (`npm test`), browser/HTTP seam B with Playwright (`npm run test:e2e`,
-  `E2E_PORT` picks the port so parallel worktrees don't clash). Network-dependent tests use recorded
-  fixtures in `tests/fixtures/<game>/`. The e2e dev server gets addon versions from recorded GitHub/jsDelivr
-  answers (`ADDON_UPSTREAM_FIXTURES=tests/fixtures`, read as `<game>/addon`; addon files are cached in
-  `.cache/addon/<game>`, the source cache's layout, shared with the unit tests) and keeps its data in
-  `.cache/e2e/<port>` (`DATA_DIR`); `LIVE=1 npm test -- addon-live` checks the real upstream. TBC's WeakAuras2 zip:
-  the e2e global setup unpacks it once into `.cache/weakauras2` (the unit tests' folder; downloaded once and checked
-  against the recorded sha256) and the dev server reads it there (`ADDON_CACHE_DIR_TBC`); it seeds both games' spell
-  databases, file lists and items from their fixtures. The e2e tab sweep runs per game.
+- Tests: unit/seam A with Vitest, browser/HTTP seam B with Playwright, in two tiers (`.scratch/test-speed.md` has
+  the timings):
+  - `npm test`: every Vitest file except the exhaustive suites (the Vitest project `unit`; a few seconds). Run it
+    while working, with `npm run typecheck` and `npm run lint`.
+  - `npm run test:e2e`: every Playwright spec, with the tab sweep on a few representative display types per game
+    (`--grep-invert @exhaustive`; one to two minutes). Run it when a change touches the page, the routes or the server.
+  - `npm run test:all`: everything, both seams: the exhaustive Vitest suites (`option-reference`, `options-sweep`,
+    `wago-tbc`, each split into shards that run in parallel: `vitest.config.ts`, `tests/support/shards.ts`) and every
+    e2e test (the @exhaustive tab sweeps too); four to six minutes. Run it before handing work over for merging; the
+    coordinator runs it again on the integrated tree. `npx vitest run` alone runs seam A's part;
+    `npx vitest run --project 'option-reference*'` one suite's shards.
+  A new long suite: add it to `EXHAUSTIVE` in `vitest.config.ts` and split its work with `shardUnits`.
+  `E2E_PORT` picks the e2e port so parallel worktrees don't clash. The e2e server is a production build
+  (`next build && next start`, type checked like `npm run typecheck`; `E2E_DEV=1` uses `next dev`), and every e2e test
+  runs in parallel (`fullyParallel`): a test opens a workspace of its own and doesn't depend on another's state.
+  Network-dependent tests use recorded fixtures in `tests/fixtures/<game>/`. The e2e server gets addon versions from
+  recorded GitHub/jsDelivr answers (`ADDON_UPSTREAM_FIXTURES=tests/fixtures`, read as `<game>/addon`; addon files are
+  cached in `.cache/addon/<game>`, the source cache's layout, shared with the unit tests) and keeps its data in
+  `.cache/e2e/<port>` (`DATA_DIR`); its environment is `e2eServerEnv` (`tests/support/e2e-server.ts`).
+  `LIVE=1 npm test -- addon-live` checks the real upstream. TBC's WeakAuras2 zip: the e2e global setup unpacks it once
+  into `.cache/weakauras2` (the unit tests' folder; downloaded once and checked against the recorded sha256) and both
+  the e2e and the unit tests' server read it there (`ADDON_CACHE_DIR_TBC`); it seeds both games' spell databases, file
+  lists and items from their fixtures.
+  Slow deterministic results are cached on disk by their inputs (`tests/support/generated-cache.ts`, in
+  `.cache/generated/`): the option reference per game and addon version, keyed by a hash of every source file the
+  generator (`src/core/addon-vm/vm.ts`) imports. A change to that code is a new key, so the next `npm run test:all`
+  generates it again and replays it; nothing older code made is reused. The e2e setup gives the e2e server the cached
+  reference (when there is none the server generates it during the run, and the teardown caches it). Deleting
+  `.cache/generated/` is always safe.
 - Ticket files: `.scratch/<feature>/issues/`. Tick acceptance boxes and set `Status:` when done.
 - Blizzard art (icons, glow textures) is fetched at runtime and never committed.
 <!-- BEGIN:nextjs-agent-rules -->

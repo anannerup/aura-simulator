@@ -252,8 +252,10 @@ export function weakAuras2AddonSource(releases: WeakAuras2ReleaseCache): AddonSo
     throw new AddonRefError(`${name} has no release ${input} with a zip (TBC Anniversary needs ${WEAKAURAS2_MIN_VERSION} or later)`, 404);
   }
 
+  const memoFile = (resolution: Resolution, memoName: string) => path.join(releases.root, resolution.key, `${memoName}.json`);
+
   async function memo<T>(resolution: Resolution, memoName: string, compute: () => Promise<T>): Promise<T> {
-    const file = path.join(releases.root, resolution.key, `${memoName}.json`);
+    const file = memoFile(resolution, memoName);
     try {
       return JSON.parse(await readFile(file, "utf8")) as T;
     } catch {}
@@ -302,6 +304,7 @@ export function weakAuras2AddonSource(releases: WeakAuras2ReleaseCache): AddonSo
     },
     listFiles,
     memo,
+    memoFile,
   };
 }
 

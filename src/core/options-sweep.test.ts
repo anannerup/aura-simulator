@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { loadAddon, type AddonGameId, type AuraCore, type AuraState, type OptionNode } from "@/core";
 import { cachedAddonFetcher } from "../../tests/support/addon-source";
 import { sweepValue, walkOptions } from "../../tests/support/options-sweep";
+import { currentShard, runsGame } from "../../tests/support/shards";
 import { TBC_TEST_VERSION, weakAuras2Available, weakAuras2Fetcher } from "../../tests/support/weakauras2";
 
 const TYPES = ["icon", "aurabar", "text", "texture", "progresstexture", "stopmotion", "model", "empty", "group", "dynamicgroup"];
@@ -156,7 +157,10 @@ function report(name: string, out: SweepResult) {
 
 const fresh = (): SweepResult => ({ problems: [], mismatches: [], edited: 0 });
 
-describe.each(GAMES)("$game", ({ game, load }) => {
+// In `npm run test:all` each game is a shard of its own.
+const shard = currentShard();
+
+describe.each(GAMES.filter((g) => runsGame(shard, g.game)))("$game", ({ game, load }) => {
   let loaded: AuraCore | undefined;
   beforeAll(async () => {
     loaded = await load();
