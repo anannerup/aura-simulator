@@ -1,0 +1,22 @@
+{"d":{
+ "id":"Missing Food Buff",
+ "regionType":"icon",
+ "displayIcon":136000,
+ "iconSource":0,
+ "width":48,"height":48,
+ "xOffset":0,"yOffset":150,
+ "anchorPoint":"CENTER","selfPoint":"CENTER","anchorFrameType":"SCREEN",
+ "subRegions":[
+  {"type":"subbackground"},
+  {"type":"subtext","text_text":"No food buff","text_visible":true,"text_color":[1,0.2,0.2,1],"text_fontSize":16,"text_fontType":"OUTLINE","anchor_point":"OUTER_BOTTOM","text_justify":"CENTER","text_selfPoint":"AUTO","anchorXOffset":0,"anchorYOffset":0}
+ ],
+ "triggers":{
+  "1":{"trigger":{
+    "type":"aura2","unit":"player","debuffType":"HELPFUL",
+    "useExactSpellId":true,"auraspellids":["33263"],
+    "matchesShowOn":"showOnMissing","use_matchesShowOn":true
+  },"untrigger":[]},
+  "activeTriggerMode":-10
+ },
+ "load":{"use_alive":true}
+},"m":"d"}
