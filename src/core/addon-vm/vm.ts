@@ -26,7 +26,7 @@ import { buildOptionReference, type OptionReference, type OptionReferenceOptions
 import { SHIM_LUA } from "./lua/shim";
 import { spellsToLua, type ClientSpell } from "./spells";
 import { FULL_VM_ADDONS as ADDONS, addonLoadOrder, type AddonGameId } from "./toc";
-import { interpretValidation, mergeValidation, type RawValidation, type ValidationResult } from "./validation";
+import { customLuaMessages, interpretValidation, mergeValidation, type RawValidation, type ValidationResult } from "./validation";
 
 /** The addon's import dialog's answer: Import offered, or the dialog's reason it isn't. */
 export type ImportCheck = { importable: true } | { importable: false; message: string };
@@ -241,9 +241,11 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
       const auras = [state.aura, ...state.children];
       const ids = auras.map((aura) => (typeof aura.id === "string" ? aura.id : undefined));
       const isGroup = state.children.length > 0;
-      const results = auras.map((aura, i) =>
-        interpretValidation(validateOne(aura), { auraId: isGroup ? ids[i] : undefined, combatCheck: game.combatCheck }),
-      );
+      const results = auras.map((aura, i) => {
+        const auraId = isGroup ? ids[i] : undefined;
+        const result = interpretValidation(validateOne(aura), { auraId, combatCheck: game.combatCheck });
+        return { ...result, warnings: [...result.warnings, ...customLuaMessages(aura, auraId)] };
+      });
       return mergeValidation(results, ids);
     },
     options(state, request) {

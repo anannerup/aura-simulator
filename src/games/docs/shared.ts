@@ -293,8 +293,10 @@ and per display (a group's children each, not the group):
 - **No custom Lua runs in the preview** (nor on the game screen). \`notEvaluated\`, present only when a display has
   custom code, lists the parts: \`"trigger 2: custom (stateupdate)"\` (a custom trigger, TSU included, is active while
   its situation says "present", like any trigger), \`"condition 1: custom check"\` (a custom check never holds here),
-  \`"condition 2: Run Custom Code"\`, \`"custom text (%c)"\`, \`"On Init custom code"\`/On Show/On Hide, and
-  \`"start animation: custom function"\`. The game screen marks such a display with a dashed **Lua** badge (hover
+  \`"condition 2: Run Custom Code"\`, \`"custom text (%c)"\`, \`"On Init custom code"\`/On Load/On Unload/On Show/On
+  Hide, \`"start animation: custom function"\`, \`"custom trigger logic"\`, \`"custom anchor"\`, chat messages' custom
+  text, a dynamic group's \`"custom grow"\`/\`"custom sort"\` (the places the addon's import dialog lists as custom Lua;
+  validation has a \`custom.lua\` info for each, with its pointer). The game screen marks such a display with a dashed **Lua** badge (hover
   lists the parts; pictures from the screenshot endpoint leave it out, as the game would). Its preview shows only
   what the plain options do; check those parts in game.
 

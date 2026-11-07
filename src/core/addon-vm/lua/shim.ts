@@ -615,7 +615,12 @@ S.nilGlobals = nilGlobals
 setmetatable(_G, {
   __index = function(t, k)
     if type(k) ~= "string" then return nil end
-    if nilGlobals[k] or k:match("^WeakAuras") or k:match("^__") or k:match("Lib") then
+    -- The client's API (C functions, namespaces, FrameXML functions and frames) is named in PascalCase; its
+    -- lowercase globals are Lua's library and WoW's aliases (strsplit, tinsert, wipe, tContains, ...), which this
+    -- shim and lua-stdlib define. Any other lowercase name is some addon's or aura's own variable, which the client
+    -- doesn't have: it reads nil, as in game. (WeakAuras' Weapon Enchant trigger assigns 'shortenedName' without
+    -- 'local'; the addon's "overwritten the global" check reads _G[key] and must see nil there.)
+    if nilGlobals[k] or k:match("^WeakAuras") or k:match("^__") or k:match("Lib") or not k:match("^[A-Z]") then
       touch("nil:" .. k)
       return nil
     end

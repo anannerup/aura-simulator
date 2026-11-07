@@ -99,3 +99,31 @@ describe.each(MANIFEST)("$name (wago $id)", (recorded) => {
     expect(problems).toEqual([]);
   }, 300_000);
 });
+
+describe("custom Lua is flagged where it is", () => {
+  test("nanShield (wago G6FHkDAOv, a TSU trigger) gets a custom.lua info per place of its Lua, pointing at it", async (ctx) => {
+    const c = tbc(ctx);
+    const state = c.decode(readFileSync(path.join(DIR, "G6FHkDAOv.txt"), "utf8").trim());
+    const result = await c.validate(state);
+    const lua = result.warnings.filter((m) => m.code === "custom.lua");
+    expect(lua.map((m) => `${m.auraId} | ${m.pointer?.label} | ${m.message.split(". ")[0]}`)).toEqual([
+      "nanShield TBC Anniversary | Display (custom grow) | Custom Lua: custom grow",
+      "nanShield:Value | Trigger 1 | Custom Lua: trigger 1: custom (status); trigger",
+      "nanShield:Value | Actions (On Init) | Custom Lua: On Init custom code",
+      "nanShield:Text | Trigger 1 | Custom Lua: trigger 1: custom (stateupdate); trigger, custom variables",
+      "nanShield:Text | Trigger 2 | Custom Lua: trigger 2: custom (event); trigger",
+      "nanShield:Text | Actions (On Init) | Custom Lua: On Init custom code",
+      "nanShield:Bar | Trigger 1 | Custom Lua: trigger 1: custom (stateupdate); trigger, custom variables",
+      "nanShield:Bar | Actions (On Init) | Custom Lua: On Init custom code",
+      "nanShield:Segment | Trigger 1 | Custom Lua: trigger 1: custom (stateupdate); trigger, custom variables",
+      "nanShield:Segment | Trigger 2 | Custom Lua: trigger 2: custom (event); trigger",
+      "nanShield:Segment | Condition 1, change 1 (customcode) | Custom Lua: condition 1: Run Custom Code",
+      "nanShield:Segment | Actions (On Init) | Custom Lua: On Init custom code",
+    ]);
+    // Info, not a warning: imported packs legitimately have Lua.
+    expect(lua.every((m) => m.severity === "info")).toBe(true);
+    expect(lua[0].message).toMatch(/preview doesn't evaluate it; check it in game\. Where the addon has a built-in way/);
+    expect(lua[1].pointer).toMatchObject({ tab: "trigger", trigger: 1, path: ["triggers", 1, "trigger"] });
+    expect(result.errors.filter((m) => m.code === "custom.lua")).toEqual([]);
+  }, 120_000);
+});

@@ -180,6 +180,25 @@ describe("validation", () => {
     expect(result.errors.map((e) => e.message).join("\n")).toMatch(/unknown or incompatible sub element type 'subtext'/);
   });
 
+  test("the Weapon Enchant trigger validates clean: its leaked 'shortenedName' is no client global, as in game", async (ctx) => {
+    // Prototypes.lua's Weapon Enchant code assigns shortenedName without 'local'; the addon warns about overwriting a
+    // global only when _G already has it, which the client doesn't (the shim's auto-stub must not invent it).
+    const c = tbc(ctx);
+    const state = await newState(c, "icon");
+    const aura = {
+      ...state.aura,
+      triggers: { "[1]": { trigger: { type: "item", event: "Weapon Enchant", weapon: "main", showOn: "showOnMissing" }, untrigger: [] }, activeTriggerMode: -10 },
+    };
+    const result = await c.validate({ aura, children: [] });
+    expect([...result.errors, ...result.warnings]).toEqual([]);
+  });
+
+  test("a plain aura has no custom.lua info (custom Lua is tested on real wago packs in wago-tbc.test.ts)", async (ctx) => {
+    const c = tbc(ctx);
+    const result = await c.validate(await newState(c, "icon"));
+    expect(result.warnings.filter((m) => m.code === "custom.lua")).toEqual([]);
+  });
+
   test("fillDefaults runs WeakAuras2's PreAdd: a bare aura gets the data stub's defaults", async (ctx) => {
     const c = tbc(ctx);
     const filled = await c.fillDefaults({ aura: { id: "Bare", regionType: "icon" }, children: [] });

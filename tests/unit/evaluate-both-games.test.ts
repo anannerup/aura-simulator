@@ -216,4 +216,32 @@ describe.each(GAMES)("%s: custom Lua isn't run, and the evaluation says which pa
     expect(previewSituation({ aura: custom, children: [] }, situation(), game).displays[0].notEvaluated).toEqual(parts);
     expect(previewSituation({ aura: icon([itemCount]), children: [] }, situation(), game).displays[0]).not.toHaveProperty("notEvaluated");
   });
+
+  it("follows the addon's scam check: trigger logic, anchor, load actions, chat text, a dynamic group's functions; code turned off or empty doesn't count", () => {
+    const more = icon([], {
+      anchorFrameType: "CUSTOM",
+      customAnchor: "function() return UIParent end",
+      actions: {
+        init: { do_custom_load: true, customOnLoad: "print(1)", do_custom_unload: false, customOnUnload: "print(2)" },
+        start: { do_message: true, message: "%c", message_custom: "function() return 'x' end" },
+      },
+      conditions: [{ check: { trigger: 1, variable: "show", value: 1 }, changes: [{ property: "chat", value: { message: "%c", custom: "function() return 'y' end" } }] }],
+    });
+    more.triggers = {
+      "[1]": { trigger: { type: "custom", custom_type: "status", custom: "function() return true end" }, untrigger: { custom: "  " } },
+      disjunctive: "custom",
+      customTriggerLogic: "function(t) return t[1] end",
+    };
+    expect(rules.evaluate(more, situation()).customCode).toEqual([
+      "trigger 1: custom (status)",
+      "custom trigger logic",
+      "condition 1: chat message: custom text",
+      "custom anchor",
+      "On Load custom code",
+      "On Show chat message: custom text",
+    ]);
+    const group: AuraDocument = { id: "G", regionType: "dynamicgroup", grow: "CUSTOM", customGrow: "function() end", sort: "custom", customSort: "function() end", useAnchorPerUnit: true, anchorPerUnit: "CUSTOM", customAnchorPerUnit: "function() end" };
+    // A custom grow replaces the anchor-per-unit function (DynamicGroup.lua), so the addon doesn't list it.
+    expect(rules.evaluate(group, situation()).customCode).toEqual(["custom grow", "custom sort"]);
+  });
 });
