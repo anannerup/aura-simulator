@@ -20,6 +20,15 @@ Default vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 
 Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root (created when needed). See `docs/agents/domain.md`.
 
+## Naming
+
+Name things after what they are in the domain, in words a WeakAuras player who doesn't code would recognise: aura,
+trigger, condition, tab, table, game, game screen, situation, spell, item. Avoid names that only describe the code's
+mechanics and say nothing about the business: option, handler, engine, traverser, manager, processor, helper, util,
+service, data, info, item (for something that isn't a game item). If a concept has no domain word yet, find one with
+the user and put it in `GLOSSARY.md` before using it. The test: someone who doesn't code reads the model and the logic
+and says "yes, those words make sense".
+
 ## Layout and conventions
 
 Parallel agents work on this repo; keep to these boundaries so work merges cleanly.
