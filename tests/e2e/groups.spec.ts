@@ -41,20 +41,19 @@ async function openFresh(page: Page, prefix: string) {
 test("build a group with two auras, see both laid out, and paste its code into a fresh workspace", async ({ page, browser }) => {
   await openFresh(page, "group");
 
-  // A new group next to the sample, the sample moved into it, and a new aura added beside it in the group.
+  // A new group next to the sample (named "New", as the game names it), renamed, the sample moved into it, and a
+  // new aura added beside it in the group.
   await newItem(page, "Group");
-  await expect(row(page, "New Group")).toHaveAttribute("aria-selected", "true");
-  await row(page, "Arcane Intellect").click();
-  await page.getByLabel("Move to group").selectOption("New Group");
-  await newItem(page, "Icon");
   await expect(row(page, "New")).toHaveAttribute("aria-selected", "true");
-
-  // Rename the group: the children follow.
-  await row(page, "New Group").click();
   await page.getByRole("button", { name: "Rename" }).click();
   await page.getByLabel("New name").fill("Buffs");
   await page.getByLabel("New name").press("Enter");
-  expect(await treeShape(page)).toEqual(["1:Buffs", "2:Arcane Intellect", "2:New"]);
+  await row(page, "Arcane Intellect").click();
+  await page.getByLabel("Move to group").selectOption("Buffs");
+  await newItem(page, "Icon");
+  await expect(row(page, "New")).toHaveAttribute("aria-selected", "true");
+  await expect.poll(() => treeShape(page)).toEqual(["1:Buffs", "2:Arcane Intellect", "2:New"]);
+  await row(page, "Buffs").click();
 
   // The stage shows both auras at once, the second 64 + 4 units right of the first, and outlines the group.
   const a = await box(region(page, "Arcane Intellect"));
@@ -148,7 +147,7 @@ test("workspace file export and import round trip", async ({ page, browser }) =>
   await newItem(page, "Dynamic Group");
   await newItem(page, "Icon");
   await newItem(page, "Icon");
-  const shape = ["1:Arcane Intellect", "1:New Dynamic Group", "2:New", "2:New 2"];
+  const shape = ["1:Arcane Intellect", "1:New", "2:New 2", "2:New 3"];
   await expect.poll(() => treeShape(page)).toEqual(shape);
 
   const download = page.waitForEvent("download");
@@ -157,8 +156,8 @@ test("workspace file export and import round trip", async ({ page, browser }) =>
   const file = await (await download).path();
   const exported = JSON.parse(await readFile(file, "utf8"));
   expect(exported).toMatchObject({ format: "aura-simulator/workspace", version: 2 });
-  expect(exported.items[1].aura.controlledChildren).toEqual(["New", "New 2"]);
-  expect(exported.items[1].items[0].aura.parent).toBe("New Dynamic Group");
+  expect(exported.items[1].aura.controlledChildren).toEqual(["New 2", "New 3"]);
+  expect(exported.items[1].items[0].aura.parent).toBe("New");
   expect(JSON.stringify(exported)).not.toMatch(/data:image|base64/);
 
   // A fresh browser with only the sample: importing asks, then replaces.

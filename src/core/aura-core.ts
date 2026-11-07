@@ -5,7 +5,7 @@ import { canonicalize, isLuaTable, toLuaLiteral, type LuaObject, type LuaValue }
 import { loadInlineAddonVM, loadWorkerAddonVM, type AsyncAddonVM } from "./addon-vm/remote";
 import type { AddonVMReport, Registries } from "./addon-vm/vm";
 import type { ValidationResult } from "./addon-vm/validation";
-import type { OptionAddress, OptionEdit, OptionsTree } from "./addon-vm/options";
+import type { AuraPacks, NewAuraPage, OptionAddress, OptionEdit, OptionsTree } from "./addon-vm/options";
 import { createSpellPreloader, type SpellInfoSource } from "./addon-vm/spells";
 
 /** One aura's table, as the addon stores it (see lua-value.ts for the JS representation). */
@@ -68,6 +68,15 @@ export interface AuraCore {
    * changed. Throws OptionEditError when the addon refuses the value or the option can't run here.
    */
   setOption(state: AuraState, address: OptionAddress, value?: unknown): Promise<OptionEdit<AuraDocument>>;
+  /** What the window's New Aura page offers: display types (names, descriptions), Modern Aura Group, Packs, Premade. */
+  newAuraPage(): Promise<NewAuraPage>;
+  /**
+   * A new aura of a display type as the game makes it (WeakAuras.NewAura: data stub, region defaults, default sub
+   * elements, an Aura (Modern) trigger where the type supports it). The id is the addon's ("New"); callers rename it.
+   */
+  newAura(regionType: string, sourceData?: LuaObject): Promise<AuraDocument>;
+  /** The window's Packs page: utility packs and each class's HUD pack with its blocks, with their import data. */
+  packs(): Promise<AuraPacks>;
 }
 
 export interface LoadAddonOptions {
@@ -174,6 +183,18 @@ export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAd
 
     async setOption(state, address, value) {
       return (await fullFor(state)).setOption({ aura: state.aura, children: state.children }, address, value ?? null);
+    },
+
+    async newAuraPage() {
+      return (await full()).newAuraPage();
+    },
+
+    async newAura(regionType, sourceData) {
+      return (await full()).newAura(regionType, sourceData);
+    },
+
+    async packs() {
+      return (await full()).packs();
     },
 
     encode(state) {

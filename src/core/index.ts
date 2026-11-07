@@ -29,7 +29,21 @@ export type { ClientSpell, SpellInfoSource } from "./addon-vm/spells";
 export type { ProfileEntry } from "./addon-vm/profile";
 export type { AddonVMReport, Registries } from "./addon-vm/vm";
 export { OptionEditError } from "./addon-vm/options";
-export type { OptionAddress, OptionEdit, OptionNode, OptionPath, OptionsTree, OptionTab } from "./addon-vm/options";
+export type {
+  AuraPack,
+  AuraPackBlock,
+  AuraPacks,
+  NewAuraButton,
+  NewAuraPage,
+  NewAuraType,
+  OptionAddress,
+  OptionDialog,
+  OptionEdit,
+  OptionNode,
+  OptionPath,
+  OptionsTree,
+  OptionTab,
+} from "./addon-vm/options";
 export type {
   CombatReport,
   CombatStatus,

@@ -1,5 +1,5 @@
 import type { AddonSourceFetcher } from "../addon-source";
-import type { OptionAddress, OptionEdit, OptionsTree } from "./options";
+import type { AuraPacks, NewAuraPage, OptionAddress, OptionEdit, OptionsTree } from "./options";
 import type { AddonVMReport, Registries, VMState } from "./vm";
 import type { LuaObject } from "../lua-value";
 import type { ValidationResult } from "./validation";
@@ -13,13 +13,16 @@ export interface AsyncAddonVM {
   registries(): Promise<Registries>;
   options(state: VMState, request?: { tab?: string }): Promise<OptionsTree>;
   setOption(state: VMState, address: OptionAddress, value: unknown): Promise<OptionEdit<LuaObject>>;
+  newAuraPage(): Promise<NewAuraPage>;
+  newAura(regionType: string, sourceData?: LuaObject): Promise<LuaObject>;
+  packs(): Promise<AuraPacks>;
   /** Adds spells the client knows (see AddonVM.setSpells). */
   setSpells(spells: Record<number, ClientSpell>): Promise<void>;
   /** Stops the VM (terminates the worker). */
   dispose(): void;
 }
 
-type Method = "fillDefaults" | "validate" | "registries" | "options" | "setOption" | "setSpells";
+type Method = "fillDefaults" | "validate" | "registries" | "options" | "setOption" | "setSpells" | "newAuraPage" | "newAura" | "packs";
 
 /** Messages between the page and the worker. */
 export type ToWorker =
@@ -46,6 +49,9 @@ export async function loadInlineAddonVM(
     registries: async () => vm.registries(),
     options: async (state, request) => vm.options(state, request),
     setOption: async (state, address, value) => vm.setOption(state, address, value),
+    newAuraPage: async () => vm.newAuraPage(),
+    newAura: async (regionType, sourceData) => vm.newAura(regionType, sourceData),
+    packs: async () => vm.packs(),
     setSpells: async (spells) => vm.setSpells(spells),
     dispose() {},
   };
@@ -117,6 +123,9 @@ export async function loadWorkerAddonVM(
     registries: () => call<Registries>("registries"),
     options: (state, request) => call<OptionsTree>("options", state, request),
     setOption: (state, address, value) => call<OptionEdit<LuaObject>>("setOption", state, address, value),
+    newAuraPage: () => call<NewAuraPage>("newAuraPage"),
+    newAura: (regionType, sourceData) => call<LuaObject>("newAura", regionType, sourceData),
+    packs: () => call<AuraPacks>("packs"),
     setSpells: (spells) => call<void>("setSpells", spells),
     dispose: () => worker.terminate(),
   };

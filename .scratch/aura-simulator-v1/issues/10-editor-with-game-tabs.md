@@ -21,3 +21,17 @@
 - A headless stand-in for the options window (WeakAurasOptions.lua's local `frame`) makes the window refreshes that
   set()/func() code calls no-ops and caches `EnsureOptions` (group options merge their children's tables).
 - UI: `src/components/options-editor/` (`OptionsEditor`, field widgets in `fields.tsx`), mounted in `Workbench`.
+
+## Completion pass (2026-11-07)
+
+- Tab sweeps: `src/core/options-sweep.test.ts` sets every editable option and runs every button of every tab for
+  all ten display types, every trigger type/event and after every Add button; `tests/e2e/tab-sweep.spec.ts` does
+  the same through the form. `tests/e2e/options-widgets.spec.ts` checks the widgets below.
+- Dialog buttons (icon/texture/model picker, code editor, confirmations) report `edit.dialog`; the window shows a web
+  dialog and answers with the same button. Colour swatch + picker; media dropdowns with previews.
+- Group tabs return changed children (`edit.children`). New Aura page and Packs read from the addon.
+- Client profile: Forever DB2 data (`client-data.json`) for Load lists; no retail spec/trait APIs; PowerBarColor;
+  Cooldown Manager viewers.
+- Not done: thumbnails the addon draws with frames (group, dynamic group, Modern Aura Group) are CSS look-alikes;
+  other types are drawn by the simulator's renderer from the new aura. Premade Auras needs WeakAurasTemplates
+  (not loaded). The talent order (tier, then column) and the profile entries are unverified in game (ticket 17).

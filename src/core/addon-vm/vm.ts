@@ -6,10 +6,24 @@ import { ADDON_CONTRACT, AddonContractError } from "./contract";
 import { BRIDGE_LUA } from "./lua/bridge";
 import { EXTRACT_LUA } from "./lua/extract";
 import { OPTIONS_LUA } from "./lua/options";
-import { OPTIONS_FRAME_FILE, OptionEditError, normalizeOptionNode, parseOptionTabs, type OptionAddress, type OptionEdit, type OptionNode, type OptionsTree, type OptionTab } from "./options";
+import {
+  OPTIONS_FRAME_FILE,
+  OptionEditError,
+  normalizeDialog,
+  normalizeOptionNode,
+  parseOptionTabs,
+  type OptionDialog,
+  type AuraPacks,
+  type NewAuraPage,
+  type OptionAddress,
+  type OptionEdit,
+  type OptionNode,
+  type OptionsTree,
+  type OptionTab,
+} from "./options";
 import { SHIM_LUA } from "./lua/shim";
 import { spellsToLua, type ClientSpell } from "./spells";
-import { PROFILE_LUA } from "./profile";
+import { CLIENT_DATA_LUA, PROFILE_LUA } from "./profile";
 import { FULL_VM_ADDONS as ADDONS, addonLoadOrder } from "./toc";
 import { interpretValidation, mergeValidation, type RawValidation, type ValidationResult } from "./validation";
 
@@ -46,6 +60,12 @@ export interface AddonVM {
   options(state: VMState, request?: { tab?: string }): OptionsTree;
   /** Applies an edit through the option's own set() (or runs an execute option's func()). */
   setOption(state: VMState, address: OptionAddress, value: unknown): OptionEdit<LuaObject>;
+  /** What the window's New Aura page offers (display types, Modern Aura Group, Packs, Premade Auras). */
+  newAuraPage(): NewAuraPage;
+  /** A new aura as WeakAuras.NewAura builds it (sourceData mixed in, e.g. the Modern Aura Group's settings). */
+  newAura(regionType: string, sourceData?: LuaObject): LuaObject;
+  /** The Packs page: utility packs and every class's HUD pack with its blocks. */
+  packs(): AuraPacks;
   /** Adds spells the client knows (C_Spell.GetSpellInfo and friends answer them; any other ID is nil). */
   setSpells(spells: Record<number, ClientSpell>): void;
 }
@@ -80,6 +100,7 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
   const tVm = now();
   lua.doStringSync(SHIM_LUA);
   lua.doStringSync(BRIDGE_LUA);
+  lua.doStringSync(CLIENT_DATA_LUA);
   lua.doStringSync(PROFILE_LUA);
 
   const json = <T>(expr: string): T => JSON.parse(lua.doStringSync(`return __bridge.json(${expr})`) as string) as T;
@@ -114,6 +135,7 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
   }
 
   lua.doStringSync(AURA_CORE);
+  lua.doStringSync("__profile.afterLoad()");
   lua.doStringSync(EXTRACT_LUA);
   lua.doStringSync(OPTIONS_LUA);
   const optionsAddon = plans.find((p) => p.addon === "WeakAurasOptions");
@@ -168,6 +190,7 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
   };
   const validateOne = (aura: LuaObject): RawValidation => json<RawValidation>(`__extract.validate(${toLuaLiteral(toAura(aura))})`);
   let registriesCache: Registries | undefined;
+  let packsCache: AuraPacks | undefined;
   const fullWidth = Number(lua.doStringSync("return WeakAuras.doubleWidth or 2.6")) || 2.6;
 
   // The aura the options editor works on stays registered in the VM between calls; it is loaded
@@ -215,13 +238,51 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
     setOption(state, address, value) {
       ensureSession(state);
       const v = value === undefined || value === null ? "nil" : toLuaLiteral(value as LuaValue);
-      const r = json<{ ok: boolean; error?: string; changed?: boolean; aura?: string; warning?: string }>(
+      const r = json<{ ok: boolean; error?: string; changed?: boolean; aura?: string; children?: string; warning?: string; dialog?: string }>(
         `__options.edit(${toLuaLiteral(address.tab)}, ${toLuaLiteral(address.path)}, ${v})`,
       );
       if (!r.ok || r.aura === undefined) throw new OptionEditError(r.error ?? "The edit failed");
       const aura = toAura(JSON.parse(r.aura));
-      if (r.changed) loadedKey = JSON.stringify({ aura, children: state.children.map(toAura) });
-      return { aura, changed: r.changed === true, warning: r.warning ?? undefined };
+      const children = r.children ? (JSON.parse(r.children) as unknown[]).map(toAura) : undefined;
+      if (r.changed) loadedKey = JSON.stringify({ aura, children: children ?? state.children.map(toAura) });
+      const dialog = r.dialog ? normalizeDialog(JSON.parse(r.dialog) as OptionDialog) : undefined;
+      return {
+        aura,
+        changed: r.changed === true,
+        warning: r.warning ?? undefined,
+        ...(children ? { children } : {}),
+        ...(dialog ? { dialog } : {}),
+      };
+    },
+    newAuraPage() {
+      return json<NewAuraPage>("__options.newAuraTypes()");
+    },
+    newAura(regionType, sourceData) {
+      const r = json<{ ok: boolean; error?: string; aura?: string }>(
+        `__options.newAura(${toLuaLiteral(regionType)}, ${sourceData ? toLuaLiteral(sourceData) : "nil"})`,
+      );
+      if (!r.ok || r.aura === undefined) throw new Error(r.error ?? "The addon made no aura");
+      return toAura(JSON.parse(r.aura));
+    },
+    packs() {
+      packsCache ??= (() => {
+        const raw = json<{
+          utility: AuraPacks["utility"];
+          classes: (Omit<AuraPacks["classes"][number], "blocks"> & { blocks: { label: string; name: string; description: string; transmit: string }[] })[];
+        }>("__options.packs()");
+        const list = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
+        return {
+          utility: list(raw.utility),
+          classes: list<(typeof raw.classes)[number]>(raw.classes).map((c) => ({
+            ...c,
+            blocks: list<(typeof c.blocks)[number]>(c.blocks).map(({ transmit, ...b }) => {
+              const t = JSON.parse(transmit) as { d?: unknown; c?: unknown };
+              return { ...b, aura: toAura(t.d), children: list<unknown>(t.c).map(toAura) };
+            }),
+          })),
+        };
+      })();
+      return packsCache;
     },
     setSpells(spells) {
       if (Object.keys(spells).length > 0) lua.doStringSync(spellsToLua(spells));

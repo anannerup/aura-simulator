@@ -89,10 +89,40 @@ export interface OptionsTree {
 export interface OptionEdit<Doc> {
   /** The aura after the edit: the document as given, plus what the edit changed. */
   aura: Doc;
+  /**
+   * A group's descendants after the edit, in the order given, when the edit changed any of them (a group's Display,
+   * Trigger, … tabs edit its children, as in the game).
+   */
+  children?: Doc[];
   /** False when the edit only changed the editor (e.g. expanding a section). */
   changed: boolean;
   /** The addon raised an error during the edit, but the change it made so far was kept (as in the game). */
   warning?: string;
+  /**
+   * The button opened one of the window's dialogs (icon, texture or model picker, code editor, a confirmation). The
+   * page shows its own and sends the choice back with the same button: `setOption(state, { tab, path: button }, choice)`
+   * (a confirmation: `true`).
+   */
+  dialog?: OptionDialog;
+}
+
+/** A dialog a button of the options window opens, with what the page needs to show it. */
+export type OptionDialog =
+  | { kind: "icon"; current?: string | number }
+  | { kind: "texture"; property?: string; current?: string | number; categories: { name: string; textures: [path: string, name: string][] }[] }
+  | { kind: "model"; current?: string | number }
+  | { kind: "text"; current: string; title?: string; url?: string; lua: boolean }
+  | { kind: "confirm"; text: string; accept: string; cancel: string }
+  | { kind: "textReplacements" }
+  | { kind: "unsupported"; message: string };
+
+/** The VM's JSON writes empty Lua tables as `{}`; makes the dialog's lists arrays again. */
+export function normalizeDialog(dialog: OptionDialog): OptionDialog {
+  if (dialog.kind === "texture") {
+    const list = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
+    dialog.categories = list<(typeof dialog.categories)[number]>(dialog.categories).map((c) => ({ ...c, textures: list(c.textures) }));
+  }
+  return dialog;
 }
 
 export interface TabSource {
@@ -151,4 +181,54 @@ export class OptionEditError extends Error {
     super(message);
     this.name = "OptionEditError";
   }
+}
+
+/** One display type on the window's New Aura page (the addon's registered region options). */
+export interface NewAuraType {
+  /** regionType of the new aura: icon, aurabar, text, … */
+  regionType: string;
+  /** The game's name (Icon, Progress Bar, …). */
+  displayName: string;
+  description?: string;
+  /** Texture path of the type's thumbnail, when the type registered one (the others draw theirs with frames). */
+  icon?: string;
+}
+
+/** A button of the New Aura page that isn't a display type. */
+export interface NewAuraButton {
+  name: string;
+  description: string;
+  icon?: string;
+}
+
+/** What the window's New Aura page offers, read from the addon (OptionsFrame.lua frame.NewAura). */
+export interface NewAuraPage {
+  /** Display types in the page's order (group and dynamic group first, then by name). */
+  types: NewAuraType[];
+  /** The Modern Aura Group button: a group made with these settings. */
+  modernGroup: NewAuraButton & { sourceData: Record<string, unknown> };
+  packs: NewAuraButton;
+  premade: NewAuraButton;
+}
+
+/** One pack of the window's Packs page, with its import data as an aura and its descendants. */
+export interface AuraPack {
+  name: string;
+  description: string;
+  icon?: string;
+  /** The pack's state code, when the addon ships one (utility packs, whole class HUDs). */
+  code?: string;
+}
+
+export interface AuraPackBlock extends AuraPack {
+  label: string;
+  /** Import data the addon builds for this block (BuildClassPackBlockImport): the group and its descendants. */
+  aura: Record<string, unknown>;
+  children: Record<string, unknown>[];
+}
+
+export interface AuraPacks {
+  utility: (AuraPack & { category?: string })[];
+  /** Class HUD packs per class token (DRUID, …): the whole HUD and its blocks. */
+  classes: (AuraPack & { class: string; blocks: AuraPackBlock[] })[];
 }

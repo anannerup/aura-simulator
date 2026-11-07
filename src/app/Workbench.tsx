@@ -12,7 +12,7 @@ import { ADDON_MEDIA, Button, GameTexture, Popover, ToastProvider } from "@/comp
 import { ensureFont } from "@/render/fonts";
 import { WorkspaceStage } from "@/render/group/WorkspaceStage";
 import { DEFAULT_SITUATION } from "@/render/situation";
-import { DEFAULT_WORKSPACE_ID } from "@/workspace";
+import { DEFAULT_WORKSPACE_ID, findNode, updateNode } from "@/workspace";
 import { AddonVersionMenu } from "./_addon/AddonVersionPicker";
 import { useAddonCore } from "./_addon/useAddonCore";
 import { ExportPanel, ImportPanel, useImporter } from "./import-export/ImportExport";
@@ -53,8 +53,27 @@ export function Workbench() {
   // Edits (tabs, spell picker, raw table) replace the selected item's document; storage and server follow.
   const updateSelected = workspace.updateSelected;
   const changeAura = useCallback((aura: AuraDocument): LoadResult => updateSelected(aura), [updateSelected]);
-  // Undo/redo over whole-workspace snapshots (tree + selection), whatever made the change: editors, tree, paste, push.
   const { items, selectedId, setItems } = workspace;
+  // The tabs of a group edit its descendants too (as in the game): those changes go into the tree with the group's.
+  const changeOptions = useCallback(
+    (aura: AuraDocument, children?: AuraDocument[]): LoadResult => {
+      if (!children || !selectedId) return updateSelected(aura);
+      try {
+        let next = items;
+        for (const child of children) {
+          const id = typeof child.id === "string" ? child.id : null;
+          const found = id ? findNode(next, id) : null;
+          if (id && found && JSON.stringify(found.node.aura) !== JSON.stringify(child)) next = updateNode(next, id, child).items;
+        }
+        const updated = updateNode(next, selectedId, aura);
+        return setItems(updated.items, updated.id);
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : String(e) };
+      }
+    },
+    [items, selectedId, setItems, updateSelected],
+  );
+  // Undo/redo over whole-workspace snapshots (tree + selection), whatever made the change: editors, tree, paste, push.
   const snapshot = useMemo(() => (items.length ? JSON.stringify({ items, selectedId }) : null), [items, selectedId]);
   const restore = useCallback(
     (text: string): LoadResult => {
@@ -192,9 +211,14 @@ export function Workbench() {
         options={
           creating && ready && core ? (
             <NewAuraChooser
+              core={core}
               items={workspace.items}
               selectedId={workspace.selectedId}
-              internalVersion={core.internalVersion}
+              onImport={(code) => {
+                const r = workspace.importCode(code);
+                if (r.ok) setCreating(false);
+                return r;
+              }}
               onCreate={(next, id) => {
                 workspace.setItems(next, id);
                 setCreating(false);
@@ -202,7 +226,7 @@ export function Workbench() {
               onCancel={() => setCreating(false)}
             />
           ) : core && aura ? (
-            <OptionsEditor core={core} aura={aura} childAuras={workspace.children} onChange={changeAura} />
+            <OptionsEditor core={core} aura={aura} childAuras={workspace.children} onChange={changeOptions} />
           ) : (
             <div className={styles.emptyOptions}>
               <EmptyNote>{ready ? "Select an aura, or click New Aura." : "Loading Musca Auras…"}</EmptyNote>

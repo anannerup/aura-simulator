@@ -159,6 +159,11 @@ describe("setOption", () => {
     expect((colour.aura.subRegions as AuraDocument[])[1].glowColor).toEqual([1, 0, 0, 1]);
   });
 
+  test("a colour the aura didn't set yet is written whole", async () => {
+    const edit = await core.setOption(sample, { tab: "region", path: ["icon.color"] }, [1, 0, 0, 1]);
+    expect(edit.aura.color).toEqual([1, 0, 0, 1]);
+  });
+
   test("expanding a section is not an edit of the aura", async () => {
     const edit = await core.setOption(sample, { tab: "region", path: ["positioncollapseButton"] });
     expect(edit.changed).toBe(false);

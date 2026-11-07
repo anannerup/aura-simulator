@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import type { AuraCore, AuraDocument, AuraState, OptionNode, OptionsTree } from "@/core";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import type { AuraCore, AuraDocument, AuraState, OptionDialog, OptionNode, OptionsTree } from "@/core";
 import {
   ColorField,
   ExecuteField,
@@ -13,6 +13,7 @@ import {
   type EditOptions,
   type FieldProps,
 } from "./fields";
+import { OptionDialogView } from "./OptionDialogs";
 import { plainText } from "./wow-text";
 import { WowText } from "./WowText";
 import styles from "./OptionsEditor.module.css";
@@ -22,8 +23,11 @@ export interface OptionsEditorProps {
   aura: AuraDocument;
   /** A group's descendants (registered in the addon VM too, so group options can see them). */
   childAuras?: AuraDocument[];
-  /** Called with the edited aura; the page encodes and loads it (state code, preview, undo, validation). */
-  onChange(doc: AuraDocument): { ok: boolean; error?: string } | void;
+  /**
+   * Called with the edited aura; the page encodes and loads it (state code, preview, undo, validation). A group's
+   * edits can change its descendants too (its tabs edit them, as in the game): then `children` holds all of them.
+   */
+  onChange(doc: AuraDocument, children?: AuraDocument[]): { ok: boolean; error?: string } | void;
 }
 
 const NO_CHILDREN: AuraDocument[] = [];
@@ -48,6 +52,10 @@ export function OptionsEditor({ core, aura, childAuras = NO_CHILDREN, onChange }
   const [refresh, setRefresh] = useState(0);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // Edits on their way through the addon VM (tests and tools wait for 0).
+  const [pending, setPending] = useState(0);
+  // A dialog one of the addon's buttons opened (icon picker, code editor, confirmation, …).
+  const [dialog, setDialog] = useState<{ node: OptionNode; dialog: OptionDialog } | null>(null);
 
   // The latest document, for edits queued behind each other (the page's aura lags one render).
   const latest = useRef<AuraState>({ aura, children: childAuras });
@@ -55,24 +63,32 @@ export function OptionsEditor({ core, aura, childAuras = NO_CHILDREN, onChange }
     latest.current = { aura, children: childAuras };
   }, [aura, childAuras]);
 
+  // What the shown tree was built for; the editor is busy until it matches the current request.
+  const [builtFor, setBuiltFor] = useState<unknown>(null);
+  const request = useMemo(() => ({ aura, childAuras, tab, refresh }), [aura, childAuras, tab, refresh]);
   useEffect(() => {
     let cancelled = false;
-    core.options({ aura, children: childAuras }, { tab }).then(
+    core.options({ aura: request.aura, children: request.childAuras }, { tab: request.tab }).then(
       (r) => {
         if (cancelled) return;
         setResult(r);
+        setBuiltFor(request);
         setLoadError(null);
         setDrafts((d) => {
           const kept = Object.entries(d).filter(([, draft]) => !draft.done);
           return kept.length === Object.keys(d).length ? d : Object.fromEntries(kept);
         });
       },
-      (e: unknown) => !cancelled && setLoadError(message(e)),
+      (e: unknown) => {
+        if (cancelled) return;
+        setLoadError(message(e));
+        setBuiltFor(request);
+      },
     );
     return () => {
       cancelled = true;
     };
-  }, [core, aura, childAuras, tab, refresh]);
+  }, [core, request]);
 
   const queue = useRef<Promise<void>>(Promise.resolve());
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
@@ -98,13 +114,15 @@ export function OptionsEditor({ core, aura, childAuras = NO_CHILDREN, onChange }
     (node: OptionNode, value: unknown) => {
       if (!tabKey) return;
       const id = idOf(node.path);
+      setPending((n) => n + 1);
       queue.current = queue.current.then(async () => {
         try {
           const edit = await core.setOption(latest.current, { tab: tabKey, path: node.path }, value);
+          if (edit.dialog) setDialog({ node, dialog: edit.dialog });
           if (edit.changed) {
             const previous = latest.current;
-            latest.current = { aura: edit.aura, children: previous.children };
-            const r = onChange(edit.aura);
+            latest.current = { aura: edit.aura, children: edit.children ?? previous.children };
+            const r = onChange(edit.aura, edit.children);
             if (r && !r.ok) {
               latest.current = previous;
               setFieldError(id, r.error ?? "The page could not take this change");
@@ -120,7 +138,8 @@ export function OptionsEditor({ core, aura, childAuras = NO_CHILDREN, onChange }
           setFieldError(id, message(e));
           setRefresh((n) => n + 1);
         } finally {
-          setDrafts((d) => (d[id] && d[id].value === value ? { ...d, [id]: { value, done: true } } : d));
+          setPending((n) => n - 1);
+          setDrafts((d) => (d[id] && (node.type === "multiselect" || d[id].value === value) ? { ...d, [id]: { value: d[id].value, done: true } } : d));
         }
       });
     },
@@ -130,7 +149,15 @@ export function OptionsEditor({ core, aura, childAuras = NO_CHILDREN, onChange }
   const edit = useCallback(
     (node: OptionNode, value: unknown, options?: EditOptions) => {
       const id = idOf(node.path);
-      if (node.type !== "execute") setDrafts((d) => ({ ...d, [id]: { value, done: false } }));
+      if (node.type === "multiselect") {
+        // An edit is one [key, checked] pair; the field shows the whole list with that pair changed.
+        const [key, checked] = value as [unknown, boolean];
+        setDrafts((d) => {
+          const base = (d[id]?.value ?? node.value) as [unknown, boolean][] | undefined;
+          const list = (Array.isArray(base) ? base : []).map(([k, v]): [unknown, boolean] => [k, k === key ? checked : v]);
+          return { ...d, [id]: { value: list, done: false } };
+        });
+      } else if (node.type !== "execute") setDrafts((d) => ({ ...d, [id]: { value, done: false } }));
       const pending = timers.current.get(id);
       if (pending) clearTimeout(pending);
       if (options?.continuous) {
@@ -149,10 +176,11 @@ export function OptionsEditor({ core, aura, childAuras = NO_CHILDREN, onChange }
     [commit],
   );
 
+  const busy = pending > 0 || builtFor !== request;
   const tabs = result?.tabs ?? [];
   const active = result?.tab;
   return (
-    <section className={styles.editor} aria-label="Aura options">
+    <section className={styles.editor} aria-label="Aura options" aria-busy={busy} data-busy={busy ? "true" : "false"}>
       <div className={styles.tabs} role="tablist" aria-label="Options tabs">
         {tabs.map((t) => (
           <button
@@ -171,6 +199,18 @@ export function OptionsEditor({ core, aura, childAuras = NO_CHILDREN, onChange }
         {loadError && <p className={styles.error}>{loadError}</p>}
         {!result && !loadError && <p className={styles.muted}>Loading the addon&apos;s options…</p>}
         {result?.error && <p className={styles.error}>This tab could not be built: {result.error}</p>}
+        {dialog && (
+          <OptionDialogView
+            dialog={dialog.dialog}
+            title={plainText(dialog.node.name) || "Options"}
+            onClose={() => setDialog(null)}
+            onChoose={(value) => {
+              const { node } = dialog;
+              setDialog(null);
+              commit(node, value);
+            }}
+          />
+        )}
         {result?.tree && (
           <OptionList
             nodes={result.tree.args ?? []}
