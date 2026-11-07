@@ -122,8 +122,11 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   Pure props in (aura document + evaluated state), nothing fetched inside except game files (textures, fonts) via the
   loader in `src/render/textures` (`GameTexture` draws one as an image; `media.ts` names the addon's media,
   `media.test.ts` checks it against each game's LibSharedMedia lists). Any game texture path loads by the FileDataID the
-  game's file list gives (the loader's `resolvePath`: `gameFilesFromApi("/api/<game>/files")`); a texture that can't be
-  drawn shows `MissingTexture` (`MappedTexture.tsx`), never nothing. To add
+  game's file list gives (the loader's `resolvePath`: `gameFilesFromApi("/api/<game>/files")`); every page gets its
+  game's loader from `gameTextureLoader(game, ref)`, so a path draws the same on the game screen and in pictures. A
+  texture that can't be drawn shows `MissingTexture` (`MappedTexture.tsx`), never nothing. What the game snaps to the
+  pixel grid (border edges) is placed in whole pixels: the surface gives its grid (`PixelGridContext`,
+  `pixel-grid.tsx`), each region its frame's, and `PixelSpace`/`pixelBox` draw on it. To add
   a region type, add its facts to `REGION_TYPES` (`region-types.ts`) and its component to `RENDERERS`
   (`regions.tsx`); both are keyed by the addon's `regionType`. The game screen is `screen/GameScreen.tsx` (the
   surface) and `screen/GameScreenAuras.tsx` (every aura of the workspace on it, laid out by `group/layout.ts`);
