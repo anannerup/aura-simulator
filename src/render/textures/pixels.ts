@@ -70,10 +70,3 @@ export function texCoordBackground(coord: TexCoord, width: number, height: numbe
     backgroundPosition: `${-l * bgWidth}px ${-t * bgHeight}px`,
   };
 }
-
-/** Maps a texcoord rect given on the full texture into the coordinates of a cropped sub-rect. */
-export function texCoordWithin(inner: TexCoord, crop: TexCoord): TexCoord {
-  const w = crop[1] - crop[0];
-  const h = crop[3] - crop[2];
-  return [(inner[0] - crop[0]) / w, (inner[1] - crop[0]) / w, (inner[2] - crop[2]) / h, (inner[3] - crop[2]) / h];
-}

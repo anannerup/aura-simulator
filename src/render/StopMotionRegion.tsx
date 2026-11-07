@@ -1,12 +1,9 @@
 "use client";
 
 import { useId, type ReactNode } from "react";
-import type { AuraDocument, LuaValue } from "@/core";
+import type { LuaValue } from "@/core";
 import type { Box } from "./bar-geometry";
 import { useRegionClock } from "./clock";
-import type { AuraRenderState } from "./conditions";
-import { frozenMarkerSize } from "./conditions/forever-rules";
-import { FrozenMarker, textValues } from "./IconRegion";
 import { blendCss, needsShade, ShadeFilter, type Rgba } from "./MappedTexture";
 import {
   DEFAULT_STOP_MOTION_TEXTURE,
@@ -19,9 +16,10 @@ import {
 } from "./stop-motion";
 import { regionHost } from "./subregions/host";
 import { SubRegions } from "./subregions/SubRegions";
-import { color } from "./subregions/SubText";
-import { useTextureUrl } from "./textures/useTexture";
-import styles from "./AuraPreview.module.css";
+import { color } from "./color";
+import { useTextureUrl } from "./textures";
+import styles from "./regions.module.css";
+import type { RegionProps } from "./region-types";
 
 const num = (v: LuaValue | undefined, fallback?: number) => (typeof v === "number" ? v : fallback);
 
@@ -96,7 +94,7 @@ export const isTimedStopMotion = (animationType: LuaValue | undefined) =>
  * `frameRate` from when the aura shows, or follows the dynamic trigger's elapsed share in "progress" mode; and an
  * optional background showing one fixed frame (`backgroundPercent`).
  */
-export function StopMotionRegion({ aura, state, name, width, height }: { aura: AuraDocument; state: AuraRenderState; name: string; width: number; height: number }) {
+export function StopMotionRegion({ aura, state, name, width, height }: RegionProps) {
   const p = state.properties;
   const seconds = useRegionClock();
   const fgTexture = typeof aura.foregroundTexture === "string" ? aura.foregroundTexture : DEFAULT_STOP_MOTION_TEXTURE;
@@ -153,9 +151,8 @@ export function StopMotionRegion({ aura, state, name, width, height }: { aura: A
     </>
   );
   return (
-    <div className={styles.barFrame} data-animation-type={String(animationType)}>
-      <SubRegions aura={aura} state={state} host={regionHost("stopmotion", width, height)} values={textValues(state, name)} background={background} />
-      {state.frozenMarker && <FrozenMarker size={frozenMarkerSize(width, height)} />}
+    <div className={styles.regionFrame} data-animation-type={String(animationType)}>
+      <SubRegions aura={aura} state={state} host={regionHost("stopmotion", width, height)} name={name} background={background} />
     </div>
   );
 }

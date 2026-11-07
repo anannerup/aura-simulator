@@ -1,14 +1,13 @@
 "use client";
 /**
- * Game fonts, loaded at runtime (Blizzard fonts from wago.tools by FileDataID, Musca Auras' fonts from its
- * repository) into the page with the FontFace API. Never committed. Until a font has loaded, or if it fails,
- * the text uses a similar web font.
+ * Game fonts, loaded at runtime through the texture loader (Blizzard fonts from wago.tools by FileDataID, Musca Auras'
+ * fonts from its repository; cached like textures) into the page with the FontFace API. Never committed. Until a font
+ * has loaded, or if it fails, the text uses a similar web font.
  */
 import { useEffect, useSyncExternalStore, type CSSProperties } from "react";
-import type { LuaValue } from "@/core";
+import { DEFAULT_ADDON_REF, type LuaValue } from "@/core";
 import { DEFAULT_FONT, FONTS } from "./media";
-import { DEFAULT_ADDON_REF } from "./textures/loader";
-import { MUSCA_AURAS_CDN, WAGO_CASC_URL } from "./textures/paths";
+import { textureLoader, textureUrls } from "./textures";
 
 /** The CSS family a game font is registered under. */
 export const cssFamily = (name: string) => `WoW ${name}`;
@@ -29,10 +28,9 @@ export function fontFamily(value: LuaValue | undefined): string {
   return families.join(", ");
 }
 
+/** Where a game file (font, sound) is downloaded from: a FileDataID or an `Interface\\AddOns\\…` path. */
 export function fontUrl(source: number | string, addonRef = DEFAULT_ADDON_REF): string {
-  if (typeof source === "number") return WAGO_CASC_URL + source;
-  const rel = source.replace(/\\/g, "/").replace(/^interface\/addons\//i, "");
-  return MUSCA_AURAS_CDN + addonRef + "/" + rel.split("/").map(encodeURIComponent).join("/");
+  return textureUrls(source, addonRef)[0];
 }
 
 type Status = "loading" | "loaded" | "failed";
@@ -47,12 +45,9 @@ export function ensureFont(value: LuaValue | undefined): void {
   if (status.has(name)) return;
   status.set(name, "loading");
   const file = FONTS[name];
-  fetch(fontUrl(file.source))
-    .then((res) => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.arrayBuffer();
-    })
-    .then((bytes) => new FontFace(cssFamily(name), bytes).load())
+  textureLoader()
+    .loadBytes(file.source)
+    .then((bytes) => new FontFace(cssFamily(name), bytes as Uint8Array<ArrayBuffer>).load())
     .then((face) => {
       document.fonts.add(face);
       status.set(name, "loaded");

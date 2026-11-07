@@ -8,11 +8,18 @@ export type { AddonBundle, AddonBundleSet } from "./addon-bundle";
 export {
   canonicalize,
   entries,
+  field,
+  finite,
   getField,
   isLuaTable,
   keyFromString,
   keyToString,
+  list,
 } from "./lua-value";
+export { DEFAULT_SITUATION, auraTriggers, setInCombat, triggerSituation, withTrigger } from "./situation";
+export type { Situation, TriggerKind, TriggerSituation } from "./situation";
+export { conditionProblem, evaluateAura } from "./conditions";
+export type { AuraRenderState, ConditionProblem, GlowState, TriggerState } from "./conditions";
 export {
   LuaLiteralError,
   parseCanonicalJson,

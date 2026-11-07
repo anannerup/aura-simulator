@@ -1,15 +1,14 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { isLuaTable, type AuraDocument, type LuaValue } from "@/core";
-import type { AuraRenderState } from "./conditions";
-import { frozenMarkerSize } from "./conditions/forever-rules";
+import { isLuaTable, type LuaValue } from "@/core";
 import { useWowFont } from "./fonts";
 import { iconHost } from "./subregions/host";
 import { SubRegions } from "./subregions/SubRegions";
-import { formatTime, type TextValues } from "./text-format";
+import { formatTime } from "./text-format";
 import { useAuraIconUrl } from "./textures";
-import styles from "./AuraPreview.module.css";
+import styles from "./regions.module.css";
+import type { RegionProps } from "./region-types";
 
 export function rgba(value: LuaValue | undefined, fallback: [number, number, number, number] = [1, 1, 1, 1]): [number, number, number, number] {
   const c = isLuaTable(value) && Array.isArray(value) ? value : [];
@@ -26,18 +25,11 @@ export const css = ([r, g, b, a]: [number, number, number, number]) =>
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
-/** %-replacement inputs: each trigger's state, and the dynamic (activeTriggerMode) one as trigger 0. */
-export function textValues(state: AuraRenderState, name: string): TextValues {
-  const states = new Map<number, (typeof state.triggers)[number] | undefined>(state.triggers.map((t) => [t.index, t]));
-  states.set(0, state.dynamic);
-  return { states, name };
-}
-
 /**
  * The icon region (RegionTypes/Icon.lua): the texture with zoom, desaturation and colour, the cooldown
  * swipe, its sub-regions in draw order (texts, border, glow) and the frozen marker.
  */
-export function IconRegion({ aura, state, name, width, height }: { aura: AuraDocument; state: AuraRenderState; name: string; width: number; height: number }) {
+export function IconRegion({ aura, state, name, width, height }: RegionProps) {
   const p = state.properties;
   const desaturate = p.desaturate === true;
   const color = rgba(p.color);
@@ -94,8 +86,7 @@ export function IconRegion({ aura, state, name, width, height }: { aura: AuraDoc
       data-desaturated={desaturate ? "true" : "false"}
       data-missing={state.missing ? "true" : "false"}
     >
-      <SubRegions aura={aura} state={state} host={iconHost(width, height)} values={textValues(state, name)} background={background} />
-      {state.frozenMarker && <FrozenMarker size={frozenMarkerSize(width, height)} />}
+      <SubRegions aura={aura} state={state} host={iconHost(width, height)} name={name} background={background} />
     </div>
   );
 }
@@ -135,16 +126,5 @@ export function CooldownSwipe({ remaining, duration, reverse, swipe, edge, numbe
         </span>
       )}
     </div>
-  );
-}
-
-/** FrozenMarker.lua:30-38: a padlock at the region's top right, offset (2, 2). */
-export function FrozenMarker({ size }: { size: number }) {
-  return (
-    <svg className={styles.frozen} width={size} height={size} viewBox="0 0 16 16" style={{ right: -2, top: -2 }} data-testid="frozen-marker" aria-label="Frozen value">
-      <path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2" fill="none" stroke="#d9b45a" strokeWidth="1.8" />
-      <rect x="2.5" y="7" width="11" height="8" rx="1.5" fill="#d9b45a" stroke="#4a3510" strokeWidth="0.8" />
-      <circle cx="8" cy="10.6" r="1.2" fill="#4a3510" />
-    </svg>
   );
 }

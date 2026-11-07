@@ -1,31 +1,11 @@
 /**
  * Forever's combat restrictions and the fork's "Aura (Modern)" (`secretAura`) condition rules, restated
- * from Musca Auras v1.15.0. This is the one place these rules live; each cites the Lua it mirrors
- * (paths relative to the addon's `WeakAuras/` folder). If those files change, re-check this module.
+ * from the addon. This is the one place these rules live; each cites the Lua it mirrors (paths relative to the
+ * addon's `WeakAuras/` folder), and `mirrored.ts` pins those files so a change to them fails a test.
  */
-import { entries, getField, isLuaTable, type AuraDocument, type LuaTable, type LuaValue } from "@/core";
+import { entries, field, finite, getField, isLuaTable, list, type LuaTable, type LuaValue } from "../lua-value";
+import type { AuraDocument } from "../aura-core";
 import { auraTriggers, type TriggerInfo } from "../situation";
-
-// ---------------------------------------------------------------------------------------------
-// Small readers
-// ---------------------------------------------------------------------------------------------
-
-export function list(value: LuaValue | undefined): LuaValue[] {
-  if (!isLuaTable(value)) return [];
-  return entries(value)
-    .filter(([k]) => typeof k === "number")
-    .sort(([a], [b]) => (a as number) - (b as number))
-    .map(([, v]) => v);
-}
-
-export function field(table: LuaValue | undefined, key: string | number): LuaValue | undefined {
-  return isLuaTable(table) ? getField(table, key) : undefined;
-}
-
-export function finite(value: LuaValue | undefined): number | undefined {
-  const n = typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : NaN;
-  return Number.isFinite(n) ? n : undefined;
-}
 
 export type Comparison = "<" | "<=" | ">" | ">=" | "==" | "~=";
 
@@ -162,18 +142,6 @@ export function frozenMarkerShown(aura: AuraDocument, inCombat: boolean): boolea
   return inCombat && aura.hideFrozenMarker !== true && canFreeze(aura);
 }
 
-/** FrozenMarker.lua:52-55: 14 on a big aura, down to 8 on a small one; TOPRIGHT offset (2, 2) (:33). */
-export function frozenMarkerSize(width: number, height: number): number {
-  return Math.min(14, Math.max(8, 0.4 * Math.min(width, height)));
-}
-
-/**
- * The spell cooldown trigger keeps working in combat: SecretSpellCooldown.lua (header) reads readiness
- * when the timing is secret, and its `onCooldown` condition has a `conditionSecretSelect`
- * (Prototypes.lua:4707-4722), as does "Desaturate while on cooldown" (Prototypes.lua:4581-4587).
- */
-export const SPELL_COOLDOWN_WORKS_IN_COMBAT = true;
-
 // ---------------------------------------------------------------------------------------------
 // Aura (Modern) native conditions
 // ---------------------------------------------------------------------------------------------
@@ -253,7 +221,7 @@ export function isGlowProperty(aura: AuraDocument, path: string): boolean {
 }
 
 /** SecretAuraConditions.lua:258-263, 272-275: properties a Missing condition may drive per region type. */
-export const MISSING_ROOT: Record<string, string[]> = {
+const MISSING_ROOT: Record<string, string[]> = {
   icon: ["desaturate", "color", "zoom"],
   aurabar: ["barColor", "backgroundColor", "icon_color", "desaturate"],
   progresstexture: ["foregroundColor", "backgroundColor", "desaturateForeground"],
@@ -335,88 +303,6 @@ export function nativeAllowsProperty(aura: AuraDocument, check: LuaValue | undef
   return NATIVE_VARIABLES[name].allows(aura, path);
 }
 
-const MESSAGES = {
-  grouping: "Aura (Modern) conditions cannot be combined with AND, OR or Else If.",
-  timeOperator: "In Aura (Modern) conditions, time checks only accept < (less than) and >= (at least).",
-  typeOperator: "In Aura (Modern) conditions, kind and dispel checks only accept == (is) and ~= (is not).",
-  missingRegion: "Aura Missing works on Icon, Bar, Progress Texture and Text displays.",
-  missingShowOn: "Aura Missing needs the trigger's Show On set to Aura(s) Missing or Always.",
-  glow: "To light a glow from a time check, compare with < and set the glow to on.",
-  timeBasis: "A countdown text follows one time basis only: seconds left, share left, elapsed, total, start or end.",
-  property: "Choose a supported property for this Aura (Modern) condition.",
-  foreignTrigger:
-    "This check reads a trigger whose values conditions cannot use. Point it at another trigger or at a global variable.",
-};
-
-/**
- * SecretAuraConditions.lua:1036-1050 ValidateConditions: the first problem of the aura's conditions, or
- * undefined. While there is one, the aura's generic conditions don't run at all (Conditions.lua:760).
- * Header validators :924-940, change validators :958-984, CheckUsable :986-1000. The late-glow conflict
- * check (:966-967) is left out.
- */
-export function validateSecretConditions(aura: AuraDocument): { condition: number; message: string } | undefined {
-  const conditions = list(aura.conditions);
-  const bases = new Map<string, string>();
-  for (let i = 0; i < conditions.length; i++) {
-    const condition = conditions[i];
-    if (!isLuaTable(condition)) continue;
-    const check = getField(condition, "check");
-    let found: string | undefined;
-    if (containsNativeCondition(aura, check)) {
-      const name = nativeVariable(aura, check);
-      const variable = name ? NATIVE_VARIABLES[name] : undefined;
-      const following = conditions[i + 1];
-      const op = field(check, "op");
-      if (!variable || getField(condition, "linked") === true || field(following, "linked") === true) found = MESSAGES.grouping;
-      else if (variable.operators && op !== undefined && !variable.operators.includes(String(op))) {
-        found = variable.family === "duration" ? MESSAGES.timeOperator : variable.family === "select" ? MESSAGES.typeOperator : undefined;
-      } else if (variable.family === "missing") {
-        const showOn = secretShowOn(secretTrigger(aura)?.trigger ?? {});
-        if (!MISSING_ROOT[String(aura.regionType)]) found = MESSAGES.missingRegion;
-        else if (showOn !== "showOnMissing" && showOn !== "showAlways") found = MESSAGES.missingShowOn;
-      }
-      for (const change of list(getField(condition, "changes"))) {
-        if (found || !variable) break;
-        const property = field(change, "property");
-        if (typeof property !== "string") continue;
-        const value = field(change, "value");
-        if (variable.glow && isGlowProperty(aura, property)) {
-          if ((variable.glow.operator !== undefined && op !== variable.glow.operator) || value !== true) {
-            found = MESSAGES.glow;
-            break;
-          }
-        }
-        if (variable.family === "duration") {
-          const target = textTarget(aura, property, "duration");
-          if (target) {
-            const seen = bases.get(target.target);
-            if (seen && seen !== name) {
-              found = MESSAGES.timeBasis;
-              break;
-            }
-            bases.set(target.target, name!);
-          }
-        }
-        if (!nativeAllowsProperty(aura, check, property)) found = MESSAGES.property;
-      }
-    }
-    if (!found && !checkUsable(aura, check)) found = MESSAGES.foreignTrigger;
-    if (found) return { condition: i + 1, message: found };
-  }
-  return undefined;
-}
-
-function checkUsable(aura: AuraDocument, check: LuaValue | undefined): boolean {
-  const name = field(check, "variable");
-  if (name === undefined) return true;
-  if (name === "AND" || name === "OR") return list(field(check, "checks")).every((c) => checkUsable(aura, c));
-  const slot = field(check, "trigger");
-  if (slot === -1) return true;
-  const trigger = field(field(aura.triggers, slot as number), "trigger");
-  if (!isLuaTable(trigger)) return false;
-  return getField(trigger, "type") !== "secretAura" || NATIVE_VARIABLES[String(name)] !== undefined;
-}
-
 /** SecretAuraConditions.lua:247-268 ROOT_PROPERTIES and :304-316 ELEMENT_PROPERTIES (PropertyType). */
 const NATIVE_ROOT: Record<string, string[]> = {
   icon: ["color", "desaturate", "inverse", "cooldownSwipe", "cooldownEdge", "cooldownTextDisabled", "zoom"],
@@ -441,13 +327,6 @@ export function isNativeConditionProperty(aura: AuraDocument, path: string): boo
   const element = subRegion(aura, sub.position);
   return element !== undefined && (NATIVE_ELEMENT[String(getField(element, "type"))] ?? []).includes(sub.key);
 }
-
-/**
- * Generic condition checks that read an aura2 trigger's state follow that trigger: frozen triggers give
- * frozen values (BuffTrigger2.lua:2055: while restricted, aura updates are only queued for a rescan).
- * Conditions on non-native displays are otherwise applied normally in combat.
- */
-export const GENERIC_CONDITIONS_RUN_IN_COMBAT = true;
 
 /** Pandemic window: 30% of the aura's full duration (SecretAuraConditions.lua:20 PANDEMIC_PREVIEW_SHARE). */
 export const PANDEMIC_SHARE = 0.3;

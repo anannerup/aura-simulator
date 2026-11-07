@@ -1,39 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getField, isLuaTable, type AuraDocument, type LuaValue } from "@/core";
-import { anchorFraction } from "./anchor";
-import { advanceLife, auraAnimations, GONE, hideLife, lifePose, showLife, stampLife, type AnimBase, type Life, type Rgba } from "./animations";
-import { AuraRegion } from "./AuraPreview";
+import { getField, isLuaTable, list, type AuraDocument, type AuraRenderState, type LuaValue } from "@/core";
+import { advanceLife, auraAnimations, GONE, hideLife, lifePose, showLife, stampLife, type AnimBase, type Life } from "./animations";
+import { AuraRegion } from "./AuraRegion";
 import { RegionClockContext } from "./clock";
-import type { AuraRenderState } from "./conditions";
-import { list } from "./conditions/forever-rules";
-import { regionType } from "./regions";
-import type { Rect } from "./screen/geometry";
+import { color } from "./color";
+import { regionInfo } from "./region-types";
+import { animatedRect, type Rect } from "./screen/geometry";
 import { isTimedStopMotion } from "./StopMotionRegion";
-import { color } from "./subregions/SubText";
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
-/** The property a colour animation tints (each region's Color/ColorAnim target). */
-export function colorProperty(type: unknown): string {
-  if (type === "aurabar") return "barColor";
-  if (type === "progresstexture" || type === "stopmotion") return "foregroundColor";
-  return "color";
-}
-
 /** Stop motion that steps with time (the region or a sub-element) needs the clock even without animations. */
-export function needsClock(aura: AuraDocument): boolean {
+function needsClock(aura: AuraDocument): boolean {
   if (aura.regionType === "stopmotion" && isTimedStopMotion(aura.animationType)) return true;
   return list(aura.subRegions).some((e) => isLuaTable(e) && getField(e, "type") === "substopmotion" && isTimedStopMotion(getField(e, "animationType")));
-}
-
-/** A rect scaled by (sx, sy) about its `selfPoint` (the point the region is pinned by), then moved by (dx, dy) (y up). */
-export function animatedRect(rect: Rect, selfPoint: unknown, sx: number, sy: number, dx: number, dy: number): Rect {
-  const [fx, fy] = anchorFraction(selfPoint);
-  const width = rect.width * Math.abs(sx);
-  const height = rect.height * Math.abs(sy);
-  return { x: rect.x + rect.width * fx - width * fx + dx, y: rect.y + rect.height * fy - height * fy - dy, width, height };
 }
 
 export interface AnimatedAuraRegionProps {
@@ -42,8 +24,6 @@ export interface AnimatedAuraRegionProps {
   state: AuraRenderState;
   /** Whether the aura is shown (defaults to `state.shown`). */
   shown?: boolean;
-  /** Changing it plays the start animation again (the preview's Replay control). */
-  replay?: number;
   selected?: boolean;
   onSelect?: () => void;
 }
@@ -53,18 +33,17 @@ export interface AnimatedAuraRegionProps {
  * one looping while shown, the finish one when it hides (the region stays until it ends, drawn as it last was).
  * Also ticks the clock stop motion steps on.
  */
-export function AnimatedAuraRegion({ aura, rect, state, shown = state.shown, replay = 0, selected, onSelect }: AnimatedAuraRegionProps) {
+export function AnimatedAuraRegion({ aura, rect, state, shown = state.shown, selected, onSelect }: AnimatedAuraRegionProps) {
   const anims = useMemo(() => auraAnimations(aura.animation, aura.regionType), [aura.animation, aura.regionType]);
-  const [tracked, setTracked] = useState({ shown, replay });
+  const [tracked, setTracked] = useState(shown);
   const [life, setLife] = useState<Life>(() => (shown ? showLife(anims) : GONE));
   const [last, setLast] = useState<{ state: AuraRenderState; rect: Rect } | null>(shown ? { state, rect } : null);
   const [now, setNow] = useState(0);
 
-  // Show/hide/replay (state derived from props during render, so the finish animation starts without a gap).
-  if (tracked.shown !== shown || tracked.replay !== replay) {
-    setTracked({ shown, replay });
-    if (shown !== tracked.shown) setLife(shown ? showLife(anims) : hideLife(life, anims));
-    else if (shown) setLife(showLife(anims));
+  // Show/hide (state derived from props during render, so the finish animation starts without a gap).
+  if (tracked !== shown) {
+    setTracked(shown);
+    setLife(shown ? showLife(anims) : hideLife(life, anims));
   }
   if (shown && (last?.state !== state || last.rect !== rect)) setLast({ state, rect });
 
@@ -92,16 +71,12 @@ export function AnimatedAuraRegion({ aura, rect, state, shown = state.shown, rep
   if (life.phase === "gone" || !drawn) return null;
 
   const p = drawn.state.properties;
-  const colorKey = colorProperty(aura.regionType);
-  const base: AnimBase = {
-    alpha: num(p.alpha, 1),
-    rotation: num(p.rotation ?? aura.rotation, 0),
-    color: color(p[colorKey] ?? aura[colorKey]) as Rgba,
-  };
+  const info = regionInfo(aura.regionType);
+  const colorKey = info.colorProperty;
+  const base: AnimBase = { alpha: num(p.alpha, 1), rotation: num(p.rotation, 0), color: color(p[colorKey]) };
   const { pose, progress } = lifePose(life, now, anims, base, { remaining: timerRemaining, duration: timerDuration });
-  const autoSize = regionType(aura.regionType)?.autoSize === true;
-  const sx = autoSize ? 1 : pose.scaleX;
-  const sy = autoSize ? 1 : pose.scaleY;
+  const sx = info.autoSize ? 1 : pose.scaleX;
+  const sy = info.autoSize ? 1 : pose.scaleY;
   const animRect = animatedRect(drawn.rect, aura.selfPoint, sx, sy, pose.dx, pose.dy);
   const properties = { ...p };
   if (pose.alpha !== undefined) properties.alpha = pose.alpha;

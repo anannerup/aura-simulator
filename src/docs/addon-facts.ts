@@ -52,6 +52,8 @@ export interface AddonFacts {
     stackOperators: string[];
     stackLimit: number;
     missingRegionTypes: string[];
+    /** Root properties a Missing condition may drive, per region type (MISSING_ROOT_NAMES). */
+    missingRootProperties: Record<string, string[]>;
     variables: ModernVariableFact[];
     /** Root properties per region type that Aura (Modern) conditions know, with their value type. */
     rootProperties: Record<string, Record<string, string>>;
@@ -231,6 +233,9 @@ export async function collectAddonFacts(core: AuraCore): Promise<AddonFacts> {
       stackOperators: keysOf(secret.stackOperators),
       stackLimit: Number(secret.STACK_LIMIT ?? 0),
       missingRegionTypes: keysOf(secret.missingTypes),
+      missingRootProperties: Object.fromEntries(
+        Object.entries(asRecord(secret.MISSING_ROOT_NAMES)).map(([region, names]) => [region, listOf(names).map(String)]),
+      ),
       variables,
       rootProperties: asRecord(secret.ROOT_PROPERTIES) as Record<string, Record<string, string>>,
       elementProperties,

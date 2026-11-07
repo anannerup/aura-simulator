@@ -2,17 +2,16 @@
  * Trigger state: what a trigger reports to the region (shown or not, timer, stacks), derived from the
  * aura document and the situation, following the addon's trigger semantics.
  */
-import { getField, type LuaTable } from "@/core";
+import { finite, getField, type LuaTable } from "../lua-value";
 import { triggerSituation, type SituationFacts, type TriggerInfo, type TriggerKind } from "../situation";
 import {
   aura2Freezes,
   compare,
-  finite,
   inRemainingWindow,
   secretRemainingWindow,
   secretShowOn,
   secretStackFilter,
-} from "./forever-rules";
+} from "./secret-aura-rules";
 
 export interface TriggerState {
   index: number;

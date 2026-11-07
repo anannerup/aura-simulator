@@ -1,10 +1,9 @@
 "use client";
 
 import { Fragment, type ReactNode } from "react";
-import { getField, isLuaTable, type AuraDocument } from "@/core";
-import type { AuraRenderState } from "../conditions";
-import { list } from "../conditions/forever-rules";
-import type { TextValues } from "../text-format";
+import { getField, isLuaTable, list, type AuraDocument, type AuraRenderState } from "@/core";
+import { regionInfo } from "../region-types";
+import { textValues } from "../text-format";
 import { Border } from "./Border";
 import type { SubRegionHost } from "./host";
 import { SubGlow } from "./SubGlow";
@@ -27,7 +26,7 @@ export function drawOrder(aura: AuraDocument): { kind: SubRegionKind; position: 
   const order: { kind: SubRegionKind; position: number }[] = [];
   const entries = list(aura.subRegions);
   const types = entries.map((e) => (isLuaTable(e) ? String(getField(e, "type")) : ""));
-  const needsForeground = aura.regionType === "aurabar";
+  const needsForeground = regionInfo(aura.regionType).foreground;
   if (!types.includes("subbackground")) order.push({ kind: "background", position: 0 });
   if (needsForeground && !types.includes("subforeground")) order.push({ kind: "foreground", position: 0 });
   types.forEach((type, i) => {
@@ -50,19 +49,21 @@ export function drawOrder(aura: AuraDocument): { kind: SubRegionKind; position: 
 export function SubRegions({
   aura,
   state,
+  name,
   host,
-  values,
   background,
   foreground,
 }: {
   aura: AuraDocument;
   state: AuraRenderState;
+  /** The aura's name, for %n. */
+  name: string;
   host: SubRegionHost;
-  values: TextValues;
   background: ReactNode;
   foreground?: ReactNode;
 }) {
   const entries = list(aura.subRegions);
+  const values = textValues(state, name);
   return (
     <>
       {drawOrder(aura).map(({ kind, position }) => {

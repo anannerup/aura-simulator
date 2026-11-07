@@ -1,24 +1,47 @@
-import { describe, expect, it } from "vitest";
-import type { AuraDocument } from "@/core";
+/**
+ * The situation and condition modules of the aura core (`@/core`), through their interface: an aura document and a
+ * situation in, what the region shows out. Whether Aura (Modern) conditions are valid comes from the core's
+ * validation (the addon's own check), so those cases load the addon.
+ */
+import { beforeAll, describe, expect, it } from "vitest";
+import {
+  conditionProblem,
+  DEFAULT_SITUATION,
+  evaluateAura,
+  loadAddon,
+  setInCombat,
+  withTrigger,
+  type AuraCore,
+  type AuraDocument,
+  type Situation,
+  type TriggerSituation,
+} from "@/core";
 import {
   buffMissing,
-  buffRunningLow,
+  buffUnderThreeMinutes,
   cooldownIcon,
   remainingDesaturates,
   secretWithCombatCondition,
   targetDebuffAura2,
-} from "../examples";
-import { DEFAULT_SITUATION, setInCombat, withTrigger, type Situation, type TriggerSituation } from "../situation";
-import { formatSubText, formatTime } from "../text-format";
-import { evaluateAura } from "./evaluate";
-import { aura2Freezes, canFreeze, validateSecretConditions } from "./forever-rules";
+} from "@/render/examples";
+import { formatSubText, formatTime } from "@/render/text-format";
+import { cachedAddonFetcher } from "../support/addon-source";
+
+const REF = "v1.15.0";
+let core: AuraCore;
+beforeAll(async () => {
+  core = await loadAddon(REF, { fetchSource: cachedAddonFetcher(REF) });
+}, 120_000);
+
+/** The core's verdict on an aura's Aura (Modern) conditions. */
+const problemOf = async (aura: AuraDocument) => conditionProblem(await core.validate({ aura, children: [] }));
 
 const sit = (t: Partial<TriggerSituation> = {}, extra: Partial<Situation> = {}): Situation =>
   withTrigger({ ...DEFAULT_SITUATION, ...extra }, 1, t);
 
 describe("Aura (Modern) trigger state (SecretAuraSingle.lua:110-149)", () => {
   const withShowOn = (secretShowOn: string, more = {}): AuraDocument => ({
-    ...buffRunningLow,
+    ...buffUnderThreeMinutes,
     conditions: [],
     triggers: { "[1]": { trigger: { type: "secretAura", unit: "player", secretShowOn, ...more } }, activeTriggerMode: -10 },
   });
@@ -61,12 +84,14 @@ describe("Aura (Modern) trigger state (SecretAuraSingle.lua:110-149)", () => {
 
 describe("Aura (Modern) native conditions", () => {
   it.each([
-    // remaining, glow on, text colour
-    [300, false, [1, 1, 1, 1]],
-    [170, true, [1, 1, 1, 1]],
-    [9, true, [1, 0, 0, 1]],
-  ])("buff running low at %d s: glow %s, %%p colour %j", (remaining, glowOn, color) => {
-    const state = evaluateAura(buffRunningLow, sit({ remaining, duration: 3600 }));
+    // remaining, shown, glow on, text colour
+    [300, false, false, [1, 1, 1, 1]],
+    [170, true, false, [1, 1, 1, 1]],
+    [25, true, true, [1, 1, 1, 1]],
+    [9, true, true, [1, 0, 0, 1]],
+  ])("v1 aura 1a at %d s left: shown %s, glow %s, %%p colour %j", (remaining, shown, glowOn, color) => {
+    const state = evaluateAura(buffUnderThreeMinutes, sit({ remaining, duration: 3600 }));
+    expect(state.shown).toBe(shown);
     expect(state.glows[0].visible).toBe(glowOn);
     expect(state.properties["sub.1.text_color"]).toEqual(color);
     expect(state.properties.desaturate).toBe(true);
@@ -74,7 +99,7 @@ describe("Aura (Modern) native conditions", () => {
 
   it.each([false, true])("faAuraRemaining glow and text rules keep working in combat (%s)", (inCombat) => {
     const s = setInCombat(sit({ remaining: 100, duration: 3600 }), inCombat);
-    const state = evaluateAura(buffRunningLow, withTrigger(s, 1, { remaining: 5 }));
+    const state = evaluateAura(buffUnderThreeMinutes, withTrigger(s, 1, { remaining: 5 }));
     expect(state.glows[0].visible).toBe(true);
     expect(state.properties["sub.1.text_color"]).toEqual([1, 0, 0, 1]);
   });
@@ -86,33 +111,25 @@ describe("Aura (Modern) native conditions", () => {
     expect(state.glows[0].visible).toBe(true);
   });
 
-  it("faAuraRemaining may not drive desaturate: a problem, and it never applies", () => {
-    expect(validateSecretConditions(remainingDesaturates)?.message).toMatch(/supported property/);
+  it("faAuraRemaining may not drive desaturate: the core says so, and then it never applies", async () => {
+    const problem = await problemOf(remainingDesaturates);
+    expect(problem).toMatchObject({ condition: 1, message: expect.stringMatching(/supported property/) });
     for (const inCombat of [false, true]) {
-      const state = evaluateAura(remainingDesaturates, setInCombat(sit({ remaining: 3, duration: 60 }), inCombat));
-      expect(state.problem?.condition).toBe(1);
+      const state = evaluateAura(remainingDesaturates, setInCombat(sit({ remaining: 3, duration: 60 }), inCombat), problem);
       expect(state.properties.desaturate).toBe(false);
     }
+  });
+
+  it("an aura without a condition problem has none", async () => {
+    expect(await problemOf(buffUnderThreeMinutes)).toBeUndefined();
   });
 
   it.each([
     [{ trigger: 1, variable: "faAuraRemaining", op: ">", value: 3 }, /time checks/],
     [{ trigger: 1, variable: "faAuraMissing" }, /Show On/],
-    [{ trigger: 1, variable: "buffed", value: 1 }, /cannot use/],
-  ])("validation of %j", (check, message) => {
-    const aura = { ...buffRunningLow, conditions: [{ check, changes: [{ property: "sub.2.glow", value: true }] }] };
-    expect(validateSecretConditions(aura)?.message).toMatch(message);
-  });
-
-  it("linking a native condition is a grouping problem", () => {
-    const aura: AuraDocument = {
-      ...buffRunningLow,
-      conditions: [
-        { check: { trigger: 1, variable: "faAuraRemaining", op: "<", value: 5 }, changes: [] },
-        { linked: true, check: { trigger: -1, variable: "incombat", value: 1 }, changes: [] },
-      ],
-    };
-    expect(validateSecretConditions(aura)?.message).toMatch(/AND, OR or Else If/);
+  ])("the core rejects %j", async (check, message) => {
+    const aura = { ...buffUnderThreeMinutes, conditions: [{ check, changes: [{ property: "sub.2.glow", value: true }] }] };
+    expect((await problemOf(aura))?.message).toMatch(message);
   });
 
   it("generic changes to native-display properties hold their pre-combat value in combat (SecretAuraConditions.lua:1087)", () => {
@@ -130,13 +147,13 @@ describe("Aura (Modern) native conditions", () => {
     [2, "2"],
     [5, "5"],
   ])("native stack text shows from 2 stacks on (%d -> %j, StackTextFor :735)", (stacks, text) => {
-    const aura = { ...buffRunningLow, conditions: [], subRegions: [{ type: "subtext", text_text: "%s" }] };
+    const aura = { ...buffUnderThreeMinutes, conditions: [], subRegions: [{ type: "subtext", text_text: "%s" }] };
     expect(evaluateAura(aura, sit({ stacks })).nativeStackText[1]).toBe(text);
   });
 
   it("stack rules recolour the stack text", () => {
     const aura = {
-      ...buffRunningLow,
+      ...buffUnderThreeMinutes,
       subRegions: [{ type: "subtext", text_text: "%s", text_color: [1, 1, 1, 1] }],
       conditions: [{ check: { trigger: 1, variable: "faAuraApplications", op: ">=", value: 3 }, changes: [{ property: "sub.1.text_color", value: [0, 1, 0, 1] }] }],
     };
@@ -148,6 +165,8 @@ describe("Aura (Modern) native conditions", () => {
 });
 
 describe("aura2 freezing (BuffTrigger2.lua:3376, FrozenMarker.lua:15)", () => {
+  const inCombat = (trigger: object) =>
+    evaluateAura({ ...targetDebuffAura2, triggers: { "[1]": { trigger: { type: "aura2", unit: "player", ...trigger } } } }, setInCombat(sit(), true));
   it.each([
     [{ useExactSpellId: true, auraspellids: ["116"] }, true],
     [{ useName: true, auranames: ["Frostbolt"] }, true],
@@ -158,13 +177,14 @@ describe("aura2 freezing (BuffTrigger2.lua:3376, FrozenMarker.lua:15)", () => {
     [{ useNativeFilter: true, nativeFilter: { PLAYER: true }, matchesShowOn: "showOnMissing" }, true],
     [{}, true],
   ])("%j freezes: %s", (trigger, freezes) => {
-    expect(aura2Freezes({ type: "aura2", unit: "player", ...trigger })).toBe(freezes);
+    expect(inCombat(trigger).triggers[0].frozen).toBe(freezes);
   });
 
   it("Aura (Modern) and spell cooldown auras never freeze", () => {
-    expect(canFreeze(buffRunningLow)).toBe(false);
-    expect(canFreeze(cooldownIcon)).toBe(false);
-    expect(canFreeze(targetDebuffAura2)).toBe(true);
+    const padlock = (aura: AuraDocument) => evaluateAura(aura, setInCombat(sit({ remaining: 20 }), true)).frozenMarker;
+    expect(padlock(buffUnderThreeMinutes)).toBe(false);
+    expect(padlock(cooldownIcon)).toBe(false);
+    expect(padlock(targetDebuffAura2)).toBe(true);
   });
 
   it("a frozen aura2 keeps its pre-combat state and shows the padlock", () => {

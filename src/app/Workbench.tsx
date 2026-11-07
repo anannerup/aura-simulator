@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { sampleIconAura, type AuraDocument } from "@/core";
+import { DEFAULT_SITUATION, sampleIconAura, type AuraDocument } from "@/core";
 import { OptionsEditor } from "@/components/options-editor/OptionsEditor";
 import { RawEditor } from "@/components/raw-editor/RawEditor";
 import { AppShell, EmptyNote, InspectorSection, Stage, StageMessage } from "@/components/shell";
@@ -10,8 +10,7 @@ import { SpellPicker } from "@/components/spell-picker/SpellPicker";
 import { WorkspaceTree } from "@/components/workspace-tree/WorkspaceTree";
 import { ADDON_MEDIA, Button, GameTexture, Popover, ToastProvider } from "@/components/ui";
 import { ensureFont } from "@/render/fonts";
-import { WorkspaceStage } from "@/render/group/WorkspaceStage";
-import { DEFAULT_SITUATION } from "@/render/situation";
+import { WorkspaceStage } from "@/render/screen/WorkspaceStage";
 import { DEFAULT_WORKSPACE_ID, findNode, updateNode } from "@/workspace";
 import { AddonVersionMenu } from "./_addon/AddonVersionPicker";
 import { useAddonCore } from "./_addon/useAddonCore";
@@ -19,6 +18,7 @@ import { ExportPanel, ImportPanel, useImporter } from "./import-export/ImportExp
 import { NewAuraChooser } from "./NewAuraChooser";
 import { GameScreenStage, useGameScreen } from "./screen/GameScreen";
 import { SituationControls } from "./SituationControls";
+import { useConditionProblems } from "./validation/useConditionProblems";
 import { ValidationPanel } from "./validation/ValidationPanel";
 import type { LoadResult } from "./workspace/session";
 import { useUndo } from "./workspace/useUndo";
@@ -92,6 +92,8 @@ export function Workbench() {
       return next;
     });
   }, []);
+
+  const problems = useConditionProblems(core, items);
 
   const ready = !!core && workspace.ready;
   const aura = ready ? workspace.aura : null;
@@ -272,6 +274,7 @@ export function Workbench() {
                   screen={ui}
                   selectedId={workspace.selectedId}
                   hiddenIds={hiddenIds}
+                  problems={problems}
                   onSelect={select}
                 />
               )}

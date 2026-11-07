@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import type { AuraCore, AuraDocument, AuraPacks, NewAuraPage } from "@/core";
-import { AuraRegion } from "@/render/AuraPreview";
-import { evaluateAura } from "@/render/conditions";
-import { DEFAULT_SITUATION } from "@/render/situation";
+import { DEFAULT_SITUATION, evaluateAura, type AuraCore, type AuraDocument, type AuraPacks, type NewAuraPage } from "@/core";
+import { AuraRegion } from "@/render/AuraRegion";
 import { displayIconRef, iconNameUrl } from "@/render/textures";
 import { addSubtree, allIds, findNode, insertionTarget, isDynamicGroupDoc, uniqueId, type WorkspaceNode } from "@/workspace";
 import styles from "./NewAuraChooser.module.css";

@@ -1,5 +1,4 @@
 import { DEFAULT_WORKSPACE_ID } from "@/workspace";
-import { MISSING_ROOT } from "@/render/conditions/forever-rules";
 import type { AddonFacts, ModernVariableFact } from "./addon-facts";
 import { COUNTER_EXAMPLE, WORKED_EXAMPLES, type WorkedExample } from "./worked-examples";
 
@@ -67,7 +66,7 @@ function variableMayChange(v: ModernVariableFact, a: AddonFacts): string {
     case "select":
       return highlight;
     case "missing": {
-      const roots = Object.entries(MISSING_ROOT)
+      const roots = Object.entries(a.modern.missingRootProperties)
         .filter(([region]) => a.modern.missingRegionTypes.includes(region))
         .map(([region, props]) => `${region}: ${codes(props)}`)
         .join("; ");

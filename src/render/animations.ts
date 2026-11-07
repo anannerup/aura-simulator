@@ -7,6 +7,7 @@
  * function and are listed in `customCode`.
  */
 import { getField, isLuaTable, type LuaValue } from "@/core";
+import { regionInfo, type RegionTypeInfo } from "./region-types";
 
 export type Rgba = [number, number, number, number];
 export type AnimKind = "start" | "main" | "finish";
@@ -186,20 +187,7 @@ export const ANIM_PRESETS: Record<string, Raw> = {
 // Resolution (Animations.lua:211-415 Animate)
 
 /** What a region type can do (RegionTypes/*.lua: Scale, SetAnimRotation, ColorAnim). */
-export interface RegionCaps {
-  scale: boolean;
-  rotate: boolean;
-  color: boolean;
-}
-
-export function regionCaps(regionType: unknown): RegionCaps {
-  const t = String(regionType);
-  return {
-    scale: ["icon", "aurabar", "texture", "progresstexture", "stopmotion", "model"].includes(t),
-    rotate: ["texture", "progresstexture", "model"].includes(t),
-    color: ["icon", "aurabar", "text", "texture", "progresstexture", "stopmotion"].includes(t),
-  };
-}
+export type RegionCaps = RegionTypeInfo["caps"];
 
 export interface AnimSpec {
   kind: AnimKind;
@@ -281,7 +269,7 @@ export interface AuraAnimations {
 }
 
 export function auraAnimations(animation: LuaValue | undefined, regionType: unknown): AuraAnimations {
-  const caps = regionCaps(regionType);
+  const caps = regionInfo(regionType).caps;
   const entry = (k: AnimKind) => (isLuaTable(animation) ? getField(animation, k) : undefined);
   return { start: resolveAnimation(entry("start"), "start", caps), main: resolveAnimation(entry("main"), "main", caps), finish: resolveAnimation(entry("finish"), "finish", caps) };
 }

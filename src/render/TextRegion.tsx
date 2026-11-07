@@ -1,19 +1,18 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { getField, type AuraDocument, type LuaValue } from "@/core";
-import type { AuraRenderState } from "./conditions";
+import { getField, type AuraDocument, type AuraRenderState, type LuaValue } from "@/core";
 import { fontFlagsStyle, useWowFont } from "./fonts";
-import { FrozenMarker, textValues } from "./IconRegion";
-import { color } from "./subregions/SubText";
-import { formatText } from "./text-format";
+import { color } from "./color";
+import { formatText, textValues } from "./text-format";
 import { rgbaCss } from "./TurnedTexture";
+import type { RegionProps } from "./region-types";
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /** The text a text region shows (Text.lua:330-345): format codes replaced; an empty result shows as " "; `\n` breaks lines. */
 export function displayText(aura: AuraDocument, state: AuraRenderState, name: string): string {
-  const raw = state.properties.displayText ?? aura.displayText ?? "%p";
+  const raw = state.properties.displayText ?? "%p";
   const source = typeof raw === "string" ? raw : String(raw);
   const text = formatText(
     source,
@@ -31,7 +30,7 @@ export function displayText(aura: AuraDocument, state: AuraRenderState, name: st
  * with word wrap or elide. Font, size, outline, shadow, colour and justify as in the game. The preview pins the
  * region at its anchor by `selfPoint`; its size comes from the text.
  */
-export function TextRegion({ aura, state, name }: { aura: AuraDocument; state: AuraRenderState; name: string; width: number; height: number }) {
+export function TextRegion({ aura, state, name }: RegionProps) {
   const p = state.properties;
   const font = useWowFont(aura.font);
   const fixed = aura.automaticWidth === "Fixed";
@@ -42,7 +41,7 @@ export function TextRegion({ aura, state, name }: { aura: AuraDocument; state: A
     position: "relative",
     color: rgbaCss(color(p.color)),
     fontFamily: font.family,
-    fontSize: num(p.fontSize ?? aura.fontSize, 12),
+    fontSize: num(p.fontSize, 12),
     lineHeight: 1,
     textAlign: justify as CSSProperties["textAlign"],
     width: fixed ? num(aura.fixedWidth, 200) : undefined,
@@ -60,7 +59,6 @@ export function TextRegion({ aura, state, name }: { aura: AuraDocument; state: A
   return (
     <span style={style} data-testid="text-region" data-font={font.status}>
       {displayText(aura, state, name)}
-      {state.frozenMarker && <FrozenMarker size={8} />}
     </span>
   );
 }

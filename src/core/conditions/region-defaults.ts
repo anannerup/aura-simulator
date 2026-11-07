@@ -2,7 +2,7 @@
  * Region and sub-region defaults for the properties conditions can change: the value a property has when the
  * aura document leaves it unset. Each table cites the addon's `default`.
  */
-import type { LuaValue } from "@/core";
+import type { LuaValue } from "../lua-value";
 
 /** RegionTypes/Icon.lua:16-40, RegionPrototype AddAlphaToDefault. */
 const ICON: Record<string, LuaValue> = {

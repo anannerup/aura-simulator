@@ -1,14 +1,13 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { getField, type LuaTable, type LuaValue } from "@/core";
+import { getField, type AuraRenderState, type LuaTable, type LuaValue } from "@/core";
 import type { Box } from "../bar-geometry";
-import type { AuraRenderState } from "../conditions";
 import { borderEdge } from "../media";
 import type { TextureSource } from "../textures/paths";
-import { useTextureUrl } from "../textures/useTexture";
+import { useTextureUrl } from "../textures";
 import { inflate, type SubRegionHost } from "./host";
-import { color } from "./SubText";
+import { color } from "../color";
 import styles from "./subregions.module.css";
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
@@ -41,12 +40,11 @@ export function backdropPieces(box: Box, e: number): Record<Piece, Box> {
 export function Border({ element, position, state, host }: { element: LuaTable; position: number; state: AuraRenderState; host: SubRegionHost }) {
   const p = state.properties;
   const visible = p[`sub.${position}.border_visible`] !== false;
-  const rgba = color(p[`sub.${position}.border_color`] ?? getField(element, "border_color"));
+  const rgba = color(p[`sub.${position}.border_color`]);
   const edge = borderEdge(element);
   const size = num(getField(element, "border_size"), 2);
   const offset = num(getField(element, "border_offset"), 0);
-  const area = host.regionType === "aurabar" ? getField(element, "anchor_area") ?? "bar" : undefined;
-  const box = inflate(host.area(area, "border"), offset);
+  const box = inflate(host.area(getField(element, "anchor_area"), "border"), offset);
   if (!visible || edge === null) return null;
   const pieces = backdropPieces(box, size);
   return (

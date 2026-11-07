@@ -13,16 +13,14 @@ import {
   sparkVisible,
   type Box,
 } from "./bar-geometry";
-import type { AuraRenderState } from "./conditions";
-import { frozenMarkerSize } from "./conditions/forever-rules";
-import { FrozenMarker, textValues } from "./IconRegion";
 import { CASTING_BAR_SPARK, statusBarTexture, textureSourceOf } from "./media";
 import { fullBox, type SubRegionHost } from "./subregions/host";
 import { SubRegions } from "./subregions/SubRegions";
-import { color } from "./subregions/SubText";
+import { color } from "./color";
 import { useAuraIconUrl } from "./textures";
 import { TurnedTexture, rgbaCss } from "./TurnedTexture";
-import styles from "./AuraPreview.module.css";
+import styles from "./regions.module.css";
+import type { RegionProps } from "./region-types";
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
@@ -31,13 +29,13 @@ const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number
  * filled from the dynamic trigger's timer in one of four orientations, with optional spark, icon, gradient and
  * its sub-regions (texts, border, ticks, glow) in the game's draw order.
  */
-export function AuraBarRegion({ aura, state, name, width, height }: { aura: AuraDocument; state: AuraRenderState; name: string; width: number; height: number }) {
+export function AuraBarRegion({ aura, state, name, width, height }: RegionProps) {
   const p = state.properties;
-  const orientation = orientationOf(p.orientation ?? aura.orientation);
-  const showIcon = (p.icon ?? aura.icon) === true;
+  const orientation = orientationOf(p.orientation);
+  const showIcon = p.icon === true;
   const layout = barLayout({ width, height, orientation, icon: showIcon, iconSide: aura.icon_side === "LEFT" ? "LEFT" : "RIGHT" });
   const bar = layout.bar;
-  const inverse = (p.inverse ?? aura.inverse) === true;
+  const inverse = p.inverse === true;
   const dynamic = state.dynamic;
   const progress = barProgress({
     remaining: dynamic?.remaining,
@@ -95,7 +93,7 @@ export function AuraBarRegion({ aura, state, name, width, height }: { aura: Aura
     <TurnedTexture source={texture} box={bar} turn={turn} color={bgColor} fallback={bgColor} testId="bar-background" />
   );
 
-  const gradient = (p.enableGradient ?? aura.enableGradient) === true;
+  const gradient = p.enableGradient === true;
   const foreground = (
     <>
       <div
@@ -131,9 +129,8 @@ export function AuraBarRegion({ aura, state, name, width, height }: { aura: Aura
   );
 
   return (
-    <div className={styles.barFrame} data-orientation={orientation} data-missing={state.missing ? "true" : "false"}>
-      <SubRegions aura={aura} state={state} host={host} values={textValues(state, name)} background={background} foreground={foreground} />
-      {state.frozenMarker && <FrozenMarker size={frozenMarkerSize(width, height)} />}
+    <div className={styles.regionFrame} data-orientation={orientation} data-missing={state.missing ? "true" : "false"}>
+      <SubRegions aura={aura} state={state} host={host} name={name} background={background} foreground={foreground} />
     </div>
   );
 }

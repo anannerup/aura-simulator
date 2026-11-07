@@ -1,13 +1,11 @@
 "use client";
 
-import { getField, type LuaTable, type LuaValue } from "@/core";
+import { getField, list, type AuraRenderState, type LuaTable, type LuaValue } from "@/core";
 import { tickPlacement, type TickMode } from "../bar-geometry";
-import type { AuraRenderState } from "../conditions";
-import { list } from "../conditions/forever-rules";
 import { CASTING_BAR_SPARK, textureSourceOf } from "../media";
 import { TurnedTexture, rgbaCss } from "../TurnedTexture";
 import type { SubRegionHost } from "./host";
-import { color } from "./SubText";
+import { color } from "../color";
 import styles from "./subregions.module.css";
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);

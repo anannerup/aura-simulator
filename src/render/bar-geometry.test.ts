@@ -11,7 +11,8 @@ import {
 } from "./bar-geometry";
 import { backdropPieces } from "./subregions/Border";
 import { drawOrder } from "./subregions/SubRegions";
-import { resolveSelfPoint } from "./subregions/SubText";
+import { regionInfo } from "./region-types";
+import { anchorFraction } from "./screen/geometry";
 import { fontFlagsStyle, fontFamily, fontUrl } from "./fonts";
 import { statusBarTexture } from "./media";
 import { formatText } from "./text-format";
@@ -135,11 +136,12 @@ describe("sub-region draw order", () => {
 
 describe("sub-text anchors and borders", () => {
   it("resolves AUTO self points per parent", () => {
-    expect(resolveSelfPoint("AUTO", "INNER_LEFT", "aurabar")).toBe("LEFT");
-    expect(resolveSelfPoint("AUTO", "ICON_TOP", "aurabar")).toBe("TOP");
-    expect(resolveSelfPoint("AUTO", "SPARK", "aurabar")).toBe("CENTER");
-    expect(resolveSelfPoint("AUTO", "OUTER_TOP", "icon")).toBe("BOTTOM");
-    expect(resolveSelfPoint("AUTO", "TOP", "icon")).toBe("CENTER");
+    const auto = (anchorPoint: string, parent: string) => regionInfo(parent).autoSelfPoint(anchorPoint);
+    expect(auto("INNER_LEFT", "aurabar")).toBe("LEFT");
+    expect(auto("ICON_TOP", "aurabar")).toBe("TOP");
+    expect(anchorFraction(auto("SPARK", "aurabar"))).toEqual(anchorFraction("CENTER"));
+    expect(auto("OUTER_TOP", "icon")).toBe("BOTTOM");
+    expect(auto("TOP", "icon")).toBe("CENTER");
   });
 
   it("splits a backdrop into corners and edges", () => {

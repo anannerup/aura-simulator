@@ -1,10 +1,9 @@
 "use client";
 
-import { getField, type LuaTable, type LuaValue } from "@/core";
-import { anchorFraction } from "../anchor";
+import { getField, type AuraRenderState, type LuaTable, type LuaValue } from "@/core";
+import { anchorFraction } from "../screen/geometry";
 import type { Box } from "../bar-geometry";
 import { useRegionClock } from "../clock";
-import type { AuraRenderState } from "../conditions";
 import { MappedTexture } from "../MappedTexture";
 import { textureSourceOf } from "../media";
 import { ModelPlaceholder, modelLabel } from "../ModelRegion";
@@ -21,10 +20,9 @@ import {
   textureCorners,
 } from "../texture-geometry";
 import type { SubRegionHost } from "./host";
-import { color } from "./SubText";
+import { color } from "../color";
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
-const POINTS = new Set(["TOPLEFT", "TOP", "TOPRIGHT", "LEFT", "CENTER", "RIGHT", "BOTTOMLEFT", "BOTTOM", "BOTTOMRIGHT"]);
 
 /**
  * Where a texture-like sub-element goes (the sub-region's modify + RegionPrototype.lua:804-823 AnchorSubRegion):
@@ -39,7 +37,7 @@ export function subElementBox(element: LuaTable, host: SubRegionHost): Box {
     const w = num(g("width"), 32);
     const h = num(g("height"), 32);
     const anchor = host.point(typeof g("anchor_point") === "string" ? String(g("anchor_point")) : "CENTER");
-    const [ax, ay] = anchorFraction(POINTS.has(anchor.point) ? anchor.point : "CENTER");
+    const [ax, ay] = anchorFraction(anchor.point);
     const [sx, sy] = anchorFraction(g("self_point"));
     return {
       left: anchor.box.left + anchor.box.width * ax + x + anchor.dx - w * sx,
@@ -48,8 +46,7 @@ export function subElementBox(element: LuaTable, host: SubRegionHost): Box {
       height: h,
     };
   }
-  const area = g("anchor_area") ?? (host.regionType === "aurabar" ? "bar" : "ALL");
-  const box = host.area(area, "border");
+  const box = host.area(g("anchor_area"), "border");
   return { left: box.left - x, top: box.top - y, width: box.width + 2 * x, height: box.height + 2 * y };
 }
 
@@ -69,11 +66,11 @@ interface SubProps {
   host: SubRegionHost;
 }
 
-const prop = (state: AuraRenderState, element: LuaTable, position: number, key: string) => state.properties[`sub.${position}.${key}`] ?? getField(element, key);
+const prop = (state: AuraRenderState, position: number, key: string) => state.properties[`sub.${position}.${key}`];
 
 /** SubRegionTypes/Texture.lua: a texture with the texture region's rotation, mirror, colour and blend mode. */
 export function SubTexture({ element, position, state, host }: SubProps) {
-  const v = (k: string) => prop(state, element, position, k);
+  const v = (k: string) => prop(state, position, k);
   if (v("textureVisible") === false) return null;
   const corners = textureCorners({ rotation: num(v("textureRotation"), 0), canRotate: v("textureRotate") === true, mirror: v("textureMirror") === true });
   return (
@@ -91,7 +88,7 @@ export function SubTexture({ element, position, state, host }: SubProps) {
 
 /** SubRegionTypes/LinearProgressTexture.lua: a linear progress texture following the dynamic trigger. */
 export function SubLinearTexture({ element, position, state, host }: SubProps) {
-  const v = (k: string) => prop(state, element, position, k);
+  const v = (k: string) => prop(state, position, k);
   if (v("linearTextureVisible") === false) return null;
   const progress = subProgress(state, v("linearTextureInverse") === true);
   const p = Math.min(1, Math.max(0, progress ?? 1));
@@ -124,7 +121,7 @@ export function SubLinearTexture({ element, position, state, host }: SubProps) {
  * unlike the region).
  */
 export function SubCircularTexture({ element, position, state, host }: SubProps) {
-  const v = (k: string) => prop(state, element, position, k);
+  const v = (k: string) => prop(state, position, k);
   if (v("circularTextureVisible") === false) return null;
   const progress = subProgress(state, v("circularTextureInverse") === true);
   const start = num(v("circularTextureStartAngle"), 0);
@@ -160,7 +157,7 @@ export function SubCircularTexture({ element, position, state, host }: SubProps)
  */
 export function SubStopMotion({ element, position, state, host }: SubProps) {
   const seconds = useRegionClock();
-  const v = (k: string) => prop(state, element, position, k);
+  const v = (k: string) => prop(state, position, k);
   if (v("stopmotionVisible") === false) return null;
   const g = (k: string) => getField(element, k);
   const texture = typeof g("stopmotionTexture") === "string" ? String(g("stopmotionTexture")) : DEFAULT_STOP_MOTION_TEXTURE;
@@ -185,7 +182,7 @@ export function SubStopMotion({ element, position, state, host }: SubProps) {
     frame = progressFrame(sheet, d && d.remaining !== undefined && d.duration > 0 ? 1 - d.remaining / d.duration : 0, inverse);
   }
   const area = g("anchor_mode") !== "point";
-  const clip = host.regionType === "aurabar" && area && g("anchor_area") === "fg" && g("barModelClip") !== false;
+  const clip = host.bar !== undefined && area && g("anchor_area") === "fg" && g("barModelClip") !== false;
   let box = subElementBox(element, host);
   const scale = num(g("scale"), 1);
   let clipBox: Box | undefined;
@@ -224,10 +221,10 @@ export function SubStopMotion({ element, position, state, host }: SubProps) {
  * extra_width/height), as a labelled placeholder.
  */
 export function SubModel({ element, position, state, host }: SubProps) {
-  const v = (k: string) => prop(state, element, position, k);
+  const v = (k: string) => prop(state, position, k);
   if (v("model_visible") === false) return null;
   const g = (k: string) => getField(element, k);
-  const bar = host.regionType === "aurabar";
+  const bar = host.bar !== undefined;
   const attach = g("bar_model_attach") !== false;
   const anchor = bar ? host.area(attach ? "fg" : "bar", "border") : host.area(undefined, "border");
   const ew = bar && attach ? 0 : num(g("extra_width"), 0);

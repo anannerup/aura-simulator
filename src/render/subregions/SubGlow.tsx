@@ -1,25 +1,24 @@
 "use client";
 
-import { getField, type LuaTable, type LuaValue } from "@/core";
-import type { GlowState } from "../conditions";
+import { getField, type GlowState, type LuaTable, type LuaValue } from "@/core";
+import { regionInfo } from "../region-types";
 import { GLOW_DEFAULTS, Glow, type GlowOptions, type GlowType } from "../glow";
 import type { SubRegionHost } from "./host";
 import styles from "./subregions.module.css";
 
 const TYPES = new Set<GlowType>(["buttonOverlay", "Pixel", "ACShine", "Proc"]);
 
-/** Glow.lua:12-32 default(parentType): bars default to a Pixel glow on the whole bar ("bar" area), others to the button overlay. */
+/** The element's glow type, else its parent's default (Glow.lua:12-32). */
 export function glowTypeOf(element: LuaTable, regionType: string): GlowType {
   const value = getField(element, "glowType");
-  if (typeof value === "string" && TYPES.has(value as GlowType)) return value as GlowType;
-  return regionType === "aurabar" ? "Pixel" : "buttonOverlay";
+  return typeof value === "string" && TYPES.has(value as GlowType) ? (value as GlowType) : regionInfo(regionType).glowType;
 }
 
 /** The glow sub-region's options as the renderer takes them; missing fields keep Glow.lua's defaults. */
 export function glowOptions(element: LuaTable, properties: Record<string, LuaValue>, position: number): Partial<GlowOptions> {
   const options: Record<string, unknown> = {};
   for (const key of Object.keys(GLOW_DEFAULTS) as (keyof GlowOptions)[]) {
-    const value = properties[`sub.${position}.${key}`] ?? getField(element, key);
+    const value = properties[`sub.${position}.${key}`];
     if (value === undefined) continue;
     if (key === "glowColor") {
       if (Array.isArray(value) && value.length >= 3) options[key] = [0, 1, 2, 3].map((i) => (typeof value[i] === "number" ? value[i] : 1));
@@ -37,8 +36,7 @@ export function glowOptions(element: LuaTable, properties: Record<string, LuaVal
  */
 export function SubGlow({ glow, properties, host }: { glow: GlowState; properties: Record<string, LuaValue>; host: SubRegionHost }) {
   const type = glowTypeOf(glow.element, host.regionType);
-  const area = host.regionType === "aurabar" ? getField(glow.element, "anchor_area") ?? "bar" : undefined;
-  const box = host.area(area, "glow");
+  const box = host.area(getField(glow.element, "anchor_area"), "glow");
   return (
     <div
       className={styles.layer}

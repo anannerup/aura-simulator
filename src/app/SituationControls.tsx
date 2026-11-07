@@ -1,16 +1,8 @@
 "use client";
 
 import { useId } from "react";
-import type { AuraDocument } from "@/core";
+import { auraTriggers, setInCombat, triggerSituation, withTrigger, type AuraDocument, type Situation, type TriggerKind } from "@/core";
 import { Input, Slider, Switch } from "@/components/ui";
-import {
-  auraTriggers,
-  setInCombat,
-  triggerSituation,
-  withTrigger,
-  type Situation,
-  type TriggerKind,
-} from "@/render/situation";
 import styles from "./SituationControls.module.css";
 
 const KIND_LABELS: Record<TriggerKind, { title: string; present: string; remaining: string; duration: string; stacks: string }> = {

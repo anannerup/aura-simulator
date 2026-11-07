@@ -19,8 +19,7 @@
  *   (:1630-1636), not with anchor-per-unit (:1099).
  */
 import type { AuraDocument, LuaValue } from "@/core";
-import { anchorFraction } from "../anchor";
-import { anchorFrameFor, type AnchorFrame, type Rect, type UiParent } from "../screen/geometry";
+import { anchorFraction, anchorFrameFor, type AnchorFrame, type Rect, type UiParent } from "../screen/geometry";
 import { dynamicSelfPoint, growPositions, type Size } from "./grow";
 
 export interface LayoutNode {
