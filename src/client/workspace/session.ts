@@ -1,0 +1,412 @@
+import { canonicalize, sampleIconAura, type AuraCore, type AuraDocument, type AuraState, type LuaObject } from "@/core";
+import {
+  addSubtree,
+  auraFileName,
+  chooseRestore,
+  classifyImportText,
+  findNode,
+  mergeTopLevel,
+  mergeWorkspaces,
+  nodeFromState,
+  nodeId,
+  parseAddress,
+  placeNewItem,
+  readWorkspace,
+  serializeWorkspace,
+  stateFromNode,
+  updateNode,
+  updateWithDescendants,
+  workspaceFileName,
+  type PushInput,
+  type Workspace,
+  type WorkspaceNode,
+} from "@/workspace";
+import { StateCodes } from "./codes";
+import { ServerLink } from "./server-link";
+import { pageWorkspaceStore, type WorkspaceStore } from "./storage";
+
+/** What the page shows of the workspace. */
+export interface WorkspaceView {
+  /** The workspace the page follows (from `?w=`, else "default"); null until restored. */
+  workspaceId: string | null;
+  /** Every top-level item; empty until restored. */
+  items: WorkspaceNode[];
+  /** The selected item's id. */
+  selectedId: string | null;
+  /** The selected item's state code (a group's includes its descendants). */
+  code: string | null;
+  /** The selected item's document. */
+  aura: AuraDocument | null;
+  /** The selected group's descendants, flattened as in its state code. */
+  children: AuraDocument[];
+  /** True once restored. */
+  ready: boolean;
+  /** Something the player should know about the restore (e.g. an old link); null when all is well. */
+  notice: string | null;
+  /** Browser storage trouble (full, unavailable): the workspace still works, but isn't saved. Null when fine. */
+  warning: string | null;
+}
+
+export const EMPTY_VIEW: WorkspaceView = {
+  workspaceId: null,
+  items: [],
+  selectedId: null,
+  code: null,
+  aura: null,
+  children: [],
+  ready: false,
+  notice: null,
+  warning: null,
+};
+
+/** The outcome of an edit; on failure nothing changed. */
+export type EditResult = { ok: true } | { ok: false; error: string };
+
+export const NOT_READY = { ok: false, error: "The workspace is still loading" } as const;
+
+/** A file's contents to save: name, text, and its media type. */
+export interface ExportedFile {
+  name: string;
+  text: string;
+  type: string;
+}
+
+/** A workspace file found among imported files while the workspace already has items: replace or merge? */
+export interface PendingWorkspaceFile {
+  name: string;
+  workspace: Workspace;
+}
+
+export interface ImportFilesResult {
+  /** Ids of the top-level items added (from state codes, or a workspace file applied directly). */
+  added: string[];
+  /** One message per file or code that couldn't be imported (the others still are). */
+  errors: string[];
+  /** Workspace files that need the player's choice: pass each to `applyWorkspaceFile`. */
+  pending: PendingWorkspaceFile[];
+}
+
+export interface SessionDeps {
+  store?: WorkspaceStore;
+  link?: (workspaceId: string) => ServerLink;
+}
+
+const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const now = () => new Date().toISOString();
+
+/**
+ * One page's workspace for one aura core: restores it (browser storage, or the server's newer push), applies every
+ * edit, keeps browser storage and the server in step, and follows pushes. Subscribe for the `WorkspaceView`.
+ *
+ * Every top-level item a page change touched is sent to the server as a push, so agents can read the page's current
+ * aura there; pushes from elsewhere are merged into the top level (`mergeTopLevel`). A new core (another addon
+ * version) gets a new session, which restores the same workspace from browser storage.
+ */
+export class WorkspaceSession {
+  private view: WorkspaceView = EMPTY_VIEW;
+  private readonly listeners = new Set<() => void>();
+  private disposed = false;
+  private link: ServerLink | null = null;
+  private readonly codes: StateCodes;
+  private readonly store: WorkspaceStore;
+  private readonly makeLink: (workspaceId: string) => ServerLink;
+
+  constructor(
+    private readonly core: AuraCore,
+    deps: SessionDeps = {},
+  ) {
+    this.codes = new StateCodes(core);
+    this.store = deps.store ?? pageWorkspaceStore();
+    this.makeLink = deps.link ?? ((id) => new ServerLink(id));
+  }
+
+  readonly getView = () => this.view;
+
+  readonly subscribe = (listener: () => void) => {
+    this.listeners.add(listener);
+    return () => void this.listeners.delete(listener);
+  };
+
+  /** Restores the workspace the address (`?w=`) names; an old `?code=` in it is imported once. */
+  async start(search: string): Promise<void> {
+    const address = parseAddress(search);
+    const id = address.workspaceId;
+    const link = (this.link = this.makeLink(id));
+    // Ask the server first: no push is missed after its answer.
+    const latest = await link.latest();
+    if (this.disposed) return;
+    const stored = readWorkspace(await this.store.read(id), (c) => this.codes.decode(c));
+    if (this.disposed) return;
+    if (stored.ok) this.codes.learn(stored.codes);
+    const pushedNode = latest && this.tryNode(latest.code);
+    const restored = chooseRestore({
+      stored: stored.ok ? stored.workspace : null,
+      pushed: pushedNode ? { node: pushedNode, updatedAt: latest!.updatedAt } : null,
+      legacy: address.legacyCode ? this.legacyNode(address.legacyCode) : null,
+      fallback: () => ({ aura: sampleIconAura(this.core.internalVersion) }),
+      now: now(),
+    });
+    this.commit(id, restored.items, restored.selected, restored.fromServer ? "server" : "page", restored.notice, restored.updatedAt);
+    link.follow((push) => this.adopt(push.code, push.updatedAt));
+  }
+
+  /** Opens a state code as the whole workspace. */
+  openCode(code: string): EditResult {
+    return this.withCode(code, (node) => ({ items: [node], id: nodeId(node) }));
+  }
+
+  /** Adds a state code (an aura, or a group with its subtree) to the top level and selects it. */
+  addCode(code: string): { ok: true; id: string } | { ok: false; error: string } {
+    return this.withCode(code, (node) => addSubtree(this.view.items, node, { parentId: null }));
+  }
+
+  /**
+   * Loads an aura the way a push does (`window.auraSimulator.load`): replaces the top-level item with its uid (else
+   * id), or adds it; selects it. Returns its id and state code.
+   */
+  load(input: PushInput): { ok: true; id: string; code: string } | { ok: false; error: string } {
+    const id = this.view.workspaceId;
+    if (!id) return NOT_READY;
+    try {
+      const node =
+        "code" in input
+          ? nodeFromState(this.codes.decode(input.code))
+          : nodeFromState({ aura: canonicalize(input.aura) as AuraDocument, children: input.children.map((c) => canonicalize(c) as AuraDocument) });
+      const merged = mergeTopLevel(this.view.items, node);
+      this.commit(id, merged.items, merged.id, "page");
+      return { ok: true, id: merged.id, code: this.codeOf(merged.id)! };
+    } catch (e) {
+      return { ok: false, error: errorText(e) };
+    }
+  }
+
+  /** Replaces the tree (an edit from the tree UI, or undo) and the selection. */
+  setItems(items: WorkspaceNode[], selectedId: string | null): EditResult {
+    const id = this.view.workspaceId;
+    if (!id) return NOT_READY;
+    return this.attempt(() => this.commit(id, items, selectedId, "page"));
+  }
+
+  select(selectedId: string) {
+    const id = this.view.workspaceId;
+    if (!id || selectedId === this.view.selectedId || !findNode(this.view.items, selectedId)) return;
+    this.show(this.withSelection(this.view, this.view.items, selectedId));
+    this.save(id, now());
+  }
+
+  /**
+   * Replaces the selected item's document (editors, spell picker); a changed `id` renames it. A group's tabs edit
+   * its descendants too: pass them as `descendants`.
+   */
+  updateSelected(doc: AuraDocument, descendants?: AuraDocument[]): EditResult {
+    const id = this.view.workspaceId;
+    const selected = this.view.selectedId;
+    if (!id || !selected) return { ok: false, error: "Nothing is selected" };
+    return this.attempt(() => {
+      const updated = descendants
+        ? updateWithDescendants(this.view.items, selected, doc, descendants)
+        : updateNode(this.view.items, selected, doc);
+      this.commit(id, updated.items, updated.id, "page");
+    });
+  }
+
+  /** Makes a new aura with the addon's own New Aura (`WeakAuras.NewAura`) and places it where the game would. */
+  async createAura(regionType: string, sourceData?: LuaObject): Promise<EditResult> {
+    try {
+      const made = await this.core.newAura(regionType, sourceData);
+      const id = this.view.workspaceId;
+      if (!id) return NOT_READY;
+      const placed = placeNewItem(this.view.items, this.view.selectedId, made);
+      return this.attempt(() => this.commit(id, placed.items, placed.id, "page"));
+    } catch (e) {
+      return { ok: false, error: errorText(e) };
+    }
+  }
+
+  /** The state code of an item (an aura, or a group with everything in it); the selected one by default. */
+  codeOf(itemId: string | null = this.view.selectedId): string | null {
+    const found = itemId ? findNode(this.view.items, itemId) : null;
+    return found ? this.codes.of(found.node) : null;
+  }
+
+  /** An item's document and (for a group) its descendants, as a push takes them; the selected one by default. */
+  stateOf(itemId: string | null = this.view.selectedId): AuraState | null {
+    const found = itemId ? findNode(this.view.items, itemId) : null;
+    return found ? stateFromNode(found.node) : null;
+  }
+
+  /** An item's aura file: `<id>.txt` holding exactly its state code; the selected one by default. */
+  auraFile(itemId: string | null = this.view.selectedId): ExportedFile | null {
+    const code = this.codeOf(itemId);
+    if (!code || !itemId) return null;
+    return { name: auraFileName(itemId), text: code, type: "text/plain;charset=utf-8" };
+  }
+
+  /** The workspace file (JSON, format v2). */
+  workspaceFile(): ExportedFile {
+    const text = serializeWorkspace(
+      { items: this.view.items, updatedAt: now(), selected: this.view.selectedId },
+      { pretty: true, codeOf: (n) => this.codes.of(n) },
+    );
+    return { name: workspaceFileName(this.view.workspaceId ?? "default"), text, type: "application/json" };
+  }
+
+  /**
+   * Imports files: every state code in a text file (one or several) is added to the top level; a workspace file
+   * replaces an empty workspace, else it comes back in `pending` for the player to choose.
+   */
+  async importFiles(files: Iterable<File>): Promise<ImportFilesResult> {
+    const result: ImportFilesResult = { added: [], errors: [], pending: [] };
+    for (const file of files) {
+      const fail = (error: string) => result.errors.push(`Could not read ${file.name}: ${error}`);
+      let text: string;
+      try {
+        text = await file.text();
+      } catch (e) {
+        fail(errorText(e));
+        continue;
+      }
+      if (this.disposed) return result;
+      const content = classifyImportText(text);
+      if (content.kind === "none") {
+        fail(content.error);
+      } else if (content.kind === "codes") {
+        content.codes.forEach((code, i) => {
+          const r = this.addCode(code);
+          if (r.ok) result.added.push(r.id);
+          else result.errors.push(`Could not read ${content.codes.length > 1 ? `${file.name} (code ${i + 1})` : file.name}: ${r.error}`);
+        });
+      } else {
+        const read = readWorkspace(content.text, (c) => this.codes.decode(c));
+        if (!read.ok) {
+          fail(read.error);
+          continue;
+        }
+        this.codes.learn(read.codes);
+        const pending = { name: file.name, workspace: read.workspace };
+        if (this.view.items.length > 0) result.pending.push(pending);
+        else {
+          const r = this.applyWorkspaceFile(pending, "replace");
+          if (r.ok) result.added.push(...this.view.items.map(nodeId));
+          else fail(r.error);
+        }
+      }
+    }
+    return result;
+  }
+
+  /** Applies a workspace file: replaces the workspace, or adds its items. */
+  applyWorkspaceFile(file: PendingWorkspaceFile, mode: "replace" | "merge"): EditResult {
+    const id = this.view.workspaceId;
+    if (!id) return NOT_READY;
+    const { items, selected } = file.workspace;
+    return this.attempt(() => {
+      if (mode === "replace") return this.commit(id, items, selected ?? null, "page");
+      const before = this.view.items.length;
+      const merged = mergeWorkspaces(this.view.items, items);
+      this.commit(id, merged, merged[before] ? nodeId(merged[before]) : this.view.selectedId, "page");
+    });
+  }
+
+  dispose() {
+    this.disposed = true;
+    this.link?.dispose();
+    this.listeners.clear();
+  }
+
+  private attempt(edit: () => void): EditResult {
+    try {
+      edit();
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: errorText(e) };
+    }
+  }
+
+  private withCode<R extends { items: WorkspaceNode[]; id: string }>(
+    code: string,
+    apply: (node: WorkspaceNode) => R,
+  ): { ok: true; id: string } | { ok: false; error: string } {
+    const id = this.view.workspaceId;
+    if (!id) return NOT_READY;
+    const trimmed = code.trim();
+    if (!trimmed) return { ok: false, error: "Paste a state code first" };
+    try {
+      const next = apply(nodeFromState(this.codes.decode(trimmed)));
+      this.commit(id, next.items, next.id, "page");
+      return { ok: true, id: next.id };
+    } catch (e) {
+      return { ok: false, error: errorText(e) };
+    }
+  }
+
+  private tryNode(code: string): WorkspaceNode | null {
+    try {
+      return nodeFromState(this.codes.decode(code));
+    } catch {
+      return null; // e.g. pushed for another addon version
+    }
+  }
+
+  private legacyNode(code: string): { node: WorkspaceNode } | { error: string } {
+    try {
+      return { node: nodeFromState(this.codes.decode(code)) };
+    } catch (e) {
+      return { error: errorText(e) };
+    }
+  }
+
+  private withSelection(view: WorkspaceView, items: WorkspaceNode[], selectedId: string | null): WorkspaceView {
+    const found = selectedId ? findNode(items, selectedId) : null;
+    const node = found?.node ?? items[0] ?? null;
+    if (!node) return { ...view, items, selectedId: null, code: null, aura: null, children: [] };
+    const { children } = stateFromNode(node);
+    return { ...view, items, selectedId: nodeId(node), code: this.codes.of(node), aura: node.aura, children };
+  }
+
+  private show(view: WorkspaceView) {
+    this.view = view;
+    for (const listener of this.listeners) listener();
+  }
+
+  /** Makes `items` the workspace: the view and storage follow, and (for page changes) the server. */
+  private commit(
+    id: string,
+    items: WorkspaceNode[],
+    selectedId: string | null,
+    origin: "page" | "server",
+    notice: string | null = null,
+    updatedAt = now(),
+  ) {
+    if (this.disposed) return;
+    const before = new Set(this.view.items.map((n) => this.codes.of(n)));
+    const topCodes = items.map((n) => this.codes.of(n)); // throws (and changes nothing) if the addon can't encode it
+    this.show(this.withSelection({ ...this.view, workspaceId: id, ready: true, notice }, items, selectedId));
+    this.save(id, updatedAt);
+    if (origin === "page") for (const code of topCodes) if (!before.has(code)) void this.link?.push(code);
+  }
+
+  private save(id: string, updatedAt: string) {
+    const { items, selectedId } = this.view;
+    this.store.save(
+      id,
+      () => serializeWorkspace({ items, updatedAt, selected: selectedId }, { codeOf: (n) => this.codes.of(n) }),
+      (warning) => {
+        if (!this.disposed && this.view.warning !== warning) this.show({ ...this.view, warning });
+      },
+    );
+  }
+
+  /** A push from elsewhere: merged into the top level and selected. */
+  private adopt(code: string, updatedAt: string) {
+    if (!this.view.workspaceId || this.view.items.some((n) => this.codes.of(n) === code)) return;
+    const node = this.tryNode(code);
+    if (!node) return;
+    try {
+      const merged = mergeTopLevel(this.view.items, node);
+      this.commit(this.view.workspaceId, merged.items, merged.id, "server", null, updatedAt);
+    } catch {
+      // Not encodable here: ignore.
+    }
+  }
+}

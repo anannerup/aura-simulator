@@ -1,22 +1,23 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import type { AuraCore, AuraDocument, AuraPacks, NewAuraPage } from "@/core";
+import type { AuraCore, AuraDocument, AuraPacks, LuaObject, NewAuraPage } from "@/core";
 import { AuraRegion } from "@/render/AuraPreview";
 import { evaluateAura } from "@/render/conditions";
 import { DEFAULT_SITUATION } from "@/render/situation";
 import { displayIconRef, iconNameUrl } from "@/render/textures";
-import { addSubtree, allIds, findNode, insertionTarget, isDynamicGroupDoc, uniqueId, type WorkspaceNode } from "@/workspace";
+import type { EditResult } from "@/client/workspace/session";
+import { findNode, isDynamicGroupDoc, type WorkspaceNode } from "@/workspace";
 import styles from "./NewAuraChooser.module.css";
 
 export interface NewAuraChooserProps {
   core: AuraCore;
   items: WorkspaceNode[];
   selectedId: string | null;
-  /** The tree with the new item, and its id to select. */
-  onCreate(items: WorkspaceNode[], selectedId: string): void;
+  /** Makes a new aura of the type with the addon's New Aura and places it (`WorkspaceSession.createAura`). */
+  onCreate(regionType: string, sourceData?: LuaObject): Promise<EditResult>;
   /** Imports a state code (a pack). */
-  onImport(code: string): { ok: boolean; error?: string } | void;
+  onImport(code: string): EditResult;
   onCancel(): void;
 }
 
@@ -57,21 +58,9 @@ export function NewAuraChooser({ core, items, selectedId, onCreate, onImport, on
   const inDynamic = !!target && (isDynamicGroupDoc(target.node.aura) || (!target.node.items && !!target.parent && isDynamicGroupDoc(target.parent.aura)));
 
   async function create(regionType: string, sourceData?: Record<string, unknown>) {
-    try {
-      setError(null);
-      const made = await core.newAura(regionType, sourceData as never);
-      const group = isGroupType(regionType);
-      const where = insertionTarget(items, selectedId, group);
-      const aura: AuraDocument = { ...made, id: uniqueId(allIds(items), "New") };
-      // Placed beside its future siblings in a group, so it doesn't hide them (the game puts it on top of them).
-      const siblings = where.parentId ? (findNode(items, where.parentId)?.node.items?.length ?? 0) : 0;
-      if (!group && siblings > 0) aura.xOffset = siblings * ((typeof aura.width === "number" ? aura.width : 64) + 4);
-      const node: WorkspaceNode = group ? { aura: { ...aura, controlledChildren: {} }, items: [] } : { aura };
-      const added = addSubtree(items, node, where);
-      onCreate(added.items, added.id);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
+    setError(null);
+    const r = await onCreate(regionType, sourceData as LuaObject | undefined);
+    if (!r.ok) setError(r.error);
   }
 
   if (view === "packs") return <PacksPage core={core} onImport={onImport} onBack={() => setView("new")} onCancel={onCancel} />;
@@ -226,7 +215,7 @@ function PacksPage({ core, onImport, onBack, onCancel }: { core: AuraCore; onImp
   const add = (name: string, code: string | (() => string)) => {
     try {
       const r = onImport(typeof code === "string" ? code : code());
-      if (r && !r.ok) setError(r.error ?? "The pack could not be added");
+      if (!r.ok) setError(r.error);
       else {
         setError(null);
         setDone(name);

@@ -1,6 +1,7 @@
 /**
  * Browser storage for workspaces: IndexedDB, because auras can be megabytes and localStorage holds ~5 MB per
- * site. One record per workspace (key `storageKey(id)`, value the stored workspace JSON as a string).
+ * site. One record per workspace (key `storageKey(id)`, value the stored workspace JSON as a string). The page uses
+ * it through `WorkspaceStore`, which writes behind.
  *
  * Workspaces saved in localStorage by earlier versions move to IndexedDB the first time they are read (and are
  * then removed from localStorage). Where IndexedDB is missing (some private modes), localStorage is used.
@@ -178,3 +179,56 @@ export function storageWarning(problem: StorageProblem): string {
   if (problem.kind === "unavailable") return `Browser storage is unavailable (private mode or blocked site data). ${advice}`;
   return `${problem.message}. ${advice}`;
 }
+
+/** Browser-storage key of a workspace (the IndexedDB record key, and the old localStorage key it migrates from). */
+const storageKey = (workspaceId: string) => `aura-simulator:workspace:${workspaceId}`;
+
+/** Workspaces in browser storage by workspace ID, written behind so bursts of edits write once. */
+export interface WorkspaceStore {
+  /** The stored workspace text, read after any write to it still running; null when none or unreadable. */
+  read(workspaceId: string): Promise<string | null>;
+  /**
+   * Saves `text()` soon. While a write runs, only the latest pending save is written next (`text` is called then, so
+   * a skipped save costs nothing). `report` hears each outcome: null when saved, else a warning for the player.
+   */
+  save(workspaceId: string, text: () => string, report: (warning: string | null) => void): void;
+}
+
+export function createWorkspaceStore(storage: WorkspaceStorage = createWorkspaceStorage()): WorkspaceStore {
+  type Save = { text: () => string; report: (warning: string | null) => void };
+  const queues = new Map<string, { pending: Save | null; running: Promise<void> }>();
+  return {
+    async read(workspaceId) {
+      await queues.get(workspaceId)?.running;
+      return storage.read(storageKey(workspaceId)).catch(() => null);
+    },
+    save(workspaceId, text, report) {
+      const queued = queues.get(workspaceId);
+      if (queued) {
+        queued.pending = { text, report };
+        return;
+      }
+      const queue: { pending: Save | null; running: Promise<void> } = { pending: { text, report }, running: Promise.resolve() };
+      const drain = async () => {
+        while (queue.pending) {
+          const next = queue.pending;
+          queue.pending = null;
+          try {
+            await storage.write(storageKey(workspaceId), next.text());
+            next.report(null);
+          } catch (e) {
+            next.report(storageWarning(problemOf(e)));
+          }
+        }
+        queues.delete(workspaceId);
+      };
+      queues.set(workspaceId, queue);
+      queue.running = drain();
+    },
+  };
+}
+
+let shared: WorkspaceStore | null = null;
+
+/** The page's store, shared by every session (a new addon version reads after the old session's writes). */
+export const pageWorkspaceStore = (): WorkspaceStore => (shared ??= createWorkspaceStore());

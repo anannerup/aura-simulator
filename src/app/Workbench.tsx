@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { sampleIconAura, type AuraDocument } from "@/core";
+import { useCallback, useEffect, useState } from "react";
+import { NOT_READY, type EditResult } from "@/client/workspace/session";
+import { useUndo } from "@/client/workspace/useUndo";
+import { useWorkspace } from "@/client/workspace/useWorkspace";
+import type { AuraDocument } from "@/core";
 import { OptionsEditor } from "@/components/options-editor/OptionsEditor";
 import { RawEditor } from "@/components/raw-editor/RawEditor";
 import { AppShell, EmptyNote, InspectorSection, Stage, StageMessage } from "@/components/shell";
@@ -12,7 +15,7 @@ import { ADDON_MEDIA, Button, GameTexture, Popover, ToastProvider } from "@/comp
 import { ensureFont } from "@/render/fonts";
 import { WorkspaceStage } from "@/render/group/WorkspaceStage";
 import { DEFAULT_SITUATION } from "@/render/situation";
-import { DEFAULT_WORKSPACE_ID, findNode, updateNode } from "@/workspace";
+import { DEFAULT_WORKSPACE_ID, type WorkspaceNode } from "@/workspace";
 import { AddonVersionMenu } from "./_addon/AddonVersionPicker";
 import { useAddonCore } from "./_addon/useAddonCore";
 import { ExportPanel, ImportPanel, useImporter } from "./import-export/ImportExport";
@@ -20,9 +23,6 @@ import { NewAuraChooser } from "./NewAuraChooser";
 import { GameScreenStage, useGameScreen } from "./screen/GameScreen";
 import { SituationControls } from "./SituationControls";
 import { ValidationPanel } from "./validation/ValidationPanel";
-import type { LoadResult } from "./workspace/session";
-import { useUndo } from "./workspace/useUndo";
-import { useWorkspace } from "./workspace/useWorkspace";
 import styles from "./Workbench.module.css";
 
 /**
@@ -41,48 +41,20 @@ export function Workbench() {
   // The window's title font (Friz Quadrata), from the game files at runtime.
   useEffect(() => ensureFont("Friz Quadrata TT"), []);
 
-  // The sample aura is only the fallback when nothing else (browser storage, server) has an aura.
-  const fallbackCode = useMemo(() => {
-    if (!core) return null;
-    const aura: AuraDocument = sampleIconAura(core.internalVersion);
-    return core.encode({ aura, children: [] });
-  }, [core]);
-  const workspace = useWorkspace(core, fallbackCode);
-  const importer = useImporter(workspace);
+  const { view: workspace, session } = useWorkspace(core);
+  const importer = useImporter(session);
 
-  // Edits (tabs, spell picker, raw table) replace the selected item's document; storage and server follow.
-  const updateSelected = workspace.updateSelected;
-  const changeAura = useCallback((aura: AuraDocument): LoadResult => updateSelected(aura), [updateSelected]);
-  const { items, selectedId, setItems } = workspace;
-  // The tabs of a group edit its descendants too (as in the game): those changes go into the tree with the group's.
-  const changeOptions = useCallback(
-    (aura: AuraDocument, children?: AuraDocument[]): LoadResult => {
-      if (!children || !selectedId) return updateSelected(aura);
-      try {
-        let next = items;
-        for (const child of children) {
-          const id = typeof child.id === "string" ? child.id : null;
-          const found = id ? findNode(next, id) : null;
-          if (id && found && JSON.stringify(found.node.aura) !== JSON.stringify(child)) next = updateNode(next, id, child).items;
-        }
-        const updated = updateNode(next, selectedId, aura);
-        return setItems(updated.items, updated.id);
-      } catch (e) {
-        return { ok: false, error: e instanceof Error ? e.message : String(e) };
-      }
-    },
-    [items, selectedId, setItems, updateSelected],
+  // Edits (tabs, spell picker, raw table) replace the selected item's document (a group's tabs its descendants too).
+  const changeAura = useCallback(
+    (aura: AuraDocument, descendants?: AuraDocument[]): EditResult => session?.updateSelected(aura, descendants) ?? NOT_READY,
+    [session],
   );
-  // Undo/redo over whole-workspace snapshots (tree + selection), whatever made the change: editors, tree, paste, push.
-  const snapshot = useMemo(() => (items.length ? JSON.stringify({ items, selectedId }) : null), [items, selectedId]);
-  const restore = useCallback(
-    (text: string): LoadResult => {
-      const s = JSON.parse(text) as { items: typeof items; selectedId: string | null };
-      return setItems(s.items, s.selectedId);
-    },
-    [setItems],
+  const setItems = useCallback(
+    (items: WorkspaceNode[], selectedId: string | null): EditResult => session?.setItems(items, selectedId) ?? NOT_READY,
+    [session],
   );
-  const history = useUndo(snapshot, restore);
+  // Undo/redo over the tree and selection, whatever made the change: editors, tree, paste, push.
+  const history = useUndo(workspace.items, workspace.selectedId, setItems);
   // Auras hidden in the preview only (as if their trigger were inactive), e.g. to see a dynamic group close up.
   const [hiddenIds, setHiddenIds] = useState<ReadonlySet<string>>(new Set());
   const toggleHidden = useCallback((id: string) => {
@@ -99,7 +71,7 @@ export function Workbench() {
   const selectedIsGroup = aura?.regionType === "group" || aura?.regionType === "dynamicgroup";
   const select = (id: string) => {
     setCreating(false);
-    workspace.select(id);
+    session?.select(id);
   };
 
   return (
@@ -157,20 +129,19 @@ export function Workbench() {
         }
         list={
           <>
-            {ready && core ? (
+            {ready ? (
               <WorkspaceTree
                 items={workspace.items}
                 selectedId={workspace.selectedId}
                 onSelect={select}
-                onChange={workspace.setItems}
-                internalVersion={core.internalVersion}
+                onChange={setItems}
                 hiddenIds={hiddenIds}
                 onToggleHidden={toggleHidden}
               />
             ) : (
               <EmptyNote>Loading…</EmptyNote>
             )}
-            {workspace.selectedId ? (
+            {session && workspace.selectedId && code && (
               <div className={styles.exportRow}>
                 <Popover
                   open={exportOpen}
@@ -182,13 +153,8 @@ export function Workbench() {
                     </Button>
                   )}
                 >
-                  <ExportPanel workspace={workspace} />
+                  <ExportPanel session={session} name={workspace.selectedId} code={code} />
                 </Popover>
-              </div>
-            ) : (
-              // Kept mounted (hidden) with nothing selected, so the state code stays readable.
-              <div hidden>
-                <ExportPanel workspace={workspace} />
               </div>
             )}
             {aura && !selectedIsGroup && (
@@ -209,24 +175,25 @@ export function Workbench() {
           </>
         }
         options={
-          creating && ready && core ? (
+          creating && ready && core && session ? (
             <NewAuraChooser
               core={core}
               items={workspace.items}
               selectedId={workspace.selectedId}
               onImport={(code) => {
-                const r = workspace.importCode(code);
+                const r = session.addCode(code);
                 if (r.ok) setCreating(false);
                 return r;
               }}
-              onCreate={(next, id) => {
-                workspace.setItems(next, id);
-                setCreating(false);
+              onCreate={async (regionType, sourceData) => {
+                const r = await session.createAura(regionType, sourceData);
+                if (r.ok) setCreating(false);
+                return r;
               }}
               onCancel={() => setCreating(false)}
             />
           ) : core && aura ? (
-            <OptionsEditor core={core} aura={aura} childAuras={workspace.children} onChange={changeOptions} />
+            <OptionsEditor core={core} aura={aura} childAuras={workspace.children} onChange={changeAura} />
           ) : (
             <div className={styles.emptyOptions}>
               <EmptyNote>{ready ? "Select an aura, or click New Aura." : "Loading Musca Auras…"}</EmptyNote>

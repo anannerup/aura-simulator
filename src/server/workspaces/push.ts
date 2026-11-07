@@ -1,7 +1,10 @@
-import { canonicalize, isLuaTable, type AuraCore, type AuraDocument, type LuaValue } from "@/core";
+import { canonicalize, type AuraCore, type AuraDocument, type ValidationResult } from "@/core";
+import { buildPageUrl, readPushInput, type PushInput } from "@/workspace";
+import { validateCode } from "../validation";
+import { getServerAuraCore } from "./aura-core";
+import { getWorkspaceHub } from "./hub";
 
-/** What an agent may push: a state code, or an aura document (plus a group's descendants). */
-export type PushInput = { code: string } | { aura: AuraDocument; children: AuraDocument[] };
+export type { PushInput };
 
 /** A request the caller got wrong; `status` is the HTTP status to answer with. */
 export class PushError extends Error {
@@ -52,7 +55,6 @@ export async function readBodyText(request: Request, maxBytes = MAX_PUSH_BYTES):
  * (so `curl --data-binary @aura.txt` works).
  */
 export function parsePushBody(text: string, contentType: string | null): PushInput {
-  if (text.length > MAX_PUSH_BYTES) throw new PushError("Body too large", 413);
   const trimmed = text.trim();
   if (!contentType?.includes("json") && trimmed.startsWith("!WA:")) return { code: trimmed };
   let body: unknown;
@@ -61,43 +63,69 @@ export function parsePushBody(text: string, contentType: string | null): PushInp
   } catch {
     throw new PushError('Send JSON {"code": "!WA:2!..."} or {"aura": {...}, "children": [...]}, or a bare state code');
   }
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    throw new PushError("The body must be a JSON object");
-  }
-  const b = body as Record<string, unknown>;
-  if (typeof b.code === "string") return { code: b.code.trim() };
-  if (b.aura !== undefined) {
-    if (!isAuraObject(b.aura)) throw new PushError("`aura` must be an object (the aura's Lua table)");
-    const children = b.children ?? [];
-    if (!Array.isArray(children) || !children.every(isAuraObject)) {
-      throw new PushError("`children` must be an array of aura objects");
-    }
-    return { aura: b.aura, children };
-  }
-  throw new PushError('Send either "code" (a state code) or "aura" (an aura document)');
-}
-
-function isAuraObject(v: unknown): v is AuraDocument {
-  return isLuaTable(v as LuaValue) && !Array.isArray(v);
-}
-
-/** Validates the input with the addon's own decoder/encoder and returns its state code. */
-export function toStateCode(core: AuraCore, input: PushInput): string {
   try {
-    if ("code" in input) {
-      try {
-        core.decode(input.code); // throws for anything the addon wouldn't import
-      } catch (e) {
-        throw new Error(`Not a valid state code: ${e instanceof Error ? e.message : String(e)}`);
-      }
-      return input.code;
+    return readPushInput(body);
+  } catch (e) {
+    throw new PushError(e instanceof Error ? e.message : String(e));
+  }
+}
+
+/** Checks the input with the addon's own decoder/encoder and returns its state code. */
+export function toStateCode(core: AuraCore, input: PushInput): string {
+  const fail = (prefix: string, e: unknown) => new PushError(`${prefix}${e instanceof Error ? e.message : String(e)}`, 422);
+  if ("code" in input) {
+    try {
+      core.decode(input.code); // throws for anything the addon wouldn't import
+    } catch (e) {
+      throw fail("Not a valid state code: ", e);
     }
+    return input.code;
+  }
+  try {
     const aura = canonicalize(input.aura) as AuraDocument;
     const children = input.children.map((c) => canonicalize(c) as AuraDocument);
     const code = core.encode({ aura, children });
     core.decode(code);
     return code;
   } catch (e) {
-    throw new PushError(e instanceof Error ? e.message : String(e), 422);
+    throw fail("", e);
   }
+}
+
+export interface PushResult {
+  workspace: string;
+  code: string;
+  /** The page that follows this workspace. */
+  url: string;
+  updatedAt: string;
+  revision: number;
+  /** The addon's own checks and combat warnings for the pushed aura (null when skipped). Export is never blocked. */
+  validation: ValidationResult | null;
+}
+
+export interface PushOptions {
+  /** The page that sent it (its client header), so it can skip its own change in the event stream. */
+  source?: string | null;
+  /** False skips the addon validation in the answer (the page validates itself). Default true. */
+  validate?: boolean;
+}
+
+/** Checks and encodes a push, records it for the workspace and notifies open pages. */
+export async function pushToWorkspace(
+  workspaceId: string,
+  input: PushInput,
+  origin: string,
+  options: PushOptions = {},
+): Promise<PushResult> {
+  const core = await getServerAuraCore();
+  const code = toStateCode(core, input);
+  const snap = getWorkspaceHub().set(workspaceId, code, options.source ?? null);
+  return {
+    workspace: workspaceId,
+    code,
+    url: buildPageUrl(origin, workspaceId),
+    updatedAt: snap.updatedAt!,
+    revision: snap.revision,
+    validation: options.validate === false ? null : await validateCode(code, { core }),
+  };
 }

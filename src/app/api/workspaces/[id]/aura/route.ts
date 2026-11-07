@@ -1,13 +1,10 @@
 import type { NextRequest } from "next/server";
-import { isWorkspaceId } from "@/workspace";
+import { CLIENT_HEADER, isWorkspaceId } from "@/workspace";
 import { parsePushBody, PushError, pushToWorkspace, readBodyText } from "@/server/workspaces";
-
-/** Header a page sends with its own pushes (`CLIENT_HEADER` in src/app/workspace/session.ts). */
-const CLIENT_HEADER = "x-aura-client";
 
 /**
  * POST /api/workspaces/<id>/aura with `{code}`, `{aura, children?}` or a bare state code (up to 32 MB):
- * validates it with the addon, makes it the workspace's state, notifies open pages.
+ * validates it with the addon, records it as the workspace's latest push, notifies open pages.
  * Answers `{workspace, code, url, updatedAt, revision, validation}` (`url`: the `?w=` page; `?validate=false`
  * leaves `validation` null); 400/413/422 `{error}` on bad input.
  */

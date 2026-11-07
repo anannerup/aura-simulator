@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { ownWorkspacePage } from "../support/e2e-workspace";
+import { stateCode } from "../support/state-code";
 
 // The dev server's spell database is seeded from tests/fixtures/spells (see global-setup.ts).
 
@@ -34,7 +35,7 @@ test("search, pick with the keyboard, and the preview shows the spell's icon", a
   await expect(page.getByTestId("current-spell")).toContainText("Frostbolt");
   await expect(page.getByTestId("current-spell")).toContainText("ID 116");
   // The state code carries the new spell ID.
-  await expect(page.getByLabel("State code")).not.toHaveValue("");
+  await expect.poll(() => stateCode(page)).not.toBe("");
 });
 
 test("hovering a result shows its Wowhead tooltip; clicking picks it", async ({ page }) => {
