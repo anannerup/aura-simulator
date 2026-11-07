@@ -9,7 +9,8 @@ import type { Shard } from "./tests/support/shards";
  */
 const EXHAUSTIVE: { name: string; file: string; shards: Omit<Shard, "index">[] }[] = [
   // The option reference replayed, probe by probe, per game: its display and trigger types dealt out. Each shard takes
-  // about a minute and a half on an idle machine; more shards would finish sooner than wago-tbc, for more CPU.
+  // about a minute and a half on an idle machine (the longest of the full tier); more shards would cost more CPU: each
+  // settles the bases of its own units.
   {
     name: "option-reference",
     file: "src/core/option-reference.test.ts",
@@ -17,11 +18,8 @@ const EXHAUSTIVE: { name: string; file: string; shards: Omit<Shard, "index">[] }
   },
   // The tab sweep at seam A: one shard per game.
   { name: "options-sweep", file: "src/core/options-sweep.test.ts", shards: [{ count: 1, game: "forever" }, { count: 1, game: "tbc" }] },
-  // The recorded wago.io TBC auras, dealt out by size. One shard for now: some packs (Tems' TBC Dungeons WA Pack, wago
-  // PA-hKPPtc) fail to load into the editor when they are validated before the core's first options() call, which the
-  // suite's order happens to avoid (.scratch/test-speed/issues/02-validate-before-first-options-breaks-editor.md).
-  // Split it (4 shards: about 70 s instead of 180 s) once that is fixed.
-  { name: "wago-tbc", file: "src/core/wago-tbc.test.ts", shards: [{ count: 1 }] },
+  // The recorded wago.io TBC auras, dealt out by size.
+  { name: "wago-tbc", file: "src/core/wago-tbc.test.ts", shards: Array<Omit<Shard, "index">>(4).fill({ count: 4 }) },
 ];
 
 /** Each shard's project, named "<suite> [game] <i>/<n>". */

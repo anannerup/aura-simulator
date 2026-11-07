@@ -1,4 +1,5 @@
 import { Lua } from "wasmoon-lua5.1";
+import { runLua } from "../lua-run";
 import { normalizeNewlines, type AddonSourceFetcher } from "../addon-source";
 import { AURA_CORE } from "../lua-glue";
 import { LUA_STDLIB } from "../lua-stdlib";
@@ -112,57 +113,57 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
 
   const lua = await Lua.create(options.wasmUri ? { customWasmUri: options.wasmUri } : {});
   const tVm = now();
-  lua.doStringSync(LUA_STDLIB);
-  lua.doStringSync(SHIM_LUA);
-  lua.doStringSync(BRIDGE_LUA);
-  for (const chunk of game.profileLua) lua.doStringSync(chunk);
+  runLua(lua, LUA_STDLIB);
+  runLua(lua, SHIM_LUA);
+  runLua(lua, BRIDGE_LUA);
+  for (const chunk of game.profileLua) runLua(lua, chunk);
 
-  const json = <T>(expr: string): T => JSON.parse(lua.doStringSync(`return __bridge.json(${expr})`) as string) as T;
+  const json = <T>(expr: string): T => JSON.parse(runLua(lua, `return __bridge.json(${expr})`) as string) as T;
   const fileErrors: AddonVMReport["fileErrors"] = [];
   const addonMs: Record<string, number> = {};
   let sourceBytes = 0;
   let loginFinished = false;
-  const isLoginFinished = () => lua.doStringSync("return WeakAuras and WeakAuras.IsLoginFinished and WeakAuras.IsLoginFinished() or false") === true;
+  const isLoginFinished = () => runLua(lua, "return WeakAuras and WeakAuras.IsLoginFinished and WeakAuras.IsLoginFinished() or false") === true;
 
   for (const [index, { addon, toc, files, sources }] of plans.entries()) {
     const tA = now();
     const name = JSON.stringify(addon);
-    lua.doStringSync(`__shim.toc[${name}] = ${toLuaLiteral(toc.meta)}`);
-    lua.doStringSync(`__shim.private[${name}] = __shim.private[${name}] or {}`);
+    runLua(lua, `__shim.toc[${name}] = ${toLuaLiteral(toc.meta)}`);
+    runLua(lua, `__shim.private[${name}] = __shim.private[${name}] or {}`);
     files.forEach((file, i) => {
       sourceBytes += sources[i].length;
       lua.global.set("__src", sources[i]);
       const r = json<{ status: string; error?: string }>(`__shim.runFile(${name}, ${JSON.stringify(file)})`);
       if (r.status !== "ok") fileErrors.push({ file: `${addon}/${file}`, error: r.error ?? r.status });
     });
-    lua.doStringSync(`__shim.loadedAddons[${name}] = true`);
+    runLua(lua, `__shim.loadedAddons[${name}] = true`);
     // Game order: ADDON_LOADED after an addon's files; PLAYER_LOGIN once the core addon is in
     // (the options addon is load-on-demand and loads after login).
-    lua.doStringSync(`__shim.fireSafe("ADDON_LOADED", ${name})`);
+    runLua(lua, `__shim.fireSafe("ADDON_LOADED", ${name})`);
     if (index === 0) {
-      lua.doStringSync(`__shim.fireSafe("PLAYER_LOGIN")`);
-      lua.doStringSync(`__shim.fireSafe("PLAYER_ENTERING_WORLD", true, false)`);
-      for (let ticks = 0; ticks < 500 && !isLoginFinished(); ticks += 10) lua.doStringSync("__shim.tick(10)");
+      runLua(lua, `__shim.fireSafe("PLAYER_LOGIN")`);
+      runLua(lua, `__shim.fireSafe("PLAYER_ENTERING_WORLD", true, false)`);
+      for (let ticks = 0; ticks < 500 && !isLoginFinished(); ticks += 10) runLua(lua, "__shim.tick(10)");
       loginFinished = isLoginFinished();
     }
     addonMs[addon] = now() - tA;
   }
 
-  lua.doStringSync(AURA_CORE);
-  lua.doStringSync("__profile.afterLoad()");
-  lua.doStringSync(EXTRACT_LUA);
-  for (const chunk of game.extractLua) lua.doStringSync(chunk);
-  lua.doStringSync(OPTIONS_LUA);
-  lua.doStringSync(DIALOGS_LUA);
-  lua.doStringSync(NEW_AURA_LUA);
-  for (const chunk of game.newAuraLua) lua.doStringSync(chunk);
-  lua.doStringSync(IMPORT_LUA);
-  const hasPacks = lua.doStringSync("return __options.packs ~= nil") === true;
+  runLua(lua, AURA_CORE);
+  runLua(lua, "__profile.afterLoad()");
+  runLua(lua, EXTRACT_LUA);
+  for (const chunk of game.extractLua) runLua(lua, chunk);
+  runLua(lua, OPTIONS_LUA);
+  runLua(lua, DIALOGS_LUA);
+  runLua(lua, NEW_AURA_LUA);
+  for (const chunk of game.newAuraLua) runLua(lua, chunk);
+  runLua(lua, IMPORT_LUA);
+  const hasPacks = runLua(lua, "return __options.packs ~= nil") === true;
   const optionsAddon = plans.find((p) => p.addon === "WeakAurasOptions");
   const frameIndex = optionsAddon?.files.indexOf(OPTIONS_FRAME_FILE) ?? -1;
   const tabSources = frameIndex >= 0 ? parseOptionTabs(optionsAddon!.sources[frameIndex]) : undefined;
   if (tabSources) {
-    lua.doStringSync(
+    runLua(lua, 
       `__options.tabOrder = ${toLuaLiteral(tabSources.map((t) => t.key))}; __options.tabs = ${toLuaLiteral(
         Object.fromEntries(tabSources.map((t) => [t.key, { label: t.label, fn: t.fn, groupOnly: t.groupOnly }])),
       )}`,
@@ -175,7 +176,7 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
     throw new AddonContractError(ref, missing, game.addonName);
   }
   if (!loginFinished) throw new Error(`${game.addonName} ${ref} did not finish logging in inside the simulated client`);
-  lua.doStringSync("__extract.installWarningRecorder()");
+  runLua(lua, "__extract.installWarningRecorder()");
 
   const touched = json<Record<string, unknown>>("__shim.touched");
   const report: AddonVMReport = {
@@ -192,7 +193,7 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
     fileErrors,
     loginFinished,
     stubbedProbes: Object.keys(touched).filter((k) => PROBE_NAMESPACES.test(k)).sort(),
-    luaHeapBytes: Math.round((lua.doStringSync('collectgarbage("collect") return collectgarbage("count")') as number) * 1024),
+    luaHeapBytes: Math.round((runLua(lua, 'collectgarbage("collect") return collectgarbage("count")') as number) * 1024),
   };
 
   const toAura = (doc: unknown): AuraDocument => {
@@ -201,11 +202,11 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
     return c;
   };
   const fill = (aura: AuraDocument): AuraDocument =>
-    JSON.parse(lua.doStringSync(`return AuraCore.toJSON((__extract.prepare(${toLuaLiteral(toAura(aura))})))`) as string) as AuraDocument;
+    JSON.parse(runLua(lua, `return AuraCore.toJSON((__extract.prepare(${toLuaLiteral(toAura(aura))})))`) as string) as AuraDocument;
   const validateOne = (aura: AuraDocument): RawValidation => json<RawValidation>(`__extract.validate(${toLuaLiteral(toAura(aura))})`);
   let registriesCache: Registries | undefined;
   let packsCache: AuraPacks | undefined;
-  const fullWidth = Number(lua.doStringSync("return WeakAuras.doubleWidth or 2.6")) || 2.6;
+  const fullWidth = Number(runLua(lua, "return WeakAuras.doubleWidth or 2.6")) || 2.6;
 
   // The options editor works on a whole top-level aura (a group with everything in it), as the game's window has every
   // aura registered, and selects one aura in it. It stays registered in the VM between calls, so another tab or
@@ -310,7 +311,7 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
       return r.importable ? { importable: true } : { importable: false, message: r.message ?? "The addon won't import this aura" };
     },
     setSpells(spells) {
-      if (Object.keys(spells).length > 0) lua.doStringSync(spellsToLua(spells));
+      if (Object.keys(spells).length > 0) runLua(lua, spellsToLua(spells));
     },
     registries() {
       registriesCache ??= json<Registries>("__extract.registries()");
@@ -318,11 +319,11 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
     },
     optionReference(options) {
       const keepSections = <T>(fn: () => T): T => {
-        lua.doStringSync("__options.saveCollapsed()");
+        runLua(lua, "__options.saveCollapsed()");
         try {
           return fn();
         } finally {
-          lua.doStringSync("__options.restoreCollapsed()");
+          runLua(lua, "__options.restoreCollapsed()");
         }
       };
       referenceCache ??= buildOptionReference({ ...vm, keepSections }, options);
