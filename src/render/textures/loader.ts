@@ -1,7 +1,9 @@
 import { createContext, useContext } from "react";
+import type { Game } from "@/games/game";
 import { forever } from "@/games/forever";
+import { fetchJson } from "@/lib/fetch-json";
 import { decodeTexture, type DecodedTexture } from "./decode";
-import type { ResolvePath } from "./files";
+import { gameFilesFromApi, type ResolvePath } from "./files";
 import { fileDataIdUrl, isAddonPath, textureUrls, type AddonFileUrl, type TextureSource } from "./paths";
 import { cropTexture, shadePixels, type TextureVariant } from "./pixels";
 
@@ -170,6 +172,25 @@ export function createTextureLoader(options: TextureLoaderOptions = {}): Texture
   }
 
   return { urls, loadBytes, load, url };
+}
+
+/**
+ * A game's texture loader at an addon release: the addon's own files from that release (`game.addon.fileUrl`) and
+ * every other game path by the FileDataID the game's file list gives (`/api/<game>/files`). Every page that draws a
+ * game's auras (the window's game screen, the render page) loads textures through one of these, so a texture path
+ * draws the same everywhere.
+ */
+export function gameTextureLoader(
+  game: Pick<Game, "id" | "addon">,
+  ref: string,
+  options: Omit<TextureLoaderOptions, "addonFileUrl" | "resolvePath"> = {},
+): TextureLoader {
+  const files = `/api/${game.id}/files`;
+  return createTextureLoader({
+    ...options,
+    addonFileUrl: (path) => game.addon.fileUrl(ref, path),
+    resolvePath: gameFilesFromApi(files, (url) => fetchJson(url, { fetch: options.fetch })),
+  });
 }
 
 let shared: TextureLoader | null = null;

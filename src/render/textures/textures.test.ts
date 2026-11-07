@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createTextureLoader,
   cropTexture,
+  gameTextureLoader,
   decodeTexture,
   gameFilesFromApi,
   shadePixels,
@@ -181,5 +182,22 @@ describe("texture loader", () => {
     expect(again.status).toBe("fulfilled");
     expect(nothing.status === "rejected" && String(nothing.reason)).toMatch(/Interface\\Nope\\Nothing \(not in the game's file list\)/);
     expect(asked).toEqual(["/api/tbc/files?path=Interface%5CCursor%5CCast&path=Interface%5CNope%5CNothing"]);
+  });
+
+  it("loads a game path such as Interface\\Cursor\\Cast through the game's own file list, with or without .blp", async () => {
+    const fetch = vi.fn(async (url: RequestInfo | URL) => {
+      const u = String(url);
+      if (u.startsWith("/api/tbc/files?")) {
+        const paths = new URL(u, "http://x").searchParams.getAll("path");
+        return Response.json({ build: "2.5.6.70577", ids: {}, paths: Object.fromEntries(paths.map((p) => [p, { id: 131015, path: "Interface\\CURSOR\\Cast.blp" }])) });
+      }
+      return u === "https://wago.tools/api/casc/131015" ? new Response(blp.slice()) : new Response("", { status: 404 });
+    });
+    const loader = gameTextureLoader(tbc, "5.22.1", { fetch, persistentCache: null, encode: async () => "x" });
+    const [plain, withExtension] = await Promise.all([loader.load("Interface\\Cursor\\Cast"), loader.load("Interface\\Cursor\\Cast.blp")]);
+    expect([plain.width, withExtension.width]).toEqual([2, 2]);
+    expect(loader.urls("Interface\\AddOns\\WeakAuras\\Media\\Textures\\logo_256_round.tga")).toEqual([
+      "/api/tbc/addon/5.22.1/file?path=WeakAuras%2FMedia%2FTextures%2Flogo_256_round.tga",
+    ]);
   });
 });

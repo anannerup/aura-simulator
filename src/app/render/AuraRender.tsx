@@ -8,7 +8,7 @@ import { findGame } from "@/games";
 import { PendingWork } from "@/lib/pending";
 import { evaluateScreen, GameScreenAuras } from "@/render/screen/GameScreenAuras";
 import { uiParent, type Box } from "@/render/screen/geometry";
-import { createIconStore, createTextureLoader, IconStoreContext, iconsFromApi, TextureLoaderContext } from "@/render/textures";
+import { createIconStore, gameTextureLoader, IconStoreContext, iconsFromApi, TextureLoaderContext } from "@/render/textures";
 import { findNode, MAX_RENDER_PIXELS, traverse, type RenderOptions } from "@/workspace";
 import type { RenderScene } from "@/api/render";
 import styles from "./AuraRender.module.css";
@@ -39,7 +39,7 @@ export function AuraRender({ gameId, scene, options }: AuraRenderProps) {
   const { scale, padding, background } = options;
   const [pending] = useState(() => new PendingWork());
   const textures = useMemo(
-    () => trackedTextureLoader(createTextureLoader({ addonFileUrl: (path) => game.addon.fileUrl(scene.ref, path) }), pending),
+    () => trackedTextureLoader(gameTextureLoader(game, scene.ref), pending),
     [game, scene.ref, pending],
   );
   const iconStore = useMemo(() => createIconStore(tracked(iconsFromApi(`/api/${game.id}/icons`), pending)), [game, pending]);
