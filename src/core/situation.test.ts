@@ -3,7 +3,19 @@
  * aura shows in it (`previewSituation`, the push answer's `preview`).
  */
 import { describe, expect, test } from "vitest";
-import { canonicalize, DEFAULT_SITUATION, previewSituation, readSituation, situationJson, SituationError, type AuraDocument } from "@/core";
+import {
+  auraRules,
+  canonicalize,
+  DEFAULT_SITUATION,
+  previewSituation,
+  readSituation,
+  setInCombat,
+  situationJson,
+  SituationError,
+  withAuraTrigger,
+  withoutAura,
+  type AuraDocument,
+} from "@/core";
 
 describe("readSituation", () => {
   test("is a whole situation: what is left out has its default", () => {
@@ -46,6 +58,49 @@ describe("readSituation", () => {
   });
 });
 
+describe("a situation per aura (`auras`: overrides by aura id over the workspace-wide one)", () => {
+  const counted = (id: string): AuraDocument => ({
+    id,
+    regionType: "icon",
+    subRegions: [{ type: "subtext", text_text: "%1.s" }],
+    triggers: { "[1]": { trigger: { type: "item", event: "Item Count", itemName: 27657, use_itemName: true }, untrigger: {} } },
+  });
+
+  test("each aura evaluates in its own override; the others in the workspace-wide situation", () => {
+    for (const game of ["tbc", "forever"] as const) {
+      const s = readSituation({ triggers: { "1": { stacks: 12 } }, auras: { Food: { triggers: { "1": { stacks: 8 } } }, Stone: { triggers: { "1": { present: false } } } } }, game);
+      const drawn = (id: string) => auraRules(game).evaluate(counted(id), s).texts[1].text;
+      expect([drawn("Food"), drawn("Stone"), drawn("Flask")]).toEqual(["8", "", "12"]);
+    }
+  });
+
+  test("an override's trigger fields left out come from the workspace-wide trigger; situationJson writes it back", () => {
+    const s = readSituation({ triggers: { "1": { present: false, duration: 30 } }, auras: { Food: { triggers: { "1": { stacks: 8 } } } } }, "tbc");
+    expect(s.auras).toEqual({ Food: { triggers: { 1: { present: false, remaining: 30, duration: 30, stacks: 8 } } } });
+    expect(readSituation(JSON.parse(JSON.stringify(situationJson(s))), "tbc")).toEqual(s);
+  });
+
+  test("withAuraTrigger edits one aura's override; withoutAura drops it", () => {
+    let s = withAuraTrigger(DEFAULT_SITUATION, "Food", 1, { stacks: 5 });
+    expect(s.auras?.Food.triggers[1]).toMatchObject({ present: true, stacks: 5 });
+    expect(s.triggers).toEqual({});
+    s = withAuraTrigger(s, "Food", 1, { stacks: 1 });
+    expect(s.auras?.Food.triggers[1].stacks).toBe(1);
+    expect(withoutAura(s, "Food").auras).toBeUndefined();
+  });
+
+  test("Forever: entering combat keeps the overrides in the pre-combat snapshot", () => {
+    const s = setInCombat(withAuraTrigger(DEFAULT_SITUATION, "Food", 1, { stacks: 5 }), true, "forever");
+    expect(s.beforeCombat?.auras?.Food.triggers[1].stacks).toBe(5);
+  });
+
+  test("says what is wrong in an override", () => {
+    expect(() => readSituation({ auras: [] }, "tbc")).toThrow(/auras must be an object keyed by aura id/);
+    expect(() => readSituation({ auras: { Food: { inCombat: true } } }, "tbc")).toThrow(/auras.Food.inCombat is not part of an aura's situation/);
+    expect(() => readSituation({ auras: { Food: { triggers: { "1": { stacks: -1 } } } } }, "tbc")).toThrow(/auras.Food.triggers.1.stacks must be a number/);
+  });
+});
+
 describe("previewSituation", () => {
   const icon = (trigger: Record<string, unknown>, extra: Record<string, unknown> = {}) =>
     canonicalize({
@@ -70,6 +125,7 @@ describe("previewSituation", () => {
         activeConditions: [1],
         changed: { "sub.2.glow": true },
         glows: [{ subRegion: 2, lit: true }],
+        texts: [],
       },
     ]);
     const gone = previewSituation({ aura, children: [] }, readSituation({ triggers: { "1": { present: false } } }, "tbc"), "tbc");

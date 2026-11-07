@@ -3,7 +3,9 @@
  *
  * Kept deliberately simple. Each trigger gets one `TriggerSituation` whose meaning depends on the
  * trigger kind (see `triggerKind`): for aura triggers it is the buff or debuff, for the spell cooldown
- * trigger it is the spell's cooldown. Plus two world facts (target exists, in combat).
+ * trigger it is the spell's cooldown. Plus two world facts (target exists, in combat). Triggers are numbered per aura,
+ * so the workspace-wide triggers are what every aura sees by default, and `auras` overrides them for single auras (by
+ * aura id): four item count icons can show 8, 5, 1 and 12 side by side. Each aura evaluates in `situationForAura`.
  *
  * The model is the same in every game. What differs per game is which trigger kinds exist (only Forever's Musca
  * Auras has Aura (Modern)) and whether entering combat records the facts frozen auras keep (only Forever has a
@@ -28,11 +30,19 @@ export interface TriggerSituation {
   stacks: number;
 }
 
+/** One aura's own triggers, over the workspace-wide ones. */
+export interface AuraSituation {
+  /** Per trigger number: replaces the workspace-wide entry for that number, for this aura only. */
+  triggers: Record<number, TriggerSituation>;
+}
+
 export interface SituationFacts {
   /** Per trigger number (1-based). Triggers without an entry use `defaultTriggerSituation`. */
   triggers: Record<number, TriggerSituation>;
   targetExists: boolean;
   inCombat: boolean;
+  /** Per aura id: that aura's own triggers (left out: every aura sees `triggers`). */
+  auras?: Record<string, AuraSituation>;
 }
 
 export interface Situation extends SituationFacts {
@@ -104,15 +114,42 @@ export function withTrigger(situation: Situation, index: number, patch: Partial<
   return { ...situation, triggers: { ...situation.triggers, [index]: next } };
 }
 
+/** The situation `auraId` sees: the workspace-wide one with that aura's own triggers over it (also before combat). */
+export function situationForAura(situation: Situation, auraId: unknown): Situation {
+  const own = (f: SituationFacts): SituationFacts => {
+    const mine = typeof auraId === "string" ? f.auras?.[auraId] : undefined;
+    return mine ? { ...f, triggers: { ...f.triggers, ...mine.triggers } } : f;
+  };
+  const current = own(situation);
+  return situation.beforeCombat ? { ...current, beforeCombat: own(situation.beforeCombat) } : current;
+}
+
+/** Returns a copy with one trigger of one aura's own situation changed (starting from what that aura sees). */
+export function withAuraTrigger(situation: Situation, auraId: string, index: number, patch: Partial<TriggerSituation>): Situation {
+  const sees = withTrigger(situationForAura(situation, auraId), index, patch);
+  const mine = situation.auras?.[auraId]?.triggers ?? {};
+  return { ...situation, auras: { ...situation.auras, [auraId]: { triggers: { ...mine, [index]: sees.triggers[index] } } } };
+}
+
+/** Returns a copy without `auraId`'s own situation: it sees the workspace-wide triggers again. */
+export function withoutAura(situation: Situation, auraId: string): Situation {
+  if (!situation.auras?.[auraId]) return situation;
+  const rest = Object.fromEntries(Object.entries(situation.auras).filter(([id]) => id !== auraId));
+  const next: Situation = { ...situation, auras: rest };
+  if (Object.keys(rest).length === 0) delete next.auras;
+  return next;
+}
+
 /**
  * Switches combat on or off. In Forever, entering combat records the facts frozen auras keep (`beforeCombat`); on
  * TBC combat is only a world fact (the "In Combat" condition reads it).
  */
 export function setInCombat(situation: Situation, inCombat: boolean, game: AddonGameId = "forever"): Situation {
   if (inCombat === situation.inCombat) return situation;
-  const { triggers, targetExists } = situation;
-  if (!inCombat || game !== "forever") return { triggers, targetExists, inCombat };
-  return { triggers, targetExists, inCombat: true, beforeCombat: { triggers, targetExists, inCombat: false } };
+  const { triggers, targetExists, auras } = situation;
+  const facts = auras ? { triggers, targetExists, auras } : { triggers, targetExists };
+  if (!inCombat || game !== "forever") return { ...facts, inCombat };
+  return { ...facts, inCombat: true, beforeCombat: { ...facts, inCombat: false } };
 }
 
 /** Forever: the facts frozen state reads: the pre-combat snapshot while in combat, else the current facts. */
@@ -129,7 +166,7 @@ export class SituationError extends Error {
 }
 
 const TRIGGER_FIELDS = ["present", "remaining", "duration", "stacks"] as const;
-const FACT_FIELDS = ["triggers", "targetExists", "inCombat"] as const;
+const FACT_FIELDS = ["triggers", "targetExists", "inCombat", "auras"] as const;
 
 function readFacts(value: unknown, where: string, base: SituationFacts): SituationFacts {
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new SituationError(`${where} must be an object`);
@@ -139,11 +176,37 @@ function readFacts(value: unknown, where: string, base: SituationFacts): Situati
     if (typeof v[key] !== "boolean") throw new SituationError(`${where}.${key} must be true or false`);
     return v[key];
   };
-  let facts: Situation = { triggers: {}, targetExists: bool("targetExists"), inCombat: bool("inCombat") };
-  const triggers = v.triggers ?? {};
+  const facts: SituationFacts = {
+    triggers: readTriggers(v.triggers, where, {}),
+    targetExists: bool("targetExists"),
+    inCombat: bool("inCombat"),
+  };
+  if (v.auras === undefined) return facts;
+  if (typeof v.auras !== "object" || v.auras === null || Array.isArray(v.auras)) {
+    throw new SituationError(`${where}.auras must be an object keyed by aura id: {"<aura id>": {"triggers": {...}}}`);
+  }
+  const auras: Record<string, AuraSituation> = {};
+  for (const [id, raw] of Object.entries(v.auras)) {
+    const at = `${where}.auras.${id}`;
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) throw new SituationError(`${at} must be an object: {"triggers": {...}}`);
+    for (const key of Object.keys(raw)) {
+      if (key !== "triggers") throw new SituationError(`${at}.${key} is not part of an aura's situation (only "triggers"; target and combat are the workspace's)`);
+    }
+    auras[id] = { triggers: readTriggers((raw as Record<string, unknown>).triggers, at, facts.triggers) };
+  }
+  return { ...facts, auras };
+}
+
+/**
+ * Reads `{"1": {...}}` trigger situations: each a patch over `base`'s entry for that number (or the default), kept
+ * consistent by `withTrigger`.
+ */
+function readTriggers(value: unknown, where: string, base: Record<number, TriggerSituation>): Record<number, TriggerSituation> {
+  const triggers = value ?? {};
   if (typeof triggers !== "object" || triggers === null || Array.isArray(triggers)) {
     throw new SituationError(`${where}.triggers must be an object keyed by trigger number: {"1": {...}}`);
   }
+  const read: Record<number, TriggerSituation> = {};
   for (const [key, raw] of Object.entries(triggers)) {
     const index = Number(key);
     if (!Number.isInteger(index) || index < 1) throw new SituationError(`${where}.triggers: "${key}" is not a trigger number (1, 2, …)`);
@@ -167,15 +230,16 @@ function readFacts(value: unknown, where: string, base: SituationFacts): Situati
       patch[field] = t[field];
     }
     // withTrigger keeps time left within the duration (when there is one).
-    facts = withTrigger(facts, index, patch);
+    read[index] = withTrigger({ ...DEFAULT_SITUATION, triggers: base }, index, patch).triggers[index];
   }
-  return { triggers: facts.triggers, targetExists: facts.targetExists, inCombat: facts.inCombat };
+  return read;
 }
 
 /**
  * Reads a situation as agents send it (the push API's situation and `auraSimulator.situation`): JSON
- * `{"targetExists", "inCombat", "triggers": {"1": {"present", "remaining", "duration", "stacks"}}}`. It is a whole
- * situation: what is left out has its default (`DEFAULT_SITUATION`; a trigger's fields `DEFAULT_TRIGGER_SITUATION`).
+ * `{"targetExists", "inCombat", "triggers": {"1": {"present", "remaining", "duration", "stacks"}}, "auras": {"<aura id>":
+ * {"triggers": {...}}}}`. It is a whole situation: what is left out has its default (`DEFAULT_SITUATION`; a trigger's
+ * fields `DEFAULT_TRIGGER_SITUATION`; an aura's trigger fields the workspace-wide trigger's).
  * Forever only: `beforeCombat` (the same facts) is the moment combat started, which frozen auras keep; left out, the
  * given facts stand in for it (nothing changed since combat started). Throws a `SituationError` saying what's wrong.
  */
@@ -196,10 +260,12 @@ export function readSituation(value: unknown, game: AddonGameId): Situation {
 
 /** A situation as JSON (what `readSituation` reads back): trigger numbers as keys, every field written. */
 export function situationJson(situation: Situation): Record<string, unknown> {
+  const triggers = (t: Record<number, TriggerSituation>) => Object.fromEntries(Object.entries(t).map(([k, s]) => [k, { ...s }]));
   const facts = (f: SituationFacts) => ({
     targetExists: f.targetExists,
     inCombat: f.inCombat,
-    triggers: Object.fromEntries(Object.entries(f.triggers).map(([k, t]) => [k, { ...t }])),
+    triggers: triggers(f.triggers),
+    ...(f.auras && { auras: Object.fromEntries(Object.entries(f.auras).map(([id, a]) => [id, { triggers: triggers(a.triggers) }])) }),
   });
   return situation.beforeCombat ? { ...facts(situation), beforeCombat: facts(situation.beforeCombat) } : facts(situation);
 }

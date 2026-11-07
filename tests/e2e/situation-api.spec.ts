@@ -55,6 +55,60 @@ test("an agent sets the situation over HTTP: the answer previews the aura in it 
   expect(await page.evaluate(() => window.auraSimulator!.situation({ triggers: { "1": { left: 3 } } }))).toMatchObject({ ok: false });
 });
 
+test("each aura can have its own situation: over HTTP, in the preview, on the screen and in the Situation panel", async ({ page, request }) => {
+  test.setTimeout(180_000);
+  const workspace = uniqueId("situation-auras");
+  const counter = (id: string, xOffset: number) => ({
+    id,
+    regionType: "icon",
+    width: 64,
+    height: 64,
+    anchorPoint: "CENTER",
+    selfPoint: "CENTER",
+    xOffset,
+    yOffset: 0,
+    triggers: { "[1]": { trigger: { type: "item", event: "Item Count", itemName: 27657, use_itemName: true }, untrigger: {} } },
+    subRegions: [{ type: "subbackground" }, { type: "subtext", text_text: "%1.s", text_visible: true, anchor_point: "CENTER" }],
+  });
+  // The page is open while the agent pushes: each push joins the workspace's top level.
+  await page.goto(`/tbc?w=${workspace}`);
+  const panel = page.getByRole("region", { name: "Situation" });
+  await expect(panel).toBeVisible({ timeout: 90_000 });
+  for (const [i, id] of ["Food", "Stone"].entries()) {
+    const res = await request.post(`/api/tbc/workspaces/${workspace}/aura`, { data: { aura: counter(id, i * 100) } });
+    expect(res.status(), await res.text()).toBe(200);
+    await expect(page.getByRole("treeitem", { name: id, exact: true })).toBeVisible();
+  }
+  const set = await request.put(`/api/tbc/workspaces/${workspace}/situation`, {
+    data: { triggers: { "1": { stacks: 12 } }, auras: { Food: { triggers: { "1": { stacks: 8 } } } } },
+  });
+  expect(set.status(), await set.text()).toBe(200);
+  const answer = await set.json();
+  expect(answer.situation.auras).toEqual({ Food: { triggers: { "1": { present: true, remaining: 45, duration: 60, stacks: 8 } } } });
+  // The preview is of the latest push (Stone), which sees the workspace-wide count.
+  expect(answer.preview.displays[0]).toMatchObject({ id: "Stone", texts: [{ subRegion: 2, text: "12" }] });
+
+  const text = (id: string) => page.getByTestId("aura-preview").locator(`[data-aura-id="${id}"] [data-subregion="subtext"]`);
+  await expect(text("Food")).toHaveText("8");
+  await expect(text("Stone")).toHaveText("12");
+
+  // The panel edits the selected aura's own situation.
+  await page.getByRole("treeitem", { name: "Food", exact: true }).click();
+  await expect(panel.getByRole("switch", { name: "Only this aura" })).toBeChecked();
+  await panel.getByLabel("Count").fill("5");
+  await expect(text("Food")).toHaveText("5");
+  await expect(text("Stone")).toHaveText("12");
+  await panel.getByRole("switch", { name: "Only this aura" }).uncheck();
+  await expect(text("Food")).toHaveText("12");
+
+  await page.getByRole("treeitem", { name: "Stone", exact: true }).click();
+  await expect(panel.getByRole("switch", { name: "Only this aura" })).not.toBeChecked();
+  await panel.getByRole("switch", { name: "Only this aura" }).check();
+  await panel.getByLabel("Count").fill("1");
+  await expect(text("Stone")).toHaveText("1");
+  await expect(text("Food")).toHaveText("12");
+});
+
 test("a situation that isn't one is refused with what is wrong", async ({ request }) => {
   const workspace = uniqueId("situation-bad");
   const bad = async (game: string, body: string) => {

@@ -1,7 +1,19 @@
 "use client";
 
 import { useId } from "react";
-import { auraRules, triggerSituation, withTrigger, type AddonGameId, type AuraDocument, type Situation, type TriggerKind } from "@/core";
+import {
+  auraRules,
+  situationForAura,
+  triggerSituation,
+  withAuraTrigger,
+  withoutAura,
+  withTrigger,
+  type AddonGameId,
+  type AuraDocument,
+  type Situation,
+  type TriggerKind,
+  type TriggerSituation,
+} from "@/core";
 import { Input, Slider, Switch } from "@/components/ui";
 import styles from "./SituationControls.module.css";
 
@@ -27,7 +39,9 @@ export function formatSeconds(s: number): string {
 
 /**
  * The situation controls: per trigger present/time left/stacks, plus target and combat, by the game's rules (its trigger
- * kinds; entering combat freezes auras only where the game restricts addons in combat).
+ * kinds; entering combat freezes auras only where the game restricts addons in combat). The triggers are the selected
+ * aura's: what it sees, edited workspace-wide, or with "Only this aura" in that aura's own situation (`auras`), so
+ * auras whose triggers share a number can show different things side by side.
  */
 export function SituationControls({
   game,
@@ -43,6 +57,17 @@ export function SituationControls({
   const rules = auraRules(game);
   const triggers = rules.auraTriggers(aura);
   const ids = useId();
+  const auraId = typeof aura.id === "string" ? aura.id : undefined;
+  const own = auraId !== undefined && situation.auras?.[auraId] !== undefined;
+  const sees = situationForAura(situation, auraId);
+  const setTrigger = (index: number, patch: Partial<TriggerSituation>) =>
+    onChange(own && auraId !== undefined ? withAuraTrigger(situation, auraId, index, patch) : withTrigger(situation, index, patch));
+  const setOwn = (on: boolean) => {
+    if (auraId === undefined) return;
+    if (!on) return onChange(withoutAura(situation, auraId));
+    // Start the aura's own situation from what it sees now.
+    onChange(triggers.reduce((s, { index }) => withAuraTrigger(s, auraId, index, {}), situation));
+  };
   return (
     <section className={styles.panel} aria-label="Situation">
       <div className={styles.world}>
@@ -54,10 +79,15 @@ export function SituationControls({
           onChange={(e) => onChange(rules.setInCombat(situation, e.target.checked))}
         />
       </div>
+      {auraId !== undefined && triggers.length > 0 && (
+        <div className={styles.world}>
+          <Switch label="Only this aura" role="switch" checked={own} onChange={(e) => setOwn(e.target.checked)} />
+        </div>
+      )}
       {triggers.map(({ index, kind }) => {
-        const t = triggerSituation(situation, index);
+        const t = triggerSituation(sees, index);
         const labels = KIND_LABELS[kind];
-        const set = (patch: Parameters<typeof withTrigger>[2]) => onChange(withTrigger(situation, index, patch));
+        const set = (patch: Partial<TriggerSituation>) => setTrigger(index, patch);
         return (
           <fieldset key={index} className={styles.trigger}>
             <legend className={styles.legend}>

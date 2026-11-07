@@ -15,11 +15,14 @@ export {
   auraTriggers,
   readSituation,
   setInCombat,
+  situationForAura,
   situationJson,
   triggerSituation,
+  withAuraTrigger,
+  withoutAura,
   withTrigger,
 } from "./situation";
-export type { Situation, TriggerInfo, TriggerKind, TriggerSituation } from "./situation";
+export type { AuraSituation, Situation, TriggerInfo, TriggerKind, TriggerSituation } from "./situation";
 export { auraRules, conditionProblem, customTextMarker, evaluateAura, evaluateTbcAura, formatTime } from "./conditions";
 export type { AuraRenderState, AuraRules, ConditionProblem, DrawnText, GlowState, TextPart, TriggerState } from "./conditions";
 export { previewSituation } from "./conditions/preview";
