@@ -16,6 +16,7 @@ import {
   type ConditionProperty,
   type OptionReference,
   type OptionReferenceEntry,
+  type OptionSetting,
 } from "@/core";
 
 const code = (s: string) => `\`${s}\``;
@@ -70,6 +71,13 @@ const PATH_RULES = `Paths are wago JSON keys, read from the aura's table (wago J
 
 const optionName = (e: OptionReferenceEntry) => plainText(e.name ?? "").trim() || e.option[e.option.length - 1];
 
+/** A setting of another option in words: `section "Texture 1" opened`, `**Anchor Mode** "point" (Attach to Point)`. */
+function settingText(s: OptionSetting): string {
+  if (s.section) return `section "${s.name}" is opened`;
+  const label = s.label !== undefined && s.label !== String(s.value) ? ` (${s.label})` : "";
+  return `**${s.name}** (\`${s.option.join(" / ")}\`) is ${json(s.value)}${label}`;
+}
+
 /**
  * The agent docs' section on the reference. `reference` is null while it is being generated (the section then only
  * points to it).
@@ -92,8 +100,12 @@ keys it writes, with a value of its type.
 - **As JSON, the conditions:** \`conditions\` in the JSON below (\`checks\` per trigger type and event, \`global\`,
   \`properties\` per display type).
 - **As JSON:** \`GET ${urls.json}\` (\`entries\`: every option per display type, trigger type, event, added part and
-  choice, with its \`writes\`, \`values\`, range, \`default\`, \`desc\` and, for selects whose choice writes a whole
-  setting, what each choice writes; \`byPath\`: path pattern → entry indices; \`lists\`: the tables that are JSON arrays).
+  choice, with its \`writes\`, \`values\`, range, \`default\`, \`desc\`; for selects whose choice writes more than its
+  own key (a condition's If, Grow with \`selfPoint\`), what each choice writes (\`choices\`); for options the window
+  hides on a new aura, what shows each (\`shownBy\`: a section opened, or another option's value); and the other names
+  an option has in another mode (\`modes\`: e.g. a sub element's \`xOffset\` is "Extra Width" with Anchor Mode "Fill
+  Area" and "X Offset" with "Attach to Point"); \`byPath\`: path pattern → entry indices; \`lists\`: the tables that
+  are JSON arrays).
 
 The first request for a version waits while the reference is generated (a few minutes, once per version).
 
@@ -161,6 +173,8 @@ function optionLine(e: OptionReferenceEntry, allTypes: number, showTypes = true)
     parts.push(`range ${lo ?? "…"} to ${hi ?? "…"}${e.step ? ` step ${e.step}` : ""}${e.isPercent ? " (a fraction, shown as %)" : ""}`);
   }
   if (e.default !== undefined && e.default !== "") parts.push(`new aura: ${json(e.default)}`);
+  if (e.hidden) parts.push(e.shownBy?.length ? `hidden until ${e.shownBy.map(settingText).join(" or ")}` : "hidden (no single setting shows it)");
+  for (const m of e.modes ?? []) parts.push(`named **${plainText(m.name).trim()}** when ${settingText(m.when)}${m.desc ? ` (${plainText(m.desc).trim()})` : ""}`);
   const added = [...new Set(e.scopes.flatMap((s) => (s.added ? [s.added.name] : [])))];
   if (added.length) parts.push(`after ${added.join(" / ")}`);
   const after = [...new Set(e.scopes.flatMap((s) => (s.after ? [`${plainText(s.after.name).trim()}: ${plainText(s.after.choice).trim()}`] : [])))];
@@ -370,8 +384,12 @@ Lists (JSON arrays): ${r.lists.map(code).join(", ")}.
 ## Parts
 
 Each part is a Markdown file on its own; fetch the ones you need. Each option line: **option** (its key path in the
-tab, type and control) → the keys it writes; then all its values or its range, what a new aura has, and where it
-appears (after an Add button, after a choice, on some display types only).
+tab, type and control) → the keys it writes; then all its values or its range (a select whose choices write more
+than its own key lists what each choice writes: Grow also sets \`selfPoint\`), what a new aura has, what shows it
+when the window hides it on a new aura ("hidden until" a section is opened or another option has a value), the other
+names it has while another option has a value (the same key meaning something else in that mode: a sub element's
+"Extra Width" is its "X Offset" once Anchor Mode is "Attach to Point"), and where it appears (after an Add button,
+after a choice, on some display types only).
 
 ${optionReferenceParts(r)
   .map((p) => `- ${p.title}: \`GET ${urls.part(p.name)}\` (${p.about})`)

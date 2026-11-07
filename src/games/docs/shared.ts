@@ -373,11 +373,33 @@ export function displayMediaNotes({ game, origin: o, ref }: DisplayMediaNotes): 
 - **Border** (\`subborder\`): the border's frame is the display (on bars the \`anchor_area\`) grown by \`border_offset\`
   pixels on every side, and its edge (\`border_edge\`, default \`"Square Full White"\`) is drawn \`border_size\` pixels
   thick **inside** that frame. So \`border_offset: 0\` covers the display's outer \`border_size\` pixels, and
-  \`border_offset\` equal to \`border_size\` puts the whole border just outside the display.
+  \`border_offset\` equal to \`border_size\` puts the whole border just outside the display. In a screenshot: an icon
+  whose art is inset by the border's thickness has it inside (offset 0); art filling the box inside the border, outside.
 - **Dynamic groups** (\`dynamicgroup\`): \`grow\`, \`align\`, \`space\`, \`stagger\`, \`sort\`, \`limit\`, \`radius\` and the grid
   keys are set on the **Group** tab, not Display: the option reference's Group part (${part("group")}) has
   them all with their values and defaults. A group's Display tab (${part("region-dynamicgroup")}) edits its
-  children's tables (\`children:\` in the reference), not the group's.
+  children's tables (\`children:\` in the reference), not the group's. \`space\` is the distance between the children's
+  edges (their \`width\`/\`height\`), not between borders drawn outside them. \`grow\` also sets \`selfPoint\` (the
+  reference lists what each Grow choice writes): write both.
+`;
+}
+
+/**
+ * The Item Count trigger at zero items, as both addons have it (Prototypes.lua "Item Count": no count test unless
+ * `use_count`; dynamic_texts.s: "" for 0 stacks; WeakAuras.lua ValueForSymbol: `%N.stacks` is the state's value).
+ */
+export function itemCountNotes(): string {
+  return `### Item Count (\`"type": "item"\`, \`"event": "Item Count"\`) at zero
+
+\`itemName\` is the item's ID (or name). The trigger's stacks (\`%s\`, \`%N.s\` for trigger N) is the count in your bags
+(\`use_includeBank\`, \`use_includeCharges\` to count more).
+
+- **Active at 0**: without a count test the trigger is active whatever the count, 0 included, so the aura shows with
+  no items. To hide it at 0, add the Item Count test: \`use_count: true\`, \`count_operator\` \`">"\`, \`count\` \`"0"\` (a
+  string); or keep it shown and dim or desaturate it with a condition on Stacks (\`stacks\` \`==\` 0).
+- **The text at 0**: \`%s\` and \`%2.s\` draw **nothing** at 0 (the addon's \`s\` text is empty for 0 stacks), so a
+  stack text vanishes when the bags are empty. \`%2.stacks\` (the trigger's own \`stacks\` value) draws \`"0"\`.
+- In a situation, \`{"triggers": {"2": {"stacks": 0}}}\` shows it at 0.
 `;
 }
 
@@ -483,6 +505,8 @@ export interface PicturesSection {
  * pixels relate to UI units (the same in every WoW client), for working from a player's screenshot.
  */
 export function picturesSection({ game, origin: o, workspace: d, auraId }: PicturesSection): string {
+  // Window heights / 768 at UI scale 1, and "pixel perfect".
+  const commonScales = "1 (pixel perfect), 1.125, 1.40625 (1080 px high, UI scale off), 1.875 (1440 px), 2.8125 (2160 px)";
   const shot = `${o}/api/${game}/workspaces/${d}/screenshot.png?aura=${encodeURIComponent(auraId)}`;
   const low = encodeURIComponent(JSON.stringify({ triggers: { "1": { remaining: 5 } } }));
   return `## Pictures: working from a screenshot
@@ -545,24 +569,118 @@ A group's \`scale\` multiplies everything in it. In game, \`/dump UIParent:GetEf
 unit). The page's game screen uses the same model (its screen settings: resolution and UI scale); its "1:1" zoom is
 one browser pixel per game pixel.
 
+### Finding the scale: pixels per UI unit
+
+A cropped screenshot of an aura rarely shows anything of known size (no action button, no full window), so the scale
+has to come from the aura itself. Ask the player for their UI scale and window height when sizes must be exact (the
+two \`/dump\`s above); otherwise infer it from the layout:
+
+- **Sizes and spacing tend to be whole units.** Icons are usually 32, 36, 40, 48 or 64 units square, a dynamic
+  group's \`space\` 0-10 units. Try scales \`s\` (a common one: ${commonScales}) and keep the one where every measured
+  size, gap and pitch (from one icon's left edge to the next one's) divided by \`s\` is close to a whole number.
+- **1-unit lines alternate between 1 and 2 px** at a fractional scale (1.40625 px per unit draws a 1-unit border 1 px
+  on some edges and 2 px on others, as the game snaps each edge to a pixel). Average several edges, and don't read a
+  1 px line as half a unit.
+- **Font sizes are whole numbers** (\`text_fontSize\`): a line of capitals and digits is about 0.7 × the size high, so a
+  9 px digit at 1.40625 px per unit is about size 9 / 0.7 / 1.40625 ≈ 9.
+- **The absolute scale may be ambiguous**: 45 px is 32 units at 1.40625 px per unit and 40 units at 1.125. Several
+  scales can fit equally well. What must match are the **proportions**: sizes, gaps, borders and fonts relative to
+  each other. Pick the most likely scale, say which one you assumed, and ask the player for their UI scale when the
+  absolute size matters (an aura that must fit next to their action bars).
+
+The compare endpoint below finds the scale that lays your aura over the screenshot best, given your aura's sizes.
+
+### Reading the layout from pixels
+
+- **Border drawn inside or outside** (a \`subborder\` of \`border_size\` units): with \`border_offset\` 0 the border covers
+  the display's outer \`border_size\` units, so the icon's art is **inset**: the art is smaller than the bordered box by
+  2 × \`border_size\` on each axis, and the bordered box is the display's \`width\`. With \`border_offset\` equal to
+  \`border_size\` the border lies just outside: the art fills the display and the bordered box is 2 × \`border_size\`
+  larger. Measure the art (where the icon's picture starts) against the border's outer edge: an inset of the border's
+  thickness means inside, no inset means outside.
+- **A dynamic group's \`space\` is between the regions' edges** (each display's \`width\`/\`height\`), not between their
+  borders: borders drawn outside (\`border_offset\` > 0) take \`border_offset\` from each side of the gap you see. So
+  \`space\` = pitch − \`width\` (pitch: from one region's left edge to the next one's), and the empty gap between two
+  outside borders is \`space\` − 2 × \`border_offset\`.
+- **Icon \`zoom\` crops the art** (0 to 1, a fraction): the icon shows the middle \`1 − zoom / 2\` of the icon's art,
+  enlarged to fill the display, so \`zoom\` / 4 of the art is cut from each side (0.3 cuts 7.5 %). Most icon files
+  have a thin dark rim and some art up to their edges: when the screenshot's icon has no rim and its picture looks
+  larger than the same icon in \`iconUrl\` (details cut at the edges), the aura is zoomed. Compare the screenshot's icon
+  with the icon file at a few zooms; the similar-icon search below reports the zoom it matched at.
+- **Text shadow or outline**: an outline (\`text_fontType\` \`"OUTLINE"\` or \`"THICKOUTLINE"\` on a sub element; a text
+  display's \`outline\`) is a dark rim **all around** each glyph, as thick on the top left as on the bottom right. A
+  drop shadow is a dark copy of the glyph **offset to one side** (usually down and right), with no rim on the other
+  sides. A shadow is \`text_shadowColor\` (\`[r, g, b, a]\`) moved \`text_shadowXOffset\` units right and
+  \`text_shadowYOffset\` units up (negative: down) on a sub element; \`shadowColor\`, \`shadowXOffset\`, \`shadowYOffset\` on
+  a text display. Offsets 0 (a sub element's default) draw no visible shadow; a shadow with \`text_fontType\` \`"None"\`
+  is the usual shadow-only look (\`1\`, \`-1\`: one unit right and down). Both together are possible.
+
 ### Sizes and offsets from the player's screenshot
 
-1. **Find the screenshot's pixels per unit.** A screenshot the game saved (Print Screen, in its Screenshots folder) is
-   at the window's resolution: its height is the window height. Ask the player for their UI scale (or the two
-   \`/dump\`s above). A cropped screenshot doesn't show the resolution: ask for it, or measure something of known size
-   in it (a default action button is 36 units square). A screenshot the operating system took may be scaled by its
-   display scaling (e.g. 2× on a Retina Mac): compare the image's size with the window's.
+1. **Find the screenshot's pixels per unit** (above). A screenshot the game saved (Print Screen, in its Screenshots
+   folder) is at the window's resolution: its height is the window height. A screenshot the operating system took
+   may be scaled by its display scaling (e.g. 2× on a Retina Mac): compare the image's size with the window's.
 2. **Measure in pixels and divide by the pixels per unit**: a 72 px icon at 1.125 px per unit is 64 units. Round to
    whole units. Text: a font's size is its height in units, roughly the line's height; its capitals are about
    0.7 × that.
 3. **Offsets**: \`xOffset\`/\`yOffset\` go from the anchor frame's \`anchorPoint\` (the screen's centre for \`CENTER\` on
    the screen) to the aura's \`selfPoint\`, in units, **y up** (an image's y grows down: flip it). The screen's centre
    is the middle of a full-window screenshot. A group's children are offset from the group.
-4. **Take the picture at the screenshot's scale** (\`scale\` = its pixels per unit) on a \`background\` like the
-   screenshot's, so both are the same size, and compare: size, spacing, colours, borders, text size and placement,
-   glows. Adjust the aura, push, take the picture again; repeat for each situation the screenshot shows.
+4. **Compare** with the compare endpoint (below), adjust, push and compare again; repeat for each situation the
+   screenshot shows.
 
 What a picture leaves out: the frames an aura is anchored to (unit frames, nameplates, the cursor; the game screen
 draws only stand-ins for them), and anything outside the aura's bounds unless padded.
+
+### Comparing with the screenshot: the compare endpoint
+
+\`POST /api/${game}/workspaces/<id>/compare\` with the player's screenshot as the body (PNG, JPEG or WebP; or a
+multipart form's \`screenshot\` file): the server draws the aura (as the screenshot endpoint does), finds the scale
+and offset that lay it over the screenshot best, and measures both. Don't write your own pixel scripts: this is the
+measurement. Crop the screenshot around the aura, leaving some background at the edges (the background colour is read
+from the edge; a plain one measures best). Query parameters (all optional):
+
+- \`aura\`, \`situation\`, \`ref\`: which aura, in which situation, as for the screenshot endpoint. Set the situation to
+  the state the screenshot shows.
+- \`scale\`: the pixels per unit when you know them (the player told you their UI scale): only the offset is searched.
+  Without it the scale is searched (within ±15 % of the one that makes both the same size, then refined).
+- \`screenHeight\`: the game window's height in pixels: the answer then also says the UI scale (\`uiScale\`).
+- \`image=comparison\`: answer the comparison picture as a PNG instead of JSON (\`image=picture\`: your aura's picture at
+  the scale found).
+
+The answer:
+
+- \`scale\` (pixels per UI unit found; \`scaleSearched\`), \`otherScales\` (other scales drawn and placed, with their
+  scores: close scores mean the absolute scale is ambiguous, see above), \`uiScale\` (with \`screenHeight\`), \`offset\`
+  (where your picture's top left lies on the screenshot, px), \`background\` (\`colour\`, and \`uniform\`: the share of
+  edge pixels of that colour; below about 0.8 the measurements are less reliable).
+- \`score\`: the mean colour difference (0-255) where either has content; \`overlap\`: the share of those pixels both
+  draw. Lower score and higher overlap are closer; a few points of score remain from anti-aliasing and JPEG noise.
+- \`regions\`: per display of your aura (\`auraId\`, \`regionType\`): \`layout\` (its frame on the screenshot, px) and
+  \`layoutUnits\` (the same in UI units from your picture's top left), \`drawn.picture\` and \`drawn.screenshot\` (the box
+  of what each draws in and just around the frame, px: borders drawn outside and overhanging text count), \`delta\`
+  (screenshot − picture: left, top, width, height in px; positive width means the screenshot's is wider), \`colour\`
+  (the mean colour of each inside the frame, and \`delta\`), \`textRows\` (per text: the heights of its rows of
+  glyphs in each, px).
+- \`spacing\`: the rows (\`axis\` x) and columns (\`axis\` y) of displays, with \`pitch\` and \`gap\` (px and \`…Units\`) of
+  their frames (\`layout\`), of what your picture draws (\`picture\`) and of what the screenshot shows (\`screenshot\`).
+  Compare \`picture\` with \`screenshot\`; \`layout\` is what your aura's keys say.
+- \`comparison\`: \`{"zoom", "png"}\`, a data URL of the comparison picture: the screenshot, your picture on its
+  background, and their difference (red where they differ), side by side, enlarged \`zoom\` times, with your displays'
+  frames outlined in magenta. Look at it.
+
+Errors are JSON \`{"error"}\`: 400 a bad parameter or not a picture, 404 nothing to draw, 422 nothing to compare (the
+screenshot is all background, or your aura draws nothing in the situation), 503 no headless browser.
+
+**The loop: capture → compare → adjust.**
+
+1. Build the aura from what you read off the screenshot and push it.
+2. Compare: \`curl -s -X POST --data-binary @shot.png -H 'Content-Type: image/png' '${o}/api/${game}/workspaces/${d}/compare' > result.json\`,
+   and save the picture: \`curl -s -X POST --data-binary @shot.png -H 'Content-Type: image/png' -o comparison.png '${o}/api/${game}/workspaces/${d}/compare?image=comparison'\`.
+3. Read \`regions[].delta\`, \`spacing\`, \`colour\` and \`textRows\` and look at \`comparison.png\`: a width delta on every
+   icon is a size (or a border inside/outside); a pitch difference is \`space\`; a colour delta is a colour, alpha or
+   desaturation; taller text rows are a larger font size.
+4. Change the keys, push, compare again (with \`scale\` fixed once you trust it, so only your changes move the numbers).
+   Stop when the deltas are within a pixel and the difference picture shows only edges.
 `;
 }

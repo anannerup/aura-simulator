@@ -57,10 +57,12 @@ export type {
   ConditionReference,
   ConditionValueType,
   OptionChoice,
+  OptionMode,
   OptionReference,
   OptionReferenceEntry,
   OptionReferenceOptions,
   OptionScope,
+  OptionSetting,
   TablePath,
 } from "./addon-vm/option-reference";
 export type { CombatStatus, ValidationMessage, ValidationResult } from "./addon-vm/validation";

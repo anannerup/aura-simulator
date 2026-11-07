@@ -30,6 +30,9 @@ Terms the project uses. Use them in code, tickets, docs and messages to the user
 - **Picture**: a PNG of one aura as the game screen draws it, still and cropped to the aura's bounds, at a chosen
   number of game pixels per UI unit (the screenshot endpoint, from the render page). What an agent compares with a
   player's screenshot (the player's own image of the game).
+- **Comparison**: a picture laid over the player's screenshot at the scale and offset that fit best (the compare
+  endpoint), with what differs per region (boxes, spacing, colours, text rows) and a comparison picture
+  (screenshot | picture | difference).
 - **UI unit**: the unit of every size and offset of an aura: the UI is 768 units high at UI scale 1, so one unit is
   window height / 768 × UI scale game pixels.
 - **Preview**: what each display of an aura shows in a situation (shown, active conditions, what they changed,

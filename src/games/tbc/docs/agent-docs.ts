@@ -11,6 +11,7 @@ import {
   compactJson,
   displayMediaNotes,
   gameDataSection,
+  itemCountNotes,
   picturesSection,
   pushApiSection,
   situationSection,
@@ -273,6 +274,7 @@ aura while any trigger is active, \`"all"\` while all are. Conditions refer to t
 (\`use_exact_spellName: true\` for exactly that ID). \`genericShowOn\` with \`use_genericShowOn: true\`:
 \`showAlways\`, \`showOnCooldown\`, \`showOnReady\`. \`track\`: \`auto\`, \`cooldown\`, \`charges\`.
 
+${itemCountNotes()}
 ### Other triggers
 
 Every trigger type and event the release has is listed under The addon (generated); the option ↔ table reference has

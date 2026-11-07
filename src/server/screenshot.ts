@@ -77,7 +77,29 @@ class Queue {
  * A PNG of the render page at `url` (absolute, on this server): its picture element once the page marks it ready,
  * transparent where the page has no background, CSS animations stopped.
  */
-export function captureRenderPage(url: string): Promise<Buffer> {
+export async function captureRenderPage(url: string): Promise<Buffer> {
+  return (await captureRender(url)).png;
+}
+
+/** A box in pixels of the render page's picture. */
+export interface PictureBox {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/** A region the render page drew (the compare endpoint's frames and texts). */
+export interface RenderedRegion {
+  auraId: string;
+  regionType: string;
+  box: PictureBox;
+  /** Its shown texts: text sub elements, and a text region's own text. */
+  texts: PictureBox[];
+}
+
+/** The render page's picture (as `captureRenderPage`) and where it drew each region of the aura. */
+export function captureRender(url: string): Promise<{ png: Buffer; regions: RenderedRegion[] }> {
   const queue = (g.__renderQueue ??= new Queue(MAX_CONCURRENT));
   return queue.run(async () => {
     const context = await (await browser()).newContext({ viewport: { width: 256, height: 256 }, deviceScaleFactor: 1 });
@@ -91,7 +113,24 @@ export function captureRenderPage(url: string): Promise<Buffer> {
       const width = Number(await root.getAttribute("data-width"));
       const height = Number(await root.getAttribute("data-height"));
       await page.setViewportSize({ width: Math.max(1, width), height: Math.max(1, height) });
-      return await root.screenshot({ type: "png", omitBackground: true, animations: "disabled", timeout: PAGE_TIMEOUT_MS });
+      const png = await root.screenshot({ type: "png", omitBackground: true, animations: "disabled", timeout: PAGE_TIMEOUT_MS });
+      const regions = await root.evaluate((el): RenderedRegion[] => {
+        const origin = el.getBoundingClientRect();
+        const box = (e: Element) => {
+          const r = e.getBoundingClientRect();
+          return { left: Math.round(r.left - origin.left), top: Math.round(r.top - origin.top), width: Math.round(r.width), height: Math.round(r.height) };
+        };
+        return Array.from(el.querySelectorAll<HTMLElement>("[data-aura-id]"), (region) => ({
+          auraId: region.dataset.auraId ?? "",
+          regionType: region.dataset.regionType ?? "",
+          box: box(region),
+          texts: [
+            ...(region.dataset.regionType === "text" ? [box(region)] : []),
+            ...Array.from(region.querySelectorAll('[data-subregion="subtext"][data-visible="true"]'), box),
+          ],
+        }));
+      });
+      return { png, regions };
     } finally {
       await context.close().catch(() => {});
     }

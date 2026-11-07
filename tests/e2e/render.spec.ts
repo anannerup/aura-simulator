@@ -111,3 +111,39 @@ test("two situations give two different pictures", async ({ request }) => {
   expect(set.status()).toBe(200);
   expect((await screenshot(request, workspace, { padding: "16" })).equals(urgent)).toBe(true);
 });
+
+test("the compare endpoint finds the scale and offset of a screenshot and measures each region", async ({ request }) => {
+  test.setTimeout(300_000);
+  const workspace = uniqueId("render-compare");
+  await push(request, workspace, tbcV1Group);
+  // The player's screenshot stands in as a picture of the group at 1.25 px per unit on a dark background, 4 units around.
+  const shot = await screenshot(request, workspace, { scale: "1.25", padding: "4", background: "303030" });
+  const compare = (query: string) =>
+    request.post(`/api/tbc/workspaces/${workspace}/compare${query}`, { data: shot, headers: { "Content-Type": "image/png" }, timeout: 240_000 });
+  const res = await compare("");
+  expect(res.status(), res.status() === 200 ? "" : await res.text()).toBe(200);
+  const result = await res.json();
+  expect(result.scaleSearched).toBe(true);
+  expect(Math.abs(result.scale - 1.25)).toBeLessThan(0.03);
+  expect(Math.abs(result.offset.x - 5)).toBeLessThanOrEqual(1);
+  expect(Math.abs(result.offset.y - 5)).toBeLessThanOrEqual(1);
+  expect(result.background.colour).toBe("#303030");
+  expect(result.background.uniform).toBeGreaterThan(0.9);
+  expect(result.score).toBeLessThan(10);
+  // Each shown region: its frame in UI units, and what each picture draws there.
+  const icon = result.regions.find((r: { auraId: string }) => r.auraId === "Fire Blast cooldown");
+  expect(icon.layoutUnits.width).toBeCloseTo(64, 0);
+  expect(icon.drawn.screenshot).not.toBeNull();
+  expect(result.spacing).not.toBeNull();
+  expect(result.comparison.png).toMatch(/^data:image\/png;base64,/);
+
+  // With the scale given, the comparison picture itself.
+  const png = await compare("?scale=1.25&image=comparison");
+  expect(png.status()).toBe(200);
+  expect(png.headers()["content-type"]).toBe("image/png");
+  expect(pngSize(await png.body()).width).toBeGreaterThan(pngSize(shot).width * 3);
+
+  // Not a picture: said so.
+  const bad = await request.post(`/api/tbc/workspaces/${workspace}/compare`, { data: "nope", headers: { "Content-Type": "image/png" } });
+  expect(bad.status()).toBe(400);
+});

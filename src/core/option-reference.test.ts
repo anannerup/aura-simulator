@@ -310,6 +310,46 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
       for (const i of indices) expect(reference.entries[i].writes.map((p) => p.replace(/(^|\.)\d+(?=\.|$)/g, "$1#")), path).toContain(path);
     }
   });
+  test("hidden options say what shows them, options say their names in other modes, and choices write their side keys", { timeout: 600_000 }, async (ctx) => {
+    ready(ctx);
+    const on = (option: RegExp) => reference.entries.filter((e) => option.test(e.option.join(".")) && e.scopes.some((s) => s.regionType === "icon" && s.added));
+    // A sub element's X Offset: shown by opening its section, and called "Extra Width" in area mode, "X Offset" in point mode.
+    const xOffset = on(/^sub\.\d+\.subtexture\.xOffset$/);
+    expect(xOffset.length).toBeGreaterThan(0);
+    for (const e of xOffset) {
+      expect(e.hidden).toBe(true);
+      expect(e.shownBy?.some((s) => s.section)).toBe(true);
+      expect(e.modes?.find((m) => sameKey(m.when.option, /anchor_mode$/) && m.when.value === "point")?.name).toBe("X Offset");
+    }
+    const selfPoint = on(/^sub\.\d+\.subtexture\.self_point$/);
+    expect(selfPoint.length).toBeGreaterThan(0);
+    for (const e of selfPoint) expect(e.shownBy?.some((s) => sameKey(s.option, /anchor_mode$/) && s.value === "point")).toBe(true);
+    // Grow writes selfPoint for every choice, the one a new group has too.
+    const grow = reference.entries.find((e) => e.option.join(".") === "dynamicgroup.grow" && e.choices)!;
+    expect(grow.choices!.length).toBe(grow.values!.length);
+    for (const c of grow.choices!) expect(Object.keys(c.wrote).sort(), c.label).toEqual(["grow", "selfPoint"]);
+    // Replayed: setting a shownBy option shows the hidden option (sections aside: they change the editor, not the aura).
+    const wrong: string[] = [];
+    let replayed = 0;
+    for (const entry of reference.entries) {
+      const scope = entry.scopes[0];
+      for (const s of entry.shownBy?.filter((x) => !x.section) ?? []) {
+        const base = baseFor(scope, entry.tab);
+        if (!base) continue;
+        const state = await base;
+        const before = walkOptions(await tree(state, entry.tab)).find((n) => sameKey(n.path, entry.option));
+        if (!before?.hidden) continue; // shown already (its section is open here): nothing to check
+        const edit = await core!.setOption(state, { tab: entry.tab, path: s.option }, s.value);
+        const after = walkOptions(await tree(edit.state, entry.tab)).find((n) => sameKey(n.path, entry.option));
+        replayed++;
+        if (!after || after.hidden) wrong.push(`${JSON.stringify(scope)} ${entry.option.join("/")}: still hidden after ${s.name} = ${JSON.stringify(s.value)}`);
+      }
+    }
+    console.log(`replayed ${replayed} shownBy settings`);
+    expect(replayed).toBeGreaterThan(50);
+    expect(wrong).toEqual([]);
+  });
+
   test("every trigger type's condition checks are there, with the keys replaying each writes", { timeout: 1_200_000 }, async (ctx) => {
     ready(ctx);
     const { conditions } = reference;
@@ -424,6 +464,11 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
     expect(wrong).toEqual([]);
   });
 });
+
+/** An option path as one string matches `key` (a path list compared to a pattern or another path). */
+function sameKey(path: string[], key: RegExp | string[]): boolean {
+  return key instanceof RegExp ? key.test(path.join(".")) : JSON.stringify(path) === JSON.stringify(key);
+}
 
 /** `state` with a condition from the Conditions tab's first Add button. */
 async function withCondition(state: AuraState): Promise<AuraState> {

@@ -31,7 +31,15 @@
  * tab, hidden ones too, is set once from that aura (a select: the first other choice that writes something; buttons
  * with the window's opened/closed sections put back after); then every Add button's new part; then, for selects whose
  * choice writes a whole setting (a condition's If, a property), every choice and the options it reveals; and on an
- * icon, every trigger type and event.
+ * icon, every trigger type and event. A select whose choice writes more than its own key (Grow also writes selfPoint)
+ * records what every choice writes.
+ *
+ * Hidden options: the window hides many options of a new aura (a closed section, a field behind a toggle or a mode).
+ * Before a tab's options are probed, each closed section is opened once, then with every section open each other
+ * value of each shown toggle and short select is set once: what shows a hidden option is its `shownBy`, and an option
+ * whose name changes with another option's value (a sub element's xOffset: "Extra Width" with Anchor Mode "Fill
+ * Area", "X Offset" with "Attach to Point") records the other name in `modes`. One setting at a time: an option that
+ * needs two is left without `shownBy`.
  *
  * The Conditions tab (`conditions`) is generated apart, since If and Then depend on the trigger and the display:
  * for every trigger type and event on an icon's trigger 1, a new condition's every If choice of the trigger (and the
@@ -64,7 +72,27 @@ export interface OptionScope {
   after?: { option: string[]; name: string; choice: string };
 }
 
-/** One choice of a select whose choices write whole settings (e.g. a condition's If: each check). */
+/** One setting of another option of the same tab: what shows a hidden option or changes its name. */
+export interface OptionSetting {
+  /** That option's key path in the tab, and its name. */
+  option: string[];
+  name: string;
+  /** The value set (a select's key); absent for a button pressed (a section's expander). */
+  value?: unknown;
+  /** A select's label of `value`. */
+  label?: string;
+  /** The button opens a closed section of the tab (the window's expanders). */
+  section?: boolean;
+}
+
+/** An option's name and description while another option has a value (`when`, set with the sections open). */
+export interface OptionMode {
+  when: OptionSetting;
+  name: string;
+  desc?: string;
+}
+
+/** One choice of a select whose choices write more than its own key (a condition's If: each check; Grow: selfPoint too). */
 export interface OptionChoice {
   value: LuaKey;
   label: string;
@@ -98,6 +126,16 @@ export interface OptionReferenceEntry {
   default?: unknown;
   /** Hidden on a new aura until another option is set (e.g. a field behind its "use" toggle or a closed section). */
   hidden?: boolean;
+  /**
+   * What shows a hidden option: each is one setting that does (a section's expander opened, or another option set to
+   * a value once the sections are open). Absent on a hidden option: no single setting shows it.
+   */
+  shownBy?: OptionSetting[];
+  /**
+   * Other names (and descriptions) the option has while another option has a value: the same key read in another
+   * mode (a sub element's X Offset is "Extra Width" while its Anchor Mode is "Fill Area", which the probe saw).
+   */
+  modes?: OptionMode[];
   /** Every table path the option's set() changed. Empty: the option only changes the editor or needs a dialog. */
   writes: TablePath[];
   /** A group's options that write its children: the paths changed in each child's table. */
@@ -190,7 +228,7 @@ export interface ConditionReference {
 }
 
 /** The reference's shape and generator version: changes when either does (caches keyed by it regenerate). */
-export const OPTION_REFERENCE_FORMAT = 5;
+export const OPTION_REFERENCE_FORMAT = 6;
 
 export interface OptionReference {
   /** OPTION_REFERENCE_FORMAT of the generator that made it. */
@@ -334,6 +372,14 @@ function valueAt(t: LuaValue | undefined, path: TablePath): LuaValue | undefined
   return cur;
 }
 
+/** Whether a select's choice `value` is written as itself at one of the changed paths (not an index into a list). */
+function isPlainChoice(after: LuaValue, changed: TablePath[], value: unknown): boolean {
+  return changed.some((p) => {
+    const v = valueAt(after, p);
+    return sameJson(v, value) || sameJson(v, [value]);
+  });
+}
+
 /** The reverse index's key for a path: number segments as `#`. */
 export const pathPattern = (path: TablePath) => path.replace(/(^|\.)\d+(?=\.|$)/g, "$1#");
 
@@ -369,6 +415,15 @@ const isExpander = (n: OptionNode) => /^WeakAurasExpand/.test(n.control ?? "");
 /** An option the reference covers: editable fields and buttons (not section expanders, which only change the editor). */
 const isReferenced = (n: OptionNode) =>
   n.path.length > 0 && !n.errors?.get && ((n.canSet === true && EDITABLE.has(n.type)) || (n.type === "execute" && n.canRun === true && !isExpander(n)));
+/** The most choices a select may have to be tried as a mode of other options (Anchor Mode, Grow, a trigger's type). */
+const MODE_CHOICES = 12;
+const truthy = (v: unknown) => v !== undefined && v !== null && v !== false;
+
+/** What shows the options of a tab and their other names, by option path (JSON). */
+interface Revealed {
+  shownBy: OptionSetting[];
+  modes: OptionMode[];
+}
 const isAdd = (n: OptionNode) => n.type === "execute" && n.canRun === true && !n.hidden && !n.disabled && (/^Add\b/.test(n.name ?? "") || /(^|\\)add$/i.test(n.image ?? ""));
 
 function defaultOf(node: OptionNode): unknown {
@@ -463,8 +518,90 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
    * Every place is probed on its own: the same option can write more on another aura (a text aura's trigger type also
    * writes its automaticWidth; Add Trigger also normalizes trigger 1 of some trigger types).
    */
-  const probe = (state: AuraState, tab: string, node: OptionNode, scope: OptionScope): OptionReferenceEntry =>
-    entries[add(measure(state, tab, node), scope)];
+  const probe = (state: AuraState, tab: string, node: OptionNode, scope: OptionScope, reveal?: Revealed): OptionReferenceEntry => {
+    const entry = measure(state, tab, node);
+    if (reveal?.shownBy.length && entry.hidden) entry.shownBy = reveal.shownBy;
+    if (reveal?.modes.length) entry.modes = reveal.modes;
+    return entries[add(entry, scope)];
+  };
+
+  /**
+   * What shows each hidden option of a tab, and the other names options take, on `state`: each closed section opened
+   * (the options it shows), then, with every section open, each other value of each shown toggle and of each select of
+   * up to `MODE_CHOICES` values (the options it shows, the names that change). The window's sections are put back after.
+   */
+  const revealed = (state: AuraState, tab: string): Map<string, Revealed> => {
+    const out = new Map<string, Revealed>();
+    const at = (key: string) => {
+      let r = out.get(key);
+      if (!r) out.set(key, (r = { shownBy: [], modes: [] }));
+      return r;
+    };
+    const view = (s: AuraState) => new Map(walk(tree(s, tab)).map((n) => [JSON.stringify(n.path), n]));
+    const setting = (n: OptionNode, value?: unknown): OptionSetting => {
+      const label = n.type === "select" ? n.values?.find(([k]) => k === value)?.[1] : undefined;
+      return {
+        option: n.path,
+        name: plainText(n.name ?? n.key).trim(),
+        ...(value !== undefined && { value }),
+        ...(label !== undefined && { label: plainText(label).trim() }),
+        ...(n.type === "execute" && { section: true }),
+      };
+    };
+    const options = [...view(state)].filter(([, n]) => isReferenced(n));
+    const asked = new Set(options.filter(([, n]) => n.hidden).map(([k]) => k));
+    src.keepSections(() => {
+      // Sections: each expander pressed once; one that hid options was open, and is pressed again.
+      let shown = view(state);
+      for (const expander of [...shown.values()].filter((n) => isExpander(n) && n.canRun === true && !n.hidden)) {
+        try {
+          src.setOption(state, { tab, path: expander.path }, undefined);
+        } catch {
+          continue;
+        }
+        const next = view(state);
+        if ([...shown].some(([k, n]) => !n.hidden && next.get(k)?.hidden)) {
+          src.setOption(state, { tab, path: expander.path }, undefined);
+          continue;
+        }
+        for (const k of asked) {
+          if (shown.get(k)?.hidden && next.get(k) && !next.get(k)!.hidden) at(k).shownBy.push(setting(expander));
+        }
+        shown = next;
+      }
+      // Modes: every other value of each shown toggle and short select, with the sections open.
+      const modes = [...shown.values()].filter(
+        (n) =>
+          n.canSet === true &&
+          !n.hidden &&
+          !n.disabled &&
+          (n.type === "toggle" || (n.type === "select" && (n.values?.length ?? 0) <= MODE_CHOICES)),
+      );
+      for (const mode of modes) {
+        const values = mode.type === "toggle" ? [!truthy(mode.value)] : (mode.values ?? []).map(([k]) => k).filter((k) => k !== mode.value);
+        for (const v of values) {
+          let edit: OptionEdit;
+          try {
+            edit = src.setOption(state, { tab, path: mode.path }, v);
+          } catch {
+            continue;
+          }
+          if (!edit.changed) continue;
+          const next = view(edit.state);
+          for (const [k, before] of shown) {
+            const after = next.get(k);
+            if (!after || k === JSON.stringify(mode.path) || !isReferenced(before)) continue;
+            if (asked.has(k) && before.hidden && !after.hidden) at(k).shownBy.push(setting(mode, v));
+            const name = plainText(after.name ?? after.key).trim();
+            if (!before.hidden && !after.hidden && name !== plainText(before.name ?? before.key).trim()) {
+              at(k).modes.push({ when: setting(mode, v), name, ...(after.desc && after.desc !== before.desc && { desc: after.desc }) });
+            }
+          }
+        }
+      }
+    });
+    return out;
+  };
 
   /** One option's entry (not recorded): its facts, and what its probe edit (and each choice) wrote on `state`. */
   const measure = (state: AuraState, tab: string, node: OptionNode, choices = true): Omit<OptionReferenceEntry, "scopes"> => {
@@ -509,19 +646,17 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
     if (childWrites) entry.childWrites = childWrites;
     if (node.type !== "execute") entry.probe = { value, wrote: wroteOf(e.state.aura, changed) };
     if (e.dialog) entry.dialog = e.dialog.kind;
-    // A select whose choice writes something other than its key (e.g. an index into the condition checks): each
-    // choice's writes.
+    // A select whose choice writes something other than its key (e.g. an index into the condition checks), or more
+    // than its key (Grow also sets selfPoint): each choice's writes.
     if (choices && node.type === "select" && changed.length > 0 && node.values && node.values.length <= 300) {
-      const plain = changed.some((p) => {
-        const v = valueAt(e.state.aura, p);
-        return sameJson(v, value) || sameJson(v, [value]);
-      });
-      if (!plain) {
+      if (!isPlainChoice(e.state.aura, changed, value) || changed.length > 1) {
         entry.choices = [];
         for (const [v, label] of node.values) {
-          const c = edit(state, tab, node, v);
+          // The choice the aura has writes nothing on it: it is chosen back from the probe's choice instead.
+          const from = sameJson(v, node.value) ? e.state : state;
+          const c = edit(from, tab, node, v);
           if (!c.edit) continue;
-          entry.choices.push({ value: v, label, wrote: wroteOf(c.edit.state.aura, changedPaths(state.aura, c.edit.state.aura)) });
+          entry.choices.push({ value: v, label, wrote: wroteOf(c.edit.state.aura, changedPaths(from.aura, c.edit.state.aura)) });
         }
       }
     }
@@ -582,11 +717,16 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
     collectArrays(state.aura);
     const nodes = walk(tree(state, tab)).filter(isReferenced);
     const here = new Set(nodes.map((n) => JSON.stringify(n.path)));
+    const reveals = follow && nodes.some((n) => !known.has(JSON.stringify(n.path))) ? revealed(state, tab) : new Map<string, Revealed>();
     for (const node of nodes) {
-      if (known.has(JSON.stringify(node.path))) continue;
+      const key = JSON.stringify(node.path);
+      if (known.has(key)) continue;
       await breathe();
-      const entry = probe(state, tab, node, scope);
-      if (!follow) continue;
+      const entry = probe(state, tab, node, scope, reveals.get(key));
+      if (!follow || !entry.probe) continue;
+      // Followed: choices that write a whole setting rather than themselves (a condition's If), whose options differ.
+      const { value: chosen, wrote } = entry.probe;
+      if (Object.values(wrote).some((v) => sameJson(v, chosen) || sameJson(v, [chosen]))) continue;
       for (const choice of entry.choices ?? []) {
         const key = JSON.stringify([scope.regionType, tab, node.path, choice.wrote]);
         if (followed.has(key)) continue;
@@ -692,7 +832,6 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
   };
 
   const triggerKey = /^trigger\.1\.[^.]+\.(type|event)$/;
-  const truthy = (v: unknown) => v !== undefined && v !== null && v !== false;
 
   /**
    * The Conditions tab, generated: every check of If per trigger type and event (on trigger 1 of an icon, with the

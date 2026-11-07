@@ -6,6 +6,7 @@ import {
   compactJson,
   displayMediaNotes,
   gameDataSection,
+  itemCountNotes,
   picturesSection,
   pushApiSection,
   situationSection,
@@ -421,6 +422,7 @@ checks) keeps working. For a known buff or debuff, use Aura (Modern) instead.
 \`showOnCooldown\`, \`showOnReady\`. \`track\`: \`auto\`, \`cooldown\`, \`charges\`. \`desaturateOnCooldown: true\` greys the
 icon while on cooldown. It keeps working in combat: the addon reads readiness even when the game hides the timing.
 ${a ? cooldownVerdicts(a) : ""}
+${itemCountNotes()}
 ### Other triggers
 
 ${a ? generatedTriggerList(a) : "The addon could not be loaded, so the trigger list is missing."}
