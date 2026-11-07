@@ -31,3 +31,4 @@ export type {
 } from "./addon-vm/options";
 export type { CombatStatus, ValidationMessage, ValidationResult } from "./addon-vm/validation";
 export { setTriggerSpellId, triggerCount, triggerSpellId } from "./trigger-spell";
+export { WagoJsonError, fromWagoJson, toWagoJson } from "./wago-json";
