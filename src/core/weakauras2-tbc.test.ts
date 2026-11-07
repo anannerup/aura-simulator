@@ -102,6 +102,33 @@ describe("full VM", () => {
     expect(labels("multiselect_itemtypeequipped")).toContain("Two-Handed Swords");
     expect(labels("multiselect_talent").length).toBeGreaterThan(50);
   });
+
+  test("the editor registers nested groups as the game's import does: no addon errors for any of them", async (ctx) => {
+    const c = tbc(ctx);
+    const init = { init: { do_custom: true, custom: "aura_env.ready = true" }, start: {}, finish: {} };
+    const g = { ...(await c.newAura("group")), id: "G", controlledChildren: ["S"] };
+    const s = { ...(await c.newAura("group")), id: "S", parent: "G", controlledChildren: ["A"] };
+    const a = {
+      ...(await c.newAura("icon")),
+      id: "A",
+      parent: "S",
+      actions: init,
+      triggers: {
+        "[1]": {
+          trigger: { type: "custom", custom_type: "stateupdate", custom: "function(allstates) return false end", events: "PLAYER_TARGET_CHANGED" },
+          untrigger: [],
+        },
+      },
+    };
+    const problems: string[] = [];
+    for (const state of [{ aura: g, children: [s, a] }, { aura: s, children: [a] }, { aura: a, children: [] }]) {
+      for (const { key } of (await c.options(state)).tabs) {
+        const r = await c.options(state, { tab: key });
+        if (r.error || r.warning) problems.push(`${state.aura.id} ${key}: ${r.error ?? r.warning}`);
+      }
+    }
+    expect(problems).toEqual([]);
+  });
 });
 
 describe("validation", () => {
@@ -127,6 +154,16 @@ describe("validation", () => {
     const result = await c.validate({ aura, children: [] });
     expect(result).not.toHaveProperty("combat");
     expect([...result.errors, ...result.warnings].filter((m) => /^(combat|modern)\./.test(m.code))).toEqual([]);
+  });
+
+  test("the Talent load option works: C_SpecializationInfo.GetTalentInfo answers (2.5.6 API docs, FrameXML's GetTalentInfo)", async (ctx) => {
+    const c = tbc(ctx);
+    const state = await newState(c, "icon");
+    const aura = { ...state.aura, load: { use_class: true, class: { single: "SHAMAN", multi: [] }, use_talent: true, talent: { single: 1, multi: [] } } };
+    const result = await c.validate({ aura, children: [] });
+    expect([...result.errors, ...result.warnings]).toEqual([]);
+    const load = await c.options({ aura, children: [] }, { tab: "load" });
+    expect(load.error).toBeUndefined();
   });
 
   test("a large real pack with custom code runs without Lua errors (wago 6N_i-H6uI, Clickable Consumables)", async (ctx) => {

@@ -95,34 +95,55 @@ local function deleteCurrent()
   return kept
 end
 
--- Registers the aura (and, for a group, its children first) and makes it the edited aura.
+-- Registers the aura (and, for a group, its descendants) and makes it the edited aura, in the two phases of the game's
+-- import (WeakAurasOptions/OptionsFrames/Update.lua, ImportPhase1/ImportPhase2): first every aura top-down without its
+-- parent and children (GetPhase1Data), then every aura bottom-up as it is. Adding a group walks its children
+-- (ScanForLoadsGroup) and adding a child makes its parents' regions (EnsureRegion), so in one pass either order fails
+-- for nested groups. Descendants come in export order (each group before its children).
+-- An Add that raises (in the game: a Lua error) is reported as the load warning; the editor shows what was registered.
+-- Not for the edited aura when it is in a group: the editor gets only the aura and its descendants, so its parent is
+-- not registered, and adding a nested group fails on that (EnsureRegion walks up to it) where the game has the parent.
 function O.load(input, children)
   setup()
   local kept = deleteCurrent()
-  local kids = {}
-  for _, child in ipairs(children or {}) do
-    local c = X.prepare(child)
-    if type(c.uid) ~= "string" then
+  local function prepared(doc)
+    local d = X.prepare(doc)
+    if type(d.uid) ~= "string" then
       uidCounter = uidCounter + 1
-      c.uid = "__aurasimE" .. uidCounter
+      d.uid = "__aurasimE" .. uidCounter
     end
-    pcall(WeakAuras.Add, c)
-    kids[#kids + 1] = { uid = c.uid, input = deepcopy(child) }
+    return d
   end
-  local data = X.prepare(input)
-  if type(data.uid) ~= "string" then
-    uidCounter = uidCounter + 1
-    data.uid = "__aurasimE" .. uidCounter
+  local data = prepared(input)
+  local order, kids = { data }, {}
+  for i, child in ipairs(children or {}) do
+    local c = prepared(child)
+    order[#order + 1] = c
+    kids[i] = { uid = c.uid, input = deepcopy(child) }
   end
   local collapsed = collapsedTable()
   if kept and collapsed and kept.id == data.id then collapsed[data.id] = kept.state end
-  local r = B.try(WeakAuras.Add, data)
+  local raised = {}
+  local function add(d, report)
+    local r = B.try(WeakAuras.Add, d)
+    if not r.ok and report ~= false then raised[#raised + 1] = tostring(d.id) .. ": " .. (r.error:match("^[^\n]*") or r.error) end
+    return r
+  end
+  for _, d in ipairs(order) do
+    local phase1 = deepcopy(d)
+    phase1.parent = nil
+    if phase1.controlledChildren then phase1.controlledChildren = {} end
+    if phase1.sortHybridTable then phase1.sortHybridTable = {} end
+    add(phase1)
+  end
+  for i = #order, 2, -1 do add(order[i]) end
+  local r = add(data, data.parent == nil)
   session = { uid = data.uid, input = deepcopy(input), children = kids }
   if not currentData() then
     session = nil
     return { ok = false, error = r.error or "The addon did not register the aura" }
   end
-  return { ok = true }
+  return { ok = true, warning = #raised > 0 and table.concat(raised, "\n") or nil }
 end
 
 ---------------------------------------------------------------------------------------------------

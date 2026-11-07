@@ -26,6 +26,7 @@ export interface ValidationMessage {
    * - `combat.hiddenValues`: in combat the game hides values this trigger compares;
    * - `defaults.error`: the addon failed while filling defaults / migrating;
    * - `defaults.message`: a line the addon printed while filling defaults (an error when it says ERROR);
+   * - `add.error`: the addon's WeakAuras.Add raised a Lua error for the aura, so it was not registered;
    * - `addon.<key>`: a warning the addon raised when the aura was added (e.g. `addon.forever_combat_log`);
    *   `addon.LuaError` when running the aura in the simulated client raised a Lua error.
    */
@@ -165,6 +166,19 @@ function interpretOne(raw: RawValidation, auraId: string | undefined): Required<
 
   for (const e of [...(raw.prepare.handlerErrors ?? []), ...(raw.prepare.error ? [raw.prepare.error] : [])]) {
     errors.push(tag({ code: "defaults.error", severity: "error", message: `The addon failed while filling defaults: ${e}` }));
+  }
+  if (raw.add && !raw.add.ok) {
+    const detail = raw.add.error?.split("\n")[0];
+    errors.push(
+      tag({
+        code: "add.error",
+        severity: "error",
+        message:
+          "Adding this aura in the simulated client raised a Lua error" +
+          (detail ? ` (${detail})` : "") +
+          ", so the addon did not register it. If the aura has custom code, check it; otherwise the simulator lacks something the game has.",
+      }),
+    );
   }
   for (const line of raw.prepare.prints ?? []) {
     const isError = /ERROR/.test(line);
