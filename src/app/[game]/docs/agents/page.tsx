@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { connection } from "next/server";
 import { findServerGame } from "@/games/server";
 import type { ServerGame } from "@/server/game";
 import { requestOrigin } from "@/server/request-origin";
@@ -9,6 +10,9 @@ import styles from "./docs.module.css";
 
 type Props = PageProps<"/[game]/docs/agents">;
 
+/** The docs depend on the request (origin, addon version, release list): rendered per request, not validated as instant. */
+export const instant = false;
+
 /** The page names its plain Markdown twin in the head too, for tools that read links rather than text. */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { game } = await params;
@@ -16,6 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 async function Docs({ params, searchParams }: Props) {
+  await connection(); // the docs read the release list and the clock: always at request time
   const server: ServerGame = findServerGame((await params).game)!; // the layout answers 404 for other ids
   const { ref } = await searchParams;
   const markdown = await server.agentDocs(requestOrigin(await headers()), typeof ref === "string" ? ref : null);
