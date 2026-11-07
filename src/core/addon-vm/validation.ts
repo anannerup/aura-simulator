@@ -30,6 +30,7 @@ export interface ValidationMessage {
    *   the aura uses that a stock client with only this addon doesn't have, so the game draws the type's default;
    * - `media.texture` (info): a texture the game can't draw (not in the game's file list, or in another addon's
    *   folder), added by the server's push check (`src/server/media-check.ts`);
+   * - `add.error`: the addon's WeakAuras.Add raised a Lua error for the aura, so it was not registered;
    * - `addon.<key>`: a warning the addon raised when the aura was added (e.g. `addon.forever_combat_log`);
    *   `addon.LuaError` when running the aura in the simulated client raised a Lua error.
    */
@@ -212,6 +213,19 @@ function interpretOne(raw: RawValidation, auraId: string | undefined): Required<
 
   for (const e of [...(raw.prepare.handlerErrors ?? []), ...(raw.prepare.error ? [raw.prepare.error] : [])]) {
     errors.push(tag({ code: "defaults.error", severity: "error", message: `The addon failed while filling defaults: ${e}` }));
+  }
+  if (raw.add && !raw.add.ok) {
+    const detail = raw.add.error?.split("\n")[0];
+    errors.push(
+      tag({
+        code: "add.error",
+        severity: "error",
+        message:
+          "Adding this aura in the simulated client raised a Lua error" +
+          (detail ? ` (${detail})` : "") +
+          ", so the addon did not register it. If the aura has custom code, check it; otherwise the simulator lacks something the game has.",
+      }),
+    );
   }
   for (const line of raw.prepare.prints ?? []) {
     const isError = /ERROR/.test(line);

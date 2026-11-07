@@ -51,10 +51,25 @@ function GetNumTalents(tab)
   for _, t in ipairs((playerTalents())) do if t.tab == tab then n = n + 1 end end
   return n
 end
-function GetTalentInfo(tab, index)
+-- UNVERIFIED: C_SpecializationInfo.GetTalentInfo(query) (SpecializationInfoDocumentation.lua: TalentInfoQuery ->
+-- TalentInfoResult, nil when there is no such talent). The simulated character has spent no points (rank 0).
+local function talentInfo(query)
+  if type(query) ~= "table" then return nil end
   for _, t in ipairs((playerTalents())) do
-    if t.tab == tab and t.index == index then return t.name, t.icon, t.tier, t.column, 0, t.maxRank end
+    if t.tab == query.specializationIndex and t.index == query.talentIndex then
+      return { talentID = 0, name = t.name, icon = t.icon, tier = t.tier, column = t.column, rank = 0,
+        maxRank = t.maxRank, previewRank = 0, selected = false, available = true, spellID = 0, known = false,
+        meetsPrereq = true, meetsPreviewPrereq = true, isPVPTalentUnlocked = false, grantedByAura = false }
+    end
   end
+end
+-- FrameXML's own wrapper (Blizzard_DeprecatedSpecialization/Deprecated_Specialization_TBC.lua).
+function GetTalentInfo(tabIndex, talentIndex, isInspect, isPet, groupIndex)
+  local info = C_SpecializationInfo.GetTalentInfo({ specializationIndex = tabIndex, talentIndex = talentIndex,
+    isInspect = isInspect, isPet = isPet, groupIndex = groupIndex })
+  if not info then return nil end
+  return info.name, info.icon, info.tier, info.column, info.rank, info.maxRank, info.meetsPrereq, info.previewRank,
+    info.meetsPreviewPrereq, info.isExceptional, info.hasGoldBorder, info.talentID
 end
 function GetTalentTabInfo(tab)
   local _, tabs = playerTalents()
@@ -155,9 +170,10 @@ C_GameRules = S.stubFallback({ IsHardcoreActive = function() return false end },
 -- UNVERIFIED: no class specializations on TBC (classic talents; WeakAuras2's TBC load options have no spec).
 -- The 2.5.6 API docs do list C_SpecializationInfo; its spec queries are answered "none" so the addon takes its
 -- classic paths, as for Forever, instead of the auto-stub's "exists, returns nil".
+-- GetTalentInfo is there (the talent load option's check, Compatibility.lua's Private.ExecEnv.GetTalentInfo, needs it).
 local noSpecs = { GetSpecialization = true, GetNumSpecializationsForClassID = true, GetActiveSpecGroup = true,
-  GetSpecializationInfo = true, GetTalentInfo = true }
-C_SpecializationInfo = setmetatable({}, { __index = function(t, k)
+  GetSpecializationInfo = true }
+C_SpecializationInfo = setmetatable({ GetTalentInfo = talentInfo }, { __index = function(t, k)
   if noSpecs[k] then return nil end
   local stub = S.makeStub("C_SpecializationInfo." .. tostring(k))
   rawset(t, k, stub)

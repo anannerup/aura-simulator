@@ -415,6 +415,16 @@ function frameMethods:SetAttribute(k, v) local a = rawget(self, "__attr") or {} 
 function frameMethods:GetID() return rawget(self, "__id") or 0 end
 function frameMethods:SetID(v) rawset(self, "__id", v) end
 
+-- AnimationGroup:CreateAnimation / GetAnimations (Widget API): the group's animations, in the order made.
+function frameMethods:CreateAnimation(kind, name, ...)
+  local a = newFrame(kind or "Animation", name, self)
+  local list = rawget(self, "__animations") or {}
+  rawset(self, "__animations", list)
+  list[#list + 1] = a
+  return a
+end
+function frameMethods:GetAnimations() return unpack(rawget(self, "__animations") or {}) end
+
 -- Widget API methods start with a verb; anything else read from a frame is a plain field (nil).
 local methodVerbs = { "Set", "Get", "Is", "Has", "Enable", "Disable", "Register", "Unregister", "Clear",
   "Create", "Show", "Hide", "Start", "Stop", "Play", "Pause", "Raise", "Lower", "Add", "Remove", "Hook",

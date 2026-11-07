@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { getField, num, type AuraRenderState, type LuaTable } from "@/core";
 import { color, rgbaCss } from "../color";
+import { WowString } from "../WowString";
 import { regionInfo } from "../region-types";
 import { anchorFraction } from "../screen/geometry";
 import { fontFlagsStyle, textWidthStyle, useWowFont } from "../fonts";
@@ -76,7 +77,7 @@ export function SubText({
       data-visible={visible ? "true" : "false"}
       data-font={font.status}
     >
-      {text}
+      <WowString text={text} />
     </span>
   );
 }
