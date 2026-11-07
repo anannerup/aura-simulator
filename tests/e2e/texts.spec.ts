@@ -68,5 +68,12 @@ for (const game of ["tbc", "forever"]) {
     expect(a.y / unit).toBeCloseTo(-10, 0); // up in the game is up on the screen
     expect(Math.abs(b.x / unit)).toBeLessThan(1);
     expect(Math.abs(b.y / unit)).toBeLessThan(1);
+
+    // A picture is the aura as the game draws it: no simulator badge over it (the preview's notEvaluated says it).
+    await page.goto(`/${game}/render?w=${workspace}&aura=Texts`);
+    const picture = page.getByTestId("aura-render");
+    await expect(picture).toHaveAttribute("data-ready", "true", { timeout: 90_000 });
+    await expect(picture.locator('[data-aura-id="Texts"]')).toBeVisible();
+    await expect(picture.getByTestId("custom-code-marker")).toHaveCount(0);
   });
 }

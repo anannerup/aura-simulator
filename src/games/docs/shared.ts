@@ -295,7 +295,8 @@ and per display (a group's children each, not the group):
   its situation says "present", like any trigger), \`"condition 1: custom check"\` (a custom check never holds here),
   \`"condition 2: Run Custom Code"\`, \`"custom text (%c)"\`, \`"On Init custom code"\`/On Show/On Hide, and
   \`"start animation: custom function"\`. The game screen marks such a display with a dashed **Lua** badge (hover
-  lists the parts). Its preview shows only what the plain options do; check those parts in game.
+  lists the parts; pictures from the screenshot endpoint leave it out, as the game would). Its preview shows only
+  what the plain options do; check those parts in game.
 
 To show that an aura works, push it, then set each situation the request names (the buff missing, under 3 minutes
 left, the target gone, …) and check \`shown\`, \`changed\`, \`glows\` and \`texts\`. The player sees the same on the open
