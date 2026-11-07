@@ -8,6 +8,7 @@ import {
   conditionProblem,
   DEFAULT_SITUATION,
   evaluateAura,
+  formatTime,
   loadAddon,
   setInCombat,
   withTrigger,
@@ -24,7 +25,6 @@ import {
   secretWithCombatCondition,
   targetDebuffAura2,
 } from "@/games/forever/examples";
-import { formatSubText, formatTime } from "@/render/text-format";
 import { cachedAddonFetcher } from "../support/addon-source";
 
 const REF = "v1.15.0";
@@ -317,9 +317,8 @@ describe("text formatting (Types.lua:355-470, dynamic_texts)", () => {
   });
 
   it("precision and threshold come from the sub-region's format options", () => {
-    const state = evaluateAura(targetDebuffAura2, sit({ remaining: 12.34, duration: 30 }));
-    const states = new Map([[0, state.dynamic]]);
     const element = { type: "subtext", text_text: "%p | %s | %%", text_text_format_p_time_precision: 2, text_text_format_p_time_dynamic_threshold: 20 };
-    expect(formatSubText(element, { states, name: "x" })).toBe("12.34 |  | %");
+    const state = evaluateAura({ ...targetDebuffAura2, subRegions: [element] }, sit({ remaining: 12.34, duration: 30 }));
+    expect(state.texts[1].text).toBe("12.34 |  | %");
   });
 });

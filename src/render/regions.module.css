@@ -124,3 +124,10 @@
   text-align: center;
   word-break: break-word;
 }
+
+/* Custom text (%c) the simulator doesn't evaluate: drawn as a marked placeholder, never silently left out. */
+.customText {
+  outline: calc(1px / var(--css-per-unit, 1)) dashed rgb(160 180 255 / 0.9);
+  color: rgb(200 212 255);
+  pointer-events: auto;
+}

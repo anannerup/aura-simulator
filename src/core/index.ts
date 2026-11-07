@@ -20,10 +20,10 @@ export {
   withTrigger,
 } from "./situation";
 export type { Situation, TriggerInfo, TriggerKind, TriggerSituation } from "./situation";
-export { auraRules, conditionProblem, evaluateAura, evaluateTbcAura } from "./conditions";
-export type { AuraRenderState, AuraRules, ConditionProblem, GlowState, TriggerState } from "./conditions";
+export { auraRules, conditionProblem, customTextMarker, evaluateAura, evaluateTbcAura, formatTime } from "./conditions";
+export type { AuraRenderState, AuraRules, ConditionProblem, DrawnText, GlowState, TextPart, TriggerState } from "./conditions";
 export { previewSituation } from "./conditions/preview";
-export type { DisplayPreview, SituationPreview } from "./conditions/preview";
+export type { DisplayPreview, SituationPreview, TextPreview } from "./conditions/preview";
 export { findStateCodes, isStateCode } from "./state-code";
 export { plainText } from "./wow-text";
 export type { LuaKey, LuaObject, LuaTable, LuaValue } from "./lua-value";

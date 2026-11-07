@@ -5,7 +5,7 @@
  * Auras and WeakAuras2.
  */
 import { describe, expect, it } from "vitest";
-import { auraRules, DEFAULT_SITUATION, withTrigger, type AddonGameId, type AuraDocument, type LuaObject, type Situation } from "@/core";
+import { auraRules, DEFAULT_SITUATION, previewSituation, withTrigger, type AddonGameId, type AuraDocument, type LuaObject, type Situation } from "@/core";
 
 const GAMES: AddonGameId[] = ["tbc", "forever"];
 
@@ -81,5 +81,61 @@ describe.each(GAMES)("%s: show options of triggers the situation has only as pre
     expect([active(atLeastTwo, true, 1), active(atLeastTwo, true, 2), active(atLeastTwo, false, 5)]).toEqual([false, true, false]);
     // The filter's operator defaults to == (GenericTrigger.lua singleTest).
     expect(active({ ...itemCount, use_count: true, count: 3 }, true, 3)).toBe(true);
+  });
+});
+
+const subtext = (text_text: string, more: LuaObject = {}): LuaObject => ({ type: "subtext", text_text, text_visible: true, ...more });
+
+describe.each(GAMES)("%s: what each text draws (SubText.lua ChangeText, WeakAuras.lua ReplacePlaceHolders)", (game) => {
+  const rules = auraRules(game);
+  const consumable = icon([{ type: "aura2", unit: "player", auranames: ["Well Fed"], useName: true, matchesShowOn: "showAlways" }, itemCount], {
+    subRegions: [{ type: "subbackground" }, subtext("%2.s"), subtext("", { text_visible: false }), subtext("Food")],
+    conditions: [
+      {
+        check: { trigger: 2, variable: "stacks", op: "==", value: "0" },
+        changes: [{ property: "sub.2.text_visible", value: false }, { property: "sub.3.text_visible", value: true }],
+      },
+    ],
+  });
+
+  it("formats each sub text with its trigger's values, from the same evaluation the game screen draws", () => {
+    const r = rules.evaluate(consumable, situation([2, { present: true, stacks: 8 }]));
+    expect(r.texts[2]).toMatchObject({ text: "8", visible: true, customText: false });
+    expect(r.texts[3]).toMatchObject({ text: "", visible: false });
+    expect(r.texts[4]).toMatchObject({ text: "Food", visible: true });
+  });
+
+  it("a condition that only shows an empty text draws nothing; one that changes the text draws the new text", () => {
+    expect(rules.evaluate(consumable, situation([2, { present: false }])).texts[3]).toMatchObject({ text: "", visible: true });
+    const dash = {
+      ...consumable,
+      conditions: [
+        { check: { trigger: 2, variable: "stacks", op: "==", value: 0 }, changes: [{ property: "sub.3.text_visible", value: true }, { property: "sub.3.text_text", value: "-" }] },
+      ],
+    };
+    expect(rules.evaluate(dash, situation([2, { present: false }])).texts[3]).toMatchObject({ text: "-", visible: true });
+  });
+
+  it("custom text (%c, %c2) is not evaluated: it draws a marker and says so", () => {
+    const custom = icon([itemCount], { subRegions: [subtext("%c / %c2 left")], customText: "function() return 'x', 'y' end" });
+    expect(rules.evaluate(custom, situation([1, { present: true, stacks: 1 }])).texts[1]).toEqual({
+      text: "[%c] / [%c2] left",
+      visible: true,
+      customText: true,
+      parts: [{ custom: "c" }, " / ", { custom: "c2" }, " left"],
+    });
+  });
+
+  it("the preview reports what each text draws, custom text marked as not evaluated", () => {
+    const custom = { ...consumable, subRegions: [...(consumable.subRegions as LuaObject[]), subtext("%c")], customText: "function() return 'x' end" };
+    const preview = previewSituation({ aura: custom, children: [] }, situation([2, { present: true, stacks: 8 }]), game);
+    expect(preview.displays[0].texts).toEqual([
+      { subRegion: 2, text: "8", visible: true },
+      { subRegion: 3, text: "", visible: false },
+      { subRegion: 4, text: "Food", visible: true },
+      { subRegion: 5, text: "[%c]", visible: true, customText: "not evaluated" },
+    ]);
+    const text = previewSituation({ aura: { ...icon([itemCount]), regionType: "text", displayText: "%s left" }, children: [] }, situation([1, { present: true, stacks: 5 }]), game);
+    expect(text.displays[0].displayText).toEqual({ text: "5 left" });
   });
 });

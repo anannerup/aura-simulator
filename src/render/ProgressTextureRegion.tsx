@@ -25,7 +25,7 @@ function drawsNatively(state: AuraRenderState): boolean {
  * between start and end angle), with crop, texture rotation, mirror, user offset and the whole-quad rotation
  * (`auraRotation`). Geometry in `progress-texture.ts`.
  */
-export function ProgressTextureRegion({ aura, state, name, width, height, anim }: RegionProps) {
+export function ProgressTextureRegion({ aura, state, width, height, anim }: RegionProps) {
   const p = state.properties;
   const dynamic = state.dynamic;
   const inverse = p.inverse === true;
@@ -67,7 +67,7 @@ export function ProgressTextureRegion({ aura, state, name, width, height, anim }
   );
   return (
     <div className={styles.regionFrame} data-orientation={orientation} data-native={native ? "true" : "false"}>
-      <SubRegions aura={aura} state={state} host={regionHost("progresstexture", width, height)} name={name} background={background} />
+      <SubRegions aura={aura} state={state} host={regionHost("progresstexture", width, height)} background={background} />
     </div>
   );
 }

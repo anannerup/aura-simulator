@@ -36,6 +36,7 @@ import {
   secretTrigger,
   textKind,
 } from "./secret-aura-rules";
+import { auraTexts } from "./text";
 import { aura2State, timer, triggerState, unitExists, type TriggerState } from "./triggers";
 
 /** An Aura (Modern) condition the addon rejects: while there is one, the aura's generic conditions don't run. */
@@ -197,6 +198,7 @@ export function evaluateAura(aura: AuraDocument, situation: Situation, problem?:
     heldInCombat,
     nativeStackText,
     glows: glowStates(aura, properties),
+    ...auraTexts(aura, properties, states, dynamic, nativeStackText),
   };
 }
 

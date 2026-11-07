@@ -1,34 +1,18 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { getField, num, type AuraDocument, type AuraRenderState } from "@/core";
+import { num } from "@/core";
 import { fontFlagsStyle, textWidthStyle, useWowFont } from "./fonts";
 import { color, rgbaCss } from "./color";
-import { formatText, textValues } from "./text-format";
+import { DrawnTextParts } from "./DrawnTextParts";
 import type { RegionProps } from "./region-types";
-
-
-/** The text a text region shows (Text.lua:330-345): format codes replaced; an empty result shows as " "; `\n` breaks lines. */
-function displayText(aura: AuraDocument, state: AuraRenderState, name: string): string {
-  const raw = state.properties.displayText ?? "%p";
-  const source = typeof raw === "string" ? raw : String(raw);
-  const text = formatText(
-    source,
-    (key) => {
-      const v = getField(aura, `displayText_format_${key}`);
-      return typeof v === "number" ? v : undefined;
-    },
-    textValues(state, name),
-  ).replace(/\\n/g, "\n");
-  return text === "" ? " " : text;
-}
 
 /**
  * The text region (RegionTypes/Text.lua): a font string sized by its text ("Auto" width) or `fixedWidth` wide
  * with word wrap or elide. Font, size, outline, shadow, colour and justify as in the game. The preview pins the
- * region at its anchor by `selfPoint`; its size comes from the text.
+ * region at its anchor by `selfPoint`; its size comes from the text, the evaluation's `displayText` (Text.lua:330-345).
  */
-export function TextRegion({ aura, state, name }: RegionProps) {
+export function TextRegion({ aura, state }: RegionProps) {
   const p = state.properties;
   const font = useWowFont(aura.font);
   const justify = typeof aura.justify === "string" ? aura.justify.toLowerCase() : "left";
@@ -50,7 +34,7 @@ export function TextRegion({ aura, state, name }: RegionProps) {
   };
   return (
     <span style={style} data-testid="text-region" data-font={font.status}>
-      {displayText(aura, state, name)}
+      <DrawnTextParts text={state.displayText} />
     </span>
   );
 }

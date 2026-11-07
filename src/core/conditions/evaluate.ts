@@ -8,6 +8,7 @@ import { entries, field, finite, getField, isLuaTable, list, type LuaTable, type
 import type { SituationFacts } from "../situation";
 import { compare } from "./compare";
 import { regionDefaults, subRegionDefaults } from "./region-defaults";
+import type { DrawnText } from "./text";
 import type { TriggerState } from "./triggers";
 
 export interface GlowState {
@@ -42,6 +43,10 @@ export interface AuraRenderState {
   nativeStackText: Record<number, string>;
   /** Glow sub-regions with their computed state. */
   glows: GlowState[];
+  /** What each sub text draws, by its 1-based place in `subRegions` (`text.ts`): the game screen and the preview read these. */
+  texts: Record<number, DrawnText>;
+  /** A text region's own text. */
+  displayText?: DrawnText;
 }
 
 export function parseSubPath(path: string): { position: number; key: string } | undefined {

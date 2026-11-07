@@ -252,9 +252,15 @@ export const SHARED_PORTS: SharedPort[] = [
     foreverOnly: ["WeakAuras/TextStyle.lua"],
   },
   {
-    module: "src/render/text-format.ts",
-    files: ["WeakAuras/Types.lua", "WeakAuras/Prototypes.lua"],
+    module: "src/core/conditions/text.ts",
+    files: ["WeakAuras/Types.lua", "WeakAuras/Prototypes.lua", "WeakAuras/SubRegionTypes/SubText.lua", "WeakAuras/WeakAuras.lua"],
     differs: {
+      "WeakAuras/SubRegionTypes/SubText.lua":
+        "ChangeText (a condition's sub.N.text_text) and the text update are the same; Musca splits helpers out and " +
+        "adds native-text and secret-value paths.",
+      "WeakAuras/WeakAuras.lua":
+        "ReplacePlaceHolders and the custom text placeholders (%c, %cN) are the same; Musca's differences are " +
+        "elsewhere in the file (native-display anchors, combat deferral, secret values).",
       "WeakAuras/Types.lua":
         "The timed formatters the module ports are the same; WeakAuras2's extra format 2 ('Modern Blizzard') is " +
         "retail-only (false on TBC), and Musca adds secret-number guards.",

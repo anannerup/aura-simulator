@@ -88,7 +88,7 @@ export function StopMotionFrame({
  * `frameRate` from when the aura shows, or follows the dynamic trigger's elapsed share in "progress" mode; and an
  * optional background showing one fixed frame (`backgroundPercent`).
  */
-export function StopMotionRegion({ aura, state, name, width, height }: RegionProps) {
+export function StopMotionRegion({ aura, state, width, height }: RegionProps) {
   const p = state.properties;
   const seconds = useRegionClock();
   const fgTexture = typeof aura.foregroundTexture === "string" ? aura.foregroundTexture : DEFAULT_STOP_MOTION_TEXTURE;
@@ -137,7 +137,7 @@ export function StopMotionRegion({ aura, state, name, width, height }: RegionPro
   );
   return (
     <div className={styles.regionFrame} data-animation-type={String(animationType)}>
-      <SubRegions aura={aura} state={state} host={regionHost("stopmotion", width, height)} name={name} background={background} />
+      <SubRegions aura={aura} state={state} host={regionHost("stopmotion", width, height)} background={background} />
     </div>
   );
 }
