@@ -423,8 +423,12 @@ the server on first use.
 
 ### Items
 
-- \`GET /api/${game}/items/search?q=<name or ID>&limit=<1-100>\` → \`{"query", "build", "limit", "total", "results"}\`,
-  best matches first (every word must occur; a number also matches the ID; 20 results by default, at most 100).
+- \`GET /api/${game}/items/search?q=<name or ID>&icon=<icon>&offset=<0…>&limit=<1-100>\` → \`{"query", "icon", "build",
+  "offset", "limit", "total", "results"}\`, best matches first (every word must occur; a number also matches the ID;
+  20 results by default, at most 100). Page with \`offset\` (add \`limit\` while \`offset\` < \`total\`).
+- **Items by icon:** \`icon\` is a FileDataID, an \`Interface\\Icons\\\` path or an icon name (\`INV_Potion_72\`); alone it
+  lists every item with that icon, with \`q\` the matching ones. The answer's \`icon\` is the icon it resolved to
+  (\`{"id", "name", "path", "iconUrl"}\`); 404 when the game has no such icon.
 - \`GET /api/${game}/items/<id>\` → one item; 404 when the game has none.
 - An item: \`id\`, \`name\`, \`quality\` (0 Poor … 7 Heirloom) and \`qualityName\`, \`itemLevel\`, \`classId\`/\`subclassId\`,
   \`iconFileId\` (a FileDataID: what \`displayIcon\` takes), \`icon\` (name), \`iconPath\` (\`Interface\\Icons\\NAME\`),
@@ -432,11 +436,25 @@ the server on first use.
 
 ### Icons
 
-- \`GET /api/${game}/icons/search?q=<words of the name, or a path>&limit=<1-100>\` → \`{"query", "build", "limit",
-  "total", "results": [{"id", "name", "path", "iconUrl"}]}\`: the game's icons (\`Interface\\Icons\\\`) by name. \`id\`
-  (FileDataID) and \`path\` both work as \`displayIcon\` or as a texture. Icon names are words joined by \`_\`
-  (\`INV_Misc_Food_86_Basilisk\`): search for some of them (\`food basilisk\`), or look at \`iconUrl\` to compare with a
-  screenshot.
+- \`GET /api/${game}/icons/search?q=<words of the name, or a path>&offset=<0…>&limit=<1-100>\` → \`{"query", "build",
+  "offset", "limit", "total", "results": [{"id", "name", "path", "iconUrl"}]}\`: the game's icons (\`Interface\\Icons\\\`)
+  by name. \`id\` (FileDataID) and \`path\` both work as \`displayIcon\` or as a texture. Icon names are words joined by
+  \`_\` (\`INV_Misc_Food_86_Basilisk\`): search for some of them (\`food basilisk\`). More than \`limit\` match: page
+  with \`offset\` up to \`total\` ("potion" has well over 100).
+- **Icons that look like a crop:** \`POST /api/${game}/icons/similar?q=<optional name filter>&colour=auto|colour|grey&offset=&limit=\`
+  with the screenshot's icon cropped out as the body (PNG, JPEG or WebP, up to 8 MB; or a multipart form's \`image\`).
+  It compares the crop with the game's icon files and answers \`{"status": "ok", "mode", "saturation", "total",
+  "closeToBest", "unavailable", "results": [{"id", "name", "path", "iconUrl", "distance", "zoom", "uploadInset"}]}\`,
+  best first: \`distance\` 0-1 (lower is closer), \`zoom\` the icon \`zoom\` it matched at (write it to the aura), and
+  \`uploadInset\` how much of the crop's edge it ignored (a border or background around the icon).
+  - \`colour=grey\` compares brightness only, for a **desaturated** icon in the screenshot (an icon on cooldown,
+    \`desaturate\`); \`auto\` (the default) picks grey when the crop has almost no colour (\`mode\` says which).
+  - **Icons of one family can differ only in colour** (the same potion in red, blue and green): in grey mode they tie.
+    \`closeToBest\` counts the icons about as close as the best; above 1, check those candidates' \`iconUrl\` and pick by
+    what the aura is for (the spell or item it tracks).
+  - Without \`q\` it compares every icon, which needs the server's index of icon pictures: the first time it answers
+    202 \`{"status": "indexing", "indexed", "total", "retryAfter"}\` while it builds (a few minutes, once). Retry, or pass
+    \`q\` (a word of the name: \`potion\`) to compare just those now (up to 300 not yet indexed).
 
 ### Game files
 
@@ -463,6 +481,7 @@ a SharedMedia font), pick the closest listed font and tell the player which one 
 curl -s '${o}/api/${game}/items/search?q=${encodeURIComponent(item.name)}'
 curl -s ${o}/api/${game}/items/${item.id}
 curl -s '${o}/api/${game}/icons/search?q=${encodeURIComponent(icon)}'
+curl -s -X POST --data-binary @icon.png -H 'Content-Type: image/png' '${o}/api/${game}/icons/similar?q=potion'
 curl -s '${o}/api/${game}/files?path=Interface%5CCursor%5CCast'
 curl -s ${o}/api/${game}/media
 \`\`\``;
@@ -606,7 +625,7 @@ The compare endpoint below finds the scale that lays your aura over the screensh
   enlarged to fill the display, so \`zoom\` / 4 of the art is cut from each side (0.3 cuts 7.5 %). Most icon files
   have a thin dark rim and some art up to their edges: when the screenshot's icon has no rim and its picture looks
   larger than the same icon in \`iconUrl\` (details cut at the edges), the aura is zoomed. Compare the screenshot's icon
-  with the icon file at a few zooms; the similar-icon search below reports the zoom it matched at.
+  with the icon file at a few zooms; the similar-icon search (Items, icons and media) reports the zoom it matched at.
 - **Text shadow or outline**: an outline (\`text_fontType\` \`"OUTLINE"\` or \`"THICKOUTLINE"\` on a sub element; a text
   display's \`outline\`) is a dark rim **all around** each glyph, as thick on the top left as on the bottom right. A
   drop shadow is a dark copy of the glyph **offset to one side** (usually down and right), with no rim on the other

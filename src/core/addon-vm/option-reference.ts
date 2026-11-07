@@ -83,8 +83,8 @@ export interface OptionSetting {
   label?: string;
   /** The button opens a closed section of the tab (the window's expanders). */
   section?: boolean;
-  /** The option is in a closed section too: that section's expander, pressed first. */
-  openSection?: { option: string[]; name: string };
+  /** The option is in closed sections too: their expanders, pressed first. */
+  openSections?: { option: string[]; name: string }[];
 }
 
 /** An option's name and description while another option has a value (`when`, set with the sections open). */
@@ -531,13 +531,16 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
    * What shows each hidden option of a tab, and the other names options take, on `state`: each closed section opened
    * (the options it shows), then, with every section open, each other value of each shown toggle and of each select of
    * up to `MODE_CHOICES` values (the options it shows, the names that change). The window's sections are put back after.
+   * `known`: options already probed on the aura before a part was added (Add Glow, …): only the new options are asked
+   * about, and only the new options and the sections are tried as what shows them (a part's options are shown by the
+   * part's own).
    */
   const revealedCache = new Map<string, Map<string, Revealed>>();
-  const revealed = (state: AuraState, tab: string): Map<string, Revealed> => {
+  const revealed = (state: AuraState, tab: string, known: ReadonlySet<string>): Map<string, Revealed> => {
     // A tab that shows the same options with the same values (the Load tab of every display type) reveals the same.
     const { ms: _ms, ...root } = tree(state, tab);
     void _ms;
-    const cacheKey = `${tab}\n${JSON.stringify(root)}`;
+    const cacheKey = `${tab}\n${JSON.stringify(root)}\n${JSON.stringify([...known])}`;
     const cached = revealedCache.get(cacheKey);
     if (cached) return cached;
     const out = new Map<string, Revealed>();
@@ -558,25 +561,9 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
         ...(n.type === "execute" && { section: true }),
       };
     };
-    const parents = new Map<string, string>();
-    const link = (n: OptionNode) => {
-      for (const c of n.args ?? []) {
-        parents.set(JSON.stringify(c.path), JSON.stringify(n.path));
-        link(c);
-      }
-    };
-    link(root as OptionNode);
-    const asked = new Set([...view(state)].filter(([, n]) => isReferenced(n) && n.hidden).map(([k]) => k));
-    /** The section each node (option or group) was shown by opening. */
-    const sectionOf = new Map<string, OptionSetting>();
-    /** The section a node is in: the one that showed it or its nearest group. */
-    const enclosing = (k: string): OptionSetting | undefined => {
-      for (let at: string | undefined = k; at !== undefined; at = parents.get(at)) {
-        const s = sectionOf.get(at);
-        if (s) return s;
-      }
-      return undefined;
-    };
+    const asked = new Set([...view(state)].filter(([k, n]) => isReferenced(n) && n.hidden && !known.has(k)).map(([k]) => k));
+    /** The sections opened (their expanders). */
+    const opened: OptionNode[] = [];
     src.keepSections(() => {
       // Sections: each expander pressed once; one that hid options was open, and is pressed again.
       let shown = view(state);
@@ -591,16 +578,16 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
           src.setOption(state, { tab, path: expander.path }, undefined);
           continue;
         }
-        for (const [k, n] of shown) {
-          if (!n.hidden || !next.get(k) || next.get(k)!.hidden) continue;
-          sectionOf.set(k, setting(expander));
-          if (asked.has(k)) at(k).shownBy.push(setting(expander));
+        opened.push(expander);
+        for (const k of asked) {
+          if (shown.get(k)?.hidden && next.get(k) && !next.get(k)!.hidden) at(k).shownBy.push(setting(expander));
         }
         shown = next;
       }
       // Modes: every other value of each shown toggle and short select, with the sections open.
       const modes = [...shown.values()].filter(
         (n) =>
+          !known.has(JSON.stringify(n.path)) &&
           n.canSet === true &&
           !n.hidden &&
           !n.disabled &&
@@ -617,18 +604,29 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
           }
           if (!edit.changed) continue;
           const next = view(edit.state);
+          const shows: string[] = [];
           for (const [k, before] of shown) {
             const after = next.get(k);
             if (!after || k === JSON.stringify(mode.path) || !isReferenced(before)) continue;
-            if (asked.has(k) && before.hidden && !after.hidden) {
-              // Hidden on the new aura by its section too: that section must be open as well.
-              const section = enclosing(k);
-              at(k).shownBy.push({ ...setting(mode, v), ...(section && { openSection: { option: section.option, name: section.name } }) });
-            }
+            if (asked.has(k) && before.hidden && !after.hidden) shows.push(k);
             const name = plainText(after.name ?? after.key).trim();
             if (!before.hidden && !after.hidden && name !== plainText(before.name ?? before.key).trim()) {
               at(k).modes.push({ when: setting(mode, v), name, ...(after.desc && after.desc !== before.desc && { desc: after.desc }) });
             }
+          }
+          // The sections each shown option needs open too: those that hide it again when closed alone.
+          const sections = new Map<string, OptionNode[]>(shows.map((k) => [k, []]));
+          for (const expander of shows.length ? opened : []) {
+            // A mode can remove a section with its options (another trigger type): only those still there.
+            if (!next.has(JSON.stringify(expander.path))) continue;
+            src.setOption(edit.state, { tab, path: expander.path }, undefined);
+            const closed = view(edit.state);
+            src.setOption(edit.state, { tab, path: expander.path }, undefined);
+            for (const k of shows) if (closed.get(k)?.hidden) sections.get(k)!.push(expander);
+          }
+          for (const [k, needed] of sections) {
+            const openSections = needed.map((e) => ({ option: e.path, name: plainText(e.name ?? e.key).trim() }));
+            at(k).shownBy.push({ ...setting(mode, v), ...(openSections.length && { openSections }) });
           }
         }
       }
@@ -750,7 +748,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
     collectArrays(state.aura);
     const nodes = walk(tree(state, tab)).filter(isReferenced);
     const here = new Set(nodes.map((n) => JSON.stringify(n.path)));
-    const reveals = follow && nodes.some((n) => !known.has(JSON.stringify(n.path))) ? revealed(state, tab) : new Map<string, Revealed>();
+    const reveals = follow && nodes.some((n) => !known.has(JSON.stringify(n.path))) ? revealed(state, tab, known) : new Map<string, Revealed>();
     for (const node of nodes) {
       const key = JSON.stringify(node.path);
       if (known.has(key)) continue;

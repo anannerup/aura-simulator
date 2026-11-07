@@ -50,6 +50,7 @@ export const DOCUMENTED_ENDPOINTS = [
   "GET /api/forever/items/search",
   "GET /api/forever/items/<id>",
   "GET /api/forever/icons/search",
+  "POST /api/forever/icons/similar",
   "GET /api/forever/files",
   "GET /api/forever/media",
 ] as const;

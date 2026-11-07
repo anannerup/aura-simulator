@@ -75,7 +75,7 @@ const optionName = (e: OptionReferenceEntry) => plainText(e.name ?? "").trim() |
 function settingText(s: OptionSetting): string {
   if (s.section) return `section "${s.name}" is opened`;
   const label = s.label !== undefined && s.label !== String(s.value) ? ` (${s.label})` : "";
-  const section = s.openSection ? `section "${s.openSection.name}" is opened and ` : "";
+  const section = s.openSections?.length ? `${s.openSections.map((x) => `section "${x.name}"`).join(" and ")} is opened and ` : "";
   return `${section}**${s.name}** (\`${s.option.join(" / ")}\`) is ${json(s.value)}${label}`;
 }
 
@@ -103,7 +103,7 @@ keys it writes, with a value of its type.
 - **As JSON:** \`GET ${urls.json}\` (\`entries\`: every option per display type, trigger type, event, added part and
   choice, with its \`writes\`, \`values\`, range, \`default\`, \`desc\`; for selects whose choice writes more than its
   own key (a condition's If, Grow with \`selfPoint\`), what each choice writes (\`choices\`); for options the window
-  hides on a new aura, what shows each (\`shownBy\`: a section opened, or another option's value); and the other names
+  hides on a new aura, what shows each (\`shownBy\`: a section opened, or another option's value with \`openSections\` opened too); and the other names
   an option has in another mode (\`modes\`: e.g. a sub element's \`xOffset\` is "Extra Width" with Anchor Mode "Fill
   Area" and "X Offset" with "Attach to Point"); \`byPath\`: path pattern → entry indices; \`lists\`: the tables that
   are JSON arrays).
