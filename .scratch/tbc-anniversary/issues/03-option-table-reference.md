@@ -1,4 +1,4 @@
-# 03: Option ↔ table reference generated from the addon
+# 03: Option ↔ table reference in the agent docs
 
 **What to build:** in the addon VM, generate a reference for an addon version.
 
@@ -14,10 +14,13 @@ Triggers are covered per trigger type and event subtype, and so are sub-elements
 
 Also build the reverse index (JSON path → options), and expose both from the aura core.
 
-**Blocked by:** None (can start immediately). Docs integration happens in 05.
+Serve it in the agent docs: a Markdown section (both directions) and `options.json` next to the docs, cached per version on the server.
+
+**Blocked by:** None (can start immediately)
 
 **Status:** ready-for-agent
 
 - [ ] Core API returns the reference and reverse index for the loaded version
 - [ ] Test: every option of every tab for every display type has an entry, and its paths equal exactly what its `set()` changes
+- [ ] Docs page and `options.json` show the reference for the requested version; e2e checks a known option ↔ path pair
 - [ ] Generation time is acceptable for serving (cache per version on the server)
