@@ -110,6 +110,27 @@ end
 -- what was registered. The top-level aura is selected until O.select picks another.
 function O.load(top, descendants)
   setup()
+  -- The same lone aura again (another state of the aura being edited, as every probe of the option reference and
+  -- every undo loads): added over itself, as the options' own set() does, so the addon keeps its display. Deleting
+  -- and adding it would make a new display each time, and the stand-in frames of the old one are never freed (a
+  -- WoW frame never is), so thousands of loads exhausted the Lua heap.
+  local prev = session and #session.auras == 1 and P.GetDataByUID(session.auras[1].uid)
+  if prev and #(descendants or {}) == 0 and not prev.controlledChildren and type(top) == "table"
+    and top.id == prev.id and top.regionType == prev.regionType and top.controlledChildren == nil
+    and (top.uid == nil or top.uid == prev.uid) then
+    local data = X.prepare(top)
+    data.uid = prev.uid
+    data.parent = nil
+    local r = B.try(WeakAuras.Add, data)
+    O.optionCache[data.id] = nil
+    local now = P.GetDataByUID(data.uid)
+    if not now then
+      session = nil
+      return { ok = false, error = r.error or "The addon did not register the aura" }
+    end
+    session = { auras = { { uid = data.uid, input = deepcopy(top), registered = deepcopy(now) } }, selected = data.uid }
+    return { ok = true, warning = not r.ok and (tostring(data.id) .. ": " .. (r.error:match("^[^\n]*") or r.error)) or nil }
+  end
   local kept = deleteCurrent()
   local inputs = { top }
   for i, doc in ipairs(descendants or {}) do inputs[i + 1] = doc end
