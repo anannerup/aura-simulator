@@ -38,5 +38,8 @@ export const tbcServer: ServerGame = {
   get items() {
     return (state.client ??= createClientCaches(tbc.id, TBC_SPELLS)).items;
   },
+  get iconIndex() {
+    return (state.client ??= createClientCaches(tbc.id, TBC_SPELLS)).iconIndex;
+  },
   agentDocs: (origin, requestedRef) => loadTbcAgentDocs(tbcServer, origin, requestedRef),
 };

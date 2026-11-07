@@ -33,5 +33,8 @@ export const foreverServer: ServerGame = {
   get items() {
     return (state.client ??= createClientCaches(forever.id, FOREVER_SPELLS)).items;
   },
+  get iconIndex() {
+    return (state.client ??= createClientCaches(forever.id, FOREVER_SPELLS)).iconIndex;
+  },
   agentDocs: (origin, requestedRef) => loadAgentDocs(foreverServer, origin, requestedRef),
 };

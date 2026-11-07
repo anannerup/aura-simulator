@@ -45,6 +45,17 @@ for (const { game, item, wowhead } of GAMES) {
 
     const icons = await (await request.get(`/api/${game}/icons/search?q=food%20basilisk`)).json();
     expect(icons.results[0]).toMatchObject({ id: 134042, path: "Interface\\Icons\\INV_Misc_Food_86_Basilisk" });
+    const potions = await (await request.get(`/api/${game}/icons/search?q=potion&offset=1&limit=1`)).json();
+    expect(potions).toMatchObject({ offset: 1, limit: 1, total: expect.any(Number) });
+    expect(potions.results).toHaveLength(1);
+    expect((await request.get(`/api/${game}/icons/search?q=potion&offset=-1`)).status()).toBe(400);
+    const byIcon = await (await request.get(`/api/${game}/items/search?icon=${encodeURIComponent("Interface\\Icons\\INV_Potion_72")}`)).json();
+    expect(byIcon).toMatchObject({ icon: { id: 134852 }, offset: 0, total: 1, results: [{ id: 3827 }] });
+    expect((await request.get(`/api/${game}/items/search?icon=no_such_icon`)).status()).toBe(404);
+    // The similarity search refuses what isn't a picture before it looks at any icon (no network).
+    expect((await request.post(`/api/${game}/icons/similar?q=potion`, { data: "hello", headers: { "content-type": "text/plain" } })).status()).toBe(415);
+    expect((await request.post(`/api/${game}/icons/similar?q=potion`, { data: Buffer.from("not a png"), headers: { "content-type": "image/png" } })).status()).toBe(400);
+    expect((await request.post(`/api/${game}/icons/similar?colour=sepia`, { data: Buffer.from("x"), headers: { "content-type": "image/png" } })).status()).toBe(400);
 
     const files = await (await request.get(`/api/${game}/files?path=${encodeURIComponent("Interface\\Cursor\\Cast")}&path=nope&ids=134042`)).json();
     expect(files.paths).toEqual({ "Interface\\Cursor\\Cast": { id: 131015, path: "Interface\\CURSOR\\Cast.blp" }, nope: null });

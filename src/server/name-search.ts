@@ -41,7 +41,39 @@ export function nameQuery(query: string, column: string, separators = " "): Name
   };
 }
 
-/** A search limit: 1-100, 20 by default. */
-export function searchLimit(limit: number | undefined): number {
-  return Math.max(1, Math.min(100, Math.floor(limit ?? 20)));
+/** The most results one search answers. */
+export const MAX_SEARCH_LIMIT = 100;
+
+/** One page of a search: skip `offset` results (0-based), answer at most `limit` (1-100, 20 by default). */
+export interface SearchPage {
+  offset: number;
+  limit: number;
+}
+
+/** A page from optional numbers: `limit` clamped to 1-100 (20 by default), `offset` to 0 or more (0 by default). */
+export function searchPage(page: { offset?: number; limit?: number } = {}): SearchPage {
+  return {
+    offset: Math.max(0, Math.floor(page.offset ?? 0)),
+    limit: Math.max(1, Math.min(MAX_SEARCH_LIMIT, Math.floor(page.limit ?? 20))),
+  };
+}
+
+/**
+ * A search's `offset` and `limit` query parameters as a page, or the error to answer (400) when either is given but
+ * isn't a number (an offset must be a whole number of 0 or more). Every search route pages through this.
+ */
+export function parseSearchPage(params: URLSearchParams): SearchPage | { error: string } {
+  const read = (name: string): number | undefined | null => {
+    const raw = params.get(name);
+    if (raw === null || raw.trim() === "") return undefined;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  };
+  const limit = read("limit");
+  const offset = read("offset");
+  if (limit === null) return { error: `limit must be a number (1-${MAX_SEARCH_LIMIT})` };
+  if (offset === null || (offset !== undefined && (!Number.isInteger(offset) || offset < 0))) {
+    return { error: "offset must be a whole number of 0 or more (the results to skip)" };
+  }
+  return searchPage({ offset, limit });
 }

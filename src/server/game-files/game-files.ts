@@ -10,8 +10,8 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { iconNameUrl } from "@/api/spells";
-import { auraIconPath, gameFileKey, iconNameOfPath, type FileLookupResult, type GameFile, type IconSearchResult } from "@/api/files";
-import { nameQuery, normalizeName, searchLimit } from "@/server/name-search";
+import { auraIconPath, gameFileKey, iconNameOfPath, type FileLookupResult, type GameFile, type IconSearchHit, type IconSearchResult } from "@/api/files";
+import { nameQuery, normalizeName, searchPage, type SearchPage } from "@/server/name-search";
 import { parseCsvRecords } from "@/server/spells/csv";
 import { fetchLatestBuild, fetchWagoCsv, type FetchFn, type SpellSource } from "@/server/spells/sources";
 
@@ -40,8 +40,21 @@ export interface GameFiles {
   ready(): Promise<void>;
   /** Files by path (case-insensitive, `/` or `\`, with or without `.blp`/`.tga`) and by FileDataID. */
   lookup(request: { paths?: string[]; ids?: number[] }): Promise<FileLookupResult>;
-  /** Icons (`Interface\Icons\…`) by name; every word of the query must occur in the icon's name. */
-  searchIcons(query: string, options?: { limit?: number }): Promise<IconSearchResult>;
+  /**
+   * Icons (`Interface\Icons\…`) by name, best matches first, one page of them; every word of the query must occur in
+   * the icon's name.
+   */
+  searchIcons(query: string, page?: Partial<SearchPage>): Promise<IconSearchResult>;
+  /**
+   * Every icon matching a query (`searchIcons`' matching and order), or every icon of the game when the query is
+   * null. No limit: for code that ranks icons in another way (`IconIndex`).
+   */
+  listIcons(query: string | null): Promise<IconSearchHit[]>;
+  /**
+   * One icon by FileDataID (digits), `Interface\Icons\…` path or icon name (any case, with or without `.blp`); null
+   * when the game has no such icon (a FileDataID of a file outside `Interface\Icons\` is none).
+   */
+  resolveIcon(ref: string): Promise<IconSearchHit | null>;
   status(): GameFilesStatus;
   close(): void;
 }
@@ -125,28 +138,57 @@ export function createGameFiles(options: GameFilesOptions): GameFiles {
     return result;
   }
 
-  async function searchIcons(query: string, opts: { limit?: number } = {}): Promise<IconSearchResult> {
-    await ready();
-    const limit = searchLimit(opts.limit);
-    const build = getMeta("build");
-    // A path or a file name searches by the icon's name.
+  /** The SQL of an icon name query (a path or a file name searches by the icon's name); null for an empty query. */
+  function iconQuery(query: string): { where: string; order: string; params: Record<string, string>; wordParams: Record<string, string> } | null {
     const q = normalizeName(iconNameOfPath(query) ?? query.replace(/\.blp$/i, ""));
-    if (q === "") return { query, build, limit, total: 0, results: [] };
+    if (q === "") return null;
     const { where, rank, params } = nameQuery(q, "icon", " _");
+    const wordParams = Object.fromEntries(Object.entries(params).filter(([k]) => /^w\d+$/.test(k)));
+    return { where: `icon IS NOT NULL AND ${where}`, order: `${rank}, length(icon), icon, id`, params, wordParams };
+  }
+
+  const toHit = (r: { id: number; path: string; icon: string }): IconSearchHit => ({
+    id: r.id,
+    name: r.icon,
+    path: auraIconPath(r.path),
+    iconUrl: iconNameUrl(r.icon),
+  });
+
+  async function searchIcons(query: string, requested: Partial<SearchPage> = {}): Promise<IconSearchResult> {
+    await ready();
+    const { offset, limit } = searchPage(requested);
+    const build = getMeta("build");
+    const sql = iconQuery(query);
+    if (!sql) return { query, build, offset, limit, total: 0, results: [] };
     const rows = db
-      .prepare(`SELECT id, path, icon, ${rank} AS rank FROM files WHERE icon IS NOT NULL AND ${where}
-        ORDER BY rank, length(icon), icon, id LIMIT ${limit}`)
-      .all(params) as { id: number; path: string; icon: string }[];
-    const { total } = db
-      .prepare(`SELECT count(*) AS total FROM files WHERE icon IS NOT NULL AND ${where}`)
-      .get(Object.fromEntries(Object.entries(params).filter(([k]) => /^w\d+$/.test(k)))) as { total: number };
-    return {
-      query,
-      build,
-      limit,
-      total,
-      results: rows.map((r) => ({ id: r.id, name: r.icon, path: auraIconPath(r.path), iconUrl: iconNameUrl(r.icon) })),
-    };
+      .prepare(`SELECT id, path, icon FROM files WHERE ${sql.where} ORDER BY ${sql.order} LIMIT ${limit} OFFSET ${offset}`)
+      .all(sql.params) as { id: number; path: string; icon: string }[];
+    const { total } = db.prepare(`SELECT count(*) AS total FROM files WHERE ${sql.where}`).get(sql.wordParams) as { total: number };
+    return { query, build, offset, limit, total, results: rows.map(toHit) };
+  }
+
+  async function listIcons(query: string | null): Promise<IconSearchHit[]> {
+    await ready();
+    if (query === null) {
+      return (db.prepare("SELECT id, path, icon FROM files WHERE icon IS NOT NULL ORDER BY id").all() as { id: number; path: string; icon: string }[]).map(toHit);
+    }
+    const sql = iconQuery(query);
+    if (!sql) return [];
+    return (db.prepare(`SELECT id, path, icon FROM files WHERE ${sql.where} ORDER BY ${sql.order}`).all(sql.params) as { id: number; path: string; icon: string }[]).map(toHit);
+  }
+
+  async function resolveIcon(ref: string): Promise<IconSearchHit | null> {
+    await ready();
+    const trimmed = ref.trim();
+    let row: GameFile | undefined;
+    if (/^\d+$/.test(trimmed)) row = byId.get(Number(trimmed)) as GameFile | undefined;
+    else {
+      const name = iconNameOfPath(trimmed) ?? trimmed.replace(/\.blp$/i, "");
+      if (name === "" || /[\\/]/.test(name)) return null;
+      row = byKey.get(gameFileKey(`Interface/Icons/${name}`)) as GameFile | undefined;
+    }
+    const icon = row ? iconNameOfPath(row.path) : null;
+    return row && icon ? toHit({ id: row.id, path: row.path, icon }) : null;
   }
 
   function status(): GameFilesStatus {
@@ -155,5 +197,5 @@ export function createGameFiles(options: GameFilesOptions): GameFiles {
     return { synced: build !== null, product, build, syncedAt: getMeta("synced_at"), fileCount: counts.files, iconCount: counts.icons };
   }
 
-  return { sync, ready, lookup, searchIcons, status, close: () => db.close() };
+  return { sync, ready, lookup, searchIcons, listIcons, resolveIcon, status, close: () => db.close() };
 }

@@ -10,7 +10,7 @@ import { auraIconPath, iconNameOfPath } from "@/api/files";
 import { ITEM_QUALITIES, type Item, type ItemSearchResult } from "@/api/items";
 import { iconNameUrl } from "@/api/spells";
 import type { GameFiles } from "@/server/game-files";
-import { nameQuery, normalizeName, searchLimit } from "@/server/name-search";
+import { nameQuery, normalizeName, searchPage, type SearchPage } from "@/server/name-search";
 import { parseCsvRecords } from "@/server/spells/csv";
 import { fetchLatestBuild, fetchWagoCsv, type FetchFn, type SpellSource } from "@/server/spells/sources";
 
@@ -36,12 +36,28 @@ export interface ItemCacheStatus {
 export interface ItemCache {
   /** Downloads the item tables of a build (default: the product's latest). */
   sync(options?: { build?: string }): Promise<ItemCacheStatus>;
-  /** Name search (case-insensitive; every word must occur), best matches first. A numeric query also matches the ID. */
-  search(query: string, options?: { limit?: number }): Promise<ItemSearchResult>;
+  /**
+   * Name search (case-insensitive; every word must occur), best matches first, one page of them. A numeric query also
+   * matches the ID. `icon` (a FileDataID, `Interface\Icons\…` path or icon name) keeps the items with that icon, and
+   * alone lists them all; throws `UnknownIconError` when the game has no such icon.
+   */
+  search(query: string, options?: ItemSearchOptions): Promise<ItemSearchResult>;
   /** One item, or null when the game has no item with the ID. */
   lookup(id: number): Promise<Item | null>;
   status(): ItemCacheStatus;
   close(): void;
+}
+
+export interface ItemSearchOptions extends Partial<SearchPage> {
+  icon?: string;
+}
+
+/** An item search's `icon` that names no icon of the game. */
+export class UnknownIconError extends Error {
+  constructor(readonly icon: string) {
+    super(`The game has no icon "${icon}" (give a FileDataID, an Interface\\Icons\\ path or an icon name)`);
+    this.name = "UnknownIconError";
+  }
 }
 
 const SCHEMA = `
@@ -56,6 +72,7 @@ CREATE TABLE IF NOT EXISTS items (
   subclass_id INTEGER,
   icon_file_id INTEGER
 );
+CREATE INDEX IF NOT EXISTS items_icon ON items (icon_file_id);
 `;
 
 interface ItemRow {
@@ -158,21 +175,39 @@ export function createItemCache(options: ItemCacheOptions): ItemCache {
     });
   }
 
-  async function search(query: string, opts: { limit?: number } = {}): Promise<ItemSearchResult> {
+  async function search(query: string, opts: ItemSearchOptions = {}): Promise<ItemSearchResult> {
     await ready();
-    const limit = searchLimit(opts.limit);
+    const { offset, limit } = searchPage(opts);
     const build = getMeta("build");
+    const iconRef = opts.icon?.trim() ?? "";
+    const icon = iconRef === "" ? null : await files.resolveIcon(iconRef);
+    if (iconRef !== "" && !icon) throw new UnknownIconError(iconRef);
+    const answer = (total: number, results: Item[]): ItemSearchResult => ({ query, icon, build, offset, limit, total, results });
     const q = normalizeName(query);
-    if (q === "") return { query, build, limit, total: 0, results: [] };
-    const { where, rank, params } = nameQuery(q, "name_lower");
-    const id = /^\d+$/.test(q) ? Number(q) : -1;
+    if (q === "" && !icon) return answer(0, []);
+
+    const where: string[] = [];
+    let rank = "0";
+    let params: Record<string, string | number> = {};
+    let countParams: Record<string, string | number> = {};
+    if (q !== "") {
+      const name = nameQuery(q, "name_lower");
+      const id = /^\d+$/.test(q) ? Number(q) : -1;
+      where.push(`(id = :id OR (${name.where}))`);
+      rank = `CASE WHEN id = :id THEN -1 ELSE ${name.rank} END`;
+      params = { ...name.params, id };
+      countParams = { ...Object.fromEntries(Object.entries(name.params).filter(([k]) => /^w\d+$/.test(k))), id };
+    }
+    if (icon) {
+      where.push("icon_file_id = :icon");
+      params.icon = countParams.icon = icon.id;
+    }
     const rows = db
-      .prepare(`SELECT ${COLUMNS}, CASE WHEN id = :id THEN -1 ELSE ${rank} END AS rank FROM items WHERE id = :id OR (${where})
-        ORDER BY rank, icon_file_id IS NULL, length(name), name, id LIMIT ${limit}`)
-      .all({ ...params, id }) as unknown as ItemRow[];
-    const wordParams = Object.fromEntries(Object.entries(params).filter(([k]) => /^w\d+$/.test(k)));
-    const { total } = db.prepare(`SELECT count(*) AS total FROM items WHERE id = :id OR (${where})`).get({ ...wordParams, id }) as { total: number };
-    return { query, build, limit, total, results: await toItems(rows) };
+      .prepare(`SELECT ${COLUMNS}, ${rank} AS rank FROM items WHERE ${where.join(" AND ")}
+        ORDER BY rank, icon_file_id IS NULL, length(name), name, id LIMIT ${limit} OFFSET ${offset}`)
+      .all(params) as unknown as ItemRow[];
+    const { total } = db.prepare(`SELECT count(*) AS total FROM items WHERE ${where.join(" AND ")}`).get(countParams) as { total: number };
+    return answer(total, await toItems(rows));
   }
 
   async function lookup(id: number): Promise<Item | null> {

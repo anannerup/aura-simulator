@@ -60,8 +60,60 @@ export interface IconSearchHit {
 export interface IconSearchResult {
   query: string;
   build: string | null;
+  /** The results skipped (the request's `offset`, 0 by default): page with `offset` += `limit` while it is below `total`. */
+  offset: number;
+  /** The most results answered (the request's `limit`, 1-100; 20 by default). */
   limit: number;
-  /** How many icons match; more than `results.length` when the limit cut the list. */
+  /** How many icons match in all; more than `results.length` when the page cut the list. */
   total: number;
   results: IconSearchHit[];
+}
+
+/** How `POST /api/<game>/icons/similar` compares: `colour` (RGB), `grey` (luminance only), `auto` (grey for a nearly unsaturated upload). */
+export type IconColourMode = "auto" | "colour" | "grey";
+
+/** One hit of an icon similarity search: an icon and how close it looks to the upload. */
+export interface IconSimilarHit extends IconSearchHit {
+  /** Root-mean-square difference of 8×8 cell averages, 0..1 (0 = alike). Lower is better. */
+  distance: number;
+  /** The WeakAuras icon `zoom` (0-1) at which the icon matched best: how much of its edge the upload doesn't show. */
+  zoom: number;
+  /** The fraction cut off each edge of the upload at the best match (a border or background around the icon). */
+  uploadInset: number;
+}
+
+/** `POST /api/<game>/icons/similar`: icons ranked by how alike they look to the upload, best first. */
+export interface IconSimilarResult {
+  status: "ok";
+  /** The name filter (`q`), or null when every icon of the game was compared. */
+  query: string | null;
+  build: string | null;
+  /** The mode asked for and the one used (`auto` becomes `colour` or `grey`). */
+  requestedMode: IconColourMode;
+  mode: "colour" | "grey";
+  /** The upload's mean saturation (0..1); `auto` picks grey below 0.06. */
+  saturation: number;
+  offset: number;
+  limit: number;
+  /** How many icons were compared (those the name filter matched whose pixels could be read). */
+  total: number;
+  /** Icons that matched the filter but couldn't be compared (no such file on wago.tools, unreadable, or a fetch failed). */
+  unavailable: number;
+  /**
+   * How many compared icons are within 0.01 (or 10%) of the best distance. Above 1 the best match isn't clear:
+   * icons of one family can differ only in colour, so in grey mode especially, check these by `iconUrl`.
+   */
+  closeToBest: number;
+  results: IconSimilarHit[];
+}
+
+/** `POST /api/<game>/icons/similar` (202): the icon index is still being built; retry later or pass `q`. */
+export interface IconIndexProgress {
+  status: "indexing";
+  /** Icons whose pixels are in the index (or known to be unreadable), and all icons of the game. */
+  indexed: number;
+  total: number;
+  /** Seconds to wait before asking again. */
+  retryAfter: number;
+  hint: string;
 }
