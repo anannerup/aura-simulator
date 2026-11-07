@@ -36,3 +36,28 @@ test("the docs are generated from the server's addon version", async ({ request 
   expect(md).toContain("### Defaults (generated)");
   expect(md).toContain("`faAuraRemaining` (Seconds left)");
 });
+
+test("the option ↔ table reference maps a known option and table key both ways, as JSON and Markdown", async ({ request }) => {
+  // The first request for a version waits while the server generates the reference (about a minute).
+  test.setTimeout(420_000);
+  const res = await request.get("/docs/agents/options.json", { timeout: 400_000 });
+  expect(res.status()).toBe(200);
+  const reference = (await res.json()) as {
+    entries: { tab: string; option: string[]; writes: string[]; scopes: { regionType: string }[] }[];
+    byPath: Record<string, number[]>;
+  };
+  const desaturate = reference.entries.find(
+    (e) => e.tab === "region" && e.option.join("/") === "icon.desaturate" && e.scopes.some((s) => s.regionType === "icon"),
+  );
+  expect(desaturate?.writes).toEqual(["desaturate"]);
+  expect(reference.byPath["desaturate"].map((i) => reference.entries[i].option)).toContainEqual(["icon.desaturate"]);
+
+  const md = await (await request.get("/docs/agents/options.md")).text();
+  expect(md).toContain("- **Desaturate** (`icon.desaturate`, toggle) → `desaturate`");
+  expect(md).toContain("- `desaturate` ← Display › Desaturate");
+
+  const docs = await (await request.get("/llms.txt")).text();
+  expect(docs).toContain("## Option ↔ table reference");
+  expect(docs).toContain("/docs/agents/options.json?ref=");
+  expect(docs).toContain("- **Desaturate** (`icon.desaturate`, toggle) → `desaturate`");
+});

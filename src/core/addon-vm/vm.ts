@@ -20,6 +20,7 @@ import {
   type OptionsTree,
   type OptionTab,
 } from "./options";
+import { buildOptionReference, type OptionReference, type OptionReferenceOptions } from "./option-reference";
 import { SHIM_LUA } from "./lua/shim";
 import { spellsToLua, type ClientSpell } from "./spells";
 import { CLIENT_DATA_LUA, PROFILE_LUA } from "./profile";
@@ -61,6 +62,11 @@ export interface AddonVM {
   packs(): AuraPacks;
   /** Adds spells the client knows (C_Spell.GetSpellInfo and friends answer them; any other ID is nil). */
   setSpells(spells: Record<number, ClientSpell>): void;
+  /**
+   * The option ↔ table reference of this addon version: every option's table paths, type, values and default, and
+   * the reverse index (option-reference.ts). Generated on first call by probe edits, then cached.
+   */
+  optionReference(options?: OptionReferenceOptions): Promise<OptionReference>;
   /** Frees the Lua VM. */
   dispose(): void;
 }
@@ -202,7 +208,8 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
     loadedKey = key;
   };
 
-  return {
+  let referenceCache: Promise<OptionReference> | undefined;
+  const vm: AddonVM = {
     ref,
     report,
     fillDefaults(state) {
@@ -224,6 +231,9 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
         return { ...base, error: `This addon version's options window (${OPTIONS_FRAME_FILE}) no longer has the tab list the editor reads` };
       }
       const r = json<{ tree?: OptionNode; error?: string }>(`__options.tree(${toLuaLiteral(tab)})`);
+      // Evaluating a tab can write into the VM's copy of the aura (some get()s fill in defaults, a group's region
+      // re-anchors), so the next call loads the document again: an edit always starts from the document as given.
+      loadedKey = undefined;
       return { ...base, ...r };
     },
     setOption(state, address, value) {
@@ -264,8 +274,21 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
       registriesCache ??= json<Registries>("__extract.registries()");
       return registriesCache;
     },
+    optionReference(options) {
+      const keepSections = <T>(fn: () => T): T => {
+        lua.doStringSync("__options.saveCollapsed()");
+        try {
+          return fn();
+        } finally {
+          lua.doStringSync("__options.restoreCollapsed()");
+        }
+      };
+      referenceCache ??= buildOptionReference({ ...vm, keepSections }, options);
+      return referenceCache;
+    },
     dispose() {
       lua.global.close();
     },
   };
+  return vm;
 }

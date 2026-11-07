@@ -10,7 +10,7 @@ export type AddonVMMethod = Exclude<
 
 /** The full addon VM seen from outside: AddonVM's calls, asynchronous (inline or in a Web Worker). */
 export type AsyncAddonVM = {
-  [K in AddonVMMethod]: (...args: Parameters<AddonVM[K]>) => Promise<ReturnType<AddonVM[K]>>;
+  [K in AddonVMMethod]: (...args: Parameters<AddonVM[K]>) => Promise<Awaited<ReturnType<AddonVM[K]>>>;
 } & {
   readonly report: AddonVMReport;
   /** Stops the VM (terminates the worker). */

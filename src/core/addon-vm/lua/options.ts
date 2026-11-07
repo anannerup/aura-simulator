@@ -60,6 +60,27 @@ local function collapsedTable()
   end
 end
 
+-- Which sections are opened or closed (every aura): saved before a button and put back after it. Buttons such as
+-- Move Up or Delete move those states along, and a closed section changes what a group's options write, so the
+-- option reference runs each button this way.
+-- (Keys are kept as they are: some are tables, e.g. TriggerOptions' collapsedId.)
+local function copyValues(t)
+  if type(t) ~= "table" then return t end
+  local out = {}
+  for k, v in pairs(t) do out[k] = copyValues(v) end
+  return out
+end
+local savedCollapsed
+function O.saveCollapsed()
+  savedCollapsed = copyValues(collapsedTable())
+end
+function O.restoreCollapsed()
+  local collapsed = collapsedTable()
+  if not collapsed or not savedCollapsed then return end
+  for k in pairs(collapsed) do collapsed[k] = nil end
+  for k, v in pairs(copyValues(savedCollapsed)) do collapsed[k] = v end
+end
+
 -- Unregisters the edited aura. Returns its expanded/collapsed sections, which are kept when the
 -- same aura is loaded again (after an undo, a push, …).
 local function deleteCurrent()
