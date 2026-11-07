@@ -20,3 +20,4 @@ export {
   type PushResult,
 } from "./push";
 export { setWorkspaceSituation, workspaceSituation, type SituationAnswer } from "./situation";
+export { renderScene } from "./render";

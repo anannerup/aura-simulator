@@ -1,0 +1,26 @@
+/* The render page is only its picture: no page background (a screenshot of it is transparent where nothing is drawn). */
+:global(html):has(.picture),
+:global(body):has(.picture) {
+  background: transparent;
+}
+
+.picture {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+}
+
+/* UIParent, scaled and moved so the cropped box starts at the picture's top left. */
+.layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+.problem {
+  margin: 16px;
+  color: var(--text-1);
+  font-family: var(--font-sans);
+}

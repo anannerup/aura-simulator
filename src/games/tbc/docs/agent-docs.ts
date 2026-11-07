@@ -7,7 +7,7 @@
 import type { OptionReference } from "@/core";
 import { DEFAULT_WORKSPACE_ID } from "@/workspace";
 import { optionReferenceSection, optionReferenceUrls } from "../../docs/option-reference";
-import { compactJson, pushApiSection, situationSection, spellApiSection, wagoJsonSection, wagoLinksSection } from "../../docs/shared";
+import { compactJson, picturesSection, pushApiSection, situationSection, spellApiSection, wagoJsonSection, wagoLinksSection } from "../../docs/shared";
 import { tbc } from "..";
 import { TBC_MINIMAL_WAGO_JSON } from "../examples";
 import type { TbcAddonFacts } from "./addon-facts";
@@ -32,6 +32,7 @@ export const TBC_DOCUMENTED_ENDPOINTS = [
   "GET /api/tbc/workspaces/<id>/events",
   "GET /api/tbc/workspaces/<id>/situation",
   "PUT /api/tbc/workspaces/<id>/situation",
+  "GET /api/tbc/workspaces/<id>/screenshot.png",
   "GET /api/tbc/wago/<id>",
   "GET /api/tbc/spells/search",
   "GET /api/tbc/spells/<id>",
@@ -65,6 +66,7 @@ export function tbcAgentDocsMarkdown(f: TbcAgentDocsFacts): string {
     addonLists,
     optionTableReference,
     situation,
+    pictures,
     validation,
     spells,
     pushApi,
@@ -97,7 +99,7 @@ ${JSON.stringify(TBC_MINIMAL_WAGO_JSON)}
 \`\`\`
 
 Contents: Workflow · wago JSON · The aura · Triggers · Conditions · The addon (generated) · Option ↔ table
-reference · Situation · Validation · Spells · Push API · Wago links · Worked examples · Troubleshooting.
+reference · Situation · Pictures · Validation · Spells · Push API · Wago links · Worked examples · Troubleshooting.
 `;
 }
 
@@ -115,6 +117,8 @@ function workflow({ o, d }: Ctx): string {
 5. **Show that it works**: set the situations the request is about (\`PUT /api/tbc/workspaces/<id>/situation\`: the
    buff missing, under 3 minutes left, no target, …) and read \`preview\` (see Situation). The open page's game screen
    follows.
+   Working from the player's screenshot of an aura: take a picture of yours in each of those situations
+   (\`GET /api/tbc/workspaces/<id>/screenshot.png\`) at the screenshot's scale and compare (see Pictures).
 6. **The player exports a file**: select the aura (or the group) in the window's aura list → Export → **Save as file**
    (a \`.txt\` with the import string) or Copy to clipboard; **Save as .json** saves its wago JSON. Or hand them the
    push answer's \`code\` as a \`.txt\` file (see Handing the player a file).
@@ -299,6 +303,10 @@ combat restrictions.`,
       shows: "With worked example 1b (Arcane Intellect missing) pushed, this makes its `preview` say `\"shown\": true`.",
     },
   });
+}
+
+function pictures({ o, d }: Ctx): string {
+  return picturesSection({ game: "tbc", origin: o, workspace: d, auraId: "Arcane Intellect" });
 }
 
 function validation(): string {

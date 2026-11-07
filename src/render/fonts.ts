@@ -42,6 +42,12 @@ const status = new Map<string, Status>();
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
+/** Whether any game font the page started loading is still loading. */
+export function fontsLoading(): boolean {
+  for (const s of status.values()) if (s === "loading") return true;
+  return false;
+}
+
 /**
  * Starts loading a game font once per page (addon fonts through `loader`, the page's game's). Unknown names load the
  * default font.
