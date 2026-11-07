@@ -68,6 +68,38 @@ for the aura, and they are correct (see "Failures by class").
 - All 25 wago JSONs are byte-identical to wago's.
 - Every tab of all 1,452 auras builds, with no addon error while loading them into the editor.
 
+### The user's own raid packs
+
+These are the user's downloads, run from the scratchpad and not committed: Fojji Karazhan [TBC] v1.0.4 (391 auras),
+Fojji [T4] Raiding Pack v1.0.2 and v1.0.4 (218 and 220), Fojji [T5] Raiding Pack (518), Fojji [T5] Raid Frames (115).
+`kara.txt` turned out to be the T4 pack (220 auras), and `kara (5).txt` the Karazhan pack (390 auras).
+
+All seven ran through the same checks with the fixes above, 2,072 auras in all:
+
+- Every pack round-trips exactly, as a state code and through wago JSON.
+- No Lua errors: the only validation messages are the addon's sound and TTS info (44, 11, 11, 11, 44, 0 and 47).
+- Every tab of every aura builds, with no addon error while loading.
+
+### WoW text escapes on the game screen (ours, fixed)
+
+**The report**: in the T5 pack, some texts showed WoW colour codes literally on the game screen
+(`|cFFff0000WARNING|r:`), while texts in the Karazhan pack looked coloured.
+
+**Cause**: both packs store the same plain escapes (`|cFFff0000WARNING|r`; no `||c` escaping, and no custom text
+function involved). Neither the text region nor the text sub element interpreted any escape: they drew the string
+as written. The Karazhan pack's red "WARNING" comes from that text region's own colour, and its sub texts show raw
+`|cFF…` too (e.g. its Version Check header).
+
+**Fix**: a WoW font string's escapes are now interpreted on the game screen, in both text renderers (`WowString`):
+
+- `|cAARRGGBB…|r` draws a run in its colour; `|r` returns to the font string's own colour;
+- `||` is a literal `|`; `|n` is a line break;
+- a hyperlink `|H…|h<text>|h` shows its text;
+- inline textures (`|T…|t`) and atlases (`|A…|a`) are left out. Drawing them is a further step.
+
+One tokenizer in the core (`wowTextRuns`, `src/core/wow-text.ts`) serves the game screen, the options window's
+labels and `plainText`. The options window's old parser split `||c` (an escaped pipe followed by `c`) as a colour.
+
 ## Failures by class
 
 ### Our bugs (fixed)
@@ -95,6 +127,10 @@ for the aura, and they are correct (see "Failures by class").
      with a Lua error and the aura isn't registered. This is why the talent gap below stayed hidden: the
      Enhancement pack validated clean while none of its 110 auras could be added.
    - **Fix**: new code `add.error` (an error).
+   - **What it exposed on Forever**: a worked example of the agent docs had the same silent failure. Musca's
+     `SecretAuraGlow.lua:191` takes the animations of an animation group back with `GetAnimations()`, which the
+     shim's mock frames answered with nothing. The shim now records `AnimationGroup:CreateAnimation` and returns them
+     from `GetAnimations()` in creation order, as the Widget API does (`src/core/addon-vm/lua/shim.ts`).
 
 ### Missing client API (fixed)
 
