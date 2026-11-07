@@ -102,6 +102,12 @@ function evaluateCheck(check: LuaValue | undefined, ctx: CheckContext): boolean 
     return variable in globals && boolCheck(globals[variable], value);
   }
   const state = ctx.states.get(trigger);
+  if (variable === "show") {
+    // "Active" (WeakAuras.lua GetTriggerConditions): a test function, so no `state[trigger]` guard: it compares
+    // whether the trigger is active with `needle == 1`, and a value-less check builds no test (Conditions.lua:292).
+    if (value === undefined) return false;
+    return (state?.active ?? false) === (value === 1);
+  }
   if (!state || !state.active) return false; // `state[trigger] and ...`
   const current = state.values[variable];
   if (current === undefined) return false; // `state[trigger][variable] ~= nil`

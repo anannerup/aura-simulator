@@ -147,8 +147,11 @@ export const SHARED_PORTS: SharedPort[] = [
   // --- Rules (src/core) ---
   {
     module: "src/core/conditions/evaluate.ts",
-    files: ["WeakAuras/Conditions.lua"],
+    files: ["WeakAuras/Conditions.lua", "WeakAuras/WeakAuras.lua"],
     differs: {
+      "WeakAuras/WeakAuras.lua":
+        "GetTriggerConditions' 'Active' (show) test is the same in both; Musca adds native-display anchors, combat " +
+        "deferral and secret-value paths elsewhere in the file.",
       "WeakAuras/Conditions.lua":
         "Musca adds the Aura (Modern) hooks (skip native checks, ValidateConditions gate, SetSecretAuraConditionProperty " +
         "in combat), IsSecret guards, resetValue for unset bases and group conditions. The generic checks, linked " +

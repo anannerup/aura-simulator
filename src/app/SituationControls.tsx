@@ -9,7 +9,8 @@ const KIND_LABELS: Record<TriggerKind, { title: string; present: string; remaini
   secretAura: { title: "Aura (Modern)", present: "Aura present", remaining: "Time left", duration: "Duration", stacks: "Stacks" },
   aura2: { title: "Aura", present: "Aura present", remaining: "Time left", duration: "Duration", stacks: "Stacks" },
   spellCooldown: { title: "Spell cooldown", present: "On cooldown", remaining: "Cooldown left", duration: "Cooldown", stacks: "Charges" },
-  other: { title: "Trigger", present: "Active", remaining: "Time left", duration: "Duration", stacks: "Stacks" },
+  itemCount: { title: "Item count", present: "In bags", remaining: "Time left", duration: "Duration", stacks: "Count" },
+  other: { title: "Trigger", present: "Present", remaining: "Time left", duration: "Duration", stacks: "Stacks" },
 };
 
 /**

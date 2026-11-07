@@ -14,13 +14,17 @@ import type { AddonGameId } from "../addon-vm/toc";
 import { entries, getField, isLuaTable, type LuaTable, type LuaValue } from "../lua-value";
 
 export interface TriggerSituation {
-  /** Aura triggers: the aura is on the unit. Spell cooldown trigger: the spell is on cooldown. */
+  /**
+   * Aura triggers: the aura is on the unit. Spell cooldown trigger: the spell is on cooldown. Item Count: the item is
+   * in the bags (`stacks` is the count). Any other trigger: what it watches is there (found, on cooldown, enchanted,
+   * …); its own show option ("Show On", Inverse) decides whether that makes it active.
+   */
   present: boolean;
   /** Seconds left of the aura or of the cooldown. */
   remaining: number;
   /** Full duration in seconds of the aura or cooldown (0 = no duration, e.g. a permanent buff). */
   duration: number;
-  /** Aura stacks (applications); for the spell cooldown trigger, charges. */
+  /** Aura stacks (applications); for the spell cooldown trigger, charges; for Item Count, the item count. */
   stacks: number;
 }
 
@@ -46,12 +50,12 @@ const defaultTriggerSituation: TriggerSituation = { present: true, remaining: 45
 export const DEFAULT_SITUATION: Situation = { triggers: {}, targetExists: true, inCombat: false };
 
 /** What the situation controls offer for a trigger. `secretAura` (Aura (Modern)) exists only in Forever. */
-export type TriggerKind = "secretAura" | "aura2" | "spellCooldown" | "other";
+export type TriggerKind = "secretAura" | "aura2" | "spellCooldown" | "itemCount" | "other";
 
 /** The trigger kinds each game has. */
 export const TRIGGER_KINDS: Record<AddonGameId, readonly TriggerKind[]> = {
-  forever: ["secretAura", "aura2", "spellCooldown", "other"],
-  tbc: ["aura2", "spellCooldown", "other"],
+  forever: ["secretAura", "aura2", "spellCooldown", "itemCount", "other"],
+  tbc: ["aura2", "spellCooldown", "itemCount", "other"],
 };
 
 function triggerKind(trigger: LuaValue | undefined, game: AddonGameId): TriggerKind {
@@ -61,6 +65,7 @@ function triggerKind(trigger: LuaValue | undefined, game: AddonGameId): TriggerK
   if (type === "secretAura") return game === "forever" ? "secretAura" : "other";
   if (type === "aura2") return "aura2";
   if (type === "spell" && getField(trigger, "event") === "Cooldown Progress (Spell)") return "spellCooldown";
+  if (type === "item" && getField(trigger, "event") === "Item Count") return "itemCount";
   return "other";
 }
 
