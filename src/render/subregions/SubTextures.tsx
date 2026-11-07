@@ -7,8 +7,8 @@ import { useRegionClock } from "../clock";
 import { MappedTexture } from "../MappedTexture";
 import { textureSourceOf } from "../media";
 import { ModelPlaceholder, modelLabel } from "../ModelRegion";
-import { DEFAULT_STOP_MOTION_TEXTURE, progressFrame, stopMotionSheet, timedFrame } from "../stop-motion";
-import { isTimedStopMotion, StopMotionFrame } from "../StopMotionRegion";
+import { DEFAULT_STOP_MOTION_TEXTURE, stopMotionFrame, stopMotionSheet } from "../stop-motion";
+import { StopMotionFrame } from "../StopMotionRegion";
 import {
   affineFromCorners,
   circularProgressAngles,
@@ -19,7 +19,7 @@ import {
   quadPolygon,
   textureCorners,
 } from "../texture-geometry";
-import type { SubRegionHost } from "./host";
+import { anchorPosition, type SubRegionHost } from "./host";
 import { color } from "../color";
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
@@ -36,15 +36,9 @@ export function subElementBox(element: LuaTable, host: SubRegionHost): Box {
   if (g("anchor_mode") === "point") {
     const w = num(g("width"), 32);
     const h = num(g("height"), 32);
-    const anchor = host.point(typeof g("anchor_point") === "string" ? String(g("anchor_point")) : "CENTER");
-    const [ax, ay] = anchorFraction(anchor.point);
+    const at = anchorPosition(host.point(typeof g("anchor_point") === "string" ? String(g("anchor_point")) : "CENTER"), x, y);
     const [sx, sy] = anchorFraction(g("self_point"));
-    return {
-      left: anchor.box.left + anchor.box.width * ax + x + anchor.dx - w * sx,
-      top: anchor.box.top + anchor.box.height * ay - y - anchor.dy - h * sy,
-      width: w,
-      height: h,
-    };
+    return { left: at.left - w * sx, top: at.top - h * sy, width: w, height: h };
   }
   const box = host.area(g("anchor_area"), "border");
   return { left: box.left - x, top: box.top - y, width: box.width + 2 * x, height: box.height + 2 * y };
@@ -173,14 +167,13 @@ export function SubStopMotion({ element, position, state, host }: SubProps) {
     customFrameWidth: num(g("customFrameWidth"), 0),
     customFrameHeight: num(g("customFrameHeight"), 0),
   });
-  const type = g("animationType") ?? "loop";
-  const inverse = g("inverse") === true;
-  let frame: number;
-  if (isTimedStopMotion(type)) frame = timedFrame(sheet, { seconds, frameRate: num(g("frameRate"), 15), animationType: String(type), inverse });
-  else {
-    const d = state.dynamic;
-    frame = progressFrame(sheet, d && d.remaining !== undefined && d.duration > 0 ? 1 - d.remaining / d.duration : 0, inverse);
-  }
+  const frame = stopMotionFrame(sheet, {
+    animationType: g("animationType"),
+    frameRate: num(g("frameRate"), 15),
+    inverse: g("inverse") === true,
+    seconds,
+    timer: state.dynamic,
+  });
   const area = g("anchor_mode") !== "point";
   const clip = host.bar !== undefined && area && g("anchor_area") === "fg" && g("barModelClip") !== false;
   let box = subElementBox(element, host);

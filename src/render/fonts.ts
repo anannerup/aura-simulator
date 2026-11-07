@@ -76,6 +76,18 @@ export function useWowFont(value: LuaValue | undefined): { family: string; statu
 }
 
 /**
+ * A font string's width as CSS: sized by its text ("Auto"), or `width` wide (Fixed) with word wrap or an ellipsis
+ * (Elide).
+ */
+export function textWidthStyle(width: number | undefined, wordWrap: LuaValue | undefined): CSSProperties {
+  if (width === undefined) return { whiteSpace: "pre" };
+  const wrap = wordWrap !== "Elide";
+  return wrap
+    ? { width, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }
+    : { width, whiteSpace: "pre", overflow: "hidden", textOverflow: "ellipsis" };
+}
+
+/**
  * Font flags as CSS (Types.lua:1510 font_flags, TextStyle.lua:21-44): OUTLINE draws a 1 px black outline,
  * THICKOUTLINE a 2 px one (eight offset copies, which is close to the game's rasterised outline); MONOCHROME
  * turns anti-aliasing off. The font's drop shadow (shadowColor, x/y offset, y up) is drawn in every mode except

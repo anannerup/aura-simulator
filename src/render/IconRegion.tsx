@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { isLuaTable, type LuaValue } from "@/core";
+import { isLuaTable, type AuraDocument, type LuaValue } from "@/core";
 import { useWowFont } from "./fonts";
 import { iconHost } from "./subregions/host";
 import { SubRegions } from "./subregions/SubRegions";
@@ -32,24 +32,8 @@ const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number
 export function IconRegion({ aura, state, name, width, height }: RegionProps) {
   const p = state.properties;
   const desaturate = p.desaturate === true;
-  const color = rgba(p.color);
-  const zoom = Math.min(1, Math.max(0, num(p.zoom, 0)));
-  // Icon.lua:347-378 UpdateTexCoords: visible texture share = 1 - zoom/2, cropped to the aspect ratio when
-  // keepAspectRatio is on.
-  const texWidth = 1 - 0.5 * zoom;
+  // Icon.lua:347-378 UpdateTexCoords: cropped to the aspect ratio when keepAspectRatio is on.
   const aspect = aura.keepAspectRatio === true && height > 0 ? width / height : 1;
-  const fx = texWidth * (aspect < 1 ? aspect : 1);
-  const fy = texWidth * (aspect > 1 ? 1 / aspect : 1);
-  const imgStyle: CSSProperties = {
-    width: `${100 / fx}%`,
-    height: `${100 / fy}%`,
-    left: `${(-(1 - fx) / 2 / fx) * 100}%`,
-    top: `${(-(1 - fy) / 2 / fy) * 100}%`,
-    filter: desaturate ? "grayscale(1)" : undefined,
-    opacity: color[3],
-  };
-  const iconSrc = useAuraIconUrl(aura) ?? undefined;
-  const tinted = color[0] < 1 || color[1] < 1 || color[2] < 1;
   const dynamic = state.dynamic;
   const showCooldown =
     p.cooldown !== false && !state.missing && dynamic?.remaining !== undefined && dynamic.duration > 0;
@@ -58,13 +42,7 @@ export function IconRegion({ aura, state, name, width, height }: RegionProps) {
   const background = (
     <>
       <div className={styles.iconClip}>
-        {/* Blizzard art comes from Wowhead's image server at runtime; next/image would proxy it. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className={styles.icon} src={iconSrc} alt={name} style={imgStyle} draggable={false} />
-        {tinted && (
-          // SetVertexColor multiplies the texture colour.
-          <div className={styles.tint} style={{ background: css([color[0], color[1], color[2], 1]), opacity: color[3] }} data-testid="icon-tint" />
-        )}
+        <IconTexture aura={aura} name={name} zoom={num(p.zoom, 0)} aspect={aspect} desaturate={desaturate} tint={rgba(p.color)} />
       </div>
       {showCooldown && (
         <CooldownSwipe
@@ -126,5 +104,42 @@ export function CooldownSwipe({ remaining, duration, reverse, swipe, edge, numbe
         </span>
       )}
     </div>
+  );
+}
+
+/**
+ * An aura's icon texture inside a clipping box: zoomed in by texWidth = 1 - zoom/2 (Icon.lua:347-378,
+ * AuraBar.lua:1388-1404), cropped to `aspect`, desaturated and tinted (SetVertexColor multiplies the colour).
+ */
+export function IconTexture({ aura, name, zoom, aspect = 1, desaturate, tint }: {
+  aura: AuraDocument;
+  name: string;
+  zoom: number;
+  aspect?: number;
+  desaturate: boolean;
+  tint: readonly number[];
+}) {
+  const src = useAuraIconUrl(aura) ?? undefined;
+  const visible = 1 - 0.5 * Math.min(1, Math.max(0, zoom));
+  const fx = visible * (aspect < 1 ? aspect : 1);
+  const fy = visible * (aspect > 1 ? 1 / aspect : 1);
+  const style: CSSProperties = {
+    position: "absolute",
+    maxWidth: "none",
+    width: `${100 / fx}%`,
+    height: `${100 / fy}%`,
+    left: `${(-(1 - fx) / 2 / fx) * 100}%`,
+    top: `${(-(1 - fy) / 2 / fy) * 100}%`,
+    filter: desaturate ? "grayscale(1)" : undefined,
+    opacity: tint[3],
+  };
+  const tinted = tint[0] < 1 || tint[1] < 1 || tint[2] < 1;
+  return (
+    <>
+      {/* Blizzard art comes from Wowhead's image server at runtime; next/image would proxy it. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className={styles.icon} src={src} alt={name} style={style} draggable={false} />
+      {tinted && <div className={styles.tint} style={{ background: css([tint[0], tint[1], tint[2], 1]), opacity: tint[3] }} data-testid="icon-tint" />}
+    </>
   );
 }

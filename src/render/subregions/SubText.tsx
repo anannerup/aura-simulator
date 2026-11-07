@@ -5,10 +5,10 @@ import { getField, type AuraRenderState, type LuaTable, type LuaValue } from "@/
 import { color } from "../color";
 import { regionInfo } from "../region-types";
 import { anchorFraction } from "../screen/geometry";
-import { fontFlagsStyle, useWowFont } from "../fonts";
+import { fontFlagsStyle, textWidthStyle, useWowFont } from "../fonts";
 import { formatSubText, type TextValues } from "../text-format";
 import { rgbaCss } from "../TurnedTexture";
-import type { SubRegionHost } from "./host";
+import { anchorPosition, type SubRegionHost } from "./host";
 import styles from "./subregions.module.css";
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
@@ -42,23 +42,23 @@ export function SubText({
   const anchor = host.point(anchorPoint);
   const ownSelfPoint = g("text_selfPoint");
   const selfPoint = typeof ownSelfPoint === "string" && ownSelfPoint !== "AUTO" ? ownSelfPoint : parent.autoSelfPoint(anchorPoint);
-  const [ax, ay] = anchorFraction(anchor.point);
   const [sx, sy] = anchorFraction(selfPoint);
-  const x = num(p[`sub.${position}.text_anchorXOffset`] ?? g("anchorXOffset"), 0) + anchor.dx;
-  const y = num(p[`sub.${position}.text_anchorYOffset`] ?? g("anchorYOffset"), 0) + anchor.dy;
+  const at = anchorPosition(
+    anchor,
+    num(p[`sub.${position}.text_anchorXOffset`] ?? g("anchorXOffset"), 0),
+    num(p[`sub.${position}.text_anchorYOffset`] ?? g("anchorYOffset"), 0),
+  );
   const font = useWowFont(g("text_font"));
   const flags = fontFlagsStyle(g("text_fontType") ?? defaults.fontType, {
     color: color(g("text_shadowColor"), [0, 0, 0, 1]),
     x: num(g("text_shadowXOffset"), defaults.shadowX),
     y: num(g("text_shadowYOffset"), defaults.shadowY),
   });
-  const fixed = g("text_automaticWidth") === "Fixed";
-  const wrap = g("text_wordWrap") !== "Elide";
   const rotate = g("rotateText") === "LEFT" ? -90 : g("rotateText") === "RIGHT" ? 90 : 0;
   const text = formatSubText(element, { ...values, stackText: state.nativeStackText[position] });
   const style: CSSProperties = {
-    left: anchor.box.left + anchor.box.width * ax + x,
-    top: anchor.box.top + anchor.box.height * ay - y,
+    left: at.left,
+    top: at.top,
     transform: `translate(${-sx * 100}%, ${-sy * 100}%)${rotate ? ` rotate(${rotate}deg)` : ""}`,
     transformOrigin: `${sx * 100}% ${sy * 100}%`,
     color: rgbaCss(textColor),
@@ -66,11 +66,7 @@ export function SubText({
     fontSize: num(p[`sub.${position}.text_fontSize`], 12),
     fontFamily: font.family,
     textAlign: (String(g("text_justify") ?? "CENTER").toLowerCase() as CSSProperties["textAlign"]) ?? "center",
-    width: fixed ? num(g("text_fixedWidth"), 64) : undefined,
-    whiteSpace: fixed ? (wrap ? "pre-wrap" : "pre") : "pre",
-    overflowWrap: fixed && wrap ? "anywhere" : undefined,
-    overflow: fixed && !wrap ? "hidden" : undefined,
-    textOverflow: fixed && !wrap ? "ellipsis" : undefined,
+    ...textWidthStyle(g("text_automaticWidth") === "Fixed" ? num(g("text_fixedWidth"), 64) : undefined, g("text_wordWrap")),
     ...flags,
   };
   return (

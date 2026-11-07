@@ -120,3 +120,21 @@ export function tileTexCoord(frame: number, rows: number, columns: number, frame
 
 /** Numbered-frame sheets: the file of a frame (StopMotion.lua:200-202, `texture .. format("%03d", frame)`). */
 export const numberedFrameFile = (texture: string, frame: number) => texture + String(frame).padStart(3, "0");
+
+/** Timed types step with the clock (StopMotion.lua:141-167, region FrameTick). */
+export const isTimedStopMotion = (animationType: unknown) =>
+  animationType === undefined || animationType === "loop" || animationType === "bounce" || animationType === "once";
+
+/**
+ * The frame a stop motion shows: the timed types step at `frameRate` from when the aura shows; "progress" follows the
+ * dynamic trigger's elapsed share, 1 - remaining / duration (StopMotion.lua:143-154, 337-354), a static 0 without a timer.
+ */
+export function stopMotionFrame(
+  sheet: StopMotionSheet,
+  o: { animationType: unknown; frameRate: number; inverse: boolean; seconds: number; timer?: { remaining?: number; duration: number } },
+): number {
+  const type = o.animationType ?? "loop";
+  if (isTimedStopMotion(type)) return timedFrame(sheet, { seconds: o.seconds, frameRate: o.frameRate, animationType: String(type), inverse: o.inverse });
+  const t = o.timer;
+  return progressFrame(sheet, t && t.remaining !== undefined && t.duration > 0 ? 1 - t.remaining / t.duration : 0, o.inverse);
+}

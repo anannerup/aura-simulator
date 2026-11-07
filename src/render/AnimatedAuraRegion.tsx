@@ -8,7 +8,7 @@ import { RegionClockContext } from "./clock";
 import { color } from "./color";
 import { regionInfo } from "./region-types";
 import { animatedRect, type Rect } from "./screen/geometry";
-import { isTimedStopMotion } from "./StopMotionRegion";
+import { isTimedStopMotion } from "./stop-motion";
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 

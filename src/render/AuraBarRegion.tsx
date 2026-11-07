@@ -1,6 +1,5 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import type { AuraDocument, LuaValue } from "@/core";
 import {
   barLayout,
@@ -13,11 +12,11 @@ import {
   sparkVisible,
   type Box,
 } from "./bar-geometry";
+import { IconTexture } from "./IconRegion";
 import { CASTING_BAR_SPARK, statusBarTexture, textureSourceOf } from "./media";
 import { fullBox, type SubRegionHost } from "./subregions/host";
 import { SubRegions } from "./subregions/SubRegions";
 import { color } from "./color";
-import { useAuraIconUrl } from "./textures";
 import { TurnedTexture, rgbaCss } from "./TurnedTexture";
 import styles from "./regions.module.css";
 import type { RegionProps } from "./region-types";
@@ -149,26 +148,11 @@ function GradientTint({ orientation, from, to }: { orientation: LuaValue | undef
   );
 }
 
-/** The bar's icon (AuraBar.lua:1388-1404): square, zoomed by texWidth = 0.25 * zoom on each side, desaturated, tinted. */
+/** The bar's icon (AuraBar.lua:1388-1404): square, zoomed, desaturated, tinted. */
 function BarIcon({ aura, name, box, zoom, desaturate, tint }: { aura: AuraDocument; name: string; box: Box; zoom: number; desaturate: boolean; tint: readonly number[] }) {
-  const src = useAuraIconUrl(aura) ?? undefined;
-  const visible = 1 - 0.5 * Math.min(1, Math.max(0, zoom));
-  const img: CSSProperties = {
-    position: "absolute",
-    width: `${100 / visible}%`,
-    height: `${100 / visible}%`,
-    left: `${(-(1 - visible) / 2 / visible) * 100}%`,
-    top: `${(-(1 - visible) / 2 / visible) * 100}%`,
-    maxWidth: "none",
-    filter: desaturate ? "grayscale(1)" : undefined,
-    opacity: tint[3],
-  };
-  const tinted = tint[0] < 1 || tint[1] < 1 || tint[2] < 1;
   return (
     <div className={styles.barIcon} style={{ left: box.left, top: box.top, width: box.width, height: box.height }} data-testid="bar-icon" data-desaturated={desaturate ? "true" : "false"}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={name} style={img} draggable={false} />
-      {tinted && <div className={styles.tint} style={{ background: rgbaCss([tint[0], tint[1], tint[2], 1]), opacity: tint[3] }} />}
+      <IconTexture aura={aura} name={name} zoom={zoom} desaturate={desaturate} tint={tint} />
     </div>
   );
 }

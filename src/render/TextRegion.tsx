@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { getField, type AuraDocument, type AuraRenderState, type LuaValue } from "@/core";
-import { fontFlagsStyle, useWowFont } from "./fonts";
+import { fontFlagsStyle, textWidthStyle, useWowFont } from "./fonts";
 import { color } from "./color";
 import { formatText, textValues } from "./text-format";
 import { rgbaCss } from "./TurnedTexture";
@@ -33,8 +33,6 @@ export function displayText(aura: AuraDocument, state: AuraRenderState, name: st
 export function TextRegion({ aura, state, name }: RegionProps) {
   const p = state.properties;
   const font = useWowFont(aura.font);
-  const fixed = aura.automaticWidth === "Fixed";
-  const wrap = aura.wordWrap !== "Elide";
   const justify = typeof aura.justify === "string" ? aura.justify.toLowerCase() : "left";
   const style: CSSProperties = {
     display: "block",
@@ -44,11 +42,7 @@ export function TextRegion({ aura, state, name }: RegionProps) {
     fontSize: num(p.fontSize, 12),
     lineHeight: 1,
     textAlign: justify as CSSProperties["textAlign"],
-    width: fixed ? num(aura.fixedWidth, 200) : undefined,
-    whiteSpace: fixed ? (wrap ? "pre-wrap" : "pre") : "pre",
-    overflowWrap: fixed && wrap ? "anywhere" : undefined,
-    overflow: fixed && !wrap ? "hidden" : undefined,
-    textOverflow: fixed && !wrap ? "ellipsis" : undefined,
+    ...textWidthStyle(aura.automaticWidth === "Fixed" ? num(aura.fixedWidth, 200) : undefined, aura.wordWrap),
     pointerEvents: "none",
     ...fontFlagsStyle(aura.outline ?? "OUTLINE", {
       color: color(aura.shadowColor, [0, 0, 0, 1]),
