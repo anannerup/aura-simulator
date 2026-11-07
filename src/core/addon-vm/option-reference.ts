@@ -47,7 +47,7 @@
 import { plainText } from "../wow-text";
 import { isLuaTable, keyFromString, type AuraDocument, type AuraState, type LuaKey, type LuaValue } from "../lua-value";
 import type { NewAuraPage } from "./new-aura";
-import type { OptionAddress, OptionEdit, OptionNode, OptionsTree, OptionTab } from "./options";
+import type { OptionAddress, OptionEdit, OptionNode, OptionsRequest, OptionsTree, OptionTab } from "./options";
 
 /** A key of an aura's table, written as described in the module doc (e.g. `triggers.1.trigger.type`). */
 export type TablePath = string;
@@ -221,7 +221,7 @@ export interface OptionReference {
 /** The AddonVM calls the generator uses (synchronous; it runs inside the VM's worker or inline). */
 export interface ReferenceSource {
   ref: string;
-  options(state: AuraState, request?: { tab?: string }): OptionsTree;
+  options(state: AuraState, request?: OptionsRequest): OptionsTree;
   setOption(state: AuraState, address: OptionAddress, value: unknown): OptionEdit;
   newAuraPage(): NewAuraPage;
   newAura(regionType: string): AuraDocument;
@@ -448,9 +448,10 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
   };
 
   const childDiff = (state: AuraState, e: OptionEdit) => {
-    if (!e.children) return undefined;
     const paths = new Set<TablePath>();
-    e.children.forEach((c, i) => changedPaths(state.children[i], c).forEach((p) => paths.add(p)));
+    e.state.children.forEach((c, i) => {
+      if (c !== state.children[i]) changedPaths(state.children[i], c).forEach((p) => paths.add(p));
+    });
     return paths.size ? [...paths].sort() : undefined;
   };
 
@@ -496,9 +497,9 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
       return recorded();
     }
     const e = r.edit;
-    collectArrays(e.aura);
+    collectArrays(e.state.aura);
     const value = r.value;
-    const changed = changedPaths(state.aura, e.aura).sort();
+    const changed = changedPaths(state.aura, e.state.aura).sort();
     entry.writes = changed;
     if (node.type === "multiselect") {
       const key = String((value as [LuaKey])[0]);
@@ -506,13 +507,13 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
     }
     const childWrites = childDiff(state, e);
     if (childWrites) entry.childWrites = childWrites;
-    if (node.type !== "execute") entry.probe = { value, wrote: wroteOf(e.aura, changed) };
+    if (node.type !== "execute") entry.probe = { value, wrote: wroteOf(e.state.aura, changed) };
     if (e.dialog) entry.dialog = e.dialog.kind;
     // A select whose choice writes something other than its key (e.g. an index into the condition checks): each
     // choice's writes.
     if (choices && node.type === "select" && changed.length > 0 && node.values && node.values.length <= 300) {
       const plain = changed.some((p) => {
-        const v = valueAt(e.aura, p);
+        const v = valueAt(e.state.aura, p);
         return sameJson(v, value) || sameJson(v, [value]);
       });
       if (!plain) {
@@ -520,7 +521,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
         for (const [v, label] of node.values) {
           const c = edit(state, tab, node, v);
           if (!c.edit) continue;
-          entry.choices.push({ value: v, label, wrote: wroteOf(c.edit.aura, changedPaths(state.aura, c.edit.aura)) });
+          entry.choices.push({ value: v, label, wrote: wroteOf(c.edit.state.aura, changedPaths(state.aura, c.edit.state.aura)) });
         }
       }
     }
@@ -559,7 +560,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
     for (const same of [...selects, ...toggles]) {
       if (tried === 4) break;
       const r = edit(state, tab, same, same.value);
-      const next = r.edit && { aura: r.edit.aura, children: r.edit.children ?? state.children };
+      const next = r.edit?.state;
       // Setting an option to the value it shows must leave it showing that value. A tristate toggle shows `false`
       // for "not set", and setting it to false means "Not" (a Load option's "Not Alive" unloads the aura): a real
       // change, so it is skipped and doesn't count.
@@ -592,7 +593,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
         followed.add(key);
         const c = edit(state, tab, node, choice.value);
         if (!c.edit?.changed) continue;
-        const chosen = { aura: c.edit.aura, children: c.edit.children ?? state.children };
+        const chosen = c.edit.state;
         await probeTab(chosen, tab, { ...scope, after: { option: node.path, name: node.name ?? node.key, choice: choice.label } }, here, false);
       }
     }
@@ -814,7 +815,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
       for (const button of walk(tree(settled, tab)).filter(isAdd)) {
         const r = edit(settled, tab, button, undefined, false);
         if (!r.edit?.changed) continue;
-        const added = settle({ aura: r.edit.aura, children: r.edit.children ?? settled.children }, tab);
+        const added = settle(r.edit.state, tab);
         await probeTab(added, tab, { regionType, added: { option: button.path, name: button.name ?? button.key } }, known);
       }
     }
@@ -828,7 +829,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
   for (const [type, label] of typeSelect?.values ?? []) {
     const r = edit(icon, "trigger", typeSelect!, type);
     if (!r.edit) continue;
-    const typed = settle({ aura: r.edit.aura, children: [] }, "trigger");
+    const typed = settle(r.edit.state, "trigger");
     const sub = walk(tree(typed, "trigger")).find((n) => n.type === "select" && /^trigger\.1\.[^.]+\.event$/.test(n.key) && !n.hidden);
     triggerTypes.push({ type: String(type), label, ...(sub?.values && { events: sub.values }) });
     const triggerType = String(type);
@@ -839,7 +840,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
     }
     for (const [event] of sub.values) {
       const e = event === sub.value ? undefined : edit(typed, "trigger", sub, event).edit;
-      const state = e ? settle({ aura: e.aura, children: [] }, "trigger") : typed;
+      const state = e ? settle(e.state, "trigger") : typed;
       typedStates.push({ triggerType, event: String(event), state });
       await probeTab(state, "trigger", { regionType: icon.aura.regionType as string, triggerType, event: String(event) });
     }

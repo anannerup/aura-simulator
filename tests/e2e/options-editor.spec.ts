@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { stateCode } from "../support/state-code";
 
@@ -121,4 +122,39 @@ test("adds a glow and a condition that shows it, with the addon's own buttons", 
   await expect(raw(page)).toHaveValue(/"property": "sub\.2\.glow"/);
   await expect(raw(page)).toHaveValue(/"variable": "faAuraRemaining"/);
   await expect(page.getByTestId("validation-panel")).toHaveAttribute("data-combat-status", "ok", { timeout: 30_000 });
+});
+
+test("an aura two levels deep in a pack is edited with its groups around it, and the change lands on it", async ({ page, request }) => {
+  // [Merfin] Cube Assigner: "Cube Assigner Mark 1" is in the dynamic group "[Merfin] Cube Assigner Marks", itself in
+  // the top-level group.
+  const workspace = uniqueId("opts-nested");
+  const code = (await readFile("tests/fixtures/wago/tbc/a7mRKvNf8.txt", "utf8")).trim();
+  const res = await request.post(`/api/tbc/workspaces/${workspace}/aura?validate=false`, { data: { code } });
+  expect(res.status(), await res.text()).toBe(200);
+  await page.goto(`/tbc?w=${workspace}`);
+  const child = "Cube Assigner Mark 1";
+  const item = page.getByRole("treeitem", { name: child, exact: true });
+  await expect(item).toBeVisible({ timeout: 90_000 });
+  await item.click();
+  await expect(item).toHaveAttribute("aria-selected", "true");
+  await openTab(page, "Display");
+  await expect(editor(page)).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
+  await expect(editor(page)).not.toContainText("reported an error");
+
+  type Aura = { id: string; width?: number };
+  const stateOf = (id: string) =>
+    page.evaluate((id) => (window as unknown as { auraSimulator: { state(id: string): { aura: Aura } } }).auraSimulator.state(id), id);
+  const siblingBefore = (await stateOf("Cube Assigner Mark 2")).aura;
+  await editor(page).getByRole("button", { name: "Position and Size Settings" }).click();
+  const width = option(page, "position.width").locator('input[type="number"]');
+  await expect(width).toBeVisible({ timeout: 30_000 });
+  // The anchor point is the dynamic group's to decide: hidden, as in the game (shown when the group is missing).
+  await expect(editor(page).locator('[data-option$="selfPoint"]')).toHaveCount(0);
+  await width.fill("77");
+  await width.press("Enter");
+
+  await expect.poll(async () => (await stateOf(child)).aura.width, { timeout: 30_000 }).toBe(77);
+  await expect(item).toHaveAttribute("aria-selected", "true");
+  expect((await stateOf("Cube Assigner Mark 2")).aura).toEqual(siblingBefore);
+  await expect(width).toHaveValue("77");
 });

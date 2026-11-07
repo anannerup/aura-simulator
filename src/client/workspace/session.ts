@@ -29,7 +29,7 @@ import {
   serializeWorkspace,
   stateFromNode,
   updateNode,
-  updateWithDescendants,
+  updateTopLevel,
   wagoRouteUrl,
   workspaceFileName,
   type PushInput,
@@ -57,6 +57,11 @@ export interface WorkspaceView {
   aura: AuraDocument | null;
   /** The selected group's descendants, flattened as in its state code. */
   children: AuraDocument[];
+  /**
+   * The top-level aura the selected aura is in (or the selected aura itself), as its state code carries it: what the
+   * options editor loads, as the game's window has every aura of a group registered.
+   */
+  topLevel: AuraState | null;
   /** True once restored. */
   ready: boolean;
   /** Browser storage trouble (full, unavailable): the workspace still works, but isn't saved. Null when fine. */
@@ -70,6 +75,7 @@ export const EMPTY_VIEW: WorkspaceView = {
   code: null,
   aura: null,
   children: [],
+  topLevel: null,
   ready: false,
   warning: null,
 };
@@ -124,6 +130,7 @@ export class WorkspaceSession {
   private disposed = false;
   private link: ServerLink | null = null;
   private readonly codes: StateCodes;
+  private readonly states = new WeakMap<WorkspaceNode, AuraState>();
   private readonly store: WorkspaceStore;
   private readonly makeLink: (workspace: WorkspaceAddress) => ServerLink;
   private readonly wagoCode: (id: string) => Promise<string>;
@@ -257,20 +264,26 @@ export class WorkspaceSession {
     this.save(id, now());
   }
 
-  /**
-   * Replaces the selected aura's document (editors, spell picker); a changed `id` renames it. A group's tabs edit
-   * its descendants too: pass them as `descendants`.
-   */
-  updateSelected(doc: AuraDocument, descendants?: AuraDocument[]): EditResult {
+  /** Replaces the selected aura's document (e.g. the spell picker); a changed `id` renames it. */
+  updateSelected(doc: AuraDocument): EditResult {
     const id = this.view.workspaceId;
     const selected = this.view.selectedId;
     if (!id || !selected) return { ok: false, error: "Nothing is selected" };
     return this.attempt(() => {
-      const updated = descendants
-        ? updateWithDescendants(this.view.items, selected, doc, descendants)
-        : updateNode(this.view.items, selected, doc);
+      const updated = updateNode(this.view.items, selected, doc);
       this.commit(id, updated.items, updated.id, "page");
     });
+  }
+
+  /**
+   * Takes back the selected aura's top-level aura (`view.topLevel`) as an options edit returns it: any of its auras
+   * may have changed (`updateTopLevel`). `selected` is the selected aura's id after the edit (a rename changes it).
+   */
+  updateTopLevel(state: AuraState, selected: string): EditResult {
+    const id = this.view.workspaceId;
+    const found = this.view.selectedId ? findNode(this.view.items, this.view.selectedId) : null;
+    if (!id || !found) return { ok: false, error: "Nothing is selected" };
+    return this.attempt(() => this.commit(id, updateTopLevel(this.view.items, found.path[0], state), selected, "page"));
   }
 
   /**
@@ -487,9 +500,20 @@ export class WorkspaceSession {
   private withSelection(view: WorkspaceView, items: WorkspaceNode[], selectedId: string | null): WorkspaceView {
     const found = selectedId ? findNode(items, selectedId) : null;
     const node = found?.node ?? items[0] ?? null;
-    if (!node) return { ...view, items, selectedId: null, code: null, aura: null, children: [] };
+    if (!node) return { ...view, items, selectedId: null, code: null, aura: null, children: [], topLevel: null };
     const { children } = stateFromNode(node);
-    return { ...view, items, selectedId: nodeId(node), code: this.codes.of(node), aura: node.aura, children };
+    const top = found ? items.find((n) => nodeId(n) === found.path[0])! : node;
+    return { ...view, items, selectedId: nodeId(node), code: this.codes.of(node), aura: node.aura, children, topLevel: this.topLevelState(top) };
+  }
+
+  /** A top-level aura's state, the same object while its node is the same (nodes are immutable). */
+  private topLevelState(node: WorkspaceNode): AuraState {
+    let state = this.states.get(node);
+    if (!state) {
+      state = stateFromNode(node);
+      this.states.set(node, state);
+    }
+    return state;
   }
 
   private show(view: WorkspaceView) {

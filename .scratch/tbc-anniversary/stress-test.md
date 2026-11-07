@@ -122,6 +122,17 @@ labels and `plainText`. The options window's old parser split `||c` (an escaped 
    - **Errors are no longer silent**: when the addon raises while the editor loads an aura, the error comes back as
      `OptionsTree.warning`, and the editor shows it.
    - **Test**: `weakauras2-tbc.test.ts` ("the editor registers nested groups as the game's import does").
+   - **Then: an aura in a group was opened without its groups.** The editor got only the selected aura and its
+     descendants. A nested group opened that way raised in `EnsureRegion` (it walks up to the missing parent), and
+     every tab of an aura in a group was built without its parent: a dynamic group's child showed its own anchor
+     point, which the group decides in the game.
+   - **Fix**: the editor loads the whole top-level aura, as the game's window has it, and selects one aura in it
+     (`options(topLevel, { selected, tab })`, `setOption(topLevel, { selected, tab, path }, value)`). An edit returns
+     the whole top-level aura. The aura stays loaded between calls; what evaluating a tab writes into it is put back
+     before an edit, aura by aura. On the T5 raid pack (518 auras with its groups), opening a child loads the pack
+     once (about 1.1 s); another tab takes about 20 ms, another aura of the pack about 30 ms, an edit about 170 ms.
+   - **Test**: `wago-tbc.test.ts` ("a nested child of a real pack in the editor"), `options-editor.spec.ts` ("an aura
+     two levels deep in a pack …").
 3. **Validation ignored an Add that raised** (`src/core/addon-vm/validation.ts`).
    - **Cause**: when `WeakAuras.Add` raised for an aura, validation reported nothing. In the game the import fails
      with a Lua error and the aura isn't registered. This is why the talent gap below stayed hidden: the
@@ -223,11 +234,6 @@ the biggest unprobed area that agents would write.
 
 ## Known limits left
 
-- **A nested group opened alone.** The editor gets only the selected aura and its descendants, never its ancestors.
-  Adding a nested group opened that way raises in `EnsureRegion`, which walks up to the missing parent. That error
-  isn't reported as the aura's, and the tabs still build.
-  - The real fix is to load the whole top-level aura into the editor and select one aura in it, as the game does.
-  - That changes the editor session's API (an id to select in `options`/`setOption`).
 - **Spec queries still answer "absent".** `C_SpecializationInfo.GetSpecialization`, `GetSpecializationInfo`,
   `GetActiveSpecGroup` and `GetNumSpecializationsForClassID` exist on 2.5.6, but the profile answers them as absent
   so WeakAuras2 takes its classic paths. No aura here needed them; changing it moves the addon's spec code paths.

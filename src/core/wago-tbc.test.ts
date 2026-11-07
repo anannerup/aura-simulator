@@ -6,14 +6,15 @@
  * - its state code decodes, and encodes and decodes to the same aura;
  * - its wago JSON is wago's byte for byte (`lookup/wago/code` → `json`, by hash), and comes back as the same aura;
  * - validation raises no Lua error, except the ones the manifest classifies as the aura's own;
- * - every tab of it and of every aura in it builds, with no addon error while loading it into the editor.
+ * - every tab of it and of every aura in it builds (the whole aura loaded into the editor once, each aura selected in
+ *   it, as in the game), with no addon error while loading it.
  * The WeakAuras2 zip is downloaded once into .cache/weakauras2; without it (offline) these skip.
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { fromWagoJson, loadAddon, toWagoJson, type AuraCore, type AuraDocument, type AuraState } from "@/core";
+import { fromWagoJson, loadAddon, toWagoJson, type AuraCore, type AuraState, type OptionNode } from "@/core";
 import { TBC_TEST_VERSION, weakAuras2Available, weakAuras2Fetcher } from "../../tests/support/weakauras2";
 
 const DIR = path.resolve(__dirname, "../../tests/fixtures/wago/tbc");
@@ -40,23 +41,6 @@ afterAll(() => core?.dispose());
 function tbc(ctx: { skip: () => void }): AuraCore {
   if (!core) ctx.skip();
   return core!;
-}
-
-/** What the window opens for one aura of a group: the aura and its descendants (as the page selects it). */
-function selection(all: AuraDocument[], aura: AuraDocument): AuraState {
-  const byId = new Map(all.map((a) => [a.id, a]));
-  const children: AuraDocument[] = [];
-  const walk = (a: AuraDocument) => {
-    // An empty controlledChildren is an empty table ({}), not a list.
-    for (const id of Array.isArray(a.controlledChildren) ? (a.controlledChildren as string[]) : []) {
-      const child = byId.get(id);
-      if (!child) continue;
-      children.push(child);
-      walk(child);
-    }
-  };
-  walk(aura);
-  return { aura, children };
 }
 
 const same = (a: AuraState, b: AuraState) => expect({ aura: a.aura, children: a.children }).toStrictEqual({ aura: b.aura, children: b.children });
@@ -86,16 +70,76 @@ describe.each(MANIFEST)("$name (wago $id)", (recorded) => {
   test("every tab of every aura in it builds", async (ctx) => {
     const c = tbc(ctx);
     const state = c.decode(code());
-    const all = [state.aura, ...state.children];
     const problems: string[] = [];
-    for (const aura of all) {
-      const opened = selection(all, aura);
-      for (const { key } of (await c.options(opened)).tabs) {
-        const r = await c.options(opened, { tab: key });
-        if (r.error) problems.push(`${String(aura.id)} ${key}: ${r.error}`);
-        if (r.warning) problems.push(`${String(aura.id)} ${key}: ${r.warning}`);
+    for (const aura of [state.aura, ...state.children]) {
+      const selected = String(aura.id);
+      const opened = await c.options(state, { selected });
+      if (opened.warning) problems.push(`loading: ${opened.warning}`);
+      for (const { key } of opened.tabs) {
+        const r = await c.options(state, { selected, tab: key });
+        if (r.error) problems.push(`${selected} ${key}: ${r.error}`);
       }
     }
-    expect(problems).toEqual([]);
+    expect([...new Set(problems)]).toEqual([]);
   }, 300_000);
+});
+
+/**
+ * An aura deep in a pack, opened in the window, has its groups around it as in the game (the editor loads the whole
+ * top-level aura and selects the aura in it). [Merfin] Cube Assigner: "Cube Assigner Mark 1" is in the dynamic group
+ * "[Merfin] Cube Assigner Marks", itself in the top-level group.
+ */
+describe("a nested child of a real pack in the editor", () => {
+  const CHILD = "Cube Assigner Mark 1";
+  const PARENT = "[Merfin] Cube Assigner Marks";
+  const pack = (c: AuraCore) => c.decode(readFileSync(path.join(DIR, "a7mRKvNf8.txt"), "utf8").trim());
+  const find = (tree: OptionNode | undefined, key: string) => {
+    const walk = (n: OptionNode): OptionNode | undefined => (n.key === key || n.key?.endsWith(`.${key}`) ? n : n.args?.map(walk).find(Boolean));
+    return tree && walk(tree);
+  };
+
+  test("loads with no addon error, and its tabs are built with its dynamic group present", async (ctx) => {
+    const c = tbc(ctx);
+    const state = pack(c);
+    expect(state.children.find((a) => a.id === CHILD)?.parent).toBe(PARENT);
+    const first = await c.options(state, { selected: CHILD });
+    expect(first).toMatchObject({ selected: CHILD, tabs: expect.arrayContaining([expect.objectContaining({ key: "region" })]) });
+    expect(first.warning).toBeUndefined();
+    expect(first.tabs.map((t) => t.key)).not.toContain("group");
+    for (const { key } of first.tabs) expect((await c.options(state, { selected: CHILD, tab: key })).error, key).toBeUndefined();
+    // The Display tab's own anchor point is the dynamic group's to decide (CommonOptions' IsParentDynamicGroup):
+    // hidden only when the parent is registered.
+    const display = await c.options(state, { selected: CHILD, tab: "region" });
+    expect(find(display.tree, "selfPoint")?.hidden).toBe(true);
+    // The group itself shows the window's Group tab (its grow and spacing options).
+    expect((await c.options(state, { selected: PARENT })).tabs[0].key).toBe("group");
+  });
+
+  test("reports what the addon raised while adding the pack (in the game, a Lua error)", async (ctx) => {
+    const c = tbc(ctx);
+    const state = pack(c);
+    // A sibling the addon can't add: its dynamic group raises while laying it out.
+    const children = state.children.map((a) => (a.id === "Cube Assigner Mark 2" ? { ...a, subRegions: "broken" } : a));
+    const r = await c.options({ aura: state.aura, children }, { selected: CHILD, tab: "region" });
+    expect(r.warning).toMatch(/Cube Assigner/);
+  });
+
+  test("an edit to the child returns the whole pack, with only that change", async (ctx) => {
+    const c = tbc(ctx);
+    // At this addon version's internalVersion: an aura from an older version comes back migrated whole.
+    const state = await c.fillDefaults(pack(c));
+    await c.options(state, { selected: CHILD, tab: "region" });
+    const edit = await c.setOption(state, { selected: CHILD, tab: "region", path: ["position.width"] }, 77);
+    expect(edit).toMatchObject({ changed: true, selected: CHILD });
+    expect(edit.state.children).toHaveLength(state.children.length);
+    const at = state.children.findIndex((a) => a.id === CHILD);
+    expect(edit.state.children[at]).toEqual({ ...state.children[at], width: 77 });
+    expect(edit.state.aura).toBe(state.aura);
+    edit.state.children.forEach((a, i) => {
+      if (i !== at) expect(a).toBe(state.children[i]);
+    });
+    // The next tab is built for the edited pack without loading it again, and shows the edit.
+    const display = await c.options(edit.state, { selected: CHILD, tab: "region" });
+    expect(find(display.tree, "width")?.value).toBe(77);
+  });
 });

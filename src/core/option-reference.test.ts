@@ -132,7 +132,7 @@ async function settle(state: AuraState, tab: string): Promise<AuraState> {
   for (const n of [...selects, ...toggles]) {
     if (tried === 4) break;
     const e = await core!.setOption(state, { tab, path: n.path }, n.value).catch(() => undefined);
-    const next = e && { aura: e.aura, children: e.children ?? state.children };
+    const next = e?.state;
     // The option must still show the value it showed (a tristate toggle's false is "not set"; setting it is "Not"):
     // otherwise it is skipped and doesn't count.
     if (next && e!.changed) {
@@ -157,11 +157,11 @@ function baseFor(scope: OptionScope, tab: string): Promise<AuraState> | undefine
       const fresh = await newState(scope.regionType);
       if (scope.triggerType !== undefined) {
         const typeSelect = walkOptions(await tree(fresh, "trigger")).find((n) => n.type === "select" && /^trigger\.1\.[^.]+\.type$/.test(n.key))!;
-        let state = await settle({ aura: (await core!.setOption(fresh, { tab: "trigger", path: typeSelect.path }, scope.triggerType)).aura, children: [] }, "trigger");
+        let state = await settle((await core!.setOption(fresh, { tab: "trigger", path: typeSelect.path }, scope.triggerType)).state, "trigger");
         if (scope.event !== undefined) {
           const sub = walkOptions(await tree(state, "trigger")).find((n) => n.type === "select" && /^trigger\.1\.[^.]+\.event$/.test(n.key) && !n.hidden)!;
           if (String(sub.value) !== scope.event) {
-            state = await settle({ aura: (await core!.setOption(state, { tab: "trigger", path: sub.path }, scope.event)).aura, children: [] }, "trigger");
+            state = await settle((await core!.setOption(state, { tab: "trigger", path: sub.path }, scope.event)).state, "trigger");
           }
         }
         return state;
@@ -172,7 +172,7 @@ function baseFor(scope: OptionScope, tab: string): Promise<AuraState> | undefine
       const settled = await settle(all, tab);
       if (!scope.added) return settled;
       const e = await core!.setOption(settled, { tab, path: scope.added.option });
-      return settle({ aura: e.aura, children: e.children ?? settled.children }, tab);
+      return settle(e.state, tab);
     })();
     bases.set(key, base);
   }
@@ -259,12 +259,12 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
         return;
       }
       replayed++;
-      let writes = diff(base.aura, edit.aura).sort();
+      let writes = diff(base.aura, edit.state.aura).sort();
       // Each key the edit set is found at that path in the aura's wago JSON, and every listed table is an array there.
-      const wago = (JSON.parse(toWagoJson({ aura: edit.aura, children: [] })) as { d: unknown }).d;
+      const wago = (JSON.parse(toWagoJson({ aura: edit.state.aura, children: [] })) as { d: unknown }).d;
       for (const p of writes) {
         const at = follow(wago, p, lists);
-        const inDoc = follow(edit.aura, p.replace(/(^|\.)(\d+)(?=\.|$)/g, "$1[$2]"), new Set()).found;
+        const inDoc = follow(edit.state.aura, p.replace(/(^|\.)(\d+)(?=\.|$)/g, "$1[$2]"), new Set()).found;
         if (!at.listsAgree || (inDoc && !at.found)) wrong.push(`${where}: ${p} is not that key in wago JSON`);
       }
       if (entry.type === "multiselect") {
@@ -272,10 +272,8 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
         writes = writes.map((p) => p.split(".").map((s) => (s === key ? "*" : s)).join("."));
       }
       if (JSON.stringify(writes) !== JSON.stringify(entry.writes)) wrong.push(`${where}: wrote ${JSON.stringify(writes)}, entry says ${JSON.stringify(entry.writes)}`);
-      if (edit.children) {
-        const child = [...new Set(edit.children.flatMap((c, i) => diff(base.children[i], c)))].sort();
-        if (JSON.stringify(child) !== JSON.stringify(entry.childWrites ?? [])) wrong.push(`${where}: children ${JSON.stringify(child)} vs ${JSON.stringify(entry.childWrites)}`);
-      }
+      const child = [...new Set(edit.state.children.flatMap((c, i) => diff(base.children[i], c)))].sort();
+      if (JSON.stringify(child) !== JSON.stringify(entry.childWrites ?? [])) wrong.push(`${where}: children ${JSON.stringify(child)} vs ${JSON.stringify(entry.childWrites)}`);
     };
     // Buttons last: Move Up, Delete, … move the window's opened/closed sections along, which the reference resets
     // after each and this test can't.

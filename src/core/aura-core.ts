@@ -6,7 +6,7 @@ import { canonicalize, isLuaTable, toLuaLiteral, type AuraDocument, type AuraSta
 import { loadInlineAddonVM, loadWorkerAddonVM, type AddonVMMethod, type AsyncAddonVM } from "./addon-vm/host";
 import type { AddonVM, AddonVMReport, ImportCheck, Registries } from "./addon-vm/vm";
 import type { ValidationResult } from "./addon-vm/validation";
-import type { OptionAddress, OptionEdit, OptionsTree } from "./addon-vm/options";
+import type { OptionAddress, OptionEdit, OptionsRequest, OptionsTree } from "./addon-vm/options";
 import type { AuraPacks, NewAuraPage } from "./addon-vm/new-aura";
 import type { OptionReference, OptionReferenceOptions } from "./addon-vm/option-reference";
 import { createSpellPreloader, type SpellInfoSource } from "./addon-vm/spells";
@@ -53,16 +53,20 @@ export interface AuraCore {
   /** Loads the full addon VM now instead of on first use. Resolves with its load report (timings). */
   loadFullAddon(): Promise<AddonVMReport>;
   /**
-   * The in-game options window for `state.aura`: its tabs (same order and names as the game) and
-   * the requested tab's option tree (default: the first tab), built by WeakAurasOptions' own
-   * option generators and evaluated for this aura: names, values, ranges, hidden, disabled and
-   * each option's current value. Collapsible sections start the way the game starts them.
+   * The in-game options window for one aura of a top-level aura (`state`: a lone aura, or a group with all its
+   * descendants): `request.selected` (default: the top-level aura), as the game's window shows it when it is clicked
+   * in the aura list, with its groups registered around it. Returns its tabs (same order and names as the game) and
+   * the requested tab's option tree (default: the first tab), built by WeakAurasOptions' own option generators and
+   * evaluated for that aura: names, values, ranges, hidden, disabled and each option's current value. Collapsible
+   * sections start the way the game starts them. The top-level aura stays loaded between calls, so other tabs and
+   * other auras of it cost no new load.
    */
-  options(state: AuraState, request?: { tab?: string }): Promise<OptionsTree>;
+  options(state: AuraState, request?: OptionsRequest): Promise<OptionsTree>;
   /**
-   * Changes one option through its own set() (an execute option: runs its func(), e.g. "Add
-   * Condition", "Delete", expanding a section). Returns the aura as given plus what the edit
-   * changed. Throws OptionEditError when the addon refuses the value or the option can't run here.
+   * Changes one option of the selected aura of a top-level aura (`address.selected`, as in `options`) through its own
+   * set() (an execute option: runs its func(), e.g. "Add Condition", "Delete", expanding a section). Returns the
+   * top-level aura with what the edit changed in any of its auras. Throws OptionEditError when the addon refuses the
+   * value or the option can't run here.
    */
   setOption(state: AuraState, address: OptionAddress, value?: unknown): Promise<OptionEdit>;
   /** What the window's New Aura page offers: display types (names, descriptions), Modern Aura Group, Packs, Premade. */

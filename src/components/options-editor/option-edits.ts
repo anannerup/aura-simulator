@@ -1,4 +1,4 @@
-import type { AuraCore, AuraDocument, AuraState, OptionDialog, OptionNode } from "@/core";
+import type { AuraCore, AuraState, OptionDialog, OptionNode } from "@/core";
 import { errorMessage } from "@/lib/errors";
 
 /** Many changes in a row (slider drag) wait this long for the last one. */
@@ -25,10 +25,20 @@ export interface OptionEditsView {
   rebuilds: number;
 }
 
+/** What the options editor edits: a top-level aura (a lone aura, or a group with its descendants) and the aura in it it shows. */
+export interface EditedAura {
+  state: AuraState;
+  /** The selected aura's id. */
+  selected: string;
+}
+
 export interface OptionEditsDeps {
   setOption: AuraCore["setOption"];
-  /** The page takes the edited aura (and a group's changed descendants); `ok: false` rolls the edit back. */
-  onChange(doc: AuraDocument, children?: AuraDocument[]): { ok: boolean; error?: string } | void;
+  /**
+   * The page takes the edited top-level aura (any of its auras may have changed) and the selected aura's id after the
+   * edit (a rename changes it); `ok: false` rolls the edit back.
+   */
+  onChange(edited: EditedAura): { ok: boolean; error?: string } | void;
 }
 
 /**
@@ -38,13 +48,13 @@ export interface OptionEditsDeps {
  */
 export class OptionEdits {
   private deps: OptionEditsDeps;
-  private document: AuraState;
+  private document: EditedAura;
   private view: OptionEditsView = { drafts: {}, errors: {}, pending: 0, dialog: null, rebuilds: 0 };
   private queue: Promise<void> = Promise.resolve();
   private timers = new Map<string, ReturnType<typeof setTimeout>>();
   private listeners = new Set<() => void>();
 
-  constructor(deps: OptionEditsDeps, document: AuraState) {
+  constructor(deps: OptionEditsDeps, document: EditedAura) {
     this.deps = deps;
     this.document = document;
   }
@@ -61,8 +71,8 @@ export class OptionEdits {
     this.deps = deps;
   }
 
-  /** The page's current document; queued edits apply to the newer of it and their own results. */
-  setDocument(document: AuraState) {
+  /** The page's current top-level aura and selection; queued edits apply to the newer of it and their own results. */
+  setDocument(document: EditedAura) {
     this.document = document;
   }
 
@@ -115,12 +125,13 @@ export class OptionEdits {
     this.update({ pending: this.view.pending + 1 });
     this.queue = this.queue.then(async () => {
       try {
-        const edit = await this.deps.setOption(this.document, { tab, path: node.path }, value);
+        const { state, selected } = this.document;
+        const edit = await this.deps.setOption(state, { selected, tab, path: node.path }, value);
         if (edit.dialog) this.update({ dialog: { tab, node, dialog: edit.dialog } });
         if (!edit.changed) return this.fail(id, null);
         const previous = this.document;
-        this.document = { aura: edit.aura, children: edit.children ?? previous.children };
-        const r = this.deps.onChange(edit.aura, edit.children);
+        this.document = { state: edit.state, selected: edit.selected };
+        const r = this.deps.onChange(this.document);
         if (r && !r.ok) {
           this.document = previous;
           this.fail(id, r.error ?? "The page could not take this change");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from "react";
-import { plainText, type AuraCore, type AuraDocument, type OptionNode, type OptionsTree } from "@/core";
+import { plainText, type AuraCore, type AuraState, type OptionNode, type OptionsTree } from "@/core";
 import {
   ColorField,
   ExecuteField,
@@ -14,51 +14,54 @@ import {
   type FieldProps,
 } from "./fields";
 import { OptionDialogView } from "./OptionDialogs";
-import { OptionEdits, optionId, type Draft, type OptionEditsDeps } from "./option-edits";
+import { OptionEdits, optionId, type Draft, type EditedAura, type OptionEditsDeps } from "./option-edits";
 import { WowText } from "./WowText";
 import styles from "./OptionsEditor.module.css";
 import { errorMessage } from "@/lib/errors";
 
 export interface OptionsEditorProps {
   core: AuraCore;
-  aura: AuraDocument;
-  /** A group's descendants (registered in the addon VM too, so group options can see them). */
-  childAuras?: AuraDocument[];
   /**
-   * Called with the edited aura; the page encodes and loads it (state code, preview, undo, validation). A group's
-   * edits can change its descendants too (its tabs edit them, as in the game): then `children` holds all of them.
+   * The top-level aura the selected aura is in (a lone aura, or a group with all its descendants): the editor loads all
+   * of it into the addon VM, as the game's window has every aura of a group registered.
    */
-  onChange(doc: AuraDocument, children?: AuraDocument[]): { ok: boolean; error?: string } | void;
+  topLevel: AuraState;
+  /** The id of the aura in it whose tabs the editor shows. */
+  selected: string;
+  /**
+   * Called with the edited top-level aura (an edit can change any aura of it, as in the game: a group's tabs edit its
+   * children) and the selected aura's id after the edit; the page writes it into the workspace (state code, preview,
+   * undo, validation).
+   */
+  onChange(edited: EditedAura): { ok: boolean; error?: string } | void;
 }
-
-const NO_CHILDREN: AuraDocument[] = [];
 
 /**
  * The in-game options window for one aura: the addon's own tabs and option tables (via the aura
  * core), rendered as a form. Every change goes through the option's own set() in the addon VM (`OptionEdits`).
  */
-export function OptionsEditor({ core, aura, childAuras = NO_CHILDREN, onChange }: OptionsEditorProps) {
+export function OptionsEditor({ core, topLevel, selected, onChange }: OptionsEditorProps) {
   const [tab, setTab] = useState<string | undefined>(undefined);
   const [result, setResult] = useState<OptionsTree | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const deps: OptionEditsDeps = { setOption: (...args) => core.setOption(...args), onChange };
-  const [edits] = useState(() => new OptionEdits(deps, { aura, children: childAuras }));
+  const [edits] = useState(() => new OptionEdits(deps, { state: topLevel, selected }));
   const { drafts, errors, pending, dialog, rebuilds } = useSyncExternalStore(edits.subscribe, edits.getView, edits.getView);
   useEffect(() => {
     edits.connect(deps);
   });
   useEffect(() => {
-    edits.setDocument({ aura, children: childAuras });
-  }, [edits, aura, childAuras]);
+    edits.setDocument({ state: topLevel, selected });
+  }, [edits, topLevel, selected]);
   useEffect(() => () => edits.dispose(), [edits]);
 
   // What the shown tree was built for; the editor is busy until it matches the current request.
   const [builtFor, setBuiltFor] = useState<unknown>(null);
-  const request = useMemo(() => ({ aura, childAuras, tab, rebuilds }), [aura, childAuras, tab, rebuilds]);
+  const request = useMemo(() => ({ topLevel, selected, tab, rebuilds }), [topLevel, selected, tab, rebuilds]);
   useEffect(() => {
     let cancelled = false;
-    core.options({ aura: request.aura, children: request.childAuras }, { tab: request.tab }).then(
+    core.options(request.topLevel, { selected: request.selected, tab: request.tab }).then(
       (r) => {
         if (cancelled) return;
         setResult(r);

@@ -95,7 +95,11 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   `FOREVER_CONTRACT` for Musca's own (Aura (Modern), combat warnings, packs: `lua/extract-forever.ts`, `lua/new-aura.ts`).
   The options editor (`options`/`setOption`) builds the in-game options tabs in that VM with WeakAurasOptions' own
   generators and applies edits through each option's own `set()` (`addon-vm/options.ts`, `lua/options.ts`, dialogs in
-  `lua/dialogs.ts`); its form is `src/components/options-editor/`. Tabs are the addon's keys (`region` is Display,
+  `lua/dialogs.ts`); its form is `src/components/options-editor/`. Like the game's window it works on a whole top-level
+  aura and selects one aura in it: `options(topLevel, { selected, tab })`, `setOption(topLevel, { selected, tab, path },
+  value)`; an edit returns the whole top-level aura (`edit.state`: any of its auras may change, e.g. a group's tabs edit
+  its children) and the page takes it back with `updateTopLevel`. The top-level aura stays loaded in the VM until a
+  different one comes, so tabs and other auras of it cost no load. Tabs are the addon's keys (`region` is Display,
   `action` is Actions); validation pointers use the same keys, so `options({tab: pointer.tab})` opens the right tab. Buttons that open a game dialog (icon/texture/model picker, code editor,
   confirmation popups) return `edit.dialog`; the page shows its own and answers with the same button. The New Aura
   page (`newAuraPage`/`newAura`/`packs`; `addon-vm/new-aura.ts`, `lua/new-aura.ts`) comes from the addon too; the

@@ -19,7 +19,7 @@ import {
   traverse,
   TreeError,
   updateNode,
-  updateWithDescendants,
+  updateTopLevel,
   type WorkspaceNode,
 } from "@/workspace";
 import { cachedAddonFetcher } from "../support/addon-source";
@@ -161,16 +161,23 @@ describe("workspace tree operations", () => {
     expect(() => replaceNode(items, "C", { aura: { ...g.aura, id: "C", uid: "fresh" }, items: [] })).not.toThrow();
   });
 
-  it("updates a group and its changed descendants in one edit, leaving unchanged ones as they are", () => {
+  it("takes an edited top-level aura back: changed auras (a rename too), unchanged ones keep their node", () => {
     const items = build();
     const [a, b] = findNode(items, "G")!.node.items!;
-    const g = findNode(items, "G")!.node.aura;
-    const next = updateWithDescendants(items, "G", { ...g, alpha: 0.5 }, [{ ...a.aura }, { ...b.aura, width: 12 }]);
-    expect(next.id).toBe("G");
-    expect(findNode(next.items, "G")!.node.aura.alpha).toBe(0.5);
-    expect(findNode(next.items, "B")!.node.aura.width).toBe(12);
-    expect(findNode(next.items, "A")!.node).toBe(a);
-    expectConsistent(next.items);
+    const state = stateFromNode(findNode(items, "G")!.node);
+    const g = state.aura;
+    const edited = { aura: { ...g, alpha: 0.5 }, children: [{ ...a.aura }, { ...b.aura, width: 12 }] };
+    const next = updateTopLevel(items, "G", edited);
+    expect(findNode(next, "G")!.node.aura.alpha).toBe(0.5);
+    expect(findNode(next, "B")!.node.aura.width).toBe(12);
+    expect(findNode(next, "A")!.node).toBe(a);
+    expect(findNode(next, "D")!.node).toBe(findNode(items, "D")!.node);
+    expectConsistent(next);
+    // A rename of a child: the addon renames the parent's controlledChildren too.
+    const renamed = updateTopLevel(items, "G", { aura: { ...g, controlledChildren: ["A2", "B"] }, children: [{ ...a.aura, id: "A2" }, b.aura] });
+    expect(shape(renamed)).toEqual([{ G: ["A2", "B"] }, { D: [] }, "C"]);
+    expectConsistent(renamed);
+    expect(() => updateTopLevel(items, "G", { aura: g, children: [a.aura] })).toThrow(TreeError);
   });
 });
 

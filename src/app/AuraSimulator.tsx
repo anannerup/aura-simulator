@@ -8,6 +8,7 @@ import { useUndo } from "@/client/workspace/useUndo";
 import { useWorkspace } from "@/client/workspace/useWorkspace";
 import { auraRules, type AuraDocument } from "@/core";
 import { OptionsEditor } from "@/components/options-editor/OptionsEditor";
+import type { EditedAura } from "@/components/options-editor/option-edits";
 import { AppShell, EmptyNote, ListSection, ScreenMessage, ScreenPane } from "@/components/shell";
 import { SpellPicker } from "@/components/spell-picker/SpellPicker";
 import { createSpellApi, SpellApiContext } from "@/components/spell-picker/spell-api";
@@ -69,9 +70,11 @@ export function AuraSimulator({ gameId }: { gameId: string }) {
   const { view: workspace, session } = useWorkspace(core, game.id, situationStore);
   const importer = useImporter(session);
 
-  // Edits (tabs, spell picker) replace the selected aura's document (a group's tabs its descendants too).
-  const changeAura = useCallback(
-    (aura: AuraDocument, descendants?: AuraDocument[]): EditResult => session?.updateSelected(aura, descendants) ?? NOT_READY,
+  // The spell picker replaces the selected aura's document.
+  const changeAura = useCallback((aura: AuraDocument): EditResult => session?.updateSelected(aura) ?? NOT_READY, [session]);
+  // The tabs' edits come back as the whole top-level aura (an edit can change any aura of it, as in the game).
+  const changeTopLevel = useCallback(
+    ({ state, selected }: EditedAura): EditResult => session?.updateTopLevel(state, selected) ?? NOT_READY,
     [session],
   );
   const setItems = useCallback(
@@ -232,8 +235,8 @@ export function AuraSimulator({ gameId }: { gameId: string }) {
               }}
               onCancel={() => setCreating(false)}
             />
-          ) : core && aura ? (
-            <OptionsEditor core={core} aura={aura} childAuras={workspace.children} onChange={changeAura} />
+          ) : core && aura && workspace.topLevel && workspace.selectedId ? (
+            <OptionsEditor core={core} topLevel={workspace.topLevel} selected={workspace.selectedId} onChange={changeTopLevel} />
           ) : (
             <div className={styles.emptyOptions}>
               <EmptyNote>{ready ? "Select an aura, or click New Aura." : `Loading ${game.addon.name}…`}</EmptyNote>

@@ -43,6 +43,7 @@ export type {
   OptionDialog,
   OptionEdit,
   OptionNode,
+  OptionsRequest,
   OptionsTree,
 } from "./addon-vm/options";
 export { OPTION_REFERENCE_FORMAT, changedPaths, pathPattern } from "./addon-vm/option-reference";

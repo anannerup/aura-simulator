@@ -120,10 +120,11 @@ describe("full VM", () => {
       },
     };
     const problems: string[] = [];
-    for (const state of [{ aura: g, children: [s, a] }, { aura: s, children: [a] }, { aura: a, children: [] }]) {
-      for (const { key } of (await c.options(state)).tabs) {
-        const r = await c.options(state, { tab: key });
-        if (r.error || r.warning) problems.push(`${state.aura.id} ${key}: ${r.error ?? r.warning}`);
+    const state = { aura: g, children: [s, a] };
+    for (const selected of ["G", "S", "A"]) {
+      for (const { key } of (await c.options(state, { selected })).tabs) {
+        const r = await c.options(state, { selected, tab: key });
+        if (r.error || r.warning) problems.push(`${selected} ${key}: ${r.error ?? r.warning}`);
       }
     }
     expect(problems).toEqual([]);

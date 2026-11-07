@@ -154,7 +154,7 @@ describe("Aura (Modern) Remaining Time (the trigger's own window, secretUseRem)"
   test("enabling it in the Trigger tab of the default icon keeps it fully usable", async () => {
     const sample = single(sampleIconAura(core.internalVersion));
     const edit = await core.setOption(sample, { tab: "trigger", path: ["trigger.1.secretAura.useRem"] }, true);
-    const result = await core.validate(single(edit.aura));
+    const result = await core.validate(edit.state);
     expect(messages(result)).toEqual([]);
     expect(result.combat?.status).toBe("ok");
   });
