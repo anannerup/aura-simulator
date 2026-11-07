@@ -1,6 +1,6 @@
 import { DEFAULT_WORKSPACE_ID } from "@/workspace";
 import { MISSING_ROOT } from "@/render/conditions/forever-rules";
-import type { AddonFacts, ModernVariableFact } from "./addon-facts";
+import { DOCUMENTED_REGION_TYPES, type AddonFacts, type ModernVariableFact } from "./addon-facts";
 import { COUNTER_EXAMPLE, WORKED_EXAMPLES, type WorkedExample } from "./worked-examples";
 
 /** What the docs need from the running app. */
@@ -29,7 +29,7 @@ const codes = (xs: Iterable<string>) => [...xs].map(code).join(", ");
 const json = (v: unknown) => JSON.stringify(v);
 
 /** JSON with 2-space indents, but anything that fits on one line (up to `width` columns) stays on one line. */
-export function compactJson(value: unknown, width = 110, indent = ""): string {
+function compactJson(value: unknown, width = 110, indent = ""): string {
   const flat = JSON.stringify(value);
   if (flat === undefined || value === null || typeof value !== "object" || indent.length + flat.length <= width) return flat;
   const inner = indent + "  ";
@@ -49,14 +49,13 @@ Expected answer: \`validation.combat.status\` is **${e.combat}**.
 
 \`\`\`json example=${e.key} combat=${e.combat}
 ${compactJson(e.body)}
-\`\`\`
-`;
+\`\`\``;
 }
 
 /** Plain words for what an Aura (Modern) condition variable may change. */
 function variableMayChange(v: ModernVariableFact, a: AddonFacts): string {
   const glow = v.glow ? `a glow (\`sub.N.glow\` set to \`true\`${v.glow.operator ? `, operator \`${v.glow.operator}\`` : ""})` : undefined;
-  const highlight = "the native highlight (`faAuraHighlight*`)";
+  const highlight = "the native highlight";
   switch (v.family) {
     case "duration":
       return [glow, "the colour or visibility (`text_color`, `text_visible`) of a `%p` text"].filter(Boolean).join("; ");
@@ -112,27 +111,54 @@ function defaultsLine(doc: Record<string, unknown>): string {
     .join(", ");
 }
 
+const MINIMAL_AURA = {
+  id: "Arcane Intellect",
+  regionType: "icon",
+  displayIcon: 135932,
+  triggers: {
+    "[1]": { trigger: { type: "secretAura", unit: "player", debuffType: "HELPFUL", auraspellids: ["1459"] }, untrigger: {} },
+    activeTriggerMode: -10,
+  },
+};
+
+interface Ctx {
+  /** The origin. */
+  o: string;
+  /** The default workspace id. */
+  d: string;
+  a: AddonFacts | null;
+  version: string;
+}
+
 /**
  * The agent docs as Markdown: served as-is at /llms.txt and /docs/agents.md, rendered at /docs/agents.
  * Prose for the concepts; lists of types, triggers, condition variables and defaults come from the addon version.
+ * One function per section, in order.
  */
 export function agentDocsMarkdown(f: AgentDocsFacts): string {
-  const o = f.origin;
-  const d = DEFAULT_WORKSPACE_ID;
   const a = f.addon;
   const version = a
     ? `Musca Auras ${a.addonRef} (WeakAuras ${a.addonVersion}, internalVersion ${a.internalVersion})`
     : `Musca Auras ${f.addonRef} (it could not be loaded just now, so the lists generated from it are missing; reload later)`;
-  const minimal = {
-    id: "Arcane Intellect",
-    regionType: "icon",
-    displayIcon: 135932,
-    triggers: {
-      "[1]": { trigger: { type: "secretAura", unit: "player", debuffType: "HELPFUL", auraspellids: ["1459"] }, untrigger: {} },
-      activeTriggerMode: -10,
-    },
-  };
+  const ctx: Ctx = { o: f.origin, d: DEFAULT_WORKSPACE_ID, a, version };
+  const sections = [
+    intro,
+    workflow,
+    auraDocument,
+    fieldReference,
+    triggers,
+    conditions,
+    combatRules,
+    validation,
+    spells,
+    pushApi,
+    workedExamples,
+    troubleshooting,
+  ];
+  return sections.map((section) => section(ctx)).join("\n");
+}
 
+function intro({ version }: Ctx): string {
   return `# Aura Simulator: docs for agents
 
 Aura Simulator previews auras for **Musca Auras**, the WeakAuras fork for WoW Forever, the way the game draws them,
@@ -144,8 +170,11 @@ This server follows ${version}. Lists marked *generated* below are read from tha
 
 Contents: Workflow · The aura document · Field reference · Triggers · Conditions · Combat rules · Validation ·
 Spells · Push API · Worked examples · Troubleshooting.
+`;
+}
 
-## Workflow
+function workflow({ o, d }: Ctx): string {
+  return `## Workflow
 
 1. **Pick a workspace.** Ask the player for theirs (the page shows its workspace id; it is the \`w\` in the address)
    or choose one (1-64 of \`A-Z a-z 0-9 _ -\`) and ask them to open \`${o}/?w=<id>\`. Without \`?w=\` the page follows
@@ -163,8 +192,11 @@ Spells · Push API · Worked examples · Troubleshooting.
 7. **The player imports in the game**: open Musca Auras, click Import, paste the file's text, Import.
 
 Don't paste import strings or links into the chat: push to the workspace and let the player export.
+`;
+}
 
-## The aura document
+function auraDocument(): string {
+  return `## The aura document
 
 An aura is the Lua table the addon stores for it, written as JSON (the canonical form; the app returns
 documents in this form and accepts anything that canonicalizes to it):
@@ -183,10 +215,13 @@ documents in this form and accepts anything that canonicalizes to it):
 A minimal aura:
 
 \`\`\`json
-${compactJson(minimal)}
+${compactJson(MINIMAL_AURA)}
 \`\`\`
+`;
+}
 
-## Field reference
+function fieldReference({ a }: Ctx): string {
+  return `## Field reference
 
 Common to every display: \`id\`, \`regionType\`, \`anchorPoint\` (point of the screen or group), \`selfPoint\` (point
 of the aura), \`xOffset\`/\`yOffset\` (pixels from the anchor; up and right are positive), \`width\`/\`height\`,
@@ -233,25 +268,7 @@ every element, backgrounds included) as \`sub.N.<key>\`.
   \`tick_placements\` (strings), \`tick_thickness\`, \`automatic_length\`/\`tick_length\`, \`use_texture\`.
 - \`subbackground\`, \`subforeground\`: no fields; the display's own background and (bars) foreground.
 
-${
-  a
-    ? `### Defaults (generated)
-
-What the addon fills in when a field is left out (\`fillDefaults\`, the addon's own import path). Top-level values only:
-
-${(["icon", "aurabar", "text", "group", "dynamicgroup"] as const).map((rt) => `- \`${rt}\`: ${defaultsLine(a.regionDefaults[rt] ?? {})}`).join("\n")}
-
-Sub-element defaults:
-
-${Object.entries(a.subDefaults)
-  .map(([sub, def]) => `- \`${sub}\`: ${Object.keys(def).length ? defaultsLine(def) : "(none)"}`)
-  .join("\n")}
-
-All display types in this version (generated): ${codes(a.regionTypes)}. Sub-element types and the displays they
-fit: ${a.subRegionTypes.map((s) => `\`${s.type}\` (${s.displayName}: ${s.supports.join(", ")})`).join("; ")}.
-`
-    : ""
-}
+${a ? generatedDefaults(a) : ""}
 ### Groups
 
 A group is an aura document with \`"regionType": "group"\` or \`"dynamicgroup"\`. It travels as its own document
@@ -259,8 +276,11 @@ plus \`children\`: every descendant, flattened in the addon's order (each group,
 A group's \`controlledChildren\` lists its children's \`id\`s and each child's \`parent\` is its group's \`id\`.
 Without sub groups you may leave both out: every child then belongs to the group in the order given. With sub
 groups, set them. Groups nest; a dynamic group holds no groups.
+`;
+}
 
-## Triggers
+function triggers({ a }: Ctx): string {
+  return `## Triggers
 
 \`\`\`json
 "triggers": {"[1]": {"trigger": {...}, "untrigger": {}}, "activeTriggerMode": -10}
@@ -298,18 +318,15 @@ checks) keeps working. For a known buff or debuff, use Aura (Modern) instead.
 \`spellName\` is the spell ID (a number). \`genericShowOn\` with \`use_genericShowOn: true\`: \`showAlways\`,
 \`showOnCooldown\`, \`showOnReady\`. \`track\`: \`auto\`, \`cooldown\`, \`charges\`. \`desaturateOnCooldown: true\` greys the
 icon while on cooldown. It keeps working in combat: the addon reads readiness even when the game hides the timing.
-${
-  a
-    ? `Its condition variables and the addon's combat verdict for a condition on each (generated):
-${a.cooldownConditions.map((c) => `\`${c.variable}\` (${c.label}): ${c.combat}`).join("; ")}.
-`
-    : ""
-}
+${a ? cooldownVerdicts(a) : ""}
 ### Other triggers
 
 ${a ? generatedTriggerList(a) : "The addon could not be loaded, so the trigger list is missing."}
+`;
+}
 
-## Conditions
+function conditions({ a }: Ctx): string {
+  return `## Conditions
 
 \`conditions\` is an array; each entry has a \`check\` and \`changes\`:
 
@@ -328,40 +345,64 @@ ${a ? generatedTriggerList(a) : "The addon could not be loaded, so the trigger l
   the one before. Later conditions win when two change the same property.
 - \`changes[].property\`: a display field (\`desaturate\`, \`color\`, \`alpha\`, \`width\`, …) or \`sub.N.<key>\` for
   sub-element N (\`sub.2.glow\`, \`sub.1.text_color\`). \`value\` is the new value while the check holds.
-${
-  a
-    ? `
-Properties conditions can change per display (generated, key: options name):
-
-${Object.entries(a.conditionProperties)
-  .filter(([, props]) => Object.keys(props).length)
-  .map(([rt, props]) => `- \`${rt}\`: ${Object.entries(props).map(([k, v]) => `\`${k}\` (${v})`).join(", ")}`)
-  .join("\n")}
-`
-    : ""
-}
+${a ? generatedConditionProperties(a) : ""}
 ### Aura (Modern) condition variables
 
 On an Aura (Modern) trigger, conditions use these variables${a ? " (generated)" : ""}. Each may change only what is listed:
-${
-  a
-    ? `
-${a.modern.variables
-  .map(
-    (v) =>
-      `- \`${v.variable}\` (${v.label})${v.operators.length ? `, operators ${codes(v.operators)}` : ", no operator or value"}: may change ${variableMayChange(v, a)}.`,
-  )
-  .join("\n")}
-
-Properties these conditions know: on the display ${Object.entries(a.modern.rootProperties)
-        .map(([region, props]) => `${region} ${codes(Object.keys(props).sort())}`)
-        .join("; ")}; on elements ${Object.entries(a.modern.elementProperties)
-        .map(([el, props]) => `${el} ${codes(Object.keys(props).sort())}`)
-        .join("; ")}.
-`
-    : "\n(The list is generated from the addon, which could not be loaded.)\n"
+${a ? modernVariables(a) : "\n(The list is generated from the addon, which could not be loaded.)"}
+`;
 }
-## Combat rules
+
+function generatedDefaults(a: AddonFacts): string {
+  const subDefaults = Object.entries(a.subDefaults).map(([sub, def]) => `- \`${sub}\`: ${Object.keys(def).length ? defaultsLine(def) : "(none)"}`);
+  const subTypes = a.subRegionTypes.map((s) => `\`${s.type}\` (${s.displayName}: ${s.supports.join(", ")})`);
+  return `### Defaults (generated)
+
+What the addon fills in when a field is left out (\`fillDefaults\`, the addon's own import path). Top-level values only:
+
+${DOCUMENTED_REGION_TYPES.map((rt) => `- \`${rt}\`: ${defaultsLine(a.regionDefaults[rt] ?? {})}`).join("\n")}
+
+Sub-element defaults:
+
+${subDefaults.join("\n")}
+
+All display types in this version (generated): ${codes(a.regionTypes)}. Sub-element types and the displays they
+fit: ${subTypes.join("; ")}.
+`;
+}
+
+function cooldownVerdicts(a: AddonFacts): string {
+  return `Its condition variables and the addon's combat verdict for a condition on each (generated):
+${a.cooldownConditions.map((c) => `\`${c.variable}\` (${c.label}): ${c.combat}`).join("; ")}.
+`;
+}
+
+function generatedConditionProperties(a: AddonFacts): string {
+  const lines = Object.entries(a.conditionProperties)
+    .filter(([, props]) => Object.keys(props).length)
+    .map(([rt, props]) => `- \`${rt}\`: ${Object.entries(props).map(([k, v]) => `\`${k}\` (${v})`).join(", ")}`);
+  return `
+Properties conditions can change per display (generated, key: options name):
+
+${lines.join("\n")}
+`;
+}
+
+function modernVariables(a: AddonFacts): string {
+  const operators = (v: ModernVariableFact) => (v.operators.length ? `, operators ${codes(v.operators)}` : ", no operator or value");
+  const known = (props: Record<string, Record<string, unknown>>) =>
+    Object.entries(props)
+      .map(([name, p]) => `${name} ${codes(Object.keys(p).sort())}`)
+      .join("; ");
+  return `
+${a.modern.variables.map((v) => `- \`${v.variable}\` (${v.label})${operators(v)}: may change ${variableMayChange(v, a)}.`).join("\n")}
+
+Properties these conditions know: on the display ${known(a.modern.rootProperties)}; on elements ${known(a.modern.elementProperties)}.
+The native highlight is ${codes(a.modern.highlightProperties)}.`;
+}
+
+function combatRules(): string {
+  return `## Combat rules
 
 In WoW Forever the game hides many values from addons during combat. The rules, in plain words:
 
@@ -382,8 +423,11 @@ In WoW Forever the game hides many values from addons during combat. The rules, 
   cooldown's remaining time doesn't.
 - **Health, power and threat triggers** can show their values in combat but not compare them.
 - **The combat log is not available** on Forever: combat log triggers never fire.
+`;
+}
 
-## Validation
+function validation(): string {
+  return `## Validation
 
 Every push answer has a \`validation\` field, from the real Musca Auras code:
 
@@ -408,8 +452,11 @@ How to act:
   If no combat-safe version exists, push it anyway and tell the player what won't update in combat.
 - \`ok\` with \`modern.note\`: pass the note on if it matters (e.g. a target aura that only shows on hostile units).
 - Export is never blocked; the player decides.
+`;
+}
 
-## Spells
+function spells({ o }: Ctx): string {
+  return `## Spells
 
 Use Forever's spell IDs. The server keeps a spell cache from wago.tools (Forever's own data) with icons and tooltips
 from Wowhead.
@@ -430,8 +477,11 @@ curl -s ${o}/api/spells/1459
 
 Spell IDs go into Aura (Modern) and \`aura2\` triggers as strings (\`"auraspellids": ["1459"]\`) and into the spell
 cooldown trigger as a number (\`"spellName": 2136\`).
+`;
+}
 
-## Push API
+function pushApi({ o, d }: Ctx): string {
+  return `## Push API
 
 A **workspace** is what an open page shows: top-level items (auras and groups), all drawn at once on the game
 screen, one selected. Workspace IDs are 1-64 of \`A-Z a-z 0-9 _ -\`.
@@ -484,16 +534,22 @@ The player can save and load the whole workspace as a JSON file; you may write o
 \`\`\`
 
 \`items\` is present exactly for groups and nests further; \`controlledChildren\` and \`parent\` follow the nesting.
+`;
+}
 
-## Worked examples
+function workedExamples(): string {
+  return `## Worked examples
 
 The v1 auras, each a complete push body (the tests push these exact blocks and check the status). Buff reminder
 1a (or its alternative) + 1b, cooldown icon 2, debuff bar 3, and group 4 holding them. Change ids, spell IDs (\`auraspellids\`,
 \`spellName\`) and \`displayIcon\` for other spells.
 
-${WORKED_EXAMPLES.map(exampleBlock).join("\n")}
-${exampleBlock(COUNTER_EXAMPLE)}
-## Troubleshooting
+${[...WORKED_EXAMPLES, COUNTER_EXAMPLE].map(exampleBlock).join("\n\n")}
+`;
+}
+
+function troubleshooting(): string {
+  return `## Troubleshooting
 
 - **422 "Not a valid…" / the addon rejects it**: the JSON isn't a valid aura table (check number keys like \`"[1]"\`,
   arrays without holes, no nulls).

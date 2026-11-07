@@ -1,8 +1,9 @@
-import type { NextRequest } from "next/server";
+import { connection, type NextRequest } from "next/server";
 import { getSpellCache } from "@/server/spells";
 
 /** GET /api/spells/search?q=<name or ID>&limit=<1-100> */
 export async function GET(request: NextRequest) {
+  await connection();
   const params = request.nextUrl.searchParams;
   const q = params.get("q") ?? "";
   const limitParam = params.get("limit");

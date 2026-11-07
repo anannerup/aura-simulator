@@ -1,4 +1,4 @@
-import type { NextRequest } from "next/server";
+import { connection, type NextRequest } from "next/server";
 import { getSpellCache } from "@/server/spells";
 
 const MAX_IDS = 200;
@@ -13,10 +13,10 @@ function parseIds(raw: string | null): number[] | null {
 /**
  * GET /api/icons?files=<FileDataID,...>&spells=<spell ID,...> (up to 200 each)
  * → `{files: {"135932": "spell_holy_magicalsentry" | null}, spells: {"1459": ... | null}}`.
- * Icon names are lower case without extension; images at
- * `https://wow.zamimg.com/images/wow/icons/large/<name>.jpg`. No network.
+ * Icon names are lower case without extension. No network.
  */
 export async function GET(request: NextRequest) {
+  await connection();
   const params = request.nextUrl.searchParams;
   const files = parseIds(params.get("files"));
   const spells = parseIds(params.get("spells"));
