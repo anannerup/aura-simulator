@@ -534,6 +534,38 @@ The player can save and load the whole workspace as a JSON file; you may write o
 \`\`\`
 
 \`items\` is present exactly for groups and nests further; \`controlledChildren\` and \`parent\` follow the nesting.
+
+### In the browser tab: \`window.auraSimulator\`
+
+If you drive the player's page in a browser tab (browser automation, a devtools console), use its in-page command
+instead of clicking through forms. It exists once the page has restored its workspace (wait for it):
+
+- \`auraSimulator.load(input)\` takes what a push takes: \`{aura, children?}\`, \`{code}\`, or an import string. It
+  merges like a push (same \`uid\`, else \`id\`, replaces; otherwise added), selects it, and the window, browser
+  storage and server follow. Returns \`{ok: true, id, code}\` or \`{ok: false, error}\` (nothing changed).
+- \`auraSimulator.code(id?)\`: the import string of an item (a group's holds everything in it); the selected one by
+  default. \`auraSimulator.state(id?)\`: its \`{aura, children}\`, what \`load\` takes. \`auraSimulator.workspaceId\`.
+
+\`\`\`js
+await page.waitForFunction(() => window.auraSimulator);
+const r = await page.evaluate((aura) => window.auraSimulator.load({ aura }), myAura);
+\`\`\`
+
+The answer has no validation: read the window's Combat check, or push over HTTP to get \`validation\`.
+
+### Handing the player a \`.txt\` file
+
+Without a running app to push to, hand over the aura as a file the player drops on the page (or opens and pastes into
+the game's Import box):
+
+- An **aura file** holds exactly one import string (\`!WA:2!...\`): UTF-8, no quotes, no JSON, nothing before or after
+  it (a final newline is fine). Name it after the aura, e.g. \`Arcane Intellect.txt\`. The app also reads several
+  import strings in one text file (one per line), but the game's Import box takes one.
+- Only the addon's encoder makes an import string; never write or edit one by hand. Take it from the push answer's
+  \`code\` (\`?validate=false\` on a scratch workspace id if you only want the string), from \`auraSimulator.code()\`, or
+  from the player.
+- With no import string at all, write a workspace file (above) holding the aura document instead: the player imports
+  it and exports the import string from the window.
 `;
 }
 

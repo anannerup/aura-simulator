@@ -45,17 +45,24 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
 - `src/workspace/`: the workspace model (`tree.ts`: top-level items, groups nest; pure operations keep ids unique and
   `controlledChildren`/`parent` in step), its storage/file format (`workspace.ts`, v2 JSON; v1 still read), import/export
   files (`files.ts`: aura `.txt` = exactly one state code; text with several codes; workspace `.json`), undo/redo
-  (`history.ts`) and the page address (`address.ts`: only `?w=`). **Auras never go in the address**: they can be
-  megabytes, so they travel as files, over the push API, or by clipboard (an old `?code=` link is imported once and stripped; `?s=` short links are gone).
-  Group layout maths (Group.lua/DynamicGroup.lua ports) and the all-items stage are in `src/render/group/`.
-  Pure, shared by page and server. The page's restore/sync logic is in `src/app/workspace/` (browser storage is
-  IndexedDB, `storage.ts`, migrating old localStorage copies); push API (bodies up to 32 MB), SSE hub (notices
-  without codes; pages fetch the revision) and the server-side aura core are in `src/server/workspaces/`.
+  (`history.ts`), the restore decision (`restore.ts`), the push/SSE wire protocol (`protocol.ts`: header, event names,
+  notice/snapshot types, URLs, push input; used by page and server) and the page address (`address.ts`: only `?w=`).
+  **Auras never go in the address**: they can be megabytes, so they travel as files, over the push API, or by
+  clipboard (an old `?code=` link is imported once; every other parameter is dropped). New auras come only from the
+  addon's New Aura (`placeNewItem` places them). Pure, shared by page and server. Group layout maths
+  (Group.lua/DynamicGroup.lua ports) and the all-items stage are in `src/render/group/`.
+- `src/client/`: page-side libraries (browser only, no routes). `client/workspace/`: `WorkspaceSession` (one page's
+  workspace per aura core) over `StateCodes` (`codes.ts`), `ServerLink` (`server-link.ts`: the push/SSE protocol) and
+  the write-behind `WorkspaceStore` (`storage.ts`, IndexedDB via `src/lib/idb.ts`, migrating old localStorage
+  copies); `useWorkspace`/`useUndo` hooks; `window.auraSimulator` (`page-api.ts`, documented in the agent docs).
+- `src/server/workspaces/`: push API (bodies up to 32 MB) and the hub of recent pushes per workspace, in memory.
+  Every top-level item a page changes is pushed there too, so agents read the player's current aura with
+  `GET /api/workspaces/<id>`; it holds the latest few pushes, not workspaces (those live in the browser).
 - `src/docs/`: the agent docs (one Markdown source, served at `/docs/agents`, `/llms.txt`, `/docs/agents.md`).
   Update it when an API or format changes; `agent-docs.ts` has one function per section. Lists of types, triggers, condition variables and defaults are generated
   from the addon version (`addon-facts.ts`); the worked examples (`worked-examples.ts`) are the documents in
   `src/render/examples.ts` (also shown on `/lab`) and tests push every example block of the served docs.
-- `src/app/`: Next.js routes and pages. Thin; delegates to the modules above. `/lua/liblua5.1.wasm` serves wasmoon's
+- `src/app/`: Next.js routes and pages. Thin; delegates to the modules above (page logic goes in `src/client/`). `/lua/liblua5.1.wasm` serves wasmoon's
   Lua binary from `node_modules`, so the browser's aura core loads no CDN. Links the server writes into answers use
   `requestOrigin` (`src/server/request-origin.ts`: honours `X-Forwarded-*`), not `request.nextUrl.origin`.
 - `src/lib/`: small browser helpers shared across features (`idb.ts`: one IndexedDB object store, used by the

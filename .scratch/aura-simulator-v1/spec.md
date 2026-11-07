@@ -132,6 +132,7 @@ address only names the workspace, never holds auras.
 - **Push API (contract sketch).**
   - Send a document or state code to a workspace; the response returns the state code, validation results and combat warnings.
   - Open pages subscribed to that workspace update live (server-sent events announce a revision; pages fetch it, so megabyte codes aren't broadcast).
+  - Pages push every top-level item the player changes too, so an agent reads the player's current aura from the workspace's latest push. The server keeps only the last few pushes per workspace, in memory; a page restores from browser storage and merges in a push newer than its last save.
   - Bodies up to tens of megabytes (auras have historically been MB).
   - Spell search by name; spell lookup by ID; trigger a sync.
 - **Workspace.** Held in the browser (IndexedDB; localStorage's ~5 MB is too small) and never mirrored to the page address, which only names the workspace (`?w=`). Exported and imported as JSON: auras, groups, nesting, spell IDs and icon IDs (no embedded images). Single auras or groups are exported as `.txt` files holding exactly the state code, and any text file with state codes imports. No links carry auras and there are no short links (decided 2026-11-06: auras can be megabytes).
@@ -147,7 +148,7 @@ address only names the workspace, never holds auras.
   - Known-good fixtures: the import strings shipped inside the addon itself (the Forever tutorial auras).
   - Run against more than one real addon version, so an addon update that breaks something is caught.
 - **Seam B, the running app from outside:**
-  - In the browser (Playwright): open the page with a state code and a situation, then assert what the preview shows (desaturated, glow on, hidden, bar width) and what the export yields.
+  - In the browser (Playwright): open the page with a state code and a situation, then assert what the preview shows (desaturated, glow on, hidden, bar width) and what the export yields. *Superseded (2026-11-06): auras never go in the address; tests put the aura on the page by push, file import or `window.auraSimulator.load`.*
   - Over HTTP: pushing an aura updates an open page; spell search returns Forever spells; sync fills the cache.
   - wago.tools and Wowhead responses are recorded fixtures, so tests don't hit the internet.
 - **Final acceptance is manual, in the game.** The player imports and checks the v1 acceptance auras listed under Further Notes.

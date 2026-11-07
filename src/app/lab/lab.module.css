@@ -1,0 +1,25 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  font-family: var(--font-geist-sans);
+}
+
+.header h1 {
+  font-size: 24px;
+}
+
+.examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.status {
+  color: #888;
+}

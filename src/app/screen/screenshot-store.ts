@@ -84,5 +84,17 @@ export function useScreenshot() {
     }
   }, []);
 
-  return { screenshot: shot, error, choose, clear };
+  /** Asks the player for an image file and shows it. */
+  const pickFile = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (file) void choose(file);
+    };
+    input.click();
+  }, [choose]);
+
+  return { screenshot: shot, error, choose, pickFile, clear };
 }

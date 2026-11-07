@@ -21,8 +21,6 @@ export interface ScreenSettingsPanelProps {
   screenshotError: string | null;
   onChooseScreenshot: (file: File) => void;
   onClearScreenshot: () => void;
-  /** Id for the screenshot file input, so other controls (the stage toolbar) can open it. */
-  fileInputId?: string;
 }
 
 const presetKey = (w: number, h: number) => `${w}x${h}`;
@@ -31,7 +29,6 @@ const presetKey = (w: number, h: number) => `${w}x${h}`;
 export function ScreenSettingsPanel(props: ScreenSettingsPanelProps) {
   const { settings, onChange, screenshot } = props;
   const ids = useId();
-  const fileInputId = props.fileInputId ?? `${ids}-file`;
   const ui = uiParent(settings);
   const current = presetKey(settings.width, settings.height);
   const isPreset = RESOLUTION_PRESETS.some((p) => presetKey(p.width, p.height) === current);
@@ -163,7 +160,6 @@ export function ScreenSettingsPanel(props: ScreenSettingsPanelProps) {
         <div className={styles.fileRow}>
           <label className={styles.fileButton}>
             <input
-              id={fileInputId}
               type="file"
               accept="image/*"
               aria-label="Screenshot"

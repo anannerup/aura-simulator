@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { CLIENT_HEADER, isWorkspaceId } from "@/workspace";
+import { requestOrigin } from "@/server/request-origin";
 import { parsePushBody, PushError, pushToWorkspace, readBodyText } from "@/server/workspaces";
 
 /**
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/workspa
     const input = parsePushBody(await readBodyText(request), request.headers.get("content-type"));
     const source = request.headers.get(CLIENT_HEADER)?.slice(0, 64) || null;
     const validate = request.nextUrl.searchParams.get("validate") !== "false";
-    return Response.json(await pushToWorkspace(id, input, request.nextUrl.origin, { source, validate }));
+    return Response.json(await pushToWorkspace(id, input, requestOrigin(request.headers), { source, validate }));
   } catch (e) {
     if (e instanceof PushError) return Response.json({ error: e.message }, { status: e.status });
     const message = e instanceof Error ? e.message : String(e);
