@@ -125,11 +125,12 @@ export function MappedTexture({
 
 /**
  * Where a texture can't be drawn (the game has no such file): a magenta and black checkerboard, so it is plainly not
- * the aura's art. The box's title says why; validation reports it too (`media.texture`).
+ * the aura's art. The box's title says why; validation reports it too (`media.texture`). A span, so it may sit inside
+ * text (an inline image of a font string).
  */
 export function MissingTexture() {
   return (
-    <div
+    <span
       data-testid="missing-texture"
       style={{
         position: "absolute",
