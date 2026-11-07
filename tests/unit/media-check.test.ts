@@ -33,13 +33,16 @@ describe("texture check", () => {
         { type: "subtexture", textureTexture: "Interface\\AddOns\\ElvUI\\Media\\Textures\\Glow" },
       ],
       conditions: [{ check: {}, changes: [{ property: "sub.1.textureTexture", value: "Interface/Nope/Other.blp" }] }],
+      actions: { start: { do_sound: true, sound: "Interface\\AddOns\\BigWigs\\Media\\Sounds\\Alarm.ogg" } },
     };
     const problems = await textureProblems(files(), { aura: group, children: [child] }, "tbc");
     expect(problems.map((p) => [p.code, p.severity, p.auraId, p.pointer?.tab, p.pointer?.path])).toEqual([
       ["media.texture", "info", "A", "region", ["subRegions", 1, "textureTexture"]],
       ["media.texture", "info", "A", "region", ["subRegions", 2, "textureTexture"]],
       ["media.texture", "info", "A", "conditions", ["conditions", 1, "changes", 1, "value"]],
+      ["media.sound", "info", "A", "action", ["actions", "start", "sound"]],
     ]);
+    expect(problems[3].message).toMatch(/^Sound .* won't play: .*another addon \("bigwigs"\)/);
     expect(problems[0].message).toMatch(/"Interface\\Nope\\Nothing".*game has no such file.*\/api\/tbc\/icons\/search/);
     expect(problems[1].message).toMatch(/another addon \("elvui"\)/);
   });

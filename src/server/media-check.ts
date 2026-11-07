@@ -2,7 +2,7 @@
  * The server's check of the textures an aura names: every value that is a path under `Interface\` (a texture,
  * an icon) must be a file the game client has (the game's file list) or one of the game's addon's own files
  * (its folders: `Interface\AddOns\WeakAuras\…`). Anything else draws nothing in game (the page shows a placeholder),
- * so each such path is a `media.texture` info. LibSharedMedia names (fonts, borders, bar textures) are the addon's
+ * so each such path is a `media.texture` info (`media.sound` for a sound file, which doesn't play). LibSharedMedia names (fonts, borders, bar textures) are the addon's
  * own validation (`media.<type>`).
  */
 import { entries, FULL_VM_ADDONS, isLuaTable, type AuraDocument, type AuraState, type LuaKey, type LuaValue, type ValidationMessage } from "@/core";
@@ -46,7 +46,9 @@ function pointerOf(at: LuaKey[]): ValidationMessage["pointer"] {
   }
 }
 
-const OWN_ADDONS = new Set<string>(FULL_VM_ADDONS.map((a) => a.toLowerCase()));
+const SOUND_FILE = /\.(ogg|mp3|wav)$/i;
+
+const OWN_ADDONS =new Set<string>(FULL_VM_ADDONS.map((a) => a.toLowerCase()));
 
 /**
  * `media.texture` infos for the textures of an aura (and a group's children) the game can't draw. Throws when the
@@ -62,19 +64,24 @@ export async function textureProblems(files: GameFiles, state: AuraState, gameId
   const problems: ValidationMessage[] = [];
   for (const use of uses) {
     const addon = /^interface\/addons\/([^/]+)\//.exec(gameFileKey(use.path))?.[1];
+    const sound = SOUND_FILE.test(use.path);
+    const [noun, fails, see] = sound ? ["Sound", "won't play", "hear"] : ["Texture", "can't be drawn", "see"];
     let why: string | null = null;
     if (addon !== undefined) {
       if (!OWN_ADDONS.has(addon)) {
-        why = `it is a file of another addon ("${addon}"), so only players who have that addon see it; everyone else sees nothing`;
+        why = `it is a file of another addon ("${addon}"), so only players who have that addon ${see} it`;
       }
     } else if (!found[use.path]) {
-      why = "the game has no such file (it isn't in the game's file list), so nothing is drawn there";
+      why = "the game has no such file (it isn't in the game's file list)";
     }
     if (!why) continue;
+    const help = sound
+      ? `Pick one of the addon's sounds (GET /api/${gameId}/media, type sound).`
+      : `Find an icon with GET /api/${gameId}/icons/search?q=<words>; check a path with GET /api/${gameId}/files?path=<path>.`;
     problems.push({
-      code: "media.texture",
+      code: sound ? "media.sound" : "media.texture",
       severity: "info",
-      message: `Texture "${use.path}" (${use.at.join(".")}) can't be drawn: ${why}. Find an icon with GET /api/${gameId}/icons/search?q=<words>; check a path with GET /api/${gameId}/files?path=<path>.`,
+      message: `${noun} "${use.path}" (${use.at.join(".")}) ${fails}: ${why}. ${help}`,
       pointer: pointerOf(use.at),
       ...(use.auraId !== undefined ? { auraId: use.auraId } : {}),
     });

@@ -29,7 +29,8 @@ export interface ValidationMessage {
    * - `media.<type>` (`media.font`, `media.border`, `media.background`, `media.statusbar`): a LibSharedMedia name
    *   the aura uses that a stock client with only this addon doesn't have, so the game draws the type's default;
    * - `media.texture` (info): a texture the game can't draw (not in the game's file list, or in another addon's
-   *   folder), added by the server's push check (`src/server/media-check.ts`);
+   *   folder), added by the server's push check (`src/server/media-check.ts`); `media.sound` the same for a sound
+   *   file, which doesn't play;
    * - `add.error`: the addon's WeakAuras.Add raised a Lua error for the aura, so it was not registered;
    * - `addon.<key>`: a warning the addon raised when the aura was added (e.g. `addon.forever_combat_log`);
    *   `addon.LuaError` when running the aura in the simulated client raised a Lua error.
