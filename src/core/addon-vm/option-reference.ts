@@ -106,7 +106,7 @@ export interface OptionReferenceEntry {
 }
 
 /** The reference's shape and generator version: changes when either does (caches keyed by it regenerate). */
-export const OPTION_REFERENCE_FORMAT = 3;
+export const OPTION_REFERENCE_FORMAT = 4;
 
 export interface OptionReference {
   /** OPTION_REFERENCE_FORMAT of the generator that made it. */

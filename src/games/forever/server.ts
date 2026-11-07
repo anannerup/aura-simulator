@@ -2,14 +2,16 @@
 import path from "node:path";
 import { createAddonSourceCache, type AddonSourceCache } from "@/server/addon/source-cache";
 import { createUpstreamFixtureFetch } from "@/server/addon/upstream-fixtures";
-import { addonCacheDir, addonUpstreamFixtures, gameDataDir, type ServerGame } from "@/server/game";
+import { addonCacheDir, addonUpstreamFixtures, createClientCaches, gameDataDir, type ServerGame } from "@/server/game";
 import { createSpellCache, type SpellCache } from "@/server/spells";
 import { forever } from ".";
 import { loadAgentDocs } from "./docs/load";
 import { FOREVER_ADDON, FOREVER_SPELLS } from "./sources";
 
 // Kept on globalThis so dev hot reloads reuse the caches and the database connection.
-const g = globalThis as typeof globalThis & { __forever?: { addon?: AddonSourceCache; spells?: SpellCache } };
+const g = globalThis as typeof globalThis & {
+  __forever?: { addon?: AddonSourceCache; spells?: SpellCache; client?: ReturnType<typeof createClientCaches> };
+};
 const state = (g.__forever ??= {});
 
 export const foreverServer: ServerGame = {
@@ -24,6 +26,12 @@ export const foreverServer: ServerGame = {
   },
   get spells() {
     return (state.spells ??= createSpellCache({ dbPath: path.join(gameDataDir(forever.id), "spells.sqlite"), source: FOREVER_SPELLS }));
+  },
+  get files() {
+    return (state.client ??= createClientCaches(forever.id, FOREVER_SPELLS)).files;
+  },
+  get items() {
+    return (state.client ??= createClientCaches(forever.id, FOREVER_SPELLS)).items;
   },
   agentDocs: (origin, requestedRef) => loadAgentDocs(foreverServer, origin, requestedRef),
 };

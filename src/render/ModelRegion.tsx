@@ -24,20 +24,20 @@ export function ModelPlaceholder({ label, testId, style }: { label: string; test
 }
 
 /** The model region (RegionTypes/Model.lua): a 3D model, shown as a labelled placeholder (no 3D in the preview). */
-export function ModelRegion({ aura, state, name, width, height }: RegionProps) {
+export function ModelRegion({ aura, state, width, height }: RegionProps) {
   const background = <ModelPlaceholder label={modelLabel(aura, "122968")} testId="model-placeholder" style={{ inset: 0 }} />;
   return (
     <div className={styles.regionFrame}>
-      <SubRegions aura={aura} state={state} host={regionHost("model", width, height)} name={name} background={background} />
+      <SubRegions aura={aura} state={state} host={regionHost("model", width, height)} background={background} />
     </div>
   );
 }
 
 /** The empty region (RegionTypes/Empty.lua): no drawing of its own, only its sub-elements. */
-export function EmptyRegion({ aura, state, name, width, height }: RegionProps) {
+export function EmptyRegion({ aura, state, width, height }: RegionProps) {
   return (
     <div className={styles.regionFrame} data-testid="empty-region">
-      <SubRegions aura={aura} state={state} host={regionHost("empty", width, height)} name={name} background={null} />
+      <SubRegions aura={aura} state={state} host={regionHost("empty", width, height)} background={null} />
     </div>
   );
 }

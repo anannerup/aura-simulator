@@ -152,6 +152,7 @@ export function GameScreenAuras({
                     state={states.get(a.aura)!}
                     selected={a.id === selectedId}
                     onSelect={onSelect ? () => onSelect(a.id) : undefined}
+                    simulatorMarks={false}
                   />
                 ),
             )}

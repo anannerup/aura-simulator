@@ -6,6 +6,9 @@ const port = Number(process.env.E2E_PORT ?? 3100);
 
 export default defineConfig({
   testDir: "tests/e2e",
+  // Above the 60 s the specs allow a page's first load (a cold dev server compiles the route and loads the addon VM);
+  // with the default 30 s a test could fail before its own wait ran out.
+  timeout: 120_000,
   // Seeds the spell database the dev server uses (in DATA_DIR) from fixtures: no network in tests.
   globalSetup: "./tests/e2e/global-setup.ts",
   use: { baseURL: `http://localhost:${port}` },

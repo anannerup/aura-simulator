@@ -199,6 +199,7 @@ function X.registries()
   end
   R.eventCategories = P.event_categories
   R.loadPrototype = P.load_prototype and { args = prototypeArgs(P.load_prototype.args) }
+  R.media = X.media()
   for _, part in ipairs(X.registryParts) do part(R, regionNames) end
   return R
 end
@@ -277,9 +278,63 @@ local function addWarnings(data)
   X.warnings[copy.uid] = nil
   return list, { ok = r.ok, error = r.error, handlerErrors = errs, prints = prints }
 end
+---------------------------------------------------------------------------------------------------
+-- LibSharedMedia: the media lists of a client with only this addon installed (the game's own media and what the
+-- addon registers), and the media names an aura uses that aren't in them.
+---------------------------------------------------------------------------------------------------
+local MEDIA_TYPES = { "font", "border", "background", "statusbar", "sound" }
+
+local function sharedMedia() return LibStub and LibStub("LibSharedMedia-3.0", true) end
+
+-- { font = { list = { {name, file}, ... sorted by name }, default = "Friz Quadrata TT" }, ... }
+function X.media()
+  local LSM = sharedMedia()
+  if not LSM then return nil end
+  local out = {}
+  for _, kind in ipairs(MEDIA_TYPES) do
+    local list = {}
+    for _, name in ipairs(LSM:List(kind) or {}) do
+      list[#list + 1] = { name = name, file = LSM:HashTable(kind)[name] }
+    end
+    out[kind] = { list = list, default = LSM.DefaultMedia[kind] }
+  end
+  return out
+end
+
+-- The keys the addon reads through SharedMedia:Fetch (RegionTypes/Text.lua, AuraBar.lua, Group.lua,
+-- DynamicGroup.lua, Model.lua; SubRegionTypes/SubText.lua, Border.lua): key -> media type.
+local REGION_MEDIA = { font = "font", borderEdge = "border", borderBackdrop = "background" }
+local SUB_MEDIA = { text_font = "font", border_edge = "border" }
+
+-- Media names in the aura that the client's LibSharedMedia doesn't have: the game then draws the type's default
+-- (or, for a bar texture, the default bar). { kind, name, key, sub?, default }
+function X.unknownMedia(data)
+  local LSM = sharedMedia()
+  if not LSM then return {} end
+  local out = {}
+  local function check(kind, name, key, sub)
+    if type(name) ~= "string" or name == "" or name == "None" then return end
+    if LSM:IsValid(kind, name) then return end
+    if kind == "statusbar" and LSM:IsValid("statusbar_atlas", name) then return end
+    out[#out + 1] = { kind = kind, name = name, key = key, sub = sub, default = LSM.DefaultMedia[kind] }
+  end
+  for key, kind in pairs(REGION_MEDIA) do check(kind, data[key], key) end
+  if data.regionType == "aurabar" and data.textureSource ~= "Picker" then check("statusbar", data.texture, "texture") end
+  for i, sub in ipairs(type(data.subRegions) == "table" and data.subRegions or {}) do
+    if type(sub) == "table" then
+      for key, kind in pairs(SUB_MEDIA) do check(kind, sub[key], key, i) end
+    end
+  end
+  table.sort(out, function(a, b)
+    if (a.sub or 0) ~= (b.sub or 0) then return (a.sub or 0) < (b.sub or 0) end
+    return a.key < b.key
+  end)
+  return out
+end
+
 function X.validate(input)
   local data, prep = X.prepare(input)
-  local res = { prepare = prep, regionType = data.regionType }
+  local res = { prepare = prep, regionType = data.regionType, unknownMedia = X.unknownMedia(data) }
   for _, part in ipairs(X.validateParts) do part(data, res) end
   if data.regionType ~= "group" and data.regionType ~= "dynamicgroup" then
     res.auraWarnings, res.add = addWarnings(data)

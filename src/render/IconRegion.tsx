@@ -1,12 +1,11 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { num, type AuraDocument } from "@/core";
+import { formatTime, num, type AuraDocument } from "@/core";
 import { color, rgbaCss } from "./color";
 import { useWowFont } from "./fonts";
 import { iconHost } from "./subregions/host";
 import { SubRegions } from "./subregions/SubRegions";
-import { formatTime } from "./text-format";
 import { useAuraIconUrl } from "./textures";
 import styles from "./regions.module.css";
 import type { RegionProps } from "./region-types";
@@ -51,7 +50,7 @@ export function IconRegion({ aura, state, name, width, height }: RegionProps) {
       data-desaturated={desaturate ? "true" : "false"}
       data-missing={state.missing ? "true" : "false"}
     >
-      <SubRegions aura={aura} state={state} host={iconHost(width, height)} name={name} background={background} />
+      <SubRegions aura={aura} state={state} host={iconHost(width, height)} background={background} />
     </div>
   );
 }

@@ -126,6 +126,12 @@ iterate on an aura, and use a new \`id\` for another aura. Ids are unique across
 \`id\` is taken elsewhere is renamed (\`Name 2\`), so push either the separate auras or a group holding them, not both
 (or give the group's children their own ids). Items can't be deleted over the API; the player removes them.
 
+### Deleting a workspace
+
+\`DELETE /api/${game}/workspaces/<id>\` → \`{"workspace", "deleted"}\`: the server forgets the workspace (its pushes and
+its situation; \`deleted: false\` when it kept nothing for it). Delete scratch workspaces you made to try things.
+Pages that have it open keep their own copy in the browser, and a later push starts it again.
+
 ### Reading the workspace
 
 - \`GET /api/${game}/workspaces/<id>\` → \`{"id", "code", "updatedAt", "revision", "source", "url"}\`: the top-level aura
@@ -226,8 +232,11 @@ has left, plus a target and combat. The page's **Situation** panel (under the au
 aura:
 
 - **Target exists** and **In combat** switches.
-- Per trigger ("Trigger 1: Aura", …): **Aura present** (for a cooldown trigger: On cooldown), **Time left** (a
-  slider), **Duration** (seconds) and **Stacks** (a cooldown's charges).
+- Per trigger ("Trigger 1: Aura", …): **Aura present** (for a cooldown trigger: On cooldown; Item Count: In bags;
+  Weapon Enchant: Enchanted; other triggers: Present), **Time left** (a slider), **Duration** (seconds) and
+  **Stacks** (a spell cooldown's or enchant's charges, an Item Count's Count).
+- **Only this aura**: the triggers it edits are the selected aura's own (its override, below), not the
+  workspace-wide ones every other aura sees.
 
 ${kinds}
 
@@ -251,6 +260,11 @@ answer is \`GET /api/${game}/workspaces/<id>/situation\`'s: \`{"workspace", "sit
 - \`triggers\` is keyed by the trigger number (\`"1"\`, \`"2"\`, as in the aura). \`remaining\` and \`duration\` are
   seconds (\`remaining\` is kept within \`duration\`; \`duration: 0\` means no timer, e.g. a permanent buff);
   \`stacks\` is a whole number. 400 with a message for anything else.
+- **Per aura**: trigger numbers are per aura, so the workspace-wide \`triggers\` are what every aura sees. \`auras\`
+  overrides them for single auras, by aura \`id\`: \`{"<aura id>": {"triggers": {"1": {...}}}}\`. An override's
+  left-out fields come from the workspace-wide trigger; target and combat stay workspace-wide. Four item count icons
+  showing 8, 5, 1 and 12 side by side:
+  \`{"triggers": {"1": {"stacks": 12}}, "auras": {"Food": {"triggers": {"1": {"stacks": 8}}}, "Flask": {"triggers": {"1": {"stacks": 5}}}, "Stone": {"triggers": {"1": {"stacks": 1}}}}}\`.
 
 \`\`\`sh
 curl -s -X PUT ${o}/api/${game}/workspaces/${d}/situation \\
@@ -270,9 +284,24 @@ and per display (a group's children each, not the group):
 - \`activeConditions\`: numbers (from 1) of the conditions whose check holds (conditions only run while shown).
 - \`changed\`: what those conditions changed, \`{"desaturate": true, "sub.3.glow": true, ...}\`.
 - \`glows\`: \`[{"subRegion", "lit"}]\`: each glow sub-element by its place in \`subRegions\`, lit or not.
+- \`texts\`: \`[{"subRegion", "text", "visible"}]\`: what each text sub-element draws, its format codes replaced
+  (\`"%2.s"\` → \`"8"\`, an empty text → \`""\`), after conditions (a condition's \`sub.N.text_text\` is drawn). The game
+  screen draws exactly this. A text display has \`displayText\` (\`{"text"}\`) too.
+- Custom text (\`%c\`, \`%c2\`, …) comes from the aura's custom text function, which the simulator doesn't run: such
+  a text has \`"customText": "not evaluated"\`, and \`[%c]\` stands in its \`text\` (the game screen draws it marked).
+  Check custom text in game.
+- **No custom Lua runs in the preview** (nor on the game screen). \`notEvaluated\`, present only when a display has
+  custom code, lists the parts: \`"trigger 2: custom (stateupdate)"\` (a custom trigger, TSU included, is active while
+  its situation says "present", like any trigger), \`"condition 1: custom check"\` (a custom check never holds here),
+  \`"condition 2: Run Custom Code"\`, \`"custom text (%c)"\`, \`"On Init custom code"\`/On Show/On Hide, and
+  \`"start animation: custom function"\`. The game screen marks such a display with a dashed **Lua** badge (hover
+  lists the parts; pictures from the screenshot endpoint leave it out, as the game would). Its preview shows only
+  what the plain options do; check those parts in game.
 
 To show that an aura works, push it, then set each situation the request names (the buff missing, under 3 minutes
-left, the target gone, …) and check \`shown\`, \`changed\` and \`glows\`. The player sees the same on the open page.
+left, the target gone, …) and check \`shown\`, \`changed\`, \`glows\` and \`texts\`. The player sees the same on the open
+page. The answer's \`preview\` is for the latest pushed aura, each display in its own situation (with its \`auras\`
+override).
 `;
 }
 
@@ -311,6 +340,107 @@ export function spellApiSection({ game, origin: o, whose, example }: SpellApiSec
 \`\`\`sh
 curl -s '${o}/api/${game}/spells/search?q=${encodeURIComponent(example.name)}'
 curl -s ${o}/api/${game}/spells/${example.id}
+\`\`\``;
+}
+
+export interface DisplayMediaNotes {
+  game: AddonGameId;
+  origin: string;
+  /** The addon version the option reference links name. */
+  ref: string;
+}
+
+/**
+ * How displays take icons, textures and media, how a border's offset draws, and where a dynamic group's layout keys
+ * are: the same in every game's addon (SubRegionTypes/Border.lua, RegionPrototype.lua AnchorSubRegion).
+ */
+export function displayMediaNotes({ game, origin: o, ref }: DisplayMediaNotes): string {
+  const part = (name: string) => `\`GET ${o}/${game}/docs/agents/options/${name}.md?ref=${encodeURIComponent(ref)}\``;
+  return `### Icons, textures, fonts and borders
+
+- **Icons** (\`displayIcon\`, a bar's icon): a FileDataID (\`134042\`; a spell's \`inGame.iconFileId\`, an item's
+  \`iconFileId\`) or an icon path, \`"Interface\\\\Icons\\\\INV_Misc_Food_86_Basilisk"\` (any case). Find either with the
+  icon search (see Items, icons and media). The automatic icon (\`iconSource\` -1) is the trigger's own.
+- **Textures** (a texture display's \`texture\`, a sub element's \`textureTexture\`, progress textures, …): a FileDataID,
+  any game path (\`"Interface\\\\Cursor\\\\Cast"\`, \`"Interface\\\\Icons\\\\NAME"\`) or one of the addon's own files
+  (\`"Interface\\\\AddOns\\\\WeakAuras\\\\Media\\\\Textures\\\\Square_White"\`). A path the game doesn't have draws nothing
+  in game: the push answer has a \`media.texture\` info and the game screen shows a magenta checkerboard there.
+- **Fonts, bar textures, borders** are LibSharedMedia names (\`text_font: "Arial Narrow"\`), only those of
+  \`GET /api/${game}/media\`. Any other name (one from SharedMedia or ElvUI) works only for players who have that
+  addon; the game draws the default instead, and validation warns (\`media.font\`, …).
+- **Border** (\`subborder\`): the border's frame is the display (on bars the \`anchor_area\`) grown by \`border_offset\`
+  pixels on every side, and its edge (\`border_edge\`, default \`"Square Full White"\`) is drawn \`border_size\` pixels
+  thick **inside** that frame. So \`border_offset: 0\` covers the display's outer \`border_size\` pixels, and
+  \`border_offset\` equal to \`border_size\` puts the whole border just outside the display.
+- **Dynamic groups** (\`dynamicgroup\`): \`grow\`, \`align\`, \`space\`, \`stagger\`, \`sort\`, \`limit\`, \`radius\` and the grid
+  keys are set on the **Group** tab, not Display: the option reference's Group part (${part("group")}) has
+  them all with their values and defaults. A group's Display tab (${part("region-dynamicgroup")}) edits its
+  children's tables (\`children:\` in the reference), not the group's.
+`;
+}
+
+export interface GameDataSection {
+  game: AddonGameId;
+  origin: string;
+  /** The game's words ("Forever's", "TBC Anniversary's"). */
+  whose: string;
+  /** An item to show: a name to search and its ID. */
+  item: { name: string; id: number };
+  /** Words of an icon name to search. */
+  icon: string;
+}
+
+/** The item, icon, game file and media APIs (the app's own, the same in every game). */
+export function gameDataSection({ game, origin: o, whose, item, icon }: GameDataSection): string {
+  return `## Items, icons and media
+
+${whose} items and game files come from wago.tools (the game's own client data for its latest build), downloaded by
+the server on first use.
+
+### Items
+
+- \`GET /api/${game}/items/search?q=<name or ID>&limit=<1-100>\` → \`{"query", "build", "limit", "total", "results"}\`,
+  best matches first (every word must occur; a number also matches the ID; 20 results by default, at most 100).
+- \`GET /api/${game}/items/<id>\` → one item; 404 when the game has none.
+- An item: \`id\`, \`name\`, \`quality\` (0 Poor … 7 Heirloom) and \`qualityName\`, \`itemLevel\`, \`classId\`/\`subclassId\`,
+  \`iconFileId\` (a FileDataID: what \`displayIcon\` takes), \`icon\` (name), \`iconPath\` (\`Interface\\Icons\\NAME\`),
+  \`iconUrl\` (an image), \`wowhead\` (the item on Wowhead in the game's database).
+
+### Icons
+
+- \`GET /api/${game}/icons/search?q=<words of the name, or a path>&limit=<1-100>\` → \`{"query", "build", "limit",
+  "total", "results": [{"id", "name", "path", "iconUrl"}]}\`: the game's icons (\`Interface\\Icons\\\`) by name. \`id\`
+  (FileDataID) and \`path\` both work as \`displayIcon\` or as a texture. Icon names are words joined by \`_\`
+  (\`INV_Misc_Food_86_Basilisk\`): search for some of them (\`food basilisk\`), or look at \`iconUrl\` to compare with a
+  screenshot.
+
+### Game files
+
+- \`GET /api/${game}/files?path=<path>&path=…&ids=<FileDataID,…>\` (up to 200 of each) → \`{"build", "paths": {"<path
+  as given>": {"id", "path"} | null}, "ids": {…}}\`: whether the game has a file (any case, \`/\` or \`\\\`, with or
+  without \`.blp\`/\`.tga\`) and its FileDataID. Every file under \`Interface\\\` is listed.
+
+### Fonts, bar textures, borders and backgrounds
+
+- \`GET /api/${game}/media\` → \`{"ref", "types": {"font" | "statusbar" | "border" | "background" | "sound": {"default",
+  "entries": [{"name", "file", "from"}]}}, "fontSamples"}\`: the names a stock client with the addon has (the game's own,
+  \`from: "game"\`, and the addon's, \`from: "addon"\`), as the window's lists show them. Only these work for every
+  player. Several common names are not among them: ElvUI's and SharedMedia's ("PT Sans Narrow", "Expressway",
+  "1 Pixel"); the addon's own may be close (\`"PT Sans Narrow Regular"\`, \`"PT Sans Narrow Bold"\`).
+
+**Identifying a font from a screenshot.** Open \`fontSamples\` (\`${o}/${game}/fonts?text=<the text in the
+screenshot>&size=<its height in px>&outline=<OUTLINE|THICKOUTLINE|None>\`) in a browser or a screenshot tool: every
+font of the list draws your text in the game's own font files, side by side. Compare the digits and a few letters
+(\`1\`, \`4\`, \`a\`, \`g\`, \`R\`), the width (narrow: Arial Narrow, PT Sans Narrow; wide: Friz Quadrata TT, the game's
+default) and serifs (Morpheus, Skurri, Nimrod MT). When the screenshot's font isn't in the list (ElvUI's Expressway,
+a SharedMedia font), pick the closest listed font and tell the player which one you used and why.
+
+\`\`\`sh
+curl -s '${o}/api/${game}/items/search?q=${encodeURIComponent(item.name)}'
+curl -s ${o}/api/${game}/items/${item.id}
+curl -s '${o}/api/${game}/icons/search?q=${encodeURIComponent(icon)}'
+curl -s '${o}/api/${game}/files?path=Interface%5CCursor%5CCast'
+curl -s ${o}/api/${game}/media
 \`\`\``;
 }
 

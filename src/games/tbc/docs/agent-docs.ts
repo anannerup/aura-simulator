@@ -7,7 +7,17 @@
 import type { OptionReference } from "@/core";
 import { DEFAULT_WORKSPACE_ID } from "@/workspace";
 import { optionReferenceSection, optionReferenceUrls } from "../../docs/option-reference";
-import { compactJson, picturesSection, pushApiSection, situationSection, spellApiSection, wagoJsonSection, wagoLinksSection } from "../../docs/shared";
+import {
+  compactJson,
+  displayMediaNotes,
+  gameDataSection,
+  picturesSection,
+  pushApiSection,
+  situationSection,
+  spellApiSection,
+  wagoJsonSection,
+  wagoLinksSection,
+} from "../../docs/shared";
 import { tbc } from "..";
 import { TBC_MINIMAL_WAGO_JSON } from "../examples";
 import type { TbcAddonFacts } from "./addon-facts";
@@ -28,6 +38,7 @@ export interface TbcAgentDocsFacts {
 export const TBC_DOCUMENTED_ENDPOINTS = [
   "POST /api/tbc/workspaces/<id>/aura",
   "GET /api/tbc/workspaces/<id>",
+  "DELETE /api/tbc/workspaces/<id>",
   "GET /api/tbc/workspaces/<id>/events",
   "GET /api/tbc/workspaces/<id>/situation",
   "PUT /api/tbc/workspaces/<id>/situation",
@@ -35,6 +46,11 @@ export const TBC_DOCUMENTED_ENDPOINTS = [
   "GET /api/tbc/wago/<id>",
   "GET /api/tbc/spells/search",
   "GET /api/tbc/spells/<id>",
+  "GET /api/tbc/items/search",
+  "GET /api/tbc/items/<id>",
+  "GET /api/tbc/icons/search",
+  "GET /api/tbc/files",
+  "GET /api/tbc/media",
 ] as const;
 
 const code = (s: string) => `\`${s}\``;
@@ -68,6 +84,7 @@ export function tbcAgentDocsMarkdown(f: TbcAgentDocsFacts): string {
     pictures,
     validation,
     spells,
+    gameData,
     pushApi,
     wagoLinks,
     workedExamples,
@@ -98,7 +115,8 @@ ${JSON.stringify(TBC_MINIMAL_WAGO_JSON)}
 \`\`\`
 
 Contents: Workflow · wago JSON · The aura · Triggers · Conditions · The addon (generated) · Option ↔ table
-reference · Situation · Pictures · Validation · Spells · Push API · Wago links · Worked examples · Troubleshooting.
+reference · Situation · Pictures · Validation · Spells · Items, icons and media · Push API · Wago links · Worked
+examples · Troubleshooting.
 `;
 }
 
@@ -131,7 +149,7 @@ function wagoJson(): string {
   return wagoJsonSection({ minimal: TBC_MINIMAL_WAGO_JSON, groupsBelow: false, defaultsBelow: false });
 }
 
-function theAura(): string {
+function theAura({ o, ref }: Ctx): string {
   return `## The aura
 
 Common to every display: \`id\` (its name, unique), \`regionType\`, \`anchorPoint\` (point of the screen or group),
@@ -140,15 +158,16 @@ Common to every display: \`id\` (its name, unique), \`regionType\`, \`anchorPoin
 \`conditions\`, \`subRegions\`, \`actions\`, \`animation\`. Points: \`CENTER\`, \`TOP\`, \`BOTTOM\`, \`LEFT\`, \`RIGHT\`,
 \`TOPLEFT\`, \`TOPRIGHT\`, \`BOTTOMLEFT\`, \`BOTTOMRIGHT\`.
 
-- \`icon\`: \`displayIcon\` (icon file ID, \`inGame.iconFileId\` from Spells; the trigger's own icon is used when it
-  has one), \`desaturate\`, \`color\`, \`zoom\` (0-1), \`keepAspectRatio\`, \`cooldown\` (draw the cooldown swipe),
-  \`cooldownTextDisabled\` (hide the game's countdown numbers), \`inverse\`.
+- \`icon\`: \`displayIcon\` (a FileDataID such as \`inGame.iconFileId\` from Spells, or an \`Interface\\Icons\\\`
+  path; see Icons, textures, fonts and borders; the trigger's own icon is used when it has one), \`desaturate\`,
+  \`color\`, \`zoom\` (0-1), \`keepAspectRatio\`, \`cooldown\` (draw the cooldown swipe), \`cooldownTextDisabled\` (hide
+  the game's countdown numbers), \`inverse\`.
 - \`aurabar\`: \`texture\` (a bar texture name, e.g. \`"Blizzard"\`), \`orientation\` (\`HORIZONTAL\`,
   \`HORIZONTAL_INVERSE\`, \`VERTICAL\`, \`VERTICAL_INVERSE\`), \`inverse\`, \`barColor\`, \`backgroundColor\`, \`icon\`
   (show the icon), \`icon_side\` (\`LEFT\`/\`RIGHT\`), \`spark\`.
 - \`text\`: \`displayText\` (with format codes), \`font\`, \`fontSize\`, \`outline\`, \`color\`, \`justify\`.
 - \`group\` (children keep their own offsets, relative to the group's centre) and \`dynamicgroup\` (lays out the shown
-  children: \`grow\`, \`align\`, \`space\`, \`sort\`).
+  children: \`grow\`, \`align\`, \`space\`, \`sort\`; these are Group tab options, see below).
 
 Format codes in texts: \`%p\` time left, \`%t\` total time, \`%n\` name, \`%s\` stacks, \`%i\` icon. Literal \`%\` is
 \`%%\`. The option ↔ table reference has every option of every display type with its keys, values and defaults.
@@ -161,10 +180,12 @@ element, backgrounds included) as \`sub.N.<key>\`.
 - \`subtext\`: \`text_text\` (format codes), \`text_color\`, \`text_font\`, \`text_fontSize\`, \`text_fontType\`
   (\`None\`/\`OUTLINE\`/\`THICKOUTLINE\`), \`text_visible\`, \`text_justify\`, \`text_selfPoint\` (\`AUTO\`),
   \`anchor_point\` (\`CENTER\`, \`INNER_TOPLEFT\`, \`INNER_BOTTOMRIGHT\`, \`INNER_LEFT\`, \`INNER_RIGHT\`, \`OUTER_TOP\`,
-  \`OUTER_BOTTOM\`, …), \`anchorXOffset\`/\`anchorYOffset\`.
+  \`OUTER_BOTTOM\`, …), \`text_anchorXOffset\`/\`text_anchorYOffset\` (X/Y Offset; the \`anchorXOffset\` keys new sub
+  texts carry are never read). Custom text (\`%c\`) isn't evaluated: it draws as a marked \`[%c]\`.
 - \`subglow\`: \`glow\` (on/off), \`glowType\` (\`buttonOverlay\`, \`Pixel\`, \`ACShine\`, \`Proc\`),
   \`useGlowColor\`/\`glowColor\`.
-- \`subborder\`: \`border_visible\`, \`border_color\`, \`border_edge\`, \`border_size\`.
+- \`subborder\`: \`border_visible\`, \`border_color\`, \`border_edge\`, \`border_size\`, \`border_offset\` (how they draw:
+  below).
 - \`subtick\` (bars only), \`subbackground\`, \`subforeground\` (no fields: the display's own background and a bar's
   foreground).
 
@@ -173,6 +194,7 @@ the window's New Aura gives a new aura (an icon gets a \`%s\` stack text and a g
 The addon itself only adds a missing \`subbackground\` first (and on bars a \`subforeground\`) and renumbers your
 conditions' \`sub.N\` to match, so write them yourself and the numbers you write are the ones the window shows.
 
+${displayMediaNotes({ game: "tbc", origin: o, ref })}
 ### Groups
 
 A group is an aura with \`"regionType": "group"\` or \`"dynamicgroup"\`. In wago JSON it is \`d\` and every descendant
@@ -288,8 +310,14 @@ function situation({ o, d }: Ctx): string {
     workspace: d,
     kinds: `What a trigger's situation means depends on the trigger: for an Aura trigger (\`aura2\`) it is the buff or debuff
 (present, time left, duration, stacks); for the spell cooldown trigger it is the cooldown (on cooldown, time left,
-the cooldown, charges); any other trigger is active while "present". Only the target can be missing (Target exists);
-every other unit exists.`,
+the cooldown, charges); for Item Count, \`stacks\` is the item count (\`"present": false\`: none in the bags) and the
+trigger is active whatever the count unless its own Item Count filter (\`use_count\`, \`count\`, \`count_operator\`)
+fails. The item cooldowns (Cooldown Progress (Item), (Equipment Slot)) are like the spell's: \`present\` with time
+left is on cooldown, and they report \`onCooldown\`. Weapon Enchant's \`present\` is the enchant on the weapon
+(\`enchanted\`; time left, duration, charges as stacks). Any other trigger's \`present\` is whether what it watches is
+there. The trigger's own show option decides whether that makes it active: \`genericShowOn\` \`showOnReady\`/
+\`showAlways\` (cooldowns), Weapon Enchant's \`showOn\` \`showOnMissing\`/\`showAlways\`, or Inverse (\`use_inverse\`). The "Active" condition
+(\`show\`) is whether a trigger is active. Only the target can be missing (Target exists); every other unit exists.`,
     combat: `**In combat** changes nothing on TBC but what the global "In Combat" condition (\`incombat\`) reads: there are no
 combat restrictions.`,
     example: {
@@ -335,6 +363,16 @@ the name, read the candidates' \`buff\` text (what the buff says in game) with t
 `;
 }
 
+function gameData({ o }: Ctx): string {
+  return gameDataSection({
+    game: "tbc",
+    origin: o,
+    whose: "TBC Anniversary's",
+    item: { name: "super mana potion", id: 22832 },
+    icon: "food basilisk",
+  });
+}
+
 function pushApi({ o, d }: Ctx): string {
   return pushApiSection({ game: "tbc", origin: o, workspace: d, checkName: "Addon check" });
 }
@@ -378,9 +416,21 @@ function troubleshooting(): string {
   outside \`triggers\` are arrays, and that trigger keys are \`"1"\`, \`"2"\`, ….
 - **\`preview\` says \`"shown": false\`**: check the situation (aura present or missing, time left inside a Remaining
   Time window, target exists); Show On \`showOnMissing\` shows only while missing; \`load\` options may unload it (leave
-  \`load\` out to always load).
+  \`load\` out to always load). With an override in \`auras\`, that aura sees its own triggers.
 - **\`sub.N\` changes the wrong element**: N counts every \`subRegions\` entry from 1, backgrounds included; the addon
   adds a missing \`subbackground\` first.
+- **A text draws nothing or the wrong thing**: read \`preview\`'s \`texts\`, what each text draws. A condition that
+  only makes an empty text visible draws nothing; change \`sub.N.text_text\` too. \`[%c]\` with
+  \`"customText": "not evaluated"\` is custom text the simulator doesn't run: check it in game.
+- **\`notEvaluated\` in \`preview\`, or a "Lua" badge on the game screen**: the aura has custom code, which the
+  simulator never runs: custom triggers follow the situation's "present", custom checks never hold, custom text shows
+  \`[%c]\`, custom actions and animation functions do nothing. Build what you can from the plain options (they are
+  previewed); check the custom parts in game.
+- **A text's X/Y Offset does nothing**: it is \`text_anchorXOffset\`/\`text_anchorYOffset\`, not \`anchorXOffset\`.
+- **Every icon shows the same count or time**: the situation's triggers are workspace-wide; give each aura its own with
+  \`auras\` (see Situation).
+- **A trigger with Show Always never hides, or Item Count is always shown**: that is the game's behaviour; Item
+  Count hides only through its Item Count filter or a condition (e.g. \`stacks\` \`==\` \`0\`).
 - **A name match doesn't find the aura in game**: names are the client's language; use exact spell IDs for other
   languages.
 - **503**: the addon release is still loading or couldn't be fetched; retry in a moment.

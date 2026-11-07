@@ -61,8 +61,8 @@ const text = (textText: string, extra: Doc = {}): Doc => ({
   text_justify: "CENTER",
   text_selfPoint: "AUTO",
   anchor_point: "CENTER",
-  anchorXOffset: 0,
-  anchorYOffset: 0,
+  text_anchorXOffset: 0,
+  text_anchorYOffset: 0,
   ...extra,
 });
 
@@ -119,7 +119,7 @@ export const tbcCooldownIcon: Doc = {
 };
 
 const barText = (textText: string, anchor: string): Doc =>
-  text(textText, { anchor_point: anchor, text_justify: anchor === "INNER_LEFT" ? "LEFT" : "RIGHT", text_fontSize: 12, anchorXOffset: anchor === "INNER_LEFT" ? 2 : -2 });
+  text(textText, { anchor_point: anchor, text_justify: anchor === "INNER_LEFT" ? "LEFT" : "RIGHT", text_fontSize: 12, text_anchorXOffset: anchor === "INNER_LEFT" ? 2 : -2 });
 
 /**
  * TBC v1 aura 3: the time left of the player's own Corruption on the target as a bar: name left, time right, the time

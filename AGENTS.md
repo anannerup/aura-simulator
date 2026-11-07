@@ -60,7 +60,12 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   reads them), fills defaults, validates. No React, no DOM. Runs in browser and Node.
   It also holds the situation model (`situation/`, with `readSituation`/`situationJson`: the JSON form agents send)
   and the trigger/condition evaluation per game (`conditions/`): what an aura shows in a situation
-  (`previewSituation`, `conditions/preview.ts`, is that in words for agents: the push answer's `preview`). `auraRules(game)` gives a game's rules (trigger kinds, `setInCombat`,
+  (`previewSituation`, `conditions/preview.ts`, is that in words for agents: the push answer's `preview`). What texts
+  draw (placeholders replaced, custom text `%c` marked as not evaluated) is part of that evaluation
+  (`conditions/text.ts`, `AuraRenderState.texts`), so the game screen and `preview` can't disagree. No custom Lua runs: what
+  of an aura is custom code is listed (`conditions/custom-code.ts`, `customCode`; `preview`'s `notEvaluated`, a "Lua"
+  badge on the game screen). Each aura
+  evaluates in its own situation (`situationForAura`: the workspace-wide triggers with its `auras` override). `auraRules(game)` gives a game's rules (trigger kinds, `setInCombat`,
   `evaluate`, `combatRestricted`). Forever (`evaluateAura`, `conditions/forever.ts` + `secret-aura-rules.ts`) adds
   Aura (Modern), freezing and held properties to plain WeakAuras; TBC (`evaluateTbcAura`, `conditions/tbc.ts`) is
   plain WeakAuras2, nothing changes in combat. Only what both addons do the same is shared (`conditions/evaluate.ts`,
@@ -115,7 +120,10 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   type generically; keep them green when the editor or the profile changes.
 - `src/render/`: hand-written renderers (React components + CSS) per region and sub-region type.
   Pure props in (aura document + evaluated state), nothing fetched inside except game files (textures, fonts) via the
-  loader in `src/render/textures` (`GameTexture` draws one as an image; `media.ts` names the addon's media). To add
+  loader in `src/render/textures` (`GameTexture` draws one as an image; `media.ts` names the addon's media,
+  `media.test.ts` checks it against each game's LibSharedMedia lists). Any game texture path loads by the FileDataID the
+  game's file list gives (the loader's `resolvePath`: `gameFilesFromApi("/api/<game>/files")`); a texture that can't be
+  drawn shows `MissingTexture` (`MappedTexture.tsx`), never nothing. To add
   a region type, add its facts to `REGION_TYPES` (`region-types.ts`) and its component to `RENDERERS`
   (`regions.tsx`); both are keyed by the addon's `regionType`. The game screen is `screen/GameScreen.tsx` (the
   surface) and `screen/GameScreenAuras.tsx` (every aura of the workspace on it, laid out by `group/layout.ts`);
@@ -124,8 +132,14 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   and `standIns={false}` leaves out the anchor stand-ins; `evaluateScreen` is its evaluation and layout, pure.
 - `src/server/`: server-only code (SQLite via built-in `node:sqlite`, wago/Wowhead sync, addon source cache).
   Server data is per game under `DATA_DIR` (default `data/`, gitignored): `data/<game>/spells.sqlite` (a
-  `SpellSource` names the wago product and Wowhead environment: `FOREVER_SPELLS`, `TBC_SPELLS`) and
-  `data/<game>/addon/` (or `ADDON_CACHE_DIR/<game>`). The addon source cache (`server/addon/source-cache.ts`: a repo's
+  `SpellSource` names the wago product and Wowhead environment: `FOREVER_SPELLS`, `TBC_SPELLS`),
+  `data/<game>/files.sqlite` (`server/game-files/`: the game's file list, wago's ManifestInterfaceData: path ↔
+  FileDataID, icon search), `data/<game>/items.sqlite` (`server/items/`: ItemSparse + Item), both for the same
+  `SpellSource` and downloaded on first use (`createClientCaches`; `ServerGame.files`/`.items`), and
+  `data/<game>/addon/` (or `ADDON_CACHE_DIR/<game>`). `server/media.ts` reads the addon's LibSharedMedia lists from
+  the server's aura core (`registries().media`; `/api/<game>/media`, the `/<game>/fonts` sample page);
+  `server/media-check.ts` adds `media.texture` infos to push answers for texture paths the game can't draw. The test
+  fixtures for all three are the recorded wago rows in `tests/fixtures/<game>/spells/`. The addon source cache (`server/addon/source-cache.ts`: a repo's
   released tags via jsDelivr/GitHub, no branches or commits) is the only place the server reads Forever's addon files;
   the server's aura core (`server/addon/core.ts`, one per game and release) and the game's agent docs use it. Push,
   docs and diff follow `?ref=` (a release; default: the newest).
@@ -136,7 +150,8 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   use a recorded release list (`tests/fixtures/tbc/addon`) and download the 5.22.1 zip once into
   `.cache/weakauras2` (`tests/support/weakauras2.ts`), skipping when offline.
 - `src/api/`: wire types and limits of the HTTP API shared by server and page (`addon.ts`, `spells.ts`, with
-  `iconNameUrl`; `render.ts`: the `RenderScene` the server hands the render page). No server code: client code imports these, never `@/server/*`.
+  `iconNameUrl`; `files.ts`, with `gameFileKey`, the game's path rule; `items.ts`; `media.ts`; `render.ts`: the
+  `RenderScene` the server hands the render page). No server code: client code imports these, never `@/server/*`.
 - `src/workspace/`: the workspace model (`tree.ts`: top-level auras as nodes, groups nest their `items`; pure operations keep ids unique and
   `controlledChildren`/`parent` in step), its storage/file format (`workspace.ts`, v3 JSON recording its game; older
   versions and other games' files are refused), import/export files (`files.ts`: aura `.txt` = exactly one state code;
@@ -165,6 +180,7 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   `GET /api/<game>/workspaces/<id>`; it holds the latest few pushes, not workspaces (those live in the browser).
   It also holds the situation an agent set per workspace (`situation.ts`, `PUT/GET /api/<game>/workspaces/<id>/situation`,
   sent to pages as `event: situation`); push answers carry `preview`, what the aura shows in it.
+  `DELETE /api/<game>/workspaces/<id>` forgets a workspace's pushes and situation (`WorkspaceHub.delete`).
   Every push form becomes a state code first (wago JSON by `fromWagoJson`, a wago link by fetching it), so answers and
   validation are the same for all. Wago links: `server/wago.ts` fetches `https://data.wago.io/api/raw/encoded?id=`
   (`GET /api/<game>/wago/<id>` for the page's Import box); tests and the e2e server answer from recorded import
@@ -194,6 +210,11 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
 - `src/lib/`: small generic helpers with no project knowledge; any layer may import them and they import nothing
   from `src` (`errors.ts`: `errorMessage`; `fetch-json.ts`: `fetchJson`, the one way page code fetches JSON, and
   `HttpError`; `idb.ts`: one IndexedDB object store, used by the workspace storage and the screenshot store).
+- The user's server on :3000 runs a production build from the main checkout (`next build` then `next start -p 3000`;
+  rebuild after updating main). Never run `next dev` there while agents work: Turbopack watches the whole project
+  folder, including agent worktrees under `.claude/worktrees/` (gitignored, still watched; Next has no option to
+  exclude them), so every file an agent's own dev server or tests write rebuilds and reloads the user's page in a loop.
+  Merge and verify in a separate worktree, then fast-forward main, so the user's checkout never holds a half-merged tree.
 - Tests: unit/seam A with Vitest (`npm test`), browser/HTTP seam B with Playwright (`npm run test:e2e`,
   `E2E_PORT` picks the port so parallel worktrees don't clash). Network-dependent tests use recorded
   fixtures in `tests/fixtures/<game>/`. The e2e dev server gets addon versions from recorded GitHub/jsDelivr
@@ -202,7 +223,7 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   `.cache/e2e/<port>` (`DATA_DIR`); `LIVE=1 npm test -- addon-live` checks the real upstream. TBC's WeakAuras2 zip:
   the e2e global setup unpacks it once into `.cache/weakauras2` (the unit tests' folder; downloaded once and checked
   against the recorded sha256) and the dev server reads it there (`ADDON_CACHE_DIR_TBC`); it seeds both games' spell
-  databases from their fixtures. The e2e tab sweep runs per game.
+  databases, file lists and items from their fixtures. The e2e tab sweep runs per game.
 - Ticket files: `.scratch/<feature>/issues/`. Tick acceptance boxes and set `Status:` when done.
 - Blizzard art (icons, glow textures) is fetched at runtime and never committed.
 <!-- BEGIN:nextjs-agent-rules -->

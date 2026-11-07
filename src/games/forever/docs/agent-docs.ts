@@ -2,7 +2,17 @@ import type { OptionReference } from "@/core";
 import { optionReferenceSection } from "../../docs/option-reference";
 import { forever } from "..";
 import { DEFAULT_WORKSPACE_ID } from "@/workspace";
-import { compactJson, picturesSection, pushApiSection, situationSection, spellApiSection, wagoJsonSection, wagoLinksSection } from "../../docs/shared";
+import {
+  compactJson,
+  displayMediaNotes,
+  gameDataSection,
+  picturesSection,
+  pushApiSection,
+  situationSection,
+  spellApiSection,
+  wagoJsonSection,
+  wagoLinksSection,
+} from "../../docs/shared";
 import { DOCUMENTED_REGION_TYPES, type AddonFacts, type ModernVariableFact } from "./addon-facts";
 import { COUNTER_EXAMPLE, exampleWagoJson, WORKED_EXAMPLES, type WorkedExample } from "./worked-examples";
 
@@ -25,6 +35,7 @@ export interface AgentDocsFacts {
 export const DOCUMENTED_ENDPOINTS = [
   "POST /api/forever/workspaces/<id>/aura",
   "GET /api/forever/workspaces/<id>",
+  "DELETE /api/forever/workspaces/<id>",
   "GET /api/forever/workspaces/<id>/events",
   "GET /api/forever/workspaces/<id>/situation",
   "PUT /api/forever/workspaces/<id>/situation",
@@ -34,6 +45,11 @@ export const DOCUMENTED_ENDPOINTS = [
   "GET /api/forever/spells/<id>",
   "GET /api/forever/spells/status",
   "POST /api/forever/spells/sync",
+  "GET /api/forever/items/search",
+  "GET /api/forever/items/<id>",
+  "GET /api/forever/icons/search",
+  "GET /api/forever/files",
+  "GET /api/forever/media",
 ] as const;
 
 const code = (s: string) => `\`${s}\``;
@@ -161,6 +177,7 @@ export function agentDocsMarkdown(f: AgentDocsFacts): string {
     situation,
     pictures,
     spells,
+    gameData,
     pushApi,
     wagoLinks,
     workedExamples,
@@ -181,8 +198,8 @@ This server follows ${version}. Lists marked *generated* below are read from tha
 add \`?ref=<version>\` to this page's address and to your pushes.
 
 Contents: Workflow · wago JSON · The aura document · Field reference · Triggers · Conditions ·
-Option ↔ table reference · Combat rules · Validation · Situation · Pictures · Spells · Push API · Wago links ·
-Worked examples · Troubleshooting.
+Option ↔ table reference · Combat rules · Validation · Situation · Pictures · Spells · Items, icons and media ·
+Push API · Wago links · Worked examples · Troubleshooting.
 `;
 }
 
@@ -254,7 +271,7 @@ ${compactJson(MINIMAL_AURA)}
 `;
 }
 
-function fieldReference({ a }: Ctx): string {
+function fieldReference({ a, o, ref }: Ctx): string {
   return `## Field reference
 
 Common to every display: \`id\`, \`regionType\`, \`anchorPoint\` (point of the screen or group), \`selfPoint\` (point
@@ -263,7 +280,8 @@ of the aura), \`xOffset\`/\`yOffset\` (pixels from the anchor; up and right are 
 \`actions\`, \`animation\`. Points: \`CENTER\`, \`TOP\`, \`BOTTOM\`, \`LEFT\`, \`RIGHT\`, \`TOPLEFT\`, \`TOPRIGHT\`,
 \`BOTTOMLEFT\`, \`BOTTOMRIGHT\`.
 
-- \`icon\`: \`displayIcon\` (icon file ID; see Spells), \`desaturate\`, \`color\`, \`zoom\` (0-1), \`keepAspectRatio\`,
+- \`icon\`: \`displayIcon\` (a FileDataID, see Spells, or an \`Interface\\Icons\\\` path; see Icons, textures, fonts
+  and borders), \`desaturate\`, \`color\`, \`zoom\` (0-1), \`keepAspectRatio\`,
   \`cooldown\` (draw the cooldown swipe), \`cooldownSwipe\`, \`cooldownEdge\`, \`cooldownTextDisabled\`
   (hide the game's countdown numbers), \`inverse\`.
 - \`aurabar\`: \`texture\` (a bar texture name, e.g. \`"Blizzard"\`, \`"Solid"\`), \`orientation\` (\`HORIZONTAL\`,
@@ -278,7 +296,8 @@ of the aura), \`xOffset\`/\`yOffset\` (pixels from the anchor; up and right are 
   \`border*\`/\`backdropColor\`.
 - \`dynamicgroup\`: lays out the shown children: \`grow\` (\`RIGHT\`, \`LEFT\`, \`UP\`, \`DOWN\`, \`HORIZONTAL\`,
   \`VERTICAL\`, \`CIRCLE\`, \`COUNTERCIRCLE\`, \`GRID\`), \`align\`, \`space\`, \`stagger\`, \`useLimit\`/\`limit\`,
-  \`radius\`, \`gridType\`/\`gridWidth\`, \`sort\`. Shown children close up. A dynamic group holds no groups.
+  \`radius\`, \`gridType\`/\`gridWidth\`, \`sort\` (Group tab options, see below). Shown children close up. A dynamic
+  group holds no groups.
 
 Format codes in texts: \`%p\` time left, \`%t\` total time, \`%n\` name, \`%s\` stacks, \`%i\` icon. Literal \`%\` is
 \`%%\`.
@@ -291,13 +310,14 @@ every element, backgrounds included) as \`sub.N.<key>\`.
 - \`subtext\`: \`text_text\` (format codes), \`text_color\`, \`text_font\`, \`text_fontSize\`, \`text_fontType\`
   (\`None\`/\`OUTLINE\`/\`THICKOUTLINE\`), \`text_visible\`, \`text_justify\`, \`text_selfPoint\` (\`AUTO\`),
   \`anchor_point\` (\`CENTER\`, \`INNER_TOPLEFT\`, \`INNER_BOTTOMRIGHT\`, \`INNER_LEFT\`, \`INNER_RIGHT\`, \`OUTER_TOP\`, …),
-  \`anchorXOffset\`/\`anchorYOffset\`, \`text_shadowColor\`.
+  \`text_anchorXOffset\`/\`text_anchorYOffset\` (X/Y Offset: write these; a plain sub text never reads the
+  \`anchorXOffset\` keys new sub texts carry), \`text_shadowColor\`. Custom text (\`%c\`) isn't evaluated: it draws as a marked \`[%c]\`.
 - \`subglow\`: \`glow\` (on/off; usually \`false\`, turned on by a condition), \`glowType\` (\`buttonOverlay\`,
   \`Pixel\`, \`ACShine\` (autocast), \`Proc\`), \`useGlowColor\`/\`glowColor\`, \`glowLines\`, \`glowFrequency\`,
   \`glowLength\`, \`glowThickness\`, \`glowScale\`, \`glowXOffset\`/\`glowYOffset\`, \`anchor_area\` (bars:
   \`"bar"\` or \`"icon"\`).
 - \`subborder\`: \`border_visible\`, \`border_color\`, \`border_edge\` (e.g. \`"Square Full White"\`),
-  \`border_size\`, \`border_offset\`, \`anchor_area\` (bars).
+  \`border_size\`, \`border_offset\` (how they draw: below), \`anchor_area\` (bars).
 - \`subtick\` (bars only): \`tick_visible\`, \`tick_color\`, \`tick_placement_mode\` (\`AtValue\`, \`AtPercent\`),
   \`tick_placements\` (strings), \`tick_thickness\`, \`automatic_length\`/\`tick_length\`, \`use_texture\`.
 - \`subbackground\`, \`subforeground\`: no fields; the display's own background and (bars) foreground.
@@ -307,6 +327,7 @@ the window's New Aura gives a new aura (an icon gets a \`%s\` stack text and a g
 The addon itself only adds a missing \`subbackground\` first (and on bars a \`subforeground\`) and renumbers your
 conditions' \`sub.N\` to match, so write them yourself and the numbers you write are the ones the window shows.
 
+${displayMediaNotes({ game: "forever", origin: o, ref })}
 ${a ? generatedDefaults(a) : ""}
 ### Groups
 
@@ -508,8 +529,16 @@ function situation({ o, d }: Ctx): string {
     workspace: d,
     kinds: `What a trigger's situation means depends on the trigger: for Aura (Modern) and Aura (\`aura2\`) it is the buff
 or debuff (present, time left, duration, stacks); for the spell cooldown trigger it is the cooldown (on cooldown, time
-left, the cooldown, charges); any other trigger is active while "present". Only the target can be missing (Target
-exists); every other unit exists.`,
+left, the cooldown, charges); for Item Count, \`stacks\` is the item count (\`"present": false\`: none in the bags) and
+the trigger is active whatever the count unless its own Item Count filter (\`use_count\`, \`count\`,
+\`count_operator\`) fails. The item cooldowns (Cooldown Progress (Item), (Equipment Slot)) are like the spell's:
+\`present\` with time left is on cooldown, and they report \`onCooldown\`. Weapon Enchant's \`present\` is the enchant
+on the weapon (\`enchanted\`; time left, duration, charges as stacks). Any other trigger's \`present\` is whether what
+it watches is there. The trigger's own show option decides whether that makes it active: \`genericShowOn\`
+\`showOnReady\`/\`showAlways\` (cooldowns), Weapon Enchant's \`showOn\` \`showOnMissing\`/\`showAlways\`, or Inverse
+(\`use_inverse\`).
+The "Active" condition (\`show\`) is whether a trigger is active. Only the target can be missing (Target exists); every
+other unit exists.`,
     combat: `**In combat** is Forever's combat restriction: auras that freeze keep what they showed when combat started
 (the game screen shows a padlock) and held properties keep their pre-combat value. Over HTTP, \`"inCombat": true\`
 alone means nothing changed since combat started; to test freezing, add \`"beforeCombat"\` (the same fields:
@@ -536,6 +565,10 @@ ${spellApiSection({ game: "forever", origin: o, whose: "Forever's", example: { n
 Spell IDs go into Aura (Modern) and \`aura2\` triggers as strings (\`"auraspellids": ["1459"]\`) and into the spell
 cooldown trigger as a number (\`"spellName": 2136\`).
 `;
+}
+
+function gameData({ o }: Ctx): string {
+  return gameDataSection({ game: "forever", origin: o, whose: "Forever's", item: { name: "major mana potion", id: 13444 }, icon: "food basilisk" });
 }
 
 function pictures({ o, d }: Ctx): string {
@@ -576,6 +609,16 @@ function troubleshooting(): string {
 - **"Aura Missing needs the trigger's Show On set to Aura(s) Missing or Always."**: set \`secretShowOn\`.
 - **"To light a glow from a time check, compare with < and set the glow to on."**: use \`op: "<"\` and \`value: true\`.
 - **\`sub.N\` changes the wrong element**: N counts every \`subRegions\` entry from 1, backgrounds included.
+- **A text draws nothing or the wrong thing**: read \`preview\`'s \`texts\`, what each text draws. A condition that
+  only makes an empty text visible draws nothing; change \`sub.N.text_text\` too. \`[%c]\` with
+  \`"customText": "not evaluated"\` is custom text the simulator doesn't run: check it in game.
+- **\`notEvaluated\` in \`preview\`, or a "Lua" badge on the game screen**: the aura has custom code, which the
+  simulator never runs: custom triggers follow the situation's "present", custom checks never hold, custom text shows
+  \`[%c]\`, custom actions and animation functions do nothing. Build what you can from the plain options (they are
+  previewed); check the custom parts in game.
+- **A text's X/Y Offset does nothing**: it is \`text_anchorXOffset\`/\`text_anchorYOffset\`, not \`anchorXOffset\`.
+- **Every icon shows the same count or time**: the situation's triggers are workspace-wide; give each aura its own with
+  \`auras\` (see Situation).
 - **Padlock on the game screen in combat**: an \`aura2\` trigger freezes; use Aura (Modern).
 - **A spell ID flagged \`not-in-game\`**: search by name for the Forever ID.
 - **503**: the addon version is still loading or couldn't be fetched; retry in a moment.

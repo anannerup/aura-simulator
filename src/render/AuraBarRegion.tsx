@@ -128,7 +128,7 @@ export function AuraBarRegion({ aura, state, name, width, height }: RegionProps)
 
   return (
     <div className={styles.regionFrame} data-orientation={orientation} data-missing={state.missing ? "true" : "false"}>
-      <SubRegions aura={aura} state={state} host={host} name={name} background={background} foreground={foreground} />
+      <SubRegions aura={aura} state={state} host={host} background={background} foreground={foreground} />
     </div>
   );
 }

@@ -3,11 +3,10 @@
 import type { CSSProperties } from "react";
 import { getField, num, type AuraRenderState, type LuaTable } from "@/core";
 import { color, rgbaCss } from "../color";
-import { WowString } from "../WowString";
 import { regionInfo } from "../region-types";
 import { anchorFraction } from "../screen/geometry";
 import { fontFlagsStyle, textWidthStyle, useWowFont } from "../fonts";
-import { formatSubText, type TextValues } from "../text-format";
+import { DrawnTextParts } from "../DrawnTextParts";
 import { anchorPosition, type SubRegionHost } from "./host";
 import styles from "./subregions.module.css";
 
@@ -15,26 +14,27 @@ import styles from "./subregions.module.css";
 /**
  * A text sub-region (SubRegionTypes/SubText.lua): format codes, font, size, outline/shadow, colour, justify,
  * fixed width with word wrap or elide, anchored on the parent like the addon. Condition-driven properties come
- * from `state.properties` (`sub.N.text_*`).
+ * from `state.properties` (`sub.N.text_*`); the text it draws is the evaluation's (`state.texts`), which the
+ * preview reports too. X/Y Offset is `text_anchorXOffset`/`text_anchorYOffset` (SubText.lua Anchor); the
+ * `anchorXOffset` keys in the addon's sub text defaults are never read.
  */
 export function SubText({
   element,
   position,
   state,
-  values,
   host,
 }: {
   element: LuaTable;
   position: number;
   state: AuraRenderState;
-  values: TextValues;
   host: SubRegionHost;
 }) {
   const p = state.properties;
   const g = (k: string) => getField(element, k);
   const parent = regionInfo(host.regionType);
   const defaults = parent.subText;
-  const visible = p[`sub.${position}.text_visible`] !== false;
+  const drawn = state.texts[position];
+  const visible = drawn?.visible ?? p[`sub.${position}.text_visible`] !== false;
   const textColor = color(p[`sub.${position}.text_color`]);
   const alpha = num(p[`sub.${position}.text_alpha`], 1);
   const anchorPoint = typeof g("anchor_point") === "string" ? String(g("anchor_point")) : defaults.anchor;
@@ -44,8 +44,8 @@ export function SubText({
   const [sx, sy] = anchorFraction(selfPoint);
   const at = anchorPosition(
     anchor,
-    num(p[`sub.${position}.text_anchorXOffset`] ?? g("anchorXOffset"), 0),
-    num(p[`sub.${position}.text_anchorYOffset`] ?? g("anchorYOffset"), 0),
+    num(p[`sub.${position}.text_anchorXOffset`], 0),
+    num(p[`sub.${position}.text_anchorYOffset`], 0),
   );
   const font = useWowFont(g("text_font"));
   const flags = fontFlagsStyle(g("text_fontType") ?? defaults.fontType, {
@@ -54,7 +54,6 @@ export function SubText({
     y: num(g("text_shadowYOffset"), defaults.shadowY),
   });
   const rotate = g("rotateText") === "LEFT" ? -90 : g("rotateText") === "RIGHT" ? 90 : 0;
-  const text = formatSubText(element, { ...values, stackText: state.nativeStackText[position] });
   const style: CSSProperties = {
     left: at.left,
     top: at.top,
@@ -77,7 +76,7 @@ export function SubText({
       data-visible={visible ? "true" : "false"}
       data-font={font.status}
     >
-      <WowString text={text} />
+      <DrawnTextParts text={drawn} />
     </span>
   );
 }

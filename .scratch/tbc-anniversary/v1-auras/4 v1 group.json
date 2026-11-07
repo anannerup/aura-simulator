@@ -50,9 +50,9 @@
           "type": "subbackground"
         },
         {
-          "anchorXOffset": 0,
-          "anchorYOffset": 0,
           "anchor_point": "CENTER",
+          "text_anchorXOffset": 0,
+          "text_anchorYOffset": 0,
           "text_color": [
             1,
             1,
@@ -240,9 +240,9 @@
           "type": "subforeground"
         },
         {
-          "anchorXOffset": 2,
-          "anchorYOffset": 0,
           "anchor_point": "INNER_LEFT",
+          "text_anchorXOffset": 2,
+          "text_anchorYOffset": 0,
           "text_color": [
             1,
             1,
@@ -259,9 +259,9 @@
           "type": "subtext"
         },
         {
-          "anchorXOffset": -2,
-          "anchorYOffset": 0,
           "anchor_point": "INNER_RIGHT",
+          "text_anchorXOffset": -2,
+          "text_anchorYOffset": 0,
           "text_color": [
             1,
             1,

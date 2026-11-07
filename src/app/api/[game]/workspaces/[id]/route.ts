@@ -28,3 +28,17 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/[game]/w
   }
   return Response.json({ ...hub.get(id), url }, { headers });
 }
+
+/**
+ * DELETE /api/<game>/workspaces/<id>: forgets the workspace on the server, its pushes and its situation →
+ * `{workspace, deleted}` (`deleted: false` when nothing was kept for it). Pages that have it open keep their copy
+ * (workspaces live in the browser); a later push starts it again.
+ */
+export async function DELETE(_request: NextRequest, ctx: RouteContext<"/api/[game]/workspaces/[id]">) {
+  const { game, id } = await ctx.params;
+  const server = routeGame(game);
+  if (server instanceof Response) return server;
+  const rejected = rejectWorkspaceId(id);
+  if (rejected) return rejected;
+  return Response.json({ workspace: id, deleted: getWorkspaceHub(server.game.id).delete(id) });
+}

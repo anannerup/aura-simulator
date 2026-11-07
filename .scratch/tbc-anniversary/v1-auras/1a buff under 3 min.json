@@ -48,9 +48,9 @@
         "type": "subbackground"
       },
       {
-        "anchorXOffset": 0,
-        "anchorYOffset": 0,
         "anchor_point": "CENTER",
+        "text_anchorXOffset": 0,
+        "text_anchorYOffset": 0,
         "text_color": [
           1,
           1,

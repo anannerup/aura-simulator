@@ -22,13 +22,18 @@ export interface AuraRegionProps {
   /** The running animation phase and its progress, for tests and tools. */
   animPhase?: string;
   animProgress?: number;
+  /**
+   * Draw the simulator's own marks that the game doesn't (the custom code badge). Off in still pictures, which are
+   * the aura as the game draws it.
+   */
+  simulatorMarks?: boolean;
 }
 
 /** FrozenMarker.lua:52-55: 14 on a big aura, down to 8 on a small one. */
 const frozenMarkerSize = (width: number, height: number) => Math.min(14, Math.max(8, 0.4 * Math.min(width, height)));
 
 /** One aura's region at a given rect, with the frozen value padlock over it while it shows. */
-export function AuraRegion({ aura, rect, state, selected, onSelect, scale = [1, 1], anim, animPhase, animProgress }: AuraRegionProps) {
+export function AuraRegion({ aura, rect, state, selected, onSelect, scale = [1, 1], anim, animPhase, animProgress, simulatorMarks = true }: AuraRegionProps) {
   const renderer = regionRenderer(aura.regionType);
   const { autoSize } = regionInfo(aura.regionType);
   const [sx, sy] = anchorFraction(aura.selfPoint);
@@ -64,11 +69,24 @@ export function AuraRegion({ aura, rect, state, selected, onSelect, scale = [1, 
         <div className={styles.unsupported}>{String(aura.regionType)}</div>
       )}
       {state.frozenMarker && <FrozenMarker size={marker} />}
+      {simulatorMarks && state.customCode.length > 0 && <CustomCodeMarker parts={state.customCode} />}
     </div>
   );
 }
 
 /** FrozenMarker.lua:30-38: a padlock at the region's top right, offset (2, 2). */
+/**
+ * The simulator's own marker (not the game's): the aura has custom Lua the preview doesn't run (`customCode`), so what
+ * it shows may differ in game. Hover lists the parts.
+ */
+function CustomCodeMarker({ parts }: { parts: string[] }) {
+  return (
+    <span className={styles.customCode} data-testid="custom-code-marker" title={`Custom code not evaluated: ${parts.join("; ")}`}>
+      Lua
+    </span>
+  );
+}
+
 function FrozenMarker({ size }: { size: number }) {
   return (
     <svg className={styles.frozen} width={size} height={size} viewBox="0 0 16 16" style={{ right: -2, top: -2 }} data-testid="frozen-marker" aria-label="Frozen value">

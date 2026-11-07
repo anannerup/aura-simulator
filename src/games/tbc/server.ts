@@ -6,14 +6,16 @@ import {
   createWeakAuras2ReleaseCache,
   weakAuras2AddonSource,
 } from "@/server/addon/weakauras2-releases";
-import { addonCacheDir, addonUpstreamFixtures, gameDataDir, type ServerGame } from "@/server/game";
+import { addonCacheDir, addonUpstreamFixtures, createClientCaches, gameDataDir, type ServerGame } from "@/server/game";
 import { createSpellCache, type SpellCache } from "@/server/spells";
 import { tbc } from ".";
 import { loadTbcAgentDocs } from "./docs/load";
 import { TBC_SPELLS } from "./sources";
 
 // Kept on globalThis so dev hot reloads reuse the caches and the database connection.
-const g = globalThis as typeof globalThis & { __tbc?: { addon?: AddonSourceCache; spells?: SpellCache } };
+const g = globalThis as typeof globalThis & {
+  __tbc?: { addon?: AddonSourceCache; spells?: SpellCache; client?: ReturnType<typeof createClientCaches> };
+};
 const state = (g.__tbc ??= {});
 
 export const tbcServer: ServerGame = {
@@ -29,6 +31,12 @@ export const tbcServer: ServerGame = {
   },
   get spells() {
     return (state.spells ??= createSpellCache({ dbPath: path.join(gameDataDir(tbc.id), "spells.sqlite"), source: TBC_SPELLS }));
+  },
+  get files() {
+    return (state.client ??= createClientCaches(tbc.id, TBC_SPELLS)).files;
+  },
+  get items() {
+    return (state.client ??= createClientCaches(tbc.id, TBC_SPELLS)).items;
   },
   agentDocs: (origin, requestedRef) => loadTbcAgentDocs(tbcServer, origin, requestedRef),
 };

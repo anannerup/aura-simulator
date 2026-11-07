@@ -12,6 +12,15 @@ import { situationJson, type Situation } from "../situation";
 import { documentProperties } from "./evaluate";
 import { conditionProblem } from "./forever";
 import { auraRules } from "./index";
+import type { DrawnText } from "./text";
+
+/** What a text draws, as the game screen draws it (the same evaluation). */
+export interface TextPreview {
+  /** The formatted string; custom text placeholders (%c) as their marker `[%c]`. */
+  text: string;
+  /** Set when the text has custom text (%c): the simulator doesn't run the aura's custom text function. */
+  customText?: "not evaluated";
+}
 
 export interface DisplayPreview {
   id: string;
@@ -26,6 +35,16 @@ export interface DisplayPreview {
   changed: Record<string, LuaValue>;
   /** Glow sub-elements by their 1-based place in `subRegions`, and whether each is lit. */
   glows: { subRegion: number; lit: boolean }[];
+  /** Each text sub-element by its 1-based place in `subRegions`: what it draws and whether it is visible. */
+  texts: (TextPreview & { subRegion: number; visible: boolean })[];
+  /** A text display's own text. */
+  displayText?: TextPreview;
+  /**
+   * Present when the display has custom Lua, which the preview doesn't run: which parts ("trigger 2: custom
+   * (stateupdate)", "condition 1: custom check", "custom text (%c)", "On Show custom code", …). A custom trigger's state
+   * is the situation's, a custom check never holds; check those parts in game.
+   */
+  notEvaluated?: string[];
   /** Forever only, when true: the display is frozen in combat (the game screen's padlock). */
   frozen?: true;
   /** Forever only, when true: Aura (Modern)'s native "missing" button is what is drawn. */
@@ -43,6 +62,7 @@ export interface SituationPreview {
 
 const isGroup = (a: AuraDocument) => a.regionType === "group" || a.regionType === "dynamicgroup";
 const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+const textPreview = (t: DrawnText): TextPreview => ({ text: t.text, ...(t.customText && { customText: "not evaluated" as const }) });
 
 /**
  * Evaluates every display of `state` in `situation` by `game`'s rules. `validation` (the push's) gives Forever's
@@ -77,7 +97,13 @@ export function previewSituation(state: AuraState, situation: Situation, game: A
         activeConditions: r.activeConditions,
         changed,
         glows: r.glows.map((g) => ({ subRegion: g.index, lit: g.visible })),
+        texts: Object.entries(r.texts).map(([position, t]) => {
+          const { text, ...custom } = textPreview(t);
+          return { subRegion: Number(position), text, visible: t.visible, ...custom };
+        }),
       };
+      if (r.displayText) preview.displayText = textPreview(r.displayText);
+      if (r.customCode.length) preview.notEvaluated = r.customCode;
       if (r.frozenMarker) preview.frozen = true;
       if (r.missing) preview.missing = true;
       if (r.heldInCombat.length) preview.heldInCombat = r.heldInCombat;
