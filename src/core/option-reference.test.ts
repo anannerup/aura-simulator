@@ -334,8 +334,8 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
       const seen = new Set<string>();
       for (const [value, label] of ifNode.values ?? []) {
         const edit = await core!.setOption(base, { tab: "conditions", path: ifNode.path }, value);
-        const writes = diff(base.aura, edit.aura).sort();
-        if (!writes.includes("conditions.1.check.trigger") || (edit.aura.conditions as { check: { trigger: unknown } }[])[0].check.trigger !== 1) continue;
+        const writes = diff(base.aura, edit.state.aura).sort();
+        if (!writes.includes("conditions.1.check.trigger") || (edit.state.aura.conditions as { check: { trigger: unknown } }[])[0].check.trigger !== 1) continue;
         replayed++;
         const check = set.checks.find((c) => c.label === plainText(label).trim() && !c.requires);
         if (!check) {
@@ -344,13 +344,13 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
         }
         seen.add(check.label);
         if (JSON.stringify(writes) !== JSON.stringify(check.writes)) wrong.push(`${where} ${check.label}: wrote ${JSON.stringify(writes)}, check says ${JSON.stringify(check.writes)}`);
-        wrong.push(...(await replayFields({ aura: edit.aura, children: base.children }, check.fields, `${where} ${check.label}`)));
+        wrong.push(...(await replayFields(edit.state, check.fields, `${where} ${check.label}`)));
       }
       for (const c of set.checks.filter((x) => !x.requires && !seen.has(x.label))) wrong.push(`${where}: ${c.label} isn't an If choice`);
       // A check that needs a Trigger setting: offered once it is set, and writes what the check says.
       for (const c of set.checks.filter((x) => x.requires)) {
         const set1 = await core!.setOption(base, { tab: "trigger", path: c.requires!.option }, c.requires!.value);
-        const withSetting = { aura: set1.aura, children: base.children };
+        const withSetting = set1.state;
         const node = (await selectWithLabels(withSetting, [c.label]))!;
         const choice = node?.values?.find(([, l]) => plainText(l).trim() === c.label);
         if (!choice) {
@@ -359,9 +359,9 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
         }
         replayed++;
         const edit = await core!.setOption(withSetting, { tab: "conditions", path: node.path }, choice[0]);
-        const writes = diff(withSetting.aura, edit.aura).sort();
+        const writes = diff(withSetting.aura, edit.state.aura).sort();
         if (JSON.stringify(writes) !== JSON.stringify(c.writes)) wrong.push(`${where} ${c.label}: wrote ${JSON.stringify(writes)}, check says ${JSON.stringify(c.writes)}`);
-        wrong.push(...(await replayFields({ aura: edit.aura, children: base.children }, c.fields, `${where} ${c.label}`)));
+        wrong.push(...(await replayFields(edit.state, c.fields, `${where} ${c.label}`)));
       }
     }
     const variables = (type: string, event?: string) =>
@@ -398,12 +398,12 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
       for (const add of adds) {
         const e = await core!.setOption(state, { tab: "region", path: add.path });
         const count = (a: AuraState["aura"]) => (Array.isArray(a.subRegions) ? a.subRegions.length : 0);
-        if (count(e.aura) > count(state.aura)) state = { aura: e.aura, children: e.children ?? state.children };
+        if (count(e.state.aura) > count(state.aura)) state = e.state;
       }
       const types = (Array.isArray(state.aura.subRegions) ? (state.aura.subRegions as { type: string }[]) : []).map((s) => s.type);
       expect(types, where).toEqual(set.subRegions.map((s) => s.type));
       const added = await core!.setOption(state, { tab: "conditions", path: set.added.option });
-      const base = { aura: added.aura, children: added.children ?? state.children };
+      const base = added.state;
       const thenNode = await selectWithLabels(base, set.properties.map((p) => p.label));
       if (!thenNode) {
         wrong.push(`${where}: no Then select with the properties' labels`);
@@ -414,9 +414,9 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
         const choice = thenNode.values![labels.indexOf(p.label)];
         const edit = await core!.setOption(base, { tab: "conditions", path: thenNode.path }, choice[0]);
         replayed++;
-        const writes = diff(base.aura, edit.aura).sort();
+        const writes = diff(base.aura, edit.state.aura).sort();
         if (JSON.stringify(writes) !== JSON.stringify(p.writes)) wrong.push(`${where} ${p.label}: wrote ${JSON.stringify(writes)}, property says ${JSON.stringify(p.writes)}`);
-        wrong.push(...(await replayFields({ aura: edit.aura, children: base.children }, p.fields, `${where} ${p.label}`)));
+        wrong.push(...(await replayFields(edit.state, p.fields, `${where} ${p.label}`)));
       }
     }
     console.log(`replayed ${replayed} condition properties`);
@@ -429,7 +429,7 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
 async function withCondition(state: AuraState): Promise<AuraState> {
   const add = walkOptions(await tree(state, "conditions")).find((n) => n.type === "execute" && n.canRun && /^Add\b/.test(n.name ?? ""))!;
   const e = await core!.setOption(state, { tab: "conditions", path: add.path });
-  return { aura: e.aura, children: e.children ?? state.children };
+  return e.state;
 }
 
 /** The Conditions tab's select offering every one of `labels` (If: the checks; Then: the properties). */
@@ -451,7 +451,7 @@ async function replayFields(chosen: AuraState, fields: ConditionField[], where: 
       wrong.push(`${where} ${f.option.join("/")}: ${edit.message}`);
       continue;
     }
-    const writes = diff(chosen.aura, edit.aura).sort();
+    const writes = diff(chosen.aura, edit.state.aura).sort();
     if (JSON.stringify(writes) !== JSON.stringify(f.writes)) wrong.push(`${where} ${f.option.join("/")}: wrote ${JSON.stringify(writes)}, field says ${JSON.stringify(f.writes)}`);
   }
   return wrong;

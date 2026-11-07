@@ -601,7 +601,6 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
   };
 
   const CONDITIONS = "conditions";
-  const asState = (e: OptionEdit, from: AuraState): AuraState => ({ aura: e.aura, children: e.children ?? from.children });
 
   /** `state` with a new condition from each Add button of the Conditions tab that adds one to the aura's own table. */
   const withCondition = (state: AuraState) =>
@@ -609,8 +608,8 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
       .filter(isAdd)
       .flatMap((button) => {
         const r = edit(state, CONDITIONS, button, undefined, false);
-        if (!r.edit?.changed || !changedPaths(state.aura, r.edit.aura).some((p) => p.split(".")[0] === "conditions")) return [];
-        return [{ state: asState(r.edit, state), added: { option: button.path, name: button.name ?? button.key } }];
+        if (!r.edit?.changed || !changedPaths(state.aura, r.edit.state.aura).some((p) => p.split(".")[0] === "conditions")) return [];
+        return [{ state: r.edit.state, added: { option: button.path, name: button.name ?? button.key } }];
       });
 
   /** The Conditions tab's select one of whose first choices writes `path` (If: the check's variable; Then: the property). */
@@ -622,7 +621,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
         !n.hidden &&
         (n.values ?? []).slice(0, 6).some(([v]) => {
           const r = edit(state, CONDITIONS, n, v);
-          return r.edit !== undefined && changedPaths(state.aura, r.edit.aura).includes(path);
+          return r.edit !== undefined && changedPaths(state.aura, r.edit.state.aura).includes(path);
         }),
     );
 
@@ -644,7 +643,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
         group = plainText(label).trim();
         continue;
       }
-      const chosen = asState(r.edit, state);
+      const chosen = r.edit.state;
       collectArrays(chosen.aura);
       const changed = changedPaths(state.aura, chosen.aura).sort();
       const fields = walk(tree(chosen, CONDITIONS))
@@ -743,7 +742,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
           await breathe();
           const r = edit(base, "trigger", option, v);
           if (!r.edit?.changed) continue;
-          const next = asState(r.edit, base);
+          const next = r.edit.state;
           const same = (key: string) => sameJson(valueAt(next.aura, `triggers.1.trigger.${key}`), valueAt(base.aura, `triggers.1.trigger.${key}`));
           if (!same("type") || !same("event")) continue;
           const nextIf = nodeAt(tree(next, CONDITIONS), ifNode.path);
@@ -771,7 +770,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
         if (!button || !isAdd(button)) continue;
         const r = edit(state, "region", button, undefined, false);
         const count = (s: AuraState["aura"]) => (Array.isArray(s.subRegions) ? s.subRegions.length : 0);
-        if (r.edit?.changed && count(r.edit.aura) > count(state.aura)) state = asState(r.edit, state);
+        if (r.edit?.changed && count(r.edit.state.aura) > count(state.aura)) state = r.edit.state;
       }
       for (const { state: withOne, added } of withCondition(state)) {
         const thenNode = selectWriting(withOne, "conditions.1.changes.1.property");
