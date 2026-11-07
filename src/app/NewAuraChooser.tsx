@@ -63,6 +63,9 @@ export function NewAuraChooser({ core, items, selectedId, onCreate, onImport, on
       const group = isGroupType(regionType);
       const where = insertionTarget(items, selectedId, group);
       const aura: AuraDocument = { ...made, id: uniqueId(allIds(items), "New") };
+      // Placed beside its future siblings in a group, so it doesn't hide them (the game puts it on top of them).
+      const siblings = where.parentId ? (findNode(items, where.parentId)?.node.items?.length ?? 0) : 0;
+      if (!group && siblings > 0) aura.xOffset = siblings * ((typeof aura.width === "number" ? aura.width : 64) + 4);
       const node: WorkspaceNode = group ? { aura: { ...aura, controlledChildren: {} }, items: [] } : { aura };
       const added = addSubtree(items, node, where);
       onCreate(added.items, added.id);
