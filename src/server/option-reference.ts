@@ -1,6 +1,6 @@
 /**
- * The option ↔ table reference on the server, per game and addon version. Generating one takes about a minute (in the
- * background, sharing the server's thread: about two), so each is cached in memory and on disk in the game's addon
+ * The option ↔ table reference on the server, per game and addon version. Generating one takes about two minutes
+ * (in the background, sharing the server's thread: about four), so each is cached in memory and on disk in the game's addon
  * source cache, next to the version's files (`option-reference-v<format>.json`: a new format is generated again).
  */
 import { OPTION_REFERENCE_FORMAT, type OptionReference } from "@/core";

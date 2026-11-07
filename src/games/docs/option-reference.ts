@@ -95,7 +95,7 @@ keys it writes, with a value of its type.
   choice, with its \`writes\`, \`values\`, range, \`default\`, \`desc\` and, for selects whose choice writes a whole
   setting, what each choice writes; \`byPath\`: path pattern → entry indices; \`lists\`: the tables that are JSON arrays).
 
-The first request for a version waits while the reference is generated (a minute or two, once per version).
+The first request for a version waits while the reference is generated (a few minutes, once per version).
 
 ${PATH_RULES}
 ${reference ? referenceExamples(reference) : ""}`;

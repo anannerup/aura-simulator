@@ -402,7 +402,7 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
         const count = (a: AuraState["aura"]) => (Array.isArray(a.subRegions) ? a.subRegions.length : 0);
         if (count(e.aura) > count(state.aura)) state = { aura: e.aura, children: e.children ?? state.children };
       }
-      const types = ((state.aura.subRegions as { type: string }[] | undefined) ?? []).map((s) => s.type);
+      const types = (Array.isArray(state.aura.subRegions) ? (state.aura.subRegions as { type: string }[]) : []).map((s) => s.type);
       expect(types, where).toEqual(set.subRegions.map((s) => s.type));
       const added = await core!.setOption(state, { tab: "conditions", path: set.added.option });
       const base = { aura: added.aura, children: added.children ?? state.children };

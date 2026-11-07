@@ -395,7 +395,7 @@ export interface OptionReferenceOptions {
   background?: boolean;
 }
 
-/** Generates the reference for the addon version `src` runs: thousands of probe edits, about a minute. */
+/** Generates the reference for the addon version `src` runs: tens of thousands of probe edits, about two minutes. */
 export async function buildOptionReference(src: ReferenceSource, options: OptionReferenceOptions = {}): Promise<OptionReference> {
   const t0 = now();
   let lastBreath = t0;
