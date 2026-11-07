@@ -1,7 +1,8 @@
 /**
  * What the render page crops to: the box an aura (or a group, with everything in it) takes on the game screen, in
- * UIParent units. Measured from what was drawn, so auto-sized regions (text) count at their real size; an aura that
- * draws nothing in the situation takes the place the layout gives it.
+ * UIParent units. Measured from what was drawn, so auto-sized regions (text) and sub elements reaching outside their
+ * region (texts anchored OUTER_*, borders with an offset, textures) count at their real size; an aura that draws
+ * nothing in the situation takes the place the layout gives it.
  */
 import type { ScreenLayout } from "@/render/group/layout";
 import type { Box } from "@/render/screen/geometry";
@@ -16,23 +17,35 @@ function union(boxes: Box[]): Box | null {
 }
 
 /**
- * The drawn regions and group borders of the auras `ids` inside `screen` (the element UIParent units start at, drawn
- * at `cssPerUnit` CSS pixels per unit), or null when none of them is drawn. Glows and shadows reaching outside a
- * region don't count.
+ * A region's sub elements that count towards what it draws: every one but glows (which reach a size-dependent way
+ * out, by their own drawing) and those hidden in the situation.
+ */
+const DRAWN_SUB_ELEMENTS = '[data-subregion]:not([data-subregion="subglow"]):not([data-visible="false"])';
+
+/**
+ * The bounds of what the auras `ids` draw inside `screen` (the element UIParent units start at, drawn at `cssPerUnit`
+ * CSS pixels per unit): their regions, their sub elements (texts at their real size, borders, textures, ticks) and
+ * group borders; null when none of them is drawn. Glows and text outlines and shadows reaching further don't count:
+ * pictures need padding for those.
  */
 export function drawnBounds(screen: HTMLElement, ids: ReadonlySet<string>, cssPerUnit: number): Box | null {
   const origin = screen.getBoundingClientRect();
   const boxes: Box[] = [];
-  for (const el of screen.querySelectorAll<HTMLElement>("[data-aura-id], [data-group-border]")) {
-    const id = el.dataset.auraId ?? el.dataset.groupBorder;
-    if (id === undefined || !ids.has(id)) continue;
+  const add = (el: Element) => {
     const r = el.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) return;
     boxes.push({
       left: (r.left - origin.left) / cssPerUnit,
       top: (r.top - origin.top) / cssPerUnit,
       width: r.width / cssPerUnit,
       height: r.height / cssPerUnit,
     });
+  };
+  for (const el of screen.querySelectorAll<HTMLElement>("[data-aura-id], [data-group-border]")) {
+    const id = el.dataset.auraId ?? el.dataset.groupBorder;
+    if (id === undefined || !ids.has(id)) continue;
+    add(el);
+    if (el.dataset.auraId !== undefined) el.querySelectorAll(DRAWN_SUB_ELEMENTS).forEach(add);
   }
   return union(boxes);
 }

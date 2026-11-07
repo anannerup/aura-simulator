@@ -142,9 +142,10 @@ test("a 1-unit border draws all four sides at any scale, snapped to whole pixels
   for (const scale of [1, 1.40625, 1.5, 2]) {
     const png = await screenshot(request, workspace, { scale: String(scale), padding: "4", background: "000000" });
     const { width, height } = pngSize(png);
-    // The picture is cropped to the icon plus 4 units of padding: the border is the 3rd unit in from each side.
+    // The picture is cropped to what is drawn (the border, 68 units) plus 4 units of padding: the border is the 5th
+    // unit in from each side.
     const inFrom = (size: number, start: boolean): [number, number] => {
-      const [a, b] = [Math.floor(2 * scale) - 1, Math.ceil(3 * scale)];
+      const [a, b] = [Math.floor(4 * scale) - 1, Math.ceil(5 * scale)];
       return start ? [a, b] : [size - 1 - b, size - 1 - a];
     };
     const middle = (size: number): [number, number] => [Math.floor(size / 2) - 2, Math.floor(size / 2) + 2];
@@ -153,4 +154,39 @@ test("a 1-unit border draws all four sides at any scale, snapped to whole pixels
     expect(await reddest(page, png, middle(width), inFrom(height, true)), `top at scale ${scale}`).toBeGreaterThan(200);
     expect(await reddest(page, png, middle(width), inFrom(height, false)), `bottom at scale ${scale}`).toBeGreaterThan(200);
   }
+});
+
+test("the crop takes in what is drawn outside the region: texts above and below an icon fit at padding 0", async ({ page, request }) => {
+  test.setTimeout(240_000);
+  const workspace = uniqueId("render-texts");
+  const text = (text_text: string, anchor_point: string) => ({
+    type: "subtext",
+    text_text,
+    text_visible: true,
+    anchor_point,
+    text_selfPoint: "AUTO",
+    text_fontSize: 14,
+  });
+  const subRegions = [{ type: "subbackground" }, text("Count", "OUTER_TOP"), text("Label", "OUTER_BOTTOM"), text("Hidden", "OUTER_RIGHT")];
+  // The third text is hidden: what isn't drawn doesn't widen the picture.
+  const conditions = [{ check: { trigger: -1, variable: "incombat", value: 0 }, changes: [{ property: "sub.4.text_visible", value: false }] }];
+  await push(request, workspace, { aura: { ...tbcCooldownIcon, subRegions, conditions } });
+
+  await page.goto(`/tbc/render?w=${workspace}&scale=2`);
+  const picture = page.getByTestId("aura-render");
+  await expect(picture).toHaveAttribute("data-ready", "true", { timeout: 90_000 });
+  const frame = (await picture.boundingBox())!;
+  const texts = picture.locator('[data-subregion="subtext"][data-visible="true"]');
+  await expect(texts).toHaveCount(2);
+  for (const i of [0, 1]) {
+    const b = (await texts.nth(i).boundingBox())!;
+    expect(b.y, `text ${i} top`).toBeGreaterThanOrEqual(frame.y - 0.5);
+    expect(b.y + b.height, `text ${i} bottom`).toBeLessThanOrEqual(frame.y + frame.height + 0.5);
+  }
+  // Taller than the icon by the two texts; as wide as the icon (the texts are narrower, the hidden one doesn't count).
+  expect(Number(await picture.getAttribute("data-height"))).toBeGreaterThan(64 * 2 + 2 * 14 * 2 * 0.8);
+  expect(Number(await picture.getAttribute("data-width"))).toBe(128);
+
+  const png = await screenshot(request, workspace, { scale: "2" });
+  expect(pngSize(png).height).toBe(Number(await picture.getAttribute("data-height")));
 });

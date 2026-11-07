@@ -190,7 +190,7 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   strings (`WAGO_FIXTURES=tests/fixtures/wago`, `<id>.txt`).
   Pictures of an aura (working from a player's screenshot): `/<game>/render?w=&aura=` (`app/[game]/render`,
   `app/render/AuraRender.tsx`) draws one aura of the workspace's recent pushes (`renderScene`, `render.ts`) still,
-  cropped to its bounds, at `scale` game pixels per UI unit, then marks itself `data-ready`;
+  cropped to the bounds of what it draws (`client/render/crop.ts`: regions, shown texts, borders, textures; not glows), at `scale` game pixels per UI unit, then marks itself `data-ready`;
   `GET /api/<game>/workspaces/<id>/screenshot.png` takes its picture in a headless Chromium (`server/screenshot.ts`:
   `playwright-core`, a dev dependency; one browser per process, two pictures at a time; 503 saying how to install it
   when missing). It loads the page from the server's own address (`request.nextUrl.origin`).
