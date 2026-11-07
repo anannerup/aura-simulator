@@ -6,9 +6,10 @@ import { drawnBounds, layoutBounds } from "@/client/render/crop";
 import { tracked, trackedTextureLoader, whenSettled } from "@/client/render/settled";
 import { findGame } from "@/games";
 import { PendingWork } from "@/lib/pending";
+import { PixelGridContext, surfaceGrid } from "@/render/pixel-grid";
 import { evaluateScreen, GameScreenAuras } from "@/render/screen/GameScreenAuras";
 import { uiParent, type Box } from "@/render/screen/geometry";
-import { createIconStore, createTextureLoader, IconStoreContext, iconsFromApi, TextureLoaderContext } from "@/render/textures";
+import { createIconStore, gameTextureLoader, IconStoreContext, iconsFromApi, TextureLoaderContext } from "@/render/textures";
 import { findNode, MAX_RENDER_PIXELS, traverse, type RenderOptions } from "@/workspace";
 import type { RenderScene } from "@/api/render";
 import styles from "./AuraRender.module.css";
@@ -39,7 +40,7 @@ export function AuraRender({ gameId, scene, options }: AuraRenderProps) {
   const { scale, padding, background } = options;
   const [pending] = useState(() => new PendingWork());
   const textures = useMemo(
-    () => trackedTextureLoader(createTextureLoader({ addonFileUrl: (path) => game.addon.fileUrl(scene.ref, path) }), pending),
+    () => trackedTextureLoader(gameTextureLoader(game, scene.ref), pending),
     [game, scene.ref, pending],
   );
   const iconStore = useMemo(() => createIconStore(tracked(iconsFromApi(`/api/${game.id}/icons`), pending)), [game, pending]);
@@ -80,8 +81,11 @@ export function AuraRender({ gameId, scene, options }: AuraRenderProps) {
   if (width > MAX_RENDER_PIXELS || height > MAX_RENDER_PIXELS) {
     return <RenderProblem message={`The picture would be ${width} × ${height} pixels, over ${MAX_RENDER_PIXELS}: use a smaller scale or padding`} />;
   }
+  // UIParent's corner, on a whole pixel of the picture: the browser then draws the layer on the picture's pixels, and
+  // what the game snaps to the pixel grid (`PixelGridContext`) lands on them.
+  const grid = surfaceGrid(scale, Math.round((padding - crop.left) * scale), Math.round((padding - crop.top) * scale));
   const layer = {
-    transform: `scale(${scale}) translate(${padding - crop.left}px, ${padding - crop.top}px)`,
+    transform: `translate(${grid.x}px, ${grid.y}px) scale(${scale})`,
     "--css-per-unit": scale,
   } as CSSProperties;
 
@@ -100,7 +104,9 @@ export function AuraRender({ gameId, scene, options }: AuraRenderProps) {
           data-ready={ready ? "true" : undefined}
         >
           <div ref={screen} className={styles.layer} style={layer}>
-            <GameScreenAuras game={game.id} items={items} situation={situation} screen={SCREEN} problems={problems} standIns={false} still={STILL_SECONDS} />
+            <PixelGridContext value={grid}>
+              <GameScreenAuras game={game.id} items={items} situation={situation} screen={SCREEN} problems={problems} standIns={false} still={STILL_SECONDS} />
+            </PixelGridContext>
           </div>
         </div>
       </TextureLoaderContext>

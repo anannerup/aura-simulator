@@ -61,7 +61,7 @@ export function triggerState(info: TriggerInfo, facts: SituationFacts): TriggerS
  * only show with "Show if unit doesn't exist" (unitExists, :3382). Line numbers are Musca Auras v1.15.0's.
  */
 export function aura2State(info: TriggerInfo, facts: SituationFacts): Omit<TriggerState, "frozen"> {
-  const s = triggerSituation(facts, info.index);
+  const s = triggerSituation(facts, info);
   const g = (k: string) => getField(info.trigger, k);
   const exists = unitExists(info.trigger, facts);
   const present = exists && s.present;
@@ -103,7 +103,7 @@ export function aura2State(info: TriggerInfo, facts: SituationFacts): Omit<Trigg
  * Equipment Slot's `stacks` is the item's. Forever's "Desaturate while on cooldown" is in forever.ts.
  */
 export function cooldownProgressState(info: TriggerInfo, facts: SituationFacts): TriggerState {
-  const s = triggerSituation(facts, info.index);
+  const s = triggerSituation(facts, info);
   const onCooldown = s.present && s.remaining > 0;
   const showOn = String(getField(info.trigger, "genericShowOn") ?? "showOnCooldown");
   const active = showOn === "showAlways" ? true : showOn === "showOnReady" ? !onCooldown : onCooldown;
@@ -132,7 +132,7 @@ export function cooldownProgressState(info: TriggerInfo, facts: SituationFacts):
  * condition) and, only while found, `expirationTime`, `duration` and `stacks` (charges).
  */
 export function weaponEnchantState(info: TriggerInfo, facts: SituationFacts): TriggerState {
-  const s = triggerSituation(facts, info.index);
+  const s = triggerSituation(facts, info);
   const t = timer(s.present, s.remaining, s.duration);
   return {
     index: info.index,
@@ -152,7 +152,7 @@ export function weaponEnchantState(info: TriggerInfo, facts: SituationFacts): Tr
  * count is its stacks (`stacks` and `value` are `init = "count"`); not present means none in the bags.
  */
 export function itemCountState(info: TriggerInfo, facts: SituationFacts): TriggerState {
-  const s = triggerSituation(facts, info.index);
+  const s = triggerSituation(facts, info);
   const g = (k: string) => getField(info.trigger, k);
   const count = s.present ? s.stacks : 0;
   const active = g("use_count") !== true || compare(count, String(g("count_operator") ?? "=="), finite(g("count")) ?? 0);
@@ -186,7 +186,7 @@ function showOnActive(trigger: LuaTable, present: boolean): boolean {
 
 /** Any other trigger: active as its show option says (`showOnActive`), with the timer and stacks as given. */
 export function otherState(info: TriggerInfo, facts: SituationFacts): TriggerState {
-  const s = triggerSituation(facts, info.index);
+  const s = triggerSituation(facts, info);
   const t = timer(s.present, s.remaining, s.duration);
   return {
     index: info.index,

@@ -169,3 +169,32 @@ describe("TBC: rules that are Forever's only don't apply", () => {
     expect(setInCombat(s, true).beforeCombat).toBeDefined();
   });
 });
+
+describe("custom triggers: their timer is their code's (GenericTrigger.lua), which the simulator doesn't run", () => {
+  const custom = (trigger: LuaObject): AuraDocument => ({
+    id: "Custom",
+    regionType: "icon",
+    width: 36,
+    height: 36,
+    triggers: { "[1]": { trigger: { type: "custom", custom: "function() return true end", ...trigger }, untrigger: {} }, activeTriggerMode: -10 },
+  });
+
+  for (const rules of [tbc, forever]) {
+    it(`${rules.game}: no timer unless the situation gives one; a timed custom event runs its Duration`, () => {
+      // A trigger state update or status trigger: its states' timers come from code. Unsaid, there is none.
+      for (const custom_type of ["stateupdate", "status"]) {
+        const state = rules.evaluate(custom({ custom_type, check: "event", events: "UNIT_AURA" }), DEFAULT_SITUATION);
+        expect(state.shown).toBe(true);
+        expect(state.dynamic?.remaining).toBeUndefined();
+        expect(state.dynamic?.duration).toBe(0);
+      }
+      expect(rules.auraTriggers(custom({ custom_type: "stateupdate" }))[0].kind).toBe("custom");
+      // What the situation says of the trigger stands for what its code would report.
+      const said = rules.evaluate(custom({ custom_type: "stateupdate" }), withTrigger(DEFAULT_SITUATION, 1, { remaining: 20, duration: 30 }));
+      expect([said.dynamic?.remaining, said.dynamic?.duration]).toEqual([20, 30]);
+      // An event trigger hidden after a set time (custom_hide "timed") runs that Duration from when the event fired.
+      const timed = rules.evaluate(custom({ custom_type: "event", custom_hide: "timed", duration: "8" }), DEFAULT_SITUATION);
+      expect([timed.dynamic?.remaining, timed.dynamic?.duration]).toEqual([8, 8]);
+    });
+  }
+});

@@ -29,7 +29,7 @@ export { previewSituation } from "./conditions/preview";
 export type { DisplayPreview, SituationPreview, TextPreview } from "./conditions/preview";
 export { findStateCodes, isStateCode } from "./state-code";
 export { plainText, wowTextRuns } from "./wow-text";
-export type { WowTextRun } from "./wow-text";
+export type { WowInlineAtlas, WowInlineImage, WowInlineTexture, WowTextRun, WowTextSpan } from "./wow-text";
 export type { LuaKey, LuaObject, LuaTable, LuaValue } from "./lua-value";
 export { sampleIconAura } from "./samples";
 export { AddonContractError } from "./addon-vm/contract";

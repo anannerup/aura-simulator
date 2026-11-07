@@ -20,6 +20,15 @@ Default vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 
 Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root (created when needed). See `docs/agents/domain.md`.
 
+## Naming
+
+Name things after what they are in the domain, in words a WeakAuras player who doesn't code would recognise: aura,
+trigger, condition, tab, table, game, game screen, situation, spell, item. Avoid names that only describe the code's
+mechanics and say nothing about the business: option, handler, engine, traverser, manager, processor, helper, util,
+service, data, info, item (for something that isn't a game item). If a concept has no domain word yet, find one with
+the user and put it in `GLOSSARY.md` before using it. The test: someone who doesn't code reads the model and the logic
+and says "yes, those words make sense".
+
 ## Layout and conventions
 
 Parallel agents work on this repo; keep to these boundaries so work merges cleanly.
@@ -124,8 +133,11 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   Pure props in (aura document + evaluated state), nothing fetched inside except game files (textures, fonts) via the
   loader in `src/render/textures` (`GameTexture` draws one as an image; `media.ts` names the addon's media,
   `media.test.ts` checks it against each game's LibSharedMedia lists). Any game texture path loads by the FileDataID the
-  game's file list gives (the loader's `resolvePath`: `gameFilesFromApi("/api/<game>/files")`); a texture that can't be
-  drawn shows `MissingTexture` (`MappedTexture.tsx`), never nothing. To add
+  game's file list gives (the loader's `resolvePath`: `gameFilesFromApi("/api/<game>/files")`); every page gets its
+  game's loader from `gameTextureLoader(game, ref)`, so a path draws the same on the game screen and in pictures. A
+  texture that can't be drawn shows `MissingTexture` (`MappedTexture.tsx`), never nothing. What the game snaps to the
+  pixel grid (border edges) is placed in whole pixels: the surface gives its grid (`PixelGridContext`,
+  `pixel-grid.tsx`), each region its frame's, and `PixelSpace`/`pixelBox` draw on it. To add
   a region type, add its facts to `REGION_TYPES` (`region-types.ts`) and its component to `RENDERERS`
   (`regions.tsx`); both are keyed by the addon's `regionType`. The game screen is `screen/GameScreen.tsx` (the
   surface) and `screen/GameScreenAuras.tsx` (every aura of the workspace on it, laid out by `group/layout.ts`);
@@ -193,7 +205,7 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   strings (`WAGO_FIXTURES=tests/fixtures/wago`, `<id>.txt`).
   Pictures of an aura (working from a player's screenshot): `/<game>/render?w=&aura=` (`app/[game]/render`,
   `app/render/AuraRender.tsx`) draws one aura of the workspace's recent pushes (`renderScene`, `render.ts`) still,
-  cropped to its bounds, at `scale` game pixels per UI unit, then marks itself `data-ready`;
+  cropped to the bounds of what it draws (`client/render/crop.ts`: regions, shown texts, borders, textures; not glows), at `scale` game pixels per UI unit, then marks itself `data-ready`;
   `GET /api/<game>/workspaces/<id>/screenshot.png` takes its picture in a headless Chromium (`server/screenshot.ts`:
   `playwright-core`, a dev dependency; one browser per process, two pictures at a time; 503 saying how to install it
   when missing). It loads the page from the server's own address (`request.nextUrl.origin`).

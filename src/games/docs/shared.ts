@@ -256,7 +256,9 @@ answer is \`GET /api/${game}/workspaces/<id>/situation\`'s: \`{"workspace", "sit
 
 - It is a **whole situation**: what you leave out has its default. Default: target exists, not in combat, and every
   trigger \`{"present": true, "remaining": 45, "duration": 60, "stacks": 0}\`. A trigger's left-out fields have
-  those defaults too.
+  those defaults too. A **custom trigger** you leave out has no timer (its code, which isn't run, would set one), so
+  its icon draws no cooldown swipe; an event trigger hidden after a set time runs its Duration from the start. Give it
+  an entry to show what its code would report.
 - \`triggers\` is keyed by the trigger number (\`"1"\`, \`"2"\`, as in the aura). \`remaining\` and \`duration\` are
   seconds (\`remaining\` is kept within \`duration\`; \`duration: 0\` means no timer, e.g. a permanent buff);
   \`stacks\` is a whole number. 400 with a message for anything else.
@@ -544,9 +546,11 @@ around it. Query parameters (all optional):
   that has the aura, so push before you take a picture. A child is drawn where its group puts it, with the rest of
   the group around it, and the picture is cropped to the child.
 - \`scale\`: **game pixels per UI unit** (see below), above 0 up to ${MAX_RENDER_SCALE}. Default 1: a 64-unit icon is 64 px.
-- \`padding\`: UI units of space around the bounds, 0 to ${MAX_RENDER_PADDING} (default 0). The bounds are the aura's
-  regions (a group's: its shown children and its border); glows, outlines and shadows reaching outside them need
-  padding (a button glow reaches about a fifth of the icon's size out).
+- \`padding\`: UI units of space around the bounds, 0 to ${MAX_RENDER_PADDING} (default 0). The bounds are what the
+  aura draws, measured: its regions (a group's: its shown children and its border) and their shown texts (at their
+  real size, so a count above an icon and a label below it are inside), borders, textures and ticks. Glows, and text
+  outlines and shadows, don't count: give padding for those (a button glow reaches about a fifth of the icon's size
+  out; an outline a unit or two).
 - \`background\`: a hex colour (\`000000\`, \`#202020\`, \`00000080\`) to draw on; default transparent. Pick the colour
   behind the aura in the player's screenshot to compare like with like.
 - \`situation\`: a situation as JSON (the body of \`PUT .../situation\`, see Situation), URL-encoded, e.g.

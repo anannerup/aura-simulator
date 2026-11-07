@@ -6,6 +6,7 @@ import type { Box } from "../screen/geometry";
 import { borderEdge } from "../media";
 import type { TextureSource } from "../textures/paths";
 import { useTextureUrl } from "../textures";
+import { frameGrid, pixelBox, PixelSpace, usePixelGrid } from "../pixel-grid";
 import { inflate, type SubRegionHost } from "./host";
 import { color } from "../color";
 import styles from "./subregions.module.css";
@@ -34,7 +35,8 @@ export function backdropPieces(box: Box, e: number): Record<Piece, Box> {
 /**
  * A border sub-region (SubRegionTypes/Border.lua): a backdrop edge (`border_edge`, LSM border) of
  * `border_size` drawn on the anchor area grown by `border_offset`, tinted with `border_color`. Edges tile
- * along their length; the top and bottom pieces are stored turned, as in Blizzard's Backdrop.
+ * along their length; the top and bottom pieces are stored turned, as in Blizzard's Backdrop. Each piece is snapped
+ * to the pixel grid like the game's textures, so a 1-unit border shows all four sides at any scale.
  */
 export function Border({ element, position, state, host }: { element: LuaTable; position: number; state: AuraRenderState; host: SubRegionHost }) {
   const p = state.properties;
@@ -44,8 +46,23 @@ export function Border({ element, position, state, host }: { element: LuaTable; 
   const size = num(getField(element, "border_size"), 2);
   const offset = num(getField(element, "border_offset"), 0);
   const box = inflate(host.area(getField(element, "anchor_area"), "border"), offset);
+  const frame = usePixelGrid();
   if (!visible || edge === null) return null;
   const pieces = backdropPieces(box, size);
+  const tint: [number, number, number] = [rgba[0], rgba[1], rgba[2]];
+  const grid = frame && frameGrid(frame, box.left, box.top);
+  // On the pixel grid when the surface gives one (each piece snapped like the game's textures), else in units.
+  const drawn = PIECES.map((piece, i) => (
+    <EdgePiece
+      key={piece}
+      source={edge}
+      index={i}
+      piece={piece}
+      box={grid ? pixelBox(pieces[piece], grid) : pieces[piece]}
+      size={grid ? size * grid.perUnit : size}
+      tint={tint}
+    />
+  ));
   return (
     <div
       className={styles.layer}
@@ -53,45 +70,26 @@ export function Border({ element, position, state, host }: { element: LuaTable; 
       data-subregion="subborder"
       data-index={position}
     >
-      {PIECES.map((piece, i) => (
-        <EdgePiece key={piece} source={edge} index={i} piece={piece} box={pieces[piece]} size={size} tint={[rgba[0], rgba[1], rgba[2]]} />
-      ))}
+      {grid ? <PixelSpace grid={grid}>{drawn}</PixelSpace> : drawn}
     </div>
   );
 }
 
+/**
+ * One backdrop piece (`box` and `size` in the CSS pixels it is drawn in). Edges stretch across their thickness and
+ * tile along their length, one piece per `size`;
+ * the top and bottom edges draw their piece turned a quarter clockwise, so its length runs right-to-left along the edge.
+ */
 function EdgePiece({ source, index, piece, box, size, tint }: { source: TextureSource; index: number; piece: Piece; box: Box; size: number; tint: [number, number, number] }) {
-  const tex = useTextureUrl(source, { crop: [index / 8, (index + 1) / 8, 0, 1], tint });
+  const across = piece === "top" || piece === "bottom";
+  const tex = useTextureUrl(source, { crop: [index / 8, (index + 1) / 8, 0, 1], turn: across || undefined, tint });
   if (box.width <= 0 || box.height <= 0) return null;
   const image: CSSProperties = tex ? { backgroundImage: `url(${tex.url})` } : {};
-  if (piece === "left" || piece === "right") {
-    return (
-      <div
-        className={styles.tile}
-        data-piece={piece}
-        style={{ ...box, ...image, backgroundSize: `${size}px ${size}px`, backgroundRepeat: "repeat-y" }}
-      />
-    );
-  }
-  if (piece === "top" || piece === "bottom") {
-    // Turned 90° clockwise: the piece's length runs right-to-left along the edge.
-    return (
-      <div className={styles.tile} data-piece={piece} style={{ ...box, overflow: "hidden" }}>
-        <div
-          style={{
-            position: "absolute",
-            left: "50%",
-            top: "50%",
-            width: box.height,
-            height: box.width,
-            transform: "translate(-50%, -50%) rotate(90deg)",
-            ...image,
-            backgroundSize: `${size}px ${size}px`,
-            backgroundRepeat: "repeat-y",
-          }}
-        />
-      </div>
-    );
-  }
-  return <div className={styles.tile} data-piece={piece} style={{ ...box, ...image }} />;
+  const tiling: CSSProperties =
+    piece === "left" || piece === "right"
+      ? { backgroundSize: `${box.width}px ${size}px`, backgroundRepeat: "repeat-y" }
+      : across
+        ? { backgroundSize: `${size}px ${box.height}px`, backgroundRepeat: "repeat-x" }
+        : {};
+  return <div className={styles.tile} data-piece={piece} style={{ ...box, ...image, ...tiling }} />;
 }

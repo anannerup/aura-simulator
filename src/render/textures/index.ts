@@ -1,6 +1,7 @@
 export { decodeTexture, type DecodedTexture } from "./decode";
 export {
   createTextureLoader,
+  gameTextureLoader,
   textureLoader,
   TextureMissingError,
   TextureLoaderContext,

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { num, type AuraDocument, type AuraRenderState } from "@/core";
+import { frameGrid, PixelGridContext, usePixelGrid } from "./pixel-grid";
 import { regionInfo, type RegionAnim } from "./region-types";
 import { regionRenderer } from "./regions";
 import { anchorFraction, strataZIndex, type Box } from "./screen/geometry";
@@ -51,26 +52,31 @@ export function AuraRegion({ aura, rect, state, selected, onSelect, scale = [1, 
   regionStyle.opacity = alpha < 1 ? alpha : undefined;
   const name = typeof aura.id === "string" ? aura.id : "aura";
   const marker = autoSize ? 8 : frozenMarkerSize(width, height);
+  // The region's frame on the pixel grid; an auto-sized region's corner is only known once its content is laid out.
+  const surface = usePixelGrid();
+  const grid = surface && !autoSize ? frameGrid(surface, rect.left, rect.top) : null;
   return (
-    <div
-      className={styles.region}
-      style={regionStyle}
-      data-region-type={String(aura.regionType)}
-      data-aura-id={name}
-      data-selected={selected ? "true" : undefined}
-      data-frozen={state.frozenMarker ? "true" : "false"}
-      data-anim-phase={animPhase}
-      data-anim-progress={animProgress === undefined ? undefined : animProgress.toFixed(3)}
-      onClick={onSelect}
-    >
-      {renderer ? (
-        <renderer.Region aura={aura} state={state} name={name} width={width} height={height} anim={anim} />
-      ) : (
-        <div className={styles.unsupported}>{String(aura.regionType)}</div>
-      )}
-      {state.frozenMarker && <FrozenMarker size={marker} />}
-      {simulatorMarks && state.customCode.length > 0 && <CustomCodeMarker parts={state.customCode} />}
-    </div>
+    <PixelGridContext value={grid}>
+      <div
+        className={styles.region}
+        style={regionStyle}
+        data-region-type={String(aura.regionType)}
+        data-aura-id={name}
+        data-selected={selected ? "true" : undefined}
+        data-frozen={state.frozenMarker ? "true" : "false"}
+        data-anim-phase={animPhase}
+        data-anim-progress={animProgress === undefined ? undefined : animProgress.toFixed(3)}
+        onClick={onSelect}
+      >
+        {renderer ? (
+          <renderer.Region aura={aura} state={state} name={name} width={width} height={height} anim={anim} />
+        ) : (
+          <div className={styles.unsupported}>{String(aura.regionType)}</div>
+        )}
+        {state.frozenMarker && <FrozenMarker size={marker} />}
+        {simulatorMarks && state.customCode.length > 0 && <CustomCodeMarker parts={state.customCode} />}
+      </div>
+    </PixelGridContext>
   );
 }
 
