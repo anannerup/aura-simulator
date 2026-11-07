@@ -13,6 +13,7 @@ import {
   readWorkspace,
   removeNode,
   renameNode,
+  replaceNode,
   serializeWorkspace,
   stateFromNode,
   traverse,
@@ -133,6 +134,31 @@ describe("workspace tree operations", () => {
     expect(shape(byId.items)).toEqual(shape(items));
     const appended = mergeTopLevel(items, aura("E"));
     expect(shape(appended.items)).toEqual([{ G: ["A", "B"] }, { D: [] }, "C", "E"]);
+  });
+
+  it("replaces an aura with a whole subtree in place: renames, new children, and refuses taken ids and uids", () => {
+    const items = build();
+    const g = findNode(items, "G")!.node;
+    const [a] = g.items!;
+    // The group as edited JSON: renamed, A changed, B dropped, E added.
+    const edited: WorkspaceNode = {
+      aura: { ...g.aura, id: "G2" },
+      items: [{ aura: { ...a.aura, width: 7 } }, aura("E")],
+    };
+    const next = replaceNode(items, "G", edited);
+    expect(next.id).toBe("G2");
+    expect(shape(next.items)).toEqual([{ G2: ["A", "E"] }, { D: [] }, "C"]);
+    expect(findNode(next.items, "A")!.node.aura.width).toBe(7);
+    expectConsistent(next.items);
+    // A child of a group, replaced by an aura: stays in its group.
+    const child = replaceNode(items, "B", { aura: { ...findNode(items, "B")!.node.aura, alpha: 0.25 } });
+    expect(shape(child.items)).toEqual(shape(items));
+    expect(findNode(child.items, "B")!.node.aura.alpha).toBe(0.25);
+    expectConsistent(child.items);
+    expect(() => replaceNode(items, "G", { ...edited, items: [aura("C")] })).toThrow(/already an aura named "C"/);
+    const cUid = findNode(items, "C")!.node.aura.uid as string;
+    expect(() => replaceNode(items, "G", { aura: { ...g.aura, uid: cUid }, items: [] })).toThrow(TreeError);
+    expect(() => replaceNode(items, "C", { aura: { ...g.aura, id: "C", uid: "fresh" }, items: [] })).not.toThrow();
   });
 
   it("updates a group and its changed descendants in one edit, leaving unchanged ones as they are", () => {

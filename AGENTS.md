@@ -114,9 +114,11 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
 - `src/workspace/`: the workspace model (`tree.ts`: top-level auras as nodes, groups nest their `items`; pure operations keep ids unique and
   `controlledChildren`/`parent` in step), its storage/file format (`workspace.ts`, v3 JSON recording its game; older
   versions and other games' files are refused), import/export files (`files.ts`: aura `.txt` = exactly one state code;
-  text with several codes; workspace `.aura-workspace.json`), undo/redo (`history.ts`), the restore decision
-  (`restore.ts`), the push/SSE wire protocol (`protocol.ts`: header, event names, notice/snapshot types, URLs per game
-  and workspace, push input; used by page and server) and the page address (`address.ts`: `/<game>?w=`).
+  text with several codes; wago JSON `.json`; workspace `.aura-workspace.json`), undo/redo (`history.ts`), the restore
+  decision (`restore.ts`), the push/SSE wire protocol (`protocol.ts`: header, event names, notice/snapshot types, URLs
+  per game and workspace, push input: a state code, wago JSON, a wago link or an aura document; used by page and
+  server), wago links (`wago-link.ts`: `https://wago.io/<id>` and ids, wago's data API URL) and the page address
+  (`address.ts`: `/<game>?w=`).
   **Auras never go in the address**: they can be megabytes, so they travel as files, over the push API, or by
   clipboard (every other parameter is dropped). New auras come only from the
   addon's New Aura (`placeNewAura` places them). Pure, shared by page and server.
@@ -131,6 +133,10 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
 - `src/server/workspaces/`: push API (bodies up to 32 MB) and a hub of recent pushes per game and workspace, in
   memory. Every top-level aura a page changes is pushed there too, so agents read the player's current aura with
   `GET /api/<game>/workspaces/<id>`; it holds the latest few pushes, not workspaces (those live in the browser).
+  Every push form becomes a state code first (wago JSON by `fromWagoJson`, a wago link by fetching it), so answers and
+  validation are the same for all. Wago links: `server/wago.ts` fetches `https://data.wago.io/api/raw/encoded?id=`
+  (`GET /api/<game>/wago/<id>` for the page's Import box); tests and the e2e server answer from recorded import
+  strings (`WAGO_FIXTURES=tests/fixtures/wago`, `<id>.txt`).
 - Agent docs are per game (`src/games/<game>/docs/`, served at `/<game>/docs/agents`, `/<game>/llms.txt`,
   `/<game>/docs/agents.md` through `ServerGame.agentDocs`). Forever's: update it when an API or format changes;
   `agent-docs.ts` has one function per section. Lists of types, triggers, condition variables and defaults are

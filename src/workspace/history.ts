@@ -1,7 +1,7 @@
 /**
  * Undo/redo history. Pure and immutable.
  *
- * The history doesn't care where a change came from: whatever the page shows next (an edit in the raw table, a spell
+ * The history doesn't care where a change came from: whatever the page shows next (an edit in the JSON tab, a spell
  * pick, a pasted code, an agent's push) is `record`ed and becomes one step. Undo and redo only move the cursor; the
  * caller restores the entry at the cursor, and recording that same entry again is a no-op, so going back and forth
  * never adds steps. A new change after an undo drops the redo branch.

@@ -35,6 +35,10 @@ Terms the project uses. Use them in code, tickets, docs and messages to the user
 - **Aura document**: an aura as a Lua table in canonical JSON.
 - **State code**: an aura's `!WA:2!` import string, the encoded aura document. Moved as files, not links.
   _Avoid_: import string (except when talking to the player about the game's import dialog).
+- **wago JSON**: an aura as the JSON wago.io shows for it (the transmit table: the aura in `d`, a group's descendants
+  in `c`), byte for byte as wago writes it. A full form of the aura, equal to its state code; agents write auras in it,
+  and the window's JSON tab shows and edits it.
+- **Wago link**: `https://wago.io/<id>` (or the bare id): an aura on wago.io, whose state code the server fetches.
 - **Table path**: one key of an aura's table as a chain of wago JSON keys joined with `.`, numbers counted from 1
   (`triggers.1.trigger.type` is `"triggers": {"1": …}`; `subRegions.2.glow` is the second element of the
   `subRegions` array).

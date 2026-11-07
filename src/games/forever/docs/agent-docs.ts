@@ -3,7 +3,7 @@ import { optionReferenceSection } from "../../option-reference-docs";
 import { forever } from "..";
 import { DEFAULT_WORKSPACE_ID } from "@/workspace";
 import { DOCUMENTED_REGION_TYPES, type AddonFacts, type ModernVariableFact } from "./addon-facts";
-import { COUNTER_EXAMPLE, WORKED_EXAMPLES, type WorkedExample } from "./worked-examples";
+import { COUNTER_EXAMPLE, exampleWagoJson, WORKED_EXAMPLES, type WorkedExample } from "./worked-examples";
 
 /** What the docs need from the running app. */
 export interface AgentDocsFacts {
@@ -25,6 +25,7 @@ export const DOCUMENTED_ENDPOINTS = [
   "POST /api/forever/workspaces/<id>/aura",
   "GET /api/forever/workspaces/<id>",
   "GET /api/forever/workspaces/<id>/events",
+  "GET /api/forever/wago/<id>",
   "GET /api/forever/spells/search",
   "GET /api/forever/spells/<id>",
   "GET /api/forever/spells/status",
@@ -55,7 +56,7 @@ ${e.explanation.join("\n\n")}
 Expected answer: \`validation.combat.status\` is **${e.combat}**.
 
 \`\`\`json example=${e.key} combat=${e.combat}
-${compactJson(e.body)}
+${compactJson(JSON.parse(exampleWagoJson(e)))}
 \`\`\``;
 }
 
@@ -155,6 +156,7 @@ export function agentDocsMarkdown(f: AgentDocsFacts): string {
   const sections = [
     intro,
     workflow,
+    wagoJson,
     auraDocument,
     fieldReference,
     triggers,
@@ -164,6 +166,7 @@ export function agentDocsMarkdown(f: AgentDocsFacts): string {
     validation,
     spells,
     pushApi,
+    wagoLinks,
     workedExamples,
     troubleshooting,
   ];
@@ -174,15 +177,16 @@ function intro({ version }: Ctx): string {
   return `# Aura Simulator: docs for agents
 
 Aura Simulator previews auras for **Musca Auras**, the WeakAuras fork for WoW Forever, the way the game draws them,
-and checks them with the addon's own code. You (the agent) build an aura as a JSON document and **push** it to a
-**workspace**; the player's open page (the **window** with the in-game **tabs**, beside a **game screen**) shows it
+and checks them with the addon's own code. You (the agent) write an aura as **wago JSON** (the table wago.io shows
+for an aura) and **push** it to a **workspace**; the player's open page (the **window** with the in-game **tabs**, beside a **game screen**) shows it
 live. The player checks it, exports it as a file and imports it in the game.
 
 This server follows ${version}. Lists marked *generated* below are read from that version. For another release,
 add \`?ref=<version>\` to this page's address and to your pushes.
 
-Contents: Workflow · The aura document · Field reference · Triggers · Conditions · Option ↔ table reference ·
-Combat rules · Validation · Spells · Push API · Worked examples · Troubleshooting.
+Contents: Workflow · wago JSON · The aura document · Field reference · Triggers · Conditions ·
+Option ↔ table reference · Combat rules · Validation · Spells · Push API · Wago links · Worked examples ·
+Troubleshooting.
 `;
 }
 
@@ -193,26 +197,71 @@ function workflow({ o, d }: Ctx): string {
    or choose one (1-64 of \`A-Z a-z 0-9 _ -\`) and ask them to open \`${o}/forever?w=<id>\`. Without \`?w=\` the page follows
    \`${d}\`.
 2. **Find spell IDs** with \`GET /api/forever/spells/search\` (Forever's IDs can differ from other WoW versions).
-3. **Build the aura document** (below), starting from the closest worked example.
-4. **Push it**: \`POST /api/forever/workspaces/<id>/aura\`. Read \`validation\` in the answer. Fix errors; if
+3. **Write the aura as wago JSON** (below), starting from the closest worked example.
+4. **Push it**: \`POST /api/forever/workspaces/<id>/aura\` with the JSON as the body. Read \`validation\` in the answer. Fix errors; if
    \`combat.status\` is not \`ok\`, change the aura or tell the player exactly what stops working in combat.
 5. **The player checks it** on the game screen: the situation controls set time left, aura present or missing,
    stacks, target exists and **in combat** (frozen auras show a padlock). The window's tabs (Display, Trigger,
    Conditions, …) show the options as in the game; the player may adjust them there.
 6. **The player exports a file**: select the aura (or the group, to take everything in it) in the window's aura
-   list → Export → **Save as file** (a \`.txt\` with the import string) or Copy to clipboard. The whole workspace can
-   be saved as a workspace file.
+   list → Export → **Save as file** (a \`.txt\` with the import string) or Copy to clipboard; **Save as .json** saves
+   its wago JSON. The whole workspace can be saved as a workspace file.
 7. **The player imports in the game**: open Musca Auras, click Import, paste the file's text, Import.
 
 Don't paste import strings or links into the chat: push to the workspace and let the player export.
 `;
 }
 
+const MINIMAL_WAGO_JSON = {
+  d: {
+    displayIcon: 135932,
+    id: "Arcane Intellect",
+    regionType: "icon",
+    triggers: {
+      "1": { trigger: { auraspellids: ["1459"], debuffType: "HELPFUL", type: "secretAura", unit: "player" }, untrigger: [] },
+      activeTriggerMode: -10,
+    },
+  },
+  m: "d",
+};
+
+function wagoJson(): string {
+  return `## wago JSON: how to write an aura
+
+**Write auras as wago JSON.** It is the JSON wago.io shows for an aura (its Editor's "Table data"): the addon's
+transmit table, with the aura in \`d\`. It is a full form of the aura, equal to its import string: the player can
+import it, the app converts it both ways by wago's own rules, and the window's **JSON** tab shows every aura this way.
+
+\`\`\`json
+${compactJson(MINIMAL_WAGO_JSON)}
+\`\`\`
+
+- \`d\` is the aura: the Lua table the addon stores for it. \`c\` (only for a group) is an array of every descendant,
+  flattened in the addon's order (see Groups below); leave it out for a single aura.
+- \`m\` is always \`"d"\`. \`s\` (the addon version that made it), \`v\` (1421, or 2000 with nested groups) and wago's
+  \`wagoID\` may be there; you can leave them out.
+- Lua tables are JSON objects with string keys, or arrays for sequences 1..n. An empty table is \`[]\` (or \`{}\`).
+  \`null\` in an array is a hole. Lua has no null: leave a field out instead.
+- **Number keys are strings** in JSON: trigger N is \`"N"\` in \`triggers\`
+  (\`{"1": {...}, "activeTriggerMode": -10}\`). They become number keys again only where wago restores them:
+  \`triggers\`, a trigger's \`form.multi\`, \`talent.multi\`, \`specId.multi\`, \`herotalent.multi\`,
+  \`actualSpec\` and \`arena_spec\`, and \`load.{talent,talent2,talent3,herotalent,instance_type,class_and_spec}.multi\`.
+  Everywhere else \`"1"\` stays the string "1", so write sequences there as arrays (\`conditions\`, \`changes\`,
+  \`subRegions\`, \`auraspellids\`, colours).
+- Numbers are taken as written. Colours are \`[r, g, b, a]\` from 0 to 1.
+- Leave out what you don't need: the addon fills defaults (listed below) on import, as the game does.
+- \`id\` is the aura's name and must be unique in the workspace.
+- The app writes wago JSON with keys sorted and 2-space indents, byte for byte as wago.io does; any key order and
+  layout (compact on one line, or pretty) reads the same.
+`;
+}
+
 function auraDocument(): string {
   return `## The aura document
 
-An aura is the Lua table the addon stores for it, written as JSON (the canonical form; the app returns
-documents in this form and accepts anything that canonicalizes to it):
+The other JSON form of an aura, kept for existing tools: \`{"aura": ..., "children": [...]}\` push bodies,
+\`auraSimulator.state()\` and workspace files use it. It writes the Lua table as canonical JSON, where every key says
+which Lua key it stands for:
 
 - Strings, numbers and booleans are themselves. Lua has no null: leave a field out instead.
 - A table whose keys are exactly 1..n (n >= 1) is a JSON **array**. Arrays can't have holes.
@@ -284,8 +333,9 @@ every element, backgrounds included) as \`sub.N.<key>\`.
 ${a ? generatedDefaults(a) : ""}
 ### Groups
 
-A group is an aura document with \`"regionType": "group"\` or \`"dynamicgroup"\`. It travels as its own document
-plus \`children\`: every descendant, flattened in the addon's order (each group, then its children, depth first).
+A group is an aura with \`"regionType": "group"\` or \`"dynamicgroup"\`. It travels as its own table (wago JSON's \`d\`)
+plus every descendant (\`c\`; \`children\` in the aura document), flattened in the addon's order (each group, then its
+children, depth first).
 A group's \`controlledChildren\` lists its children's \`id\`s and each child's \`parent\` is its group's \`id\`.
 Without sub groups you may leave both out: every child then belongs to the group in the order given. With sub
 groups, set them. Groups nest; a dynamic group holds no groups.
@@ -296,10 +346,10 @@ function triggers({ a }: Ctx): string {
   return `## Triggers
 
 \`\`\`json
-"triggers": {"[1]": {"trigger": {...}, "untrigger": {}}, "activeTriggerMode": -10}
+"triggers": {"1": {"trigger": {...}, "untrigger": []}, "activeTriggerMode": -10}
 \`\`\`
 
-Trigger N is \`"[N]"\` (a number key). \`activeTriggerMode\` -10 means "any trigger shows the aura"; a number N means
+Trigger N is \`"N"\` in wago JSON (\`"[N]"\` in the aura document): a number key. \`activeTriggerMode\` -10 means "any trigger shows the aura"; a number N means
 trigger N supplies the dynamic info (icon, time, stacks). Conditions refer to triggers by number.
 
 ### Aura (Modern) (\`"type": "secretAura"\`): use this for buffs and debuffs
@@ -507,8 +557,13 @@ screen, one selected. Workspace IDs are 1-64 of \`A-Z a-z 0-9 _ -\`.
 
 ### POST /api/forever/workspaces/<id>/aura
 
-Body: \`{"aura": {...}}\` for one aura, \`{"aura": {...group...}, "children": [...]}\` for a group, or
-\`{"code": "!WA:2!..."}\` (an import string, e.g. one the player gave you).
+Body, one of:
+
+- **wago JSON** (\`{"d": {...}, "c": [...]}\`), pretty or compact: the usual way.
+- \`{"code": "!WA:2!..."}\` or a bare import string as text (e.g. one the player gave you).
+- A wago link: \`{"wago": "https://wago.io/<id>"}\` or the bare link as text (see Wago links).
+- \`{"aura": {...}}\` for one aura or \`{"aura": {...group...}, "children": [...]}\` for a group, in the aura
+  document form.
 
 \`\`\`sh
 curl -s -X POST ${o}/api/forever/workspaces/${d}/aura \\
@@ -516,9 +571,12 @@ curl -s -X POST ${o}/api/forever/workspaces/${d}/aura \\
   --data-binary @aura.json
 \`\`\`
 
+Every form gets the same answer and the same validation: the server turns it into the import string first (wago JSON
+by wago's rules, a wago link by fetching it), and the addon's own import checks that.
+
 Answer (200): \`{"workspace", "revision", "updatedAt", "validation": {...}}\` (and the import string, which you don't
-need). Errors: \`{"error": "..."}\` with 400 (malformed request), 413 (too large), 422 (the addon rejects the aura),
-503 (the addon couldn't be loaded; retry). Bodies may be up to 32 MB. Add \`?validate=false\` to skip validation
+need). Errors: \`{"error": "..."}\` with 400 (malformed request), 413 (too large), 422 (wago's rules or the addon
+reject the aura), 404/502 (a wago link wago doesn't have or didn't answer), 503 (the addon couldn't be loaded; retry). Bodies may be up to 32 MB. Add \`?validate=false\` to skip validation
 (it takes seconds for very large auras); \`validation\` is then null. The answer's \`url\` is the page that follows
 this workspace (\`?w=\`): if no page is open, hand it to the player and the pushed aura is waiting there.
 
@@ -560,7 +618,8 @@ load (Import). It belongs to one game: \`"game": "forever"\`.
 If you drive the player's page in a browser tab (browser automation, a devtools console), use its in-page command
 instead of clicking through forms. It exists once the page has restored its workspace (wait for it):
 
-- \`auraSimulator.load(input)\` takes what a push takes: \`{aura, children?}\`, \`{code}\`, or an import string. It
+- \`auraSimulator.load(input)\` takes what a push takes except wago links: wago JSON (an object or its text),
+  \`{aura, children?}\`, \`{code}\`, or an import string. It
   merges like a push (same \`uid\`, else \`id\`, replaces; otherwise added), selects it, and the window, browser
   storage and server follow. Returns \`{ok: true, id, code}\` or \`{ok: false, error}\` (nothing changed).
 - \`auraSimulator.code(id?)\`: the import string of an aura (a group's holds everything in it); the selected one by
@@ -573,10 +632,12 @@ const r = await page.evaluate((aura) => window.auraSimulator.load({ aura }), myA
 
 The answer has no validation: read the window's Combat check, or push over HTTP to get \`validation\`.
 
-### Handing the player a \`.txt\` file
+### Handing the player a file
 
 Without a running app to push to, hand over the aura as a file the player drops on the page (or opens and pastes into
-the game's Import box):
+the game's Import box). The page reads a **wago JSON file** (\`Arcane Intellect.json\`, the aura as above) like an
+import string; this is what you can write yourself. For the game itself the player needs the import string: they
+import the \`.json\` in the window and export it from there.
 
 - An **aura file** holds exactly one import string (\`!WA:2!...\`): UTF-8, no quotes, no JSON, nothing before or after
   it (a final newline is fine). Name it after the aura, e.g. \`Arcane Intellect.txt\`. The app also reads several
@@ -589,10 +650,33 @@ the game's Import box):
 `;
 }
 
+function wagoLinks({ o, d }: Ctx): string {
+  return `## Wago links
+
+An aura on wago.io can be loaded by its link, e.g. \`https://wago.io/LEPRolmHn\`: the server fetches its import
+string from wago's data API (the latest version) and imports it like any other. Links to one version
+(\`https://wago.io/<id>/<n>\`) aren't supported.
+
+- Push it: body \`{"wago": "https://wago.io/<id>"}\` (or the bare id), or the link as plain text. The answer is the
+  push answer above.
+- The player can paste a link (or a bare wago id) into the window's Import box.
+- \`GET /api/forever/wago/<id>\` → \`{"id", "code"}\`: just the import string. 400 for an id that isn't one
+  (letters, digits, \`-\` and \`_\`), 404 when wago has no such aura, 502 when wago fails.
+
+\`\`\`sh
+curl -s -X POST ${o}/api/forever/workspaces/${d}/aura --data-binary 'https://wago.io/LEPRolmHn'
+\`\`\`
+
+Whether the addon takes it is the addon's call, as in the game: an aura made for another game or a newer version
+may be refused (422) or changed on import.
+`;
+}
+
 function workedExamples(): string {
   return `## Worked examples
 
-The v1 auras, each a complete push body (the tests push these exact blocks and check the status). Buff reminder
+The v1 auras, each as complete wago JSON to push as the body (the tests push these exact blocks and check the
+status). Buff reminder
 1a (or its alternative) + 1b, cooldown icon 2, debuff bar 3, and group 4 holding them. Change ids, spell IDs (\`auraspellids\`,
 \`spellName\`) and \`displayIcon\` for other spells.
 
@@ -603,8 +687,9 @@ ${[...WORKED_EXAMPLES, COUNTER_EXAMPLE].map(exampleBlock).join("\n\n")}
 function troubleshooting(): string {
   return `## Troubleshooting
 
-- **422 "Not a valid…" / the addon rejects it**: the JSON isn't a valid aura table (check number keys like \`"[1]"\`,
-  arrays without holes, no nulls).
+- **422 / the addon rejects it**: the JSON isn't a valid aura table. In wago JSON, check that \`d\` is the aura,
+  that sequences outside \`triggers\` are arrays, and that trigger keys are \`"1"\`, \`"2"\`, …; in the aura document,
+  number keys like \`"[1]"\`, arrays without holes, no nulls.
 - **The aura doesn't show on the game screen**: check the situation controls (aura present or missing, target
   exists); Show On \`showOnMissing\` shows only while missing; a Remaining Time window hides it outside the window;
   \`load\` options may unload it.

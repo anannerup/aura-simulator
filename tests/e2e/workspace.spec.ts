@@ -131,7 +131,7 @@ test("paste a state code, reload, and the same aura comes back from browser stor
   await openWorkspaceMenu(page);
   await page.getByLabel("Paste a code to load").fill("!WA:2!garbage");
   await loadButton(page).click();
-  await expect(page.getByText("Could not load that state code")).toBeVisible();
+  await expect(page.getByText("Could not import that")).toBeVisible();
   await expect.poll(() => stateCode(page)).toBe(code);
   await expect(page.getByLabel("Paste a code to load")).toHaveValue("!WA:2!garbage");
 

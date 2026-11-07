@@ -336,6 +336,37 @@ export function updateNode(items: WorkspaceNode[], id: string, doc: AuraDocument
 }
 
 /**
+ * Replaces an aura with everything in it by another subtree (e.g. its edited wago JSON), in the same place. The new
+ * root's `id` is a rename; every id and uid in the new subtree must be free outside the replaced one.
+ */
+export function replaceNode(items: WorkspaceNode[], id: string, node: WorkspaceNode): { items: WorkspaceNode[]; id: string } {
+  const found = findNode(items, id);
+  if (!found) throw new TreeError(`No aura "${id}"`);
+  const newId = nodeId(node).trim();
+  if (!newId) throw new TreeError("An aura needs an id");
+  if (node.items && found.parent && isDynamicGroupDoc(found.parent.aura)) throw new TreeError("A dynamic group can't hold groups");
+  const replaced = new Set(Array.from(traverse([found.node])));
+  const others = Array.from(traverse(items)).filter((n) => !replaced.has(n));
+  const otherIds = new Set(others.map(nodeId));
+  const otherUids = new Set(others.map((n) => n.aura.uid).filter((u): u is string => typeof u === "string"));
+  const seenIds = new Set<string>();
+  for (const n of traverse([node])) {
+    const nid = nodeId(n);
+    if (!nid.trim()) throw new TreeError("Every aura needs an id");
+    if (otherIds.has(nid) || seenIds.has(nid)) throw new TreeError(`There is already an aura named "${nid}"`);
+    seenIds.add(nid);
+    if (typeof n.aura.uid === "string" && otherUids.has(n.aura.uid)) {
+      throw new TreeError(`"${nid}" has the uid of another aura (${n.aura.uid}); give it its own or leave uid out`);
+    }
+  }
+  const renamed = newId !== id ? renameNode(items, id, newId) : items;
+  const fresh = { ...node, aura: { ...node.aura, id: newId } };
+  const parentId = found.parent ? nodeId(found.parent) : null;
+  const next = editChildren(renamed, parentId, (children) => children.map((c, i) => (i === found.index ? fresh : c)));
+  return { items: normalizeItems(next), id: newId };
+}
+
+/**
  * Replaces a group's document together with its descendants' (the window's tabs edit a group's children too, as in
  * the game). Descendants whose document didn't change keep their node.
  */

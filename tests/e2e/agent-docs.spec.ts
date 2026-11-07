@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const uniqueId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 /**
- * An agent with only the docs: read /docs/agents.md, take each worked example's JSON block as written, push it,
+ * An agent with only the docs: read /docs/agents.md, take each worked example's wago JSON block as written, push it,
  * and get the combat status the docs promise.
  */
 test("every worked example in the docs pushes and validates with the combat status the docs claim", async ({ request }) => {
@@ -18,6 +18,7 @@ test("every worked example in the docs pushes and validates with the combat stat
     expect.arrayContaining(["buff-under-3-min", "buff-missing", "cooldown-icon", "target-debuff-bar", "v1-group"]),
   );
   for (const block of blocks) {
+    expect(JSON.parse(block.body).d, `${block.key}: wago JSON, the aura in "d"`).toBeTruthy();
     const workspace = uniqueId(`docs-${block.key}`);
     const res = await request.post(`/api/forever/workspaces/${workspace}/aura`, {
       headers: { "Content-Type": "application/json" },

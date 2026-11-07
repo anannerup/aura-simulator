@@ -1,8 +1,14 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { loadAddon, sampleIconAura, type AuraCore } from "@/core";
-import { createWorkspaceHub, MAX_PUSH_BYTES, parsePushBody, PushError, readBodyText, toStateCode } from "@/server/workspaces";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { createWorkspaceHub, MAX_PUSH_BYTES, parsePushBody, PushError, readBodyText, resolveWago, toStateCode } from "@/server/workspaces";
+import { createWagoFixtureFetch, fetchWagoCode, WagoFetchError } from "@/server/wago";
 import { nodeFromState } from "@/workspace";
 import { cachedAddonFetcher } from "../support/addon-source";
+
+/** Recorded wago answers: https://wago.io/LEPRolmHn's import string and wago's JSON of it. */
+const WAGO = path.resolve(__dirname, "../fixtures/wago");
 
 describe("workspace hub", () => {
   it("keeps recent codes and tells listeners of that workspace only, without the code", () => {
@@ -86,6 +92,55 @@ describe("push", () => {
     expect(node.aura.controlledChildren).toEqual(["A", "B"]);
     expect(node.items!.map((n) => n.aura.parent)).toEqual(["Buffs", "Buffs"]);
     expect(toStateCode(core, { code })).toBe(code);
+  });
+
+  it("reads wago JSON (pretty or compact, as text or JSON body) and wago links", () => {
+    const pretty = readFileSync(path.join(WAGO, "LEPRolmHn.json"), "utf8");
+    const compact = JSON.stringify(JSON.parse(pretty));
+    expect(parsePushBody(pretty, "application/json")).toEqual({ wagoJson: compact });
+    expect(parsePushBody(compact, null)).toEqual({ wagoJson: compact });
+    expect(parsePushBody("https://wago.io/LEPRolmHn\n", "text/plain")).toEqual({ wagoId: "LEPRolmHn" });
+    expect(parsePushBody('{"wago": "https://wago.io/LEPRolmHn"}', "application/json")).toEqual({ wagoId: "LEPRolmHn" });
+    expect(parsePushBody('{"wago": "LEPRolmHn"}', "application/json")).toEqual({ wagoId: "LEPRolmHn" });
+    expect(() => parsePushBody("https://wago.io/LEPRolmHn/3", null)).toThrow(/one version/);
+    expect(() => parsePushBody('{"wago": "not an id!"}', null)).toThrow(/wago link/);
+    expect(() => parsePushBody('{"d": {"id": "x"', "application/json")).toThrow(/Not JSON/);
+  });
+
+  it("turns wago JSON into the state code of the same aura, by wago's rules", () => {
+    const pretty = readFileSync(path.join(WAGO, "LEPRolmHn.json"), "utf8");
+    const fromWago = core.decode(readFileSync(path.join(WAGO, "LEPRolmHn.txt"), "utf8"));
+    for (const text of [pretty, JSON.stringify(JSON.parse(pretty))]) {
+      const decoded = core.decode(toStateCode(core, { wagoJson: text }));
+      expect(decoded.aura).toEqual(fromWago.aura);
+      expect(decoded.children).toEqual([]);
+    }
+    const refused = (() => {
+      try {
+        toStateCode(core, { wagoJson: '{"d": {"id": "x", "triggers": 5}}' });
+      } catch (e) {
+        return e;
+      }
+    })();
+    expect(refused).toBeInstanceOf(PushError);
+    expect((refused as PushError).status).toBe(422);
+  });
+
+  it("fetches a wago link's import string (recorded answers), with wago's 404 and a bad id as errors", async () => {
+    const fetchFn = createWagoFixtureFetch(WAGO);
+    const code = await fetchWagoCode("LEPRolmHn", fetchFn);
+    expect(code).toBe(readFileSync(path.join(WAGO, "LEPRolmHn.txt"), "utf8").trim());
+    const missing = await fetchWagoCode("NoSuchAura", fetchFn).catch((e: unknown) => e);
+    expect(missing).toBeInstanceOf(WagoFetchError);
+    expect((missing as WagoFetchError).status).toBe(404);
+    const bad = await fetchWagoCode("a/b", fetchFn).catch((e: unknown) => e);
+    expect((bad as WagoFetchError).status).toBe(400);
+    const down = await fetchWagoCode("LEPRolmHn", async () => new Response("oops", { status: 500 })).catch((e: unknown) => e);
+    expect((down as WagoFetchError).status).toBe(502);
+    // A push of a wago link becomes that code; wago's errors keep their status.
+    expect(await resolveWago({ wagoId: "LEPRolmHn" }, (id) => fetchWagoCode(id, fetchFn))).toEqual({ code });
+    const notFound = await resolveWago({ wagoId: "NoSuchAura" }, (id) => fetchWagoCode(id, fetchFn)).catch((e: unknown) => e);
+    expect((notFound as PushError).status).toBe(404);
   });
 
   it("rejects codes the addon can't decode with 422", () => {

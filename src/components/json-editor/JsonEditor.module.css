@@ -1,24 +1,23 @@
 .editor {
-  --raw-line: 18px;
-  --raw-font: 12px;
-  --raw-pad: 8px;
-  --raw-string: #7ee787;
-  --raw-number: #ffa657;
-  --raw-keyword: #d2a8ff;
-  --raw-key: #79c0ff;
-  --raw-comment: var(--text-3);
-  --raw-punct: var(--text-3);
-  --raw-error: var(--danger);
+  --json-line: 18px;
+  --json-font: 12px;
+  --json-pad: 8px;
+  --json-string: #7ee787;
+  --json-number: #ffa657;
+  --json-keyword: #d2a8ff;
+  --json-key: #79c0ff;
+  --json-punct: var(--text-3);
+  --json-error: var(--danger);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
 :global([data-theme="light"]) .editor {
-  --raw-string: #2a7d3f;
-  --raw-number: #b05a00;
-  --raw-keyword: #8a3ffc;
-  --raw-key: #1f6feb;
+  --json-string: #2a7d3f;
+  --json-number: #b05a00;
+  --json-keyword: #8a3ffc;
+  --json-key: #1f6feb;
 }
 
 .toolbar {
@@ -26,39 +25,6 @@
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
-}
-
-/* Lua / JSON: a two-button switch. */
-.modes {
-  display: inline-flex;
-  padding: 2px;
-  gap: 2px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--surface-0);
-}
-
-.modes button {
-  height: 22px;
-  padding: 0 var(--space-3);
-  border: 0;
-  border-radius: calc(var(--radius) - 2px);
-  background: transparent;
-  color: var(--text-2);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
-}
-
-.modes button:hover {
-  color: var(--text-1);
-}
-
-.modes button[aria-pressed="true"] {
-  background: var(--surface-3);
-  color: var(--text-1);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
 .state {
@@ -97,8 +63,8 @@
   border-radius: var(--radius);
   background: var(--surface-0);
   font-family: var(--font-mono);
-  font-size: var(--raw-font);
-  line-height: var(--raw-line);
+  font-size: var(--json-font);
+  line-height: var(--json-line);
 }
 
 .frame:focus-within {
@@ -108,7 +74,7 @@
 
 .gutter {
   overflow: hidden;
-  padding: var(--raw-pad) 6px var(--raw-pad) 8px;
+  padding: var(--json-pad) 6px var(--json-pad) 8px;
   min-width: 3.5em;
   text-align: right;
   color: var(--text-3);
@@ -118,11 +84,11 @@
 }
 
 .gutter > div {
-  height: var(--raw-line);
+  height: var(--json-line);
 }
 
 .errorLine {
-  color: var(--raw-error);
+  color: var(--json-error);
   font-weight: 700;
 }
 
@@ -137,7 +103,7 @@
   position: absolute;
   inset: 0;
   margin: 0;
-  padding: var(--raw-pad);
+  padding: var(--json-pad);
   font: inherit;
   line-height: inherit;
   white-space: pre;
@@ -170,31 +136,32 @@
 }
 
 .string {
-  color: var(--raw-string);
+  color: var(--json-string);
 }
 
 .number {
-  color: var(--raw-number);
+  color: var(--json-number);
 }
 
 .keyword {
-  color: var(--raw-keyword);
+  color: var(--json-keyword);
 }
 
 .key {
-  color: var(--raw-key);
-}
-
-.comment {
-  color: var(--raw-comment);
+  color: var(--json-key);
 }
 
 .punct {
-  color: var(--raw-punct);
+  color: var(--json-punct);
 }
 
 .error {
-  color: var(--raw-error);
+  color: var(--json-error);
   font-size: var(--text-md);
   white-space: pre-wrap;
+}
+
+.unavailable {
+  color: var(--text-2);
+  font-size: var(--text-md);
 }

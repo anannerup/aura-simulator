@@ -53,6 +53,11 @@ describe("import and export files", () => {
     // Other JSON still yields the codes in it.
     expect(classifyImportText(JSON.stringify({ codes: [CODE] }))).toEqual({ kind: "codes", codes: [CODE] });
     expect(classifyImportText('{"format": "other"}').kind).toBe("none");
+    // wago JSON: the aura in "d", pretty or compact; a "d" that isn't an aura is not.
+    const wago = JSON.stringify({ d: { id: "x" }, m: "d" }, null, 2);
+    expect(classifyImportText(wago)).toEqual({ kind: "wago-json", text: wago });
+    expect(classifyImportText(JSON.stringify({ c: [], d: { id: "x" } })).kind).toBe("wago-json");
+    expect(classifyImportText('{"d": [1]}').kind).toBe("none");
     expect(classifyImportText("hello").kind).toBe("none");
     expect(classifyImportText("").kind).toBe("none");
   });

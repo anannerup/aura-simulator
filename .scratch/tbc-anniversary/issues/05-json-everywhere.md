@@ -9,7 +9,7 @@
 
 **Blocked by:** 01, 02
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] e2e: JSON tab shows and edits; `.json` import and drop; JSON push; wago link import (recorded wago answer)
-- [ ] A test pushes every JSON example in the served docs
+- [x] e2e: JSON tab shows and edits; `.json` import and drop; JSON push; wago link import (recorded wago answer)
+- [x] A test pushes every JSON example in the served docs
