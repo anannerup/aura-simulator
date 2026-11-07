@@ -15,7 +15,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { gzip } from "node:zlib";
-import { collectAddonBundle, type AddonBundle, type AddonBundleSet } from "@/core";
+import { collectAddonBundle, type AddonBundle, type AddonBundleSet, type AddonGameId } from "@/core";
 import type { AddonSourceCache, Resolution } from "./source-cache";
 import { writeAtomic } from "./write-atomic";
 
@@ -34,13 +34,16 @@ export interface EncodedAddonBundle {
   gzipped(): Promise<Uint8Array>;
 }
 
-/** Builds a bundle by reading every file through the server's disk cache (fetching misses upstream). */
-export async function buildAddonBundle(cache: AddonSourceCache, input: string, set: AddonBundleSet): Promise<AddonBundle> {
+/**
+ * Builds a bundle by reading every file through the server's disk cache (fetching misses upstream). `game` decides
+ * which .toc files the full set follows (`_TBC.toc` on TBC).
+ */
+export async function buildAddonBundle(cache: AddonSourceCache, input: string, set: AddonBundleSet, game: AddonGameId): Promise<AddonBundle> {
   const resolution = await cache.resolve(input);
   const read = (p: string) => cache.readText(resolution.ref, p);
-  // Which files belong to the set is memoised per resolved ref; their texts come from the disk cache.
+  // Which files belong to the set is memoised per resolved ref (each game has its own cache); their texts come from the disk cache.
   const paths = await cache.memo(resolution, `bundle-${set}-v${FORMAT}-paths`, async () =>
-    Object.keys((await collectAddonBundle(read, resolution.ref, set)).files),
+    Object.keys((await collectAddonBundle(read, resolution.ref, set, game)).files),
   );
   const texts = await Promise.all(paths.map(read));
   return { ref: resolution.ref, set, files: Object.fromEntries(paths.map((p, i) => [p, texts[i]])) };
@@ -54,15 +57,16 @@ export async function getEncodedAddonBundle(
   cache: AddonSourceCache,
   input: string,
   set: AddonBundleSet,
+  game: AddonGameId,
 ): Promise<EncodedAddonBundle> {
   const resolution = await cache.resolve(input);
   const memory = (globalForBundles.__addonBundles ??= new Map());
-  const key = `${cache.root}\n${resolution.key}\n${resolution.ref}\n${set}`;
+  const key = `${game}\n${cache.root}\n${resolution.key}\n${resolution.ref}\n${set}`;
   let hit = memory.get(key);
   if (hit) {
     memory.delete(key);
   } else {
-    hit = encodeBundle(cache, resolution, set);
+    hit = encodeBundle(cache, resolution, set, game);
     hit.catch(() => memory.delete(key));
   }
   memory.set(key, hit);
@@ -70,8 +74,8 @@ export async function getEncodedAddonBundle(
   return hit;
 }
 
-async function encodeBundle(cache: AddonSourceCache, resolution: Resolution, set: AddonBundleSet): Promise<EncodedAddonBundle> {
-  const bundle = await buildAddonBundle(cache, resolution.ref, set);
+async function encodeBundle(cache: AddonSourceCache, resolution: Resolution, set: AddonBundleSet, game: AddonGameId): Promise<EncodedAddonBundle> {
+  const bundle = await buildAddonBundle(cache, resolution.ref, set, game);
   const json = new TextEncoder().encode(JSON.stringify(bundle));
   const hash = createHash("sha256").update(json).digest("base64url").slice(0, 32);
   let gz: Promise<Uint8Array> | undefined;

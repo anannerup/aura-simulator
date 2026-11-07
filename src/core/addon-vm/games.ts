@@ -5,6 +5,7 @@
  */
 import { COMMON_CONTRACT, FOREVER_CONTRACT, joinContracts, type AddonContract } from "./contract";
 import { FOREVER_EXTRACT_LUA } from "./lua/extract-forever";
+import { FOREVER_NEW_AURA_LUA } from "./lua/new-aura-forever";
 import { CLIENT_DATA_LUA, PROFILE_LUA } from "./profile";
 import { TBC_CLIENT_DATA_LUA, TBC_PROFILE_LUA } from "./profile-tbc";
 import type { AddonGameId } from "./toc";
@@ -18,6 +19,8 @@ export interface AddonVMGame {
   contract: AddonContract;
   /** The game's own entry points, run after lua/extract.ts (and before options.ts). */
   extractLua: string[];
+  /** The game's own New Aura buttons and pages, run after lua/new-aura.ts (Forever: Modern Aura Group and Packs). */
+  newAuraLua: string[];
   /**
    * The client restricts addons in combat, so validation gives a combat verdict (`ValidationResult.combat`) from the
    * addon's combat checks. Forever only; TBC Anniversary has no combat restrictions.
@@ -32,6 +35,7 @@ export const ADDON_VM_GAMES: Record<AddonGameId, AddonVMGame> = {
     profileLua: [CLIENT_DATA_LUA, PROFILE_LUA],
     contract: joinContracts(COMMON_CONTRACT, FOREVER_CONTRACT),
     extractLua: [FOREVER_EXTRACT_LUA],
+    newAuraLua: [FOREVER_NEW_AURA_LUA],
     combatCheck: true,
   },
   tbc: {
@@ -40,6 +44,7 @@ export const ADDON_VM_GAMES: Record<AddonGameId, AddonVMGame> = {
     profileLua: [TBC_CLIENT_DATA_LUA, TBC_PROFILE_LUA],
     contract: COMMON_CONTRACT,
     extractLua: [],
+    newAuraLua: [],
     combatCheck: false,
   },
 };

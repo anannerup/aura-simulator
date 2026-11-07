@@ -5,7 +5,18 @@ import { fetchJson } from "@/lib/fetch-json";
 
 export type { Spell, SpellCacheStatus, SpellFlag, SpellSearchHit, SyncResult } from "@/api/spells";
 
+/** The game whose spells these are, in the picker's words. */
+export interface SpellGame {
+  /** "WoW Forever" */
+  name: string;
+  /** "Forever", as in "Not in Forever" */
+  shortName: string;
+  /** Wowhead's environment the tooltips come from: "Classic" */
+  wowhead: string;
+}
+
 export interface SpellApi {
+  readonly game: SpellGame;
   search(q: string, signal?: AbortSignal): Promise<SpellSearchResult>;
   /** Full spell info with flags (404 bodies are valid answers: `found: false`). Cached per page. */
   get(id: number): Promise<Spell>;
@@ -13,10 +24,11 @@ export interface SpellApi {
   sync(): Promise<SyncResult>;
 }
 
-/** The spell API under `base` (e.g. "/api/forever/spells"). */
-export function createSpellApi(base: string): SpellApi {
+/** The spell API of `game` under `base` (e.g. "/api/forever/spells"). */
+export function createSpellApi(base: string, game: SpellGame): SpellApi {
   const spellCache = new Map<number, Promise<Spell>>();
   return {
+    game,
     search: (q, signal) => fetchJson(`${base}/search?${new URLSearchParams({ q, limit: "20" })}`, { signal }),
     get(id) {
       let p = spellCache.get(id);

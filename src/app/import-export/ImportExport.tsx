@@ -33,8 +33,8 @@ export function useImporter(session: WorkspaceSession | null) {
   const [fileErrors, setFileErrors] = useState<string[]>([]);
   const [pending, setPending] = useState<PendingWorkspaceFile[]>([]);
 
-  function paste(action: "load" | "add") {
-    const result = !session ? NOT_READY : action === "load" ? session.openCode(text) : session.addCode(text);
+  async function paste(action: "load" | "add") {
+    const result = !session ? NOT_READY : await (action === "load" ? session.openCode(text) : session.addCode(text));
     if (result.ok) {
       setText("");
       setError(null);
@@ -138,10 +138,10 @@ export function ImportPanel({ importer }: { importer: Importer }) {
         <p className={styles.hint}>That is a long code; saving it as a file and importing the file is easier.</p>
       )}
       <div className={styles.buttons}>
-        <Button size="sm" onClick={() => importer.paste("load")} title="Open the code as the whole workspace">
+        <Button size="sm" onClick={() => void importer.paste("load")} title="Open the code as the whole workspace">
           Load
         </Button>
-        <Button size="sm" onClick={() => importer.paste("add")} title="Add the code's aura or group to the workspace">
+        <Button size="sm" onClick={() => void importer.paste("add")} title="Add the code's aura or group to the workspace">
           Add to workspace
         </Button>
       </div>

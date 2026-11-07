@@ -5,19 +5,30 @@ import type { AddonGameId } from "@/core";
  * profile, client data, spell database), with its own rules, docs and examples. Each game is its own site
  * (`/<id>`, `/api/<id>/...`) with its own workspaces. This is the page-safe part; the server's part is `ServerGame`
  * (`src/server/game.ts`). What the full addon VM loads for the game (client profile, contract, extractors) is the
- * aura core's, by the same id (`src/core/addon-vm/games.ts`).
+ * aura core's, by the same id (`src/core/addon-vm/games.ts`); its rules are `auraRules(id)`.
  */
 export interface Game {
   /** The URL segment, storage namespace and the aura core's game: "forever". */
   id: AddonGameId;
   /** What the player calls the game: "WoW Forever". */
   name: string;
+  /** The game in short, in labels such as "Not in Forever". */
+  shortName: string;
   addon: {
     /** The addon players run: "Musca Auras". */
     name: string;
     /** The release the app uses when the version list can't be read. */
     fallbackRef: string;
+    /**
+     * Where the page loads one of the addon's own files (textures, fonts) at a release, by its path in the addon
+     * (`WeakAuras/Media/Textures/logo_256_round.tga`). Media are fetched at runtime and never committed.
+     */
+    fileUrl(ref: string, path: string): string;
+    /** The addon's portrait in the window's corner, a texture path as the addon's options frame sets it. */
+    logo: string;
   };
+  /** Wowhead's name for the environment the spell tooltips come from ("Classic"). */
+  wowhead: string;
 }
 
 /** A game the picker announces before the app supports it. */

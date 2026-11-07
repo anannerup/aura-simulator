@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { auraTriggers, setInCombat, triggerSituation, withTrigger, type AuraDocument, type Situation, type TriggerKind } from "@/core";
+import { auraRules, triggerSituation, withTrigger, type AddonGameId, type AuraDocument, type Situation, type TriggerKind } from "@/core";
 import { Input, Slider, Switch } from "@/components/ui";
 import styles from "./SituationControls.module.css";
 
@@ -14,9 +14,23 @@ const KIND_LABELS: Record<TriggerKind, { title: string; present: string; remaini
 
 const fmt = (s: number) => (s >= 60 ? `${Math.floor(s / 60)}m ${String(Math.round(s % 60)).padStart(2, "0")}s` : `${s.toFixed(1)}s`);
 
-/** The situation controls: per trigger present/time left/stacks, plus target and combat. */
-export function SituationControls({ aura, situation, onChange }: { aura: AuraDocument; situation: Situation; onChange: (next: Situation) => void }) {
-  const triggers = auraTriggers(aura);
+/**
+ * The situation controls: per trigger present/time left/stacks, plus target and combat, by the game's rules (its trigger
+ * kinds; entering combat freezes auras only where the game restricts addons in combat).
+ */
+export function SituationControls({
+  game,
+  aura,
+  situation,
+  onChange,
+}: {
+  game: AddonGameId;
+  aura: AuraDocument;
+  situation: Situation;
+  onChange: (next: Situation) => void;
+}) {
+  const rules = auraRules(game);
+  const triggers = rules.auraTriggers(aura);
   const ids = useId();
   return (
     <section className={styles.panel} aria-label="Situation">
@@ -26,7 +40,7 @@ export function SituationControls({ aura, situation, onChange }: { aura: AuraDoc
           label="In combat"
           role="switch"
           checked={situation.inCombat}
-          onChange={(e) => onChange(setInCombat(situation, e.target.checked))}
+          onChange={(e) => onChange(rules.setInCombat(situation, e.target.checked))}
         />
       </div>
       {triggers.map(({ index, kind }) => {

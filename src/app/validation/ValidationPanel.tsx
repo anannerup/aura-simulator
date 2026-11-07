@@ -17,16 +17,20 @@ const HEADLINE: Record<CombatStatus, string> = {
 };
 
 /**
- * The addon's own validation and combat warnings for the current aura. Information only: export is
+ * The addon's own validation (and, where the game restricts addons in combat, its combat verdict) for the current
+ * aura, in the game's words: TBC shows only the addon's errors and warnings. Information only: export is
  * never blocked. Runs in the full addon VM (a Web Worker), which loads on first use.
  */
 export function ValidationPanel({
   core,
+  addonName,
   code,
   aura,
   childAuras,
 }: {
   core: AuraCore;
+  /** The game's addon ("Musca Auras", "WeakAuras"), for the panel's words. */
+  addonName: string;
   /** The state code, used as the key: validation reruns when it changes. */
   code: string;
   aura: AuraDocument;
@@ -62,14 +66,14 @@ export function ValidationPanel({
       data-vm-timings={current.state === "done" ? JSON.stringify(current.timings) : undefined}
       aria-live="polite"
     >
-      {current.state === "loading" && <p className={styles.muted}>Checking with the addon&apos;s own rules…</p>}
+      {current.state === "loading" && <p className={styles.muted}>Checking with {addonName}&apos;s own rules…</p>}
       {current.state === "failed" && <p className={styles.error}>Could not check this aura: {current.error}</p>}
-      {current.state === "done" && <Result result={current.result} />}
+      {current.state === "done" && <Result result={current.result} addonName={addonName} />}
     </section>
   );
 }
 
-function Result({ result }: { result: ValidationResult }) {
+function Result({ result, addonName }: { result: ValidationResult; addonName: string }) {
   // No combat verdict in a game without combat restrictions (TBC): only the addon's own messages.
   const { combat } = result;
   return (
@@ -82,6 +86,9 @@ function Result({ result }: { result: ValidationResult }) {
           ))}
         </div>
       )}
+      {!combat && result.errors.length === 0 && result.warnings.length === 0 && (
+        <p data-testid="no-problems">{addonName} finds no problems with this aura.</p>
+      )}
       {(result.errors.length > 0 || result.warnings.length > 0) && (
         <ul className={styles.list}>
           {result.errors.map((m, i) => (
@@ -92,7 +99,7 @@ function Result({ result }: { result: ValidationResult }) {
           ))}
         </ul>
       )}
-      <p className={styles.muted}>Export is never blocked; these are the addon&apos;s own checks.</p>
+      <p className={styles.muted}>Export is never blocked; these are {addonName}&apos;s own checks.</p>
     </>
   );
 }

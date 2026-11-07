@@ -1,4 +1,4 @@
-import { canonicalize, sampleIconAura, toWagoJson, type AuraCore, type AuraDocument, type AuraState, type LuaObject } from "@/core";
+import { canonicalize, sampleIconAura, toWagoJson, type AddonGameId, type AuraCore, type AuraDocument, type AuraState, type LuaObject } from "@/core";
 import {
   addSubtree,
   auraFileName,
@@ -112,7 +112,7 @@ export class WorkspaceSession {
   constructor(
     private readonly core: AuraCore,
     /** The game the workspace belongs to: storage, the server and workspace files are per game. */
-    private readonly game: string,
+    private readonly game: AddonGameId,
     deps: SessionDeps = {},
   ) {
     this.codes = new StateCodes(core);
@@ -141,7 +141,7 @@ export class WorkspaceSession {
     const restored = chooseRestore({
       stored: stored.ok ? stored.workspace : null,
       pushed: pushedNode ? { node: pushedNode, updatedAt: latest!.updatedAt } : null,
-      fallback: () => ({ aura: sampleIconAura(this.core.internalVersion) }),
+      fallback: () => ({ aura: sampleIconAura(this.core.internalVersion, this.game) }),
       now: now(),
     });
     this.commit(id, restored.items, restored.selected, restored.fromServer ? "server" : "page", restored.updatedAt);
@@ -149,12 +149,12 @@ export class WorkspaceSession {
   }
 
   /** Opens a state code as the whole workspace. */
-  openCode(code: string): EditResult {
+  openCode(code: string): Promise<EditResult> {
     return this.withCode(code, (node) => ({ items: [node], id: nodeId(node) }));
   }
 
   /** Adds a state code (an aura, or a group with its subtree) to the top level and selects it. */
-  addCode(code: string): { ok: true; id: string } | { ok: false; error: string } {
+  addCode(code: string): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
     return this.withCode(code, (node) => addSubtree(this.view.items, node, { parentId: null }));
   }
 
@@ -162,20 +162,31 @@ export class WorkspaceSession {
    * Loads an aura the way a push does (`window.auraSimulator.load`): replaces the top-level aura with its uid (else
    * id), or adds it; selects it. Returns its id and state code.
    */
-  load(input: PushInput): { ok: true; id: string; code: string } | { ok: false; error: string } {
-    const id = this.view.workspaceId;
-    if (!id) return NOT_READY;
+  async load(input: PushInput): Promise<{ ok: true; id: string; code: string } | { ok: false; error: string }> {
+    if (!this.view.workspaceId) return NOT_READY;
     try {
-      const node =
+      const state =
         "code" in input
-          ? nodeFromState(this.codes.decode(input.code))
-          : nodeFromState({ aura: canonicalize(input.aura) as AuraDocument, children: input.children.map((c) => canonicalize(c) as AuraDocument) });
-      const merged = mergeTopLevel(this.view.items, node);
+          ? this.codes.decode(input.code)
+          : { aura: canonicalize(input.aura) as AuraDocument, children: input.children.map((c) => canonicalize(c) as AuraDocument) };
+      await this.assertImportable(state);
+      const id = this.view.workspaceId;
+      if (!id || this.disposed) return NOT_READY;
+      const merged = mergeTopLevel(this.view.items, nodeFromState(state));
       this.commit(id, merged.items, merged.id, "page");
       return { ok: true, id: merged.id, code: this.codeOf(merged.id)! };
     } catch (e) {
       return { ok: false, error: errorMessage(e) };
     }
+  }
+
+  /**
+   * Story 7: an aura comes into the workspace only if the game's import would take it. The addon's own import
+   * decides (`AuraCore.importCheck`); its refusal (e.g. made with a newer version of the addon) is thrown as its message.
+   */
+  private async assertImportable(state: AuraState & { senderVersion?: string }): Promise<void> {
+    const check = await this.core.importCheck(state);
+    if (!check.importable) throw new Error(check.message);
   }
 
   /** Replaces the tree (an edit from the tree UI, or undo) and the selection. */
@@ -280,17 +291,24 @@ export class WorkspaceSession {
       if (content.kind === "none") {
         fail(content.error);
       } else if (content.kind === "codes") {
-        content.codes.forEach((code, i) => {
-          const r = this.addCode(code);
+        for (const [i, code] of content.codes.entries()) {
+          const r = await this.addCode(code);
           if (r.ok) result.added.push(r.id);
           else result.errors.push(`Could not read ${content.codes.length > 1 ? `${file.name} (code ${i + 1})` : file.name}: ${r.error}`);
-        });
+        }
       } else {
         const read = readWorkspace(content.text, this.game);
         if (!read.ok) {
           fail(read.error);
           continue;
         }
+        try {
+          for (const node of read.workspace.items) await this.assertImportable(stateFromNode(node));
+        } catch (e) {
+          fail(errorMessage(e));
+          continue;
+        }
+        if (this.disposed) return result;
         this.codes.learn(read.codes);
         const pending = { name: file.name, workspace: read.workspace };
         if (this.view.items.length > 0) result.pending.push(pending);
@@ -332,16 +350,19 @@ export class WorkspaceSession {
     }
   }
 
-  private withCode<R extends { items: WorkspaceNode[]; id: string }>(
+  private async withCode<R extends { items: WorkspaceNode[]; id: string }>(
     code: string,
     apply: (node: WorkspaceNode) => R,
-  ): { ok: true; id: string } | { ok: false; error: string } {
-    const id = this.view.workspaceId;
-    if (!id) return NOT_READY;
+  ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+    if (!this.view.workspaceId) return NOT_READY;
     const trimmed = code.trim();
     if (!trimmed) return { ok: false, error: "Paste a state code first" };
     try {
-      const next = apply(nodeFromState(this.codes.decode(trimmed)));
+      const state = this.codes.decode(trimmed);
+      await this.assertImportable(state);
+      const id = this.view.workspaceId;
+      if (!id || this.disposed) return NOT_READY;
+      const next = apply(nodeFromState(state));
       this.commit(id, next.items, next.id, "page");
       return { ok: true, id: next.id };
     } catch (e) {

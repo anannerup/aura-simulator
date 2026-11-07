@@ -6,10 +6,9 @@
  */
 import { useEffect, useSyncExternalStore, type CSSProperties } from "react";
 import type { LuaValue } from "@/core";
-import { forever } from "@/games/forever";
 import { rgbaCss } from "./color";
 import { DEFAULT_FONT, FONTS } from "./media";
-import { textureLoader, textureUrls } from "./textures";
+import { textureLoader, useTextureLoader, type TextureLoader } from "./textures";
 
 /** The CSS family a game font is registered under. */
 const cssFamily = (name: string) => `WoW ${name}`;
@@ -30,9 +29,12 @@ export function fontFamily(value: LuaValue | undefined): string {
   return families.join(", ");
 }
 
-/** Where a game file (font, sound) is downloaded from: a FileDataID or an `Interface\\AddOns\\…` path. */
-export function fontUrl(source: number | string, addonRef = forever.addon.fallbackRef): string {
-  return textureUrls(source, addonRef)[0];
+/**
+ * Where a game file (font, sound) is downloaded from: a FileDataID or an `Interface\\AddOns\\…` path (the game's addon
+ * files, through `loader`: the page's `useTextureLoader()`).
+ */
+export function fontUrl(source: number | string, loader: TextureLoader = textureLoader()): string {
+  return loader.urls(source)[0];
 }
 
 type Status = "loading" | "loaded" | "failed";
@@ -40,14 +42,17 @@ const status = new Map<string, Status>();
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
-/** Starts loading a game font once per page. Unknown names load the default font. */
-export function ensureFont(value: LuaValue | undefined): void {
+/**
+ * Starts loading a game font once per page (addon fonts through `loader`, the page's game's). Unknown names load the
+ * default font.
+ */
+export function ensureFont(value: LuaValue | undefined, loader: TextureLoader = textureLoader()): void {
   if (typeof document === "undefined" || typeof FontFace === "undefined") return;
   const name = fontName(value) in FONTS ? fontName(value) : DEFAULT_FONT;
   if (status.has(name)) return;
   status.set(name, "loading");
   const file = FONTS[name];
-  textureLoader()
+  loader
     .loadBytes(file.source)
     .then((bytes) => new FontFace(cssFamily(name), bytes as Uint8Array<ArrayBuffer>).load())
     .then((face) => {
@@ -65,7 +70,8 @@ export function ensureFont(value: LuaValue | undefined): void {
 /** Loads the font and returns its CSS family; re-renders when it has loaded (or failed). */
 export function useWowFont(value: LuaValue | undefined): { family: string; status: Status } {
   const name = fontName(value) in FONTS ? fontName(value) : DEFAULT_FONT;
-  useEffect(() => ensureFont(name), [name]);
+  const loader = useTextureLoader();
+  useEffect(() => ensureFont(name, loader), [name, loader]);
   const current = useSyncExternalStore(
     (l) => {
       listeners.add(l);

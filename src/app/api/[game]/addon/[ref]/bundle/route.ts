@@ -12,5 +12,5 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/[game]/a
   const server = routeGame(game);
   if (server instanceof Response) return server;
   const params = request.nextUrl.searchParams;
-  return addonBundleResponse(server.addon, request, decodeURIComponent(ref), params.get("set"), params.get("format"));
+  return addonBundleResponse(server.addon, request, decodeURIComponent(ref), params.get("set"), params.get("format"), server.game.id);
 }

@@ -2,11 +2,13 @@ export { decodeTexture, type DecodedTexture } from "./decode";
 export {
   createTextureLoader,
   textureLoader,
+  TextureLoaderContext,
+  useTextureLoader,
   type TextureLoader,
   type TextureLoaderOptions,
   type TextureUrl,
 } from "./loader";
-export { textureUrls, type TextureSource } from "./paths";
+export { textureUrls, type AddonFileUrl, type TextureSource } from "./paths";
 export {
   shadePixels,
   cropTexture,

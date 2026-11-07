@@ -22,8 +22,13 @@ export function gameDataDir(gameId: string): string {
   return path.join(process.env.DATA_DIR ?? path.join(process.cwd(), "data"), gameId);
 }
 
-/** A game's addon source cache: `<ADDON_CACHE_DIR>/<game>` if set (tests share one), else `<data>/<game>/addon`. */
+/**
+ * A game's addon source cache: `ADDON_CACHE_DIR_<GAME>` if set (e.g. `ADDON_CACHE_DIR_TBC`: the e2e server shares the
+ * unit tests' `.cache/weakauras2`), else `<ADDON_CACHE_DIR>/<game>` if set (tests share one), else `<data>/<game>/addon`.
+ */
 export function addonCacheDir(gameId: string): string {
+  const own = process.env[`ADDON_CACHE_DIR_${gameId.toUpperCase()}`];
+  if (own) return path.resolve(own);
   const shared = process.env.ADDON_CACHE_DIR;
   return shared ? path.join(shared, gameId) : path.join(gameDataDir(gameId), "addon");
 }

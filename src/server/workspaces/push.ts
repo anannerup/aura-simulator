@@ -123,6 +123,9 @@ export async function pushToWorkspace(
 ): Promise<PushResult> {
   const core = await getServerAuraCore(server, options.ref);
   const code = toStateCode(core, input);
+  // As the game's import: the addon's own import dialog decides (e.g. it refuses an aura made with a newer version).
+  const check = await core.importCheck(core.decode(code));
+  if (!check.importable) throw new PushError(check.message, 422);
   const snap = getWorkspaceHub(server.game.id).set(workspaceId, code, options.source ?? null);
   return {
     workspace: workspaceId,

@@ -12,9 +12,9 @@ export interface AuraSimulatorApi {
   workspaceId: string;
   /**
    * Loads an aura the way a push does: a state code, `{code}`, or `{aura, children?}`. It replaces the top-level aura
-   * with the same uid (else id) or is added, and is selected.
+   * with the same uid (else id) or is added, and is selected. Resolves once the addon's import has accepted it.
    */
-  load(input: unknown): { ok: true; id: string; code: string } | { ok: false; error: string };
+  load(input: unknown): Promise<{ ok: true; id: string; code: string } | { ok: false; error: string }>;
   /** The state code of an aura (an aura, or a group with everything in it); the selected one by default. */
   code(id?: string): string | null;
   /** An aura's document and a group's descendants (what `load` takes); the selected one by default. */
@@ -31,9 +31,9 @@ declare global {
 export function installPageApi(session: WorkspaceSession, workspaceId: string): () => void {
   const api: AuraSimulatorApi = {
     workspaceId,
-    load(input) {
+    async load(input) {
       try {
-        return session.load(readPushInput(input));
+        return await session.load(readPushInput(input));
       } catch (e) {
         return { ok: false, error: errorMessage(e) };
       }

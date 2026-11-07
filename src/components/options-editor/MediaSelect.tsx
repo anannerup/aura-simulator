@@ -5,7 +5,7 @@
  * way the game's dropdown shows it: fonts in their own font, bar textures, borders and backgrounds as a strip,
  * sounds with a play button. Media is loaded at runtime (fonts and textures via src/render), never committed.
  */
-import { GameTexture } from "@/render/textures";
+import { GameTexture, useTextureLoader, type TextureLoader } from "@/render/textures";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { plainText, type LuaKey, type OptionNode } from "@/core";
 import { ensureFont, fontFamily, fontUrl } from "@/render/fonts";
@@ -36,9 +36,9 @@ function entry(kind: MediaKind, node: OptionNode, key: LuaKey, label: string) {
   return { name, file, kind };
 }
 
-function soundUrl(file: string): string | null {
-  if (/^\d+$/.test(file)) return fontUrl(Number(file));
-  if (/^interface[\\/]addons[\\/]weakauras/i.test(file)) return fontUrl(file);
+function soundUrl(file: string, loader: TextureLoader): string | null {
+  if (/^\d+$/.test(file)) return fontUrl(Number(file), loader);
+  if (/^interface[\\/]addons[\\/]weakauras/i.test(file)) return fontUrl(file, loader);
   return null;
 }
 
@@ -52,6 +52,7 @@ function play(url: string) {
 function Preview({ kind, name, file }: { kind: MediaKind; name: string; file: string }): ReactNode {
   const ref = useRef<HTMLSpanElement>(null);
   const [seen, setSeen] = useState(false);
+  const loader = useTextureLoader();
   useEffect(() => {
     if (kind !== "font" || seen || !ref.current) return;
     const io = new IntersectionObserver((list) => list.some((e) => e.isIntersecting) && setSeen(true));
@@ -59,8 +60,8 @@ function Preview({ kind, name, file }: { kind: MediaKind; name: string; file: st
     return () => io.disconnect();
   }, [kind, seen]);
   useEffect(() => {
-    if (kind === "font" && seen && name in FONTS) ensureFont(name);
-  }, [kind, seen, name]);
+    if (kind === "font" && seen && name in FONTS) ensureFont(name, loader);
+  }, [kind, seen, name, loader]);
 
   if (kind === "font") {
     return (
@@ -70,7 +71,7 @@ function Preview({ kind, name, file }: { kind: MediaKind; name: string; file: st
     );
   }
   if (kind === "sound") {
-    const url = soundUrl(file);
+    const url = soundUrl(file, loader);
     return (
       <span className={styles.mediaName}>
         {url && (

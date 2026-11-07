@@ -1,6 +1,7 @@
+import { createContext, useContext } from "react";
 import { forever } from "@/games/forever";
 import { decodeTexture, type DecodedTexture } from "./decode";
-import { textureUrls, type TextureSource } from "./paths";
+import { textureUrls, type AddonFileUrl, type TextureSource } from "./paths";
 import { cropTexture, shadePixels, type TextureVariant } from "./pixels";
 
 export interface TextureLoaderOptions {
@@ -11,13 +12,15 @@ export interface TextureLoaderOptions {
    * Every access is guarded: a failing store only means a refetch.
    */
   persistentCache?: Pick<CacheStorage, "open"> | null;
-  /** Musca Auras git ref used for addon-shipped textures. */
-  addonRef?: string;
+  /** Where the game's addon's own files (`Interface\\AddOns\\…`) load from. Default: Musca Auras' fallback release. */
+  addonFileUrl?: AddonFileUrl;
   /** Turns RGBA pixels into a URL usable as an <img> src / CSS background. Defaults to a canvas PNG blob URL. */
   encode?: (tex: DecodedTexture) => Promise<string>;
 }
 
 export interface TextureLoader {
+  /** Candidate URLs of a game file, tried in order (`textureUrls` with this loader's addon files). */
+  urls(source: TextureSource): string[];
   /** Raw file bytes (memory → Cache Storage → network): textures, and other game files such as fonts. */
   loadBytes(source: TextureSource): Promise<Uint8Array>;
   /** Decoded RGBA. */
@@ -57,10 +60,14 @@ function defaultPersistentCache(): Pick<CacheStorage, "open"> | null {
   }
 }
 
+/** Addon files when no game says otherwise: Musca Auras' fallback release (tests, thumbnails outside a game site). */
+const DEFAULT_ADDON_FILE_URL: AddonFileUrl = (path) => forever.addon.fileUrl(forever.addon.fallbackRef, path);
+
 export function createTextureLoader(options: TextureLoaderOptions = {}): TextureLoader {
   const doFetch = options.fetch ?? ((...args: Parameters<typeof fetch>) => fetch(...args));
   const persistent = options.persistentCache === undefined ? defaultPersistentCache() : options.persistentCache;
-  const addonRef = options.addonRef ?? forever.addon.fallbackRef;
+  const addonFileUrl = options.addonFileUrl ?? DEFAULT_ADDON_FILE_URL;
+  const urls = (source: TextureSource) => textureUrls(source, addonFileUrl);
   const encode = options.encode ?? defaultEncode;
 
   const bytesCache = new Map<string, Promise<Uint8Array>>();
@@ -96,12 +103,12 @@ export function createTextureLoader(options: TextureLoaderOptions = {}): Texture
     let p = bytesCache.get(k);
     if (!p) {
       p = (async () => {
-        const urls = textureUrls(source, addonRef);
-        for (const url of urls) {
+        const candidates = urls(source);
+        for (const url of candidates) {
           const bytes = await fetchOne(url);
           if (bytes) return bytes;
         }
-        throw new Error(`Texture not found: ${source} (${urls.join(", ")})`);
+        throw new Error(`Texture not found: ${source} (${candidates.join(", ")})`);
       })();
       p.catch(() => bytesCache.delete(k));
       bytesCache.set(k, p);
@@ -136,13 +143,21 @@ export function createTextureLoader(options: TextureLoaderOptions = {}): Texture
     return p;
   }
 
-  return { loadBytes, load, url };
+  return { urls, loadBytes, load, url };
 }
 
 let shared: TextureLoader | null = null;
 
-/** The app-wide loader (memory cache shared by every renderer). */
+/** The default loader (Musca Auras' media at its fallback release), for renderers outside a game's site. */
 export function textureLoader(): TextureLoader {
   shared ??= createTextureLoader();
   return shared;
+}
+
+/** The loader of the page's game and addon release (its addon media); `AuraSimulator` provides it. */
+export const TextureLoaderContext = createContext<TextureLoader | null>(null);
+
+/** The game's texture loader (memory cache shared by every renderer of the page), else the default one. */
+export function useTextureLoader(): TextureLoader {
+  return useContext(TextureLoaderContext) ?? textureLoader();
 }

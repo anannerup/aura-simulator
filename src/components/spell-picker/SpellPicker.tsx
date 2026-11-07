@@ -4,7 +4,7 @@ import { useEffect, useId, useState, type KeyboardEvent } from "react";
 import { setTriggerSpellId, triggerCount, triggerSpellId, type AuraDocument } from "@/core";
 import { iconNameUrl } from "@/api/spells";
 import { QUESTION_MARK_ICON, useIconStore } from "@/render/textures";
-import { useSpellApi, type Spell, type SpellFlag } from "./spell-api";
+import { useSpellApi, type Spell, type SpellFlag, type SpellGame } from "./spell-api";
 import { useSpellSearch } from "./useSpellSearch";
 import { Badge, Input, SearchIcon, Select } from "@/components/ui";
 import { SpellSync } from "./SpellSync";
@@ -214,6 +214,7 @@ export function SpellPicker({ aura, onAuraChange }: SpellPickerProps) {
 }
 
 function Flags({ flags }: { flags: SpellFlag[] }) {
+  const FLAG_TEXT = flagText(useSpellApi().game);
   const shown = flags.filter((f) => FLAG_TEXT[f]);
   if (shown.length === 0) return null;
   return (
@@ -253,42 +254,43 @@ function SpellTooltip({ spell }: { spell: Spell }) {
   );
 }
 
-/** Flags shown as warnings, with plain-language explanations. Others are informational only. */
-const FLAG_TEXT: Partial<Record<SpellFlag, { label: string; tooltip: string }>> = {
-  unknown: {
-    label: "Unknown",
-    tooltip: "Neither WoW Forever's spell list nor Wowhead knows this spell ID. Check that the ID is right.",
-  },
-  "not-in-game": {
-    label: "Not in Forever",
-    tooltip:
-      "Wowhead knows this spell, but WoW Forever's spell list doesn't. The aura may never trigger in the game; check the ID in the game.",
-  },
-  "not-on-wowhead": {
-    label: "Not on Wowhead",
-    tooltip: "WoW Forever has this spell, but Wowhead (Classic) doesn't, so there's no tooltip to compare against. Double-check it in the game.",
-  },
-  "name-mismatch": {
-    label: "Name differs",
-    tooltip: "WoW Forever and Wowhead give this spell different names. Make sure it's the spell you mean.",
-  },
-  "icon-mismatch": {
-    label: "Icon differs",
-    tooltip: "WoW Forever and Wowhead show different icons for this spell. The preview uses Forever's icon.",
-  },
-  "no-icon": {
-    label: "No icon",
-    tooltip: "No icon is known for this spell, so the preview shows a question mark.",
-  },
-  "not-synced": {
-    label: "Not synced",
-    tooltip: "The spell list hasn't been downloaded yet, so it's unknown whether WoW Forever has this spell. Sync spells first.",
-  },
-  "wowhead-unavailable": {
-    label: "Wowhead offline",
-    tooltip: "Wowhead couldn't be reached, so the tooltip is missing for now. It's retried next time.",
-  },
-};
+/** Flags shown as warnings, with plain-language explanations in the game's words. Others are informational only. */
+function flagText({ name, shortName, wowhead }: SpellGame): Partial<Record<SpellFlag, { label: string; tooltip: string }>> {
+  return {
+    unknown: {
+      label: "Unknown",
+      tooltip: `Neither ${name}'s spell list nor Wowhead knows this spell ID. Check that the ID is right.`,
+    },
+    "not-in-game": {
+      label: `Not in ${shortName}`,
+      tooltip: `Wowhead knows this spell, but ${name}'s spell list doesn't. The aura may never trigger in the game; check the ID in the game.`,
+    },
+    "not-on-wowhead": {
+      label: "Not on Wowhead",
+      tooltip: `${name} has this spell, but Wowhead (${wowhead}) doesn't, so there's no tooltip to compare against. Double-check it in the game.`,
+    },
+    "name-mismatch": {
+      label: "Name differs",
+      tooltip: `${name} and Wowhead give this spell different names. Make sure it's the spell you mean.`,
+    },
+    "icon-mismatch": {
+      label: "Icon differs",
+      tooltip: `${name} and Wowhead show different icons for this spell. The preview uses ${shortName}'s icon.`,
+    },
+    "no-icon": {
+      label: "No icon",
+      tooltip: "No icon is known for this spell, so the preview shows a question mark.",
+    },
+    "not-synced": {
+      label: "Not synced",
+      tooltip: `The spell list hasn't been downloaded yet, so it's unknown whether ${name} has this spell. Sync spells first.`,
+    },
+    "wowhead-unavailable": {
+      label: "Wowhead offline",
+      tooltip: "Wowhead couldn't be reached, so the tooltip is missing for now. It's retried next time.",
+    },
+  };
+}
 
 /** Wowhead tooltip HTML as plain text lines (never inserted as HTML). */
 function tooltipLines(html: string | null): string[] {

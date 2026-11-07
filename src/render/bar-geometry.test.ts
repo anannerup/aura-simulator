@@ -14,6 +14,8 @@ import { drawOrder } from "./subregions/SubRegions";
 import { regionInfo } from "./region-types";
 import { anchorFraction } from "./screen/geometry";
 import { fontFlagsStyle, fontFamily, fontUrl } from "./fonts";
+import { createTextureLoader } from "./textures";
+import { forever } from "@/games/forever";
 import { statusBarTexture } from "./media";
 import { formatText } from "./text-format";
 
@@ -161,7 +163,7 @@ describe("media and fonts", () => {
 
   it("loads game fonts by FileDataID or from the addon, with web font fallbacks", () => {
     expect(fontUrl(615960)).toBe("https://wago.tools/api/casc/615960");
-    expect(fontUrl("Interface\\AddOns\\WeakAuras\\Media\\Fonts\\FiraMono-Medium.ttf", "1.15.0")).toBe(
+    expect(fontUrl("Interface\\AddOns\\WeakAuras\\Media\\Fonts\\FiraMono-Medium.ttf", createTextureLoader({ addonFileUrl: (p) => forever.addon.fileUrl("1.15.0", p) }))).toBe(
       "https://cdn.jsdelivr.net/gh/dldvlpr-addons-wow/Musca-Auras@1.15.0/WeakAuras/Media/Fonts/FiraMono-Medium.ttf",
     );
     expect(fontFamily(undefined)).toMatch(/^"WoW Friz Quadrata TT", /);

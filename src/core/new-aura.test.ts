@@ -22,9 +22,9 @@ describe("the New Aura page", () => {
     expect(bar.displayName).toBe("Progress Bar");
     expect(bar.description).toBe("Shows a progress bar with name, timer, and icon");
     expect(page.types.find((t) => t.regionType === "icon")!.icon).toMatch(/spell_holy_sealofsalvation/i);
-    expect(page.modernGroup.name).toBe("Modern Aura Group");
-    expect(page.modernGroup.sourceData).toMatchObject({ blizzardFlow: true });
-    expect(page.packs.name).toBe("Packs");
+    expect(page.modernGroup?.name).toBe("Modern Aura Group");
+    expect(page.modernGroup?.sourceData).toMatchObject({ blizzardFlow: true });
+    expect(page.packs?.name).toBe("Packs");
   });
 
   test("every display type is created by the addon's own WeakAuras.NewAura, with its defaults", async () => {
@@ -48,7 +48,7 @@ describe("the New Aura page", () => {
 
   test("a Modern Aura Group is a group with the addon's flow settings", async () => {
     const page = await core.newAuraPage();
-    const group = await core.newAura("group", page.modernGroup.sourceData as never);
+    const group = await core.newAura("group", page.modernGroup!.sourceData as never);
     expect(group).toMatchObject({ regionType: "group", blizzardFlow: true, blizzardFlowGrowth: "RIGHT" });
   });
 

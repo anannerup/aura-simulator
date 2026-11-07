@@ -2,8 +2,18 @@
 
 import { useState } from "react";
 import { Callout, ChevronDownIcon, Field, Popover, Select, WarningIcon } from "@/components/ui";
+import type { AuraCore } from "@/core";
 import type { AddonCoreState } from "./useAddonCore";
 import styles from "./AddonVersionPicker.module.css";
+
+/**
+ * The loaded addon in words: "Musca Auras v1.15.0 · WeakAuras 5.20.3" (a fork names the WeakAuras version it is
+ * built on), "WeakAuras 5.22.1" (WeakAuras itself).
+ */
+export function addonLabel(addonName: string, core: Pick<AuraCore, "ref" | "addonVersion">): string {
+  const same = addonName === "WeakAuras" && core.ref.replace(/^v/, "") === core.addonVersion;
+  return same ? `${addonName} ${core.ref}` : `${addonName} ${core.ref} · WeakAuras ${core.addonVersion}`;
+}
 
 /** Picks the release of the game's addon the app follows (released tags only). */
 function AddonVersionPicker({ addon, addonName }: { addon: AddonCoreState; addonName: string }) {
@@ -35,7 +45,7 @@ function AddonVersionPicker({ addon, addonName }: { addon: AddonCoreState; addon
       <p className={styles.status} data-testid="addon-loaded">
         {core ? (
           <>
-            {addonName} {core.ref} · WeakAuras {core.addonVersion} · internal version {core.internalVersion}
+            {addonLabel(addonName, core)} · internal version {core.internalVersion}
           </>
         ) : (
           !error && `Loading ${addonName}…`

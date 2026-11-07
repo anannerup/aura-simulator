@@ -4,7 +4,7 @@ import { AURA_CORE, LOAD_LIBRARY, LOAD_TRANSMISSION } from "./lua-glue";
 import { LUA_STDLIB } from "./lua-stdlib";
 import { canonicalize, isLuaTable, toLuaLiteral, type AuraDocument, type AuraState, type LuaObject, type LuaValue } from "./lua-value";
 import { loadInlineAddonVM, loadWorkerAddonVM, type AddonVMMethod, type AsyncAddonVM } from "./addon-vm/host";
-import type { AddonVM, AddonVMReport, Registries } from "./addon-vm/vm";
+import type { AddonVM, AddonVMReport, ImportCheck, Registries } from "./addon-vm/vm";
 import type { ValidationResult } from "./addon-vm/validation";
 import type { OptionAddress, OptionEdit, OptionsTree } from "./addon-vm/options";
 import type { AuraPacks, NewAuraPage } from "./addon-vm/new-aura";
@@ -71,8 +71,17 @@ export interface AuraCore {
    * elements, an Aura (Modern) trigger where the type supports it). The id is the addon's ("New"); callers rename it.
    */
   newAura(regionType: string, sourceData?: LuaObject): Promise<AuraDocument>;
-  /** The window's Packs page: utility packs and each class's HUD pack with its blocks, with their import data. */
+  /**
+   * The window's Packs page: utility packs and each class's HUD pack with its blocks, with their import data. Musca
+   * Auras only (`newAuraPage().packs`); rejects on an addon without one.
+   */
   packs(): Promise<AuraPacks>;
+  /**
+   * What the game's import does with this aura: runs the addon's own WeakAuras.Import and import dialog, which refuse
+   * e.g. an aura made with a newer version of the addon (its internalVersion is higher), with the dialog's message.
+   * Every way into a workspace (paste, files, push) asks this first.
+   */
+  importCheck(state: AuraState & { senderVersion?: string }): Promise<ImportCheck>;
   /** Frees both Lua VMs (terminates the full VM's worker). The core can't be used afterwards. */
   dispose(): void;
 }
@@ -184,6 +193,7 @@ export async function loadAddon(ref: string, options: LoadAddonOptions): Promise
     newAuraPage: onVM("newAuraPage"),
     newAura: onVM("newAura"),
     packs: onVM("packs"),
+    importCheck: onVM("importCheck"),
 
     async loadFullAddon() {
       return (await full()).report;

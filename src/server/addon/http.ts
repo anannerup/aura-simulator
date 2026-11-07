@@ -1,5 +1,5 @@
 /** HTTP glue for the addon routes: error responses, file and bundle responses. */
-import { ADDON_BUNDLE_SETS, type AddonBundleSet } from "@/core";
+import { ADDON_BUNDLE_SETS, type AddonBundleSet, type AddonGameId } from "@/core";
 import { getEncodedAddonBundle } from "./bundle";
 import { AddonRefError } from "./refs";
 import type { AddonSourceCache } from "./source-cache";
@@ -51,6 +51,7 @@ export async function addonBundleResponse(
   ref: string,
   set: string | null,
   format: string | null,
+  game: AddonGameId,
 ): Promise<Response> {
   if (!ADDON_BUNDLE_SETS.includes(set as AddonBundleSet)) {
     return Response.json({ error: `set must be one of: ${ADDON_BUNDLE_SETS.join(", ")}` }, { status: 400 });
@@ -60,7 +61,7 @@ export async function addonBundleResponse(
     return Response.json({ error: "format must be json or gzip" }, { status: 400 });
   }
   try {
-    const bundle = await getEncodedAddonBundle(cache, ref, set as AddonBundleSet);
+    const bundle = await getEncodedAddonBundle(cache, ref, set as AddonBundleSet, game);
     const headers: Record<string, string> = {
       "Content-Type": format === "gzip" ? "application/gzip" : "application/json; charset=utf-8",
       "Cache-Control": CACHE_CONTROL,

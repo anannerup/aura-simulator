@@ -45,7 +45,7 @@ export function SpellSync({ onSynced }: { onSynced?: () => void }) {
     return (
       <Callout tone="warn" icon={<WarningIcon size={14} />} role="region" aria-label="Spell list not downloaded">
         <p>
-          The spell list hasn&apos;t been downloaded yet. Sync once to search WoW Forever&apos;s spells by name and
+          The spell list hasn&apos;t been downloaded yet. Sync once to search {api.game.name}&apos;s spells by name and
           show their icons.
         </p>
         <span>
