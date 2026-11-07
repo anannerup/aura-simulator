@@ -157,7 +157,8 @@ function luaStringLiteral(s: string): string {
   let out = '"';
   for (const byte of utf8.encode(s)) {
     if (byte >= 0x20 && byte < 0x7f && byte !== 0x22 && byte !== 0x5c) out += String.fromCharCode(byte);
-    else out += `\\${byte}`;
+    // Always three digits: Lua reads up to three, so "\10" before a digit would swallow it.
+    else out += `\\${String(byte).padStart(3, "0")}`;
   }
   return out + '"';
 }
