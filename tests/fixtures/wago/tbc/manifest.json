@@ -1,0 +1,260 @@
+[
+  {
+    "id": "z_B1aUtFV",
+    "name": "Tems' Tier 4 Pack",
+    "url": "https://wago.io/z_B1aUtFV",
+    "version": "1.1.1-11",
+    "codeBytes": 16378,
+    "wagoJsonBytes": 373595,
+    "wagoJsonSha256": "c4985d6b328ab202c790c8aae5c3d09d9e1aaa5c3d628b1903e28a95aa643f26",
+    "why": "Raid pack: Karazhan, Gruul, Magtheridon (Tems' Tier 4); boss timers with custom triggers"
+  },
+  {
+    "id": "u2Waemdhl",
+    "name": "Tems' SSC/TK Pack",
+    "url": "https://wago.io/u2Waemdhl",
+    "version": "1.2.3-24",
+    "codeBytes": 17984,
+    "wagoJsonBytes": 459633,
+    "wagoJsonSha256": "56828d7aeecaec1cbb6288764273d293009cca0c6aff4447ae7a551a0f28e91d",
+    "why": "Raid pack: SSC/TK (Tems); custom triggers and custom text"
+  },
+  {
+    "id": "Y5J7NdyVH",
+    "name": "Tems' BT/MH Pack",
+    "url": "https://wago.io/Y5J7NdyVH",
+    "version": "1.1.7-12",
+    "codeBytes": 17840,
+    "wagoJsonBytes": 483642,
+    "wagoJsonSha256": "43bffb69296e71a9bb9d7e16f72d333837b3123469f33c9265f2dc735dec75ed",
+    "why": "Raid pack: Black Temple/Hyjal (Tems); BigWigs-driven triggers"
+  },
+  {
+    "id": "qlVo5dbER",
+    "name": "Tems' ZA Pack",
+    "url": "https://wago.io/qlVo5dbER",
+    "version": "1.0.4",
+    "codeBytes": 9397,
+    "wagoJsonBytes": 194697,
+    "wagoJsonSha256": "4fb331f2a73067b49fd60e088c1bd7478058379e8150251770c1fc74770900a5",
+    "why": "Raid pack: Zul'Aman (Tems)"
+  },
+  {
+    "id": "llwrZsg_d",
+    "name": "Tems' SWP Pack",
+    "url": "https://wago.io/llwrZsg_d",
+    "version": "2.1.0-28",
+    "codeBytes": 25896,
+    "wagoJsonBytes": 504271,
+    "wagoJsonSha256": "424cb21c5cfc8e0bed46e8a69068dc0d16f598b61431682b4301b84e6a9e4f61",
+    "why": "Raid pack: Sunwell Plateau (Tems), the most installed TBC pack"
+  },
+  {
+    "id": "PA-hKPPtc",
+    "name": "Tems' TBC Dungeons WA Pack",
+    "url": "https://wago.io/PA-hKPPtc",
+    "version": "1.1.2-12",
+    "codeBytes": 20908,
+    "wagoJsonBytes": 613168,
+    "wagoJsonSha256": "d34bc916520d7721b7beb9889f17a18348644a1866f5ce255415246706151332",
+    "why": "Dungeon pack (Tems), many custom triggers"
+  },
+  {
+    "id": "1qyg9npGm",
+    "name": "[Merfin] T5 - TBC Anniversary (TK, SSC)",
+    "url": "https://wago.io/1qyg9npGm",
+    "version": "2.4.137-210",
+    "codeBytes": 121564,
+    "wagoJsonBytes": 1580611,
+    "wagoJsonSha256": "1deb801b8648a4d38139555f9133cbd83ce2e50e7200ef5d2463ac6fd8ecf25b",
+    "why": "Raid pack: T5 (Merfin, TK/SSC), very large with heavy custom Lua"
+  },
+  {
+    "id": "RVsdd3Yll",
+    "name": "Karazhan Trash Requirements",
+    "url": "https://wago.io/RVsdd3Yll",
+    "version": "1.0.4",
+    "codeBytes": 3442,
+    "wagoJsonBytes": 7566,
+    "wagoJsonSha256": "5b4e98b5cc6bd95801986e685aa94500ae601f5a65da2e6af03b8f26d04b83d2",
+    "why": "Karazhan trash requirements: custom text over the combat log"
+  },
+  {
+    "id": "4ut4DMIF3",
+    "name": "Eredar Twins - Conflagration",
+    "url": "https://wago.io/4ut4DMIF3",
+    "version": "1.0.4",
+    "codeBytes": 3269,
+    "wagoJsonBytes": 6767,
+    "wagoJsonSha256": "0e5fdd1226e61315f03712ac7f1690d8aae1f2d0a818f690dfdb6a0f90a0f816",
+    "why": "Boss mod: Eredar Twins Conflagration, combat-log custom trigger"
+  },
+  {
+    "id": "eolN1wZ3j",
+    "name": "KalecgosSync",
+    "url": "https://wago.io/eolN1wZ3j",
+    "version": "2.0.6-8",
+    "codeBytes": 5618,
+    "wagoJsonBytes": 18744,
+    "wagoJsonSha256": "64112ffa5303d2ee316d1177c8f45958aeeac3818d880310629f6565e8d3ee01",
+    "why": "Boss mod: Kalecgos realm sync, addon messages in custom Lua"
+  },
+  {
+    "id": "a7mRKvNf8",
+    "name": "[Merfin] Cube Assigner",
+    "url": "https://wago.io/a7mRKvNf8",
+    "version": "1.0.2",
+    "codeBytes": 13282,
+    "wagoJsonBytes": 109087,
+    "wagoJsonSha256": "7d7d3e3a242a301d3183194af6f139b1ddd28dd2c0feba3eb84f44f68fdfd5d0",
+    "why": "Boss mod: Magtheridon cube assigner (Merfin), custom options and on-init code"
+  },
+  {
+    "id": "WvTWjRwcu",
+    "name": "Maey's Auto Marker for TBC",
+    "url": "https://wago.io/WvTWjRwcu",
+    "version": "1.1.7-18",
+    "codeBytes": 17813,
+    "wagoJsonBytes": 386811,
+    "wagoJsonSha256": "4e187e6c3c198e85ab10ff2c9c84b6a3337aa5db06a13e65a416cfb5d3c4de14",
+    "why": "Raid utility: auto marker for all TBC raids, large on-init code"
+  },
+  {
+    "id": "Mmys_57R_",
+    "name": "TBC Hunter UI by React [Anniversary UPDATED]",
+    "url": "https://wago.io/Mmys_57R_",
+    "version": "1.2.3-27",
+    "codeBytes": 42280,
+    "wagoJsonBytes": 603379,
+    "wagoJsonSha256": "3bd78b2d56264698c5ac57cf3cc136ee09f340ff8ee1fe524c95172aa3113b1d",
+    "why": "Class pack: Hunter UI (React), swing timers in TSU"
+  },
+  {
+    "id": "pzFBVUCdX",
+    "name": "Dora's TBC Enhancement Shaman Suite",
+    "url": "https://wago.io/pzFBVUCdX",
+    "version": "1.0.31",
+    "codeBytes": 75397,
+    "wagoJsonBytes": 670073,
+    "wagoJsonSha256": "cdcf511a24a0b298e4c897f6f66737574a6fbddca6bcef5049ad585bf7fcbc37",
+    "why": "Class pack: Enhancement Shaman suite, large"
+  },
+  {
+    "id": "sGScXfEv2",
+    "name": "Paladin (All specs) - TBC/BCC",
+    "url": "https://wago.io/sGScXfEv2",
+    "version": "1.0.47",
+    "codeBytes": 72050,
+    "wagoJsonBytes": 903923,
+    "wagoJsonSha256": "698388187c1633de973d64d538f6206bdecd733276d41bcbba318a29dac3f8f7",
+    "why": "Class pack: Paladin, all specs, large"
+  },
+  {
+    "id": "G6FHkDAOv",
+    "name": "nanShield TBC Anniversary",
+    "url": "https://wago.io/G6FHkDAOv",
+    "version": "1.0.11",
+    "codeBytes": 15182,
+    "wagoJsonBytes": 60907,
+    "wagoJsonSha256": "bbc06540cf6c60a9bfe8474426a6fac345e7bec50950adab395f47b2231f2f1f",
+    "why": "Class utility: nanShield (absorb tracking via combat log + TSU)"
+  },
+  {
+    "id": "MFeEVBM79",
+    "name": "Baranor's Seal Twist Swing Timer",
+    "url": "https://wago.io/MFeEVBM79",
+    "version": "1.5.0-9",
+    "codeBytes": 8088,
+    "wagoJsonBytes": 21774,
+    "wagoJsonSha256": "2e610f11b233f864397f27be73e3c484f65c58427059fa3a57a7013db27c87bd",
+    "why": "Class utility: seal twist swing timer, custom Lua"
+  },
+  {
+    "id": "fDDNP0SM7",
+    "name": "tazUI: SwingTimer",
+    "url": "https://wago.io/fDDNP0SM7",
+    "version": "3.0.5-15",
+    "codeBytes": 5526,
+    "wagoJsonBytes": 23723,
+    "wagoJsonSha256": "e7aaaa6646e098942d6e2b8b4c87be41e2b90b980f3ad6962f091811fb7b0654",
+    "why": "Swing timer (tazUI), custom trigger"
+  },
+  {
+    "id": "SwSK_MhT1",
+    "name": "Highlight raid frame with important debuff",
+    "url": "https://wago.io/SwSK_MhT1",
+    "version": "1.0.15",
+    "codeBytes": 5088,
+    "wagoJsonBytes": 34725,
+    "wagoJsonSha256": "33896e773584ae48768e29ab1e0b3c09cfad2dfa3d531dc4bfcf1274ae1a3b03",
+    "why": "Raid frames: highlight important debuffs (unit frame anchoring)"
+  },
+  {
+    "id": "LtKzCULNH",
+    "name": "T6.5 Raid Frame Glow Trackers",
+    "url": "https://wago.io/LtKzCULNH",
+    "version": "1.0.15",
+    "codeBytes": 5830,
+    "wagoJsonBytes": 33400,
+    "wagoJsonSha256": "c3ea315489504aa704795d93cb6a5887636a963d755c957344a3d070a7117709",
+    "why": "Raid frames: T6.5 glow trackers"
+  },
+  {
+    "id": "wVzrLyWSh",
+    "name": "Raid CD Tracker",
+    "url": "https://wago.io/wVzrLyWSh",
+    "version": "1.6.2-10",
+    "codeBytes": 7184,
+    "wagoJsonBytes": 105533,
+    "wagoJsonSha256": "b85be4a39578fd6ee8cd0961cd17a3617833bba5f660bbe60d208f3b1083ee73",
+    "why": "Raid cooldown tracker: dynamic group with TSU clones"
+  },
+  {
+    "id": "eGjz__yt3",
+    "name": "Incoming Heal Checker",
+    "url": "https://wago.io/eGjz__yt3",
+    "version": "1.1.2-13",
+    "codeBytes": 5038,
+    "wagoJsonBytes": 12687,
+    "wagoJsonSha256": "ba18fda1f73a4b5b814e33318d797f3eb28a6dc54a98ec1526404b9408874b3c",
+    "why": "Incoming heal checker: healing API in custom code"
+  },
+  {
+    "id": "_QP-pgykB",
+    "name": "Drum Me Daddy",
+    "url": "https://wago.io/_QP-pgykB",
+    "version": "3.0.3-15",
+    "codeBytes": 8049,
+    "wagoJsonBytes": 37579,
+    "wagoJsonSha256": "9cccd8c3afb576d8c9e310805de9e31681fc6f3c9c3b16d715f1e742ecb49676",
+    "why": "Drum Me Daddy: drums rotation, group messages"
+  },
+  {
+    "id": "j5_HHBbUC",
+    "name": "[Merfin] Equipped Items (TBC Anniversary)",
+    "url": "https://wago.io/j5_HHBbUC",
+    "version": "1.0.108",
+    "codeBytes": 14676,
+    "wagoJsonBytes": 53560,
+    "wagoJsonSha256": "1eabadd706ea86c958028148e9f277e955fd008ad377bccb8c971563a4d9177e",
+    "why": "Equipped items (Merfin): inventory and item APIs in custom code",
+    "luaErrors": [
+      {
+        "aura": "[Merfin] Equipped Items (Version Checker)",
+        "code": "addon.LuaError",
+        "message": "attempt to index a nil value",
+        "why": "The aura's own: its init code calls Merfin:L(...) from the MerfinPlus addon (a dependency wago lists). Without MerfinPlus the game raises too (there: attempt to index global 'Merfin')."
+      }
+    ]
+  },
+  {
+    "id": "6N_i-H6uI",
+    "name": "Wolde - Clickable Consumables [TBC]",
+    "url": "https://wago.io/6N_i-H6uI",
+    "version": "1.0.0",
+    "codeBytes": 21156,
+    "wagoJsonBytes": 274929,
+    "wagoJsonSha256": "10f3c00f981f2f44a9b6f127f481882d77255b985482d43a37d878947d239209",
+    "why": "Clickable consumables: bags, items, weapon enchants in TSU, Custom Options (found the SafePack gap)"
+  }
+]

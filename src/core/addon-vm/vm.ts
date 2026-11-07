@@ -211,6 +211,7 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
   // tab can write into the VM's copy (some get()s fill in defaults, a group's region re-anchors), and an edit always
   // starts from the document as given.
   let loadedKey: string | undefined;
+  let loadWarning: string | undefined;
   let evaluated = false;
   const ensureSession = (state: AuraState, forEdit = false) => {
     const aura = toAura(state.aura);
@@ -218,9 +219,10 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
     const key = JSON.stringify({ aura, children });
     if (key === loadedKey && !(forEdit && evaluated)) return;
     evaluated = false;
-    const r = json<{ ok: boolean; error?: string }>(
+    const r = json<{ ok: boolean; error?: string; warning?: string }>(
       `__options.load(${toLuaLiteral(aura)}, ${toLuaLiteral(children as unknown as LuaValue)})`,
     );
+    loadWarning = r.warning;
     if (!r.ok) {
       loadedKey = undefined;
       throw new OptionEditError(r.error ?? "The addon could not load this aura into the editor");
@@ -248,7 +250,7 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
       ensureSession(state);
       const tabs = json<OptionTab[]>("__options.tabList()");
       const tab = request?.tab ?? tabs[0]?.key ?? "region";
-      const base = { tabs, tab, fullWidth };
+      const base = { tabs, tab, fullWidth, ...(loadWarning && { warning: loadWarning }) };
       if (tabSources === undefined) {
         return { ...base, error: `This addon version's options window (${OPTIONS_FRAME_FILE}) no longer has the tab list the editor reads` };
       }

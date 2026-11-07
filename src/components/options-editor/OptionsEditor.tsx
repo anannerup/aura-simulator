@@ -107,6 +107,7 @@ export function OptionsEditor({ core, aura, childAuras = NO_CHILDREN, onChange }
       <div className={styles.panel} role="tabpanel" aria-label={tabs.find((t) => t.key === active)?.label}>
         {loadError && <p className={styles.error}>{loadError}</p>}
         {!result && !loadError && <p className={styles.muted}>Loading the addon&apos;s options…</p>}
+        {result?.warning && <p className={styles.error}>The addon reported an error loading this aura: {result.warning}</p>}
         {result?.error && <p className={styles.error}>This tab could not be built: {result.error}</p>}
         {dialog && (
           <OptionDialogView
