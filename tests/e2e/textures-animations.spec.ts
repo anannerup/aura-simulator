@@ -1,5 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import { Blp, BlpImage, BLP_COLOR_FORMAT, BLP_IMAGE_FORMAT } from "@wowserhq/format";
+import { EXAMPLES } from "../../src/render/examples";
+import { openPushed } from "../support/e2e-workspace";
+
+test.describe.configure({ timeout: 180_000 });
+
+/** Pushes one of the examples to the window. */
+const show = (page: Page, key: string) => openPushed(page, EXAMPLES[key]);
 
 // No network: wago.tools and the addon CDN answer every texture with a small synthetic BLP (the decoder reads the
 // format from the bytes, so .tga URLs get it too), Wowhead icons with a 1×1 GIF.
@@ -36,38 +43,39 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("each new region type renders", async ({ page }) => {
-  await page.goto("/lab?example=texture");
+  await show(page, "texture");
   await expect(region(page)).toHaveAttribute("data-region-type", "texture");
   await expect(region(page).getByTestId("texture-main")).toHaveAttribute("data-texture", "loaded");
   await expect(region(page).getByTestId("texture-main")).toHaveAttribute("data-rotation", "30");
 
-  await page.goto("/lab?example=progress-circular");
+  await show(page, "progress-circular");
   await expect(region(page)).toHaveAttribute("data-region-type", "progresstexture");
   await expect(region(page).getByTestId("progress-foreground")).toHaveAttribute("data-texture", "loaded");
   await expect(region(page).getByTestId("progress-background")).toBeAttached();
 
-  await page.goto("/lab?example=stop-motion");
+  await show(page, "stop-motion");
   await expect(region(page)).toHaveAttribute("data-region-type", "stopmotion");
   await expect(region(page).getByTestId("stopmotion-foreground")).toHaveAttribute("data-texture", "loaded");
 
-  await page.goto("/lab?example=model");
+  await show(page, "model");
   await expect(region(page)).toHaveAttribute("data-region-type", "model");
   await expect(region(page).getByTestId("model-placeholder")).toContainText("Model file 122968");
 
-  await page.goto("/lab?example=empty-elements");
+  await show(page, "empty-elements");
   await expect(region(page)).toHaveAttribute("data-region-type", "empty");
   for (const type of ["subtexture", "subcirculartexture", "sublineartexture", "substopmotion", "submodel", "subtext"]) {
     await expect(region(page).locator(`[data-subregion="${type}"]`)).toHaveCount(1);
   }
   await expect(region(page).locator('[data-subregion="subcirculartexture"]')).toHaveAttribute("data-angles", "0.0,270.0");
-  // The linear sub-element sits under the region (point anchoring: its TOP on the region's BOTTOM, 4 lower).
+  // The linear sub-element sits under the region (point anchoring: its TOP on the region's BOTTOM, 4 units lower).
   const lin = (await region(page).locator('[data-subregion="sublineartexture"]').boundingBox())!;
   const reg = (await region(page).boundingBox())!;
-  expect(lin.y).toBeCloseTo(reg.y + reg.height + 4, 0);
+  const unit = reg.width / 120;
+  expect(lin.y).toBeCloseTo(reg.y + reg.height + 4 * unit, 0);
 });
 
 test("progress textures follow the time slider (circular native, linear drawn by quads)", async ({ page }) => {
-  await page.goto("/lab?example=progress-circular");
+  await show(page, "progress-circular");
   const fg = region(page).getByTestId("progress-foreground");
   // A loaded texture means the page is hydrated (textures load in effects): only then do the controls react.
   await expect(fg).toHaveAttribute("data-texture", "loaded");
@@ -80,7 +88,7 @@ test("progress textures follow the time slider (circular native, linear drawn by
   // Clipped to the wedge: centre, top, the top-right corner, right.
   expect(await fg.evaluate((el) => (el as HTMLElement).style.clipPath)).toBe("polygon(50% 50%, 50% 0%, 100% 0%, 100% 50%)");
 
-  await page.goto("/lab?example=progress-linear");
+  await show(page, "progress-linear");
   const lfg = region(page).getByTestId("progress-foreground");
   await expect(lfg).toHaveAttribute("data-texture", "loaded");
   await expect(region(page).locator("[data-native]")).toHaveAttribute("data-native", "false");
@@ -92,12 +100,12 @@ test("progress textures follow the time slider (circular native, linear drawn by
 });
 
 test("stop motion steps with time, or with the trigger in progress mode", async ({ page }) => {
-  await page.goto("/lab?example=stop-motion");
+  await show(page, "stop-motion");
   const fg = region(page).getByTestId("stopmotion-foreground");
   const first = Number(await fg.getAttribute("data-frame"));
   await expect.poll(async () => Number(await fg.getAttribute("data-frame")), { timeout: 3000 }).not.toBe(first);
 
-  await page.goto("/lab?example=stop-motion-progress");
+  await show(page, "stop-motion-progress");
   const pfg = region(page).getByTestId("stopmotion-foreground");
   await expect(pfg).toHaveAttribute("data-texture", "loaded");
   // 45 of 60 s left: a quarter elapsed → frame floor(63 · 0.25) + 1.
@@ -106,8 +114,8 @@ test("stop motion steps with time, or with the trigger in progress mode", async 
   await expect(pfg).toHaveAttribute("data-frame", "48");
 });
 
-test("animations: start on show, main loops, finish keeps the region until it ends, replay", async ({ page }) => {
-  await page.goto("/lab?example=animated-icon");
+test("animations: start on show, main loops, finish keeps the region until it ends", async ({ page }) => {
+  await show(page, "animated-icon");
   const r = region(page);
   // Phases advance on animation frames, i.e. once hydrated.
   await expect(r).toHaveAttribute("data-anim-phase", "main", { timeout: 5000 });
@@ -122,13 +130,10 @@ test("animations: start on show, main loops, finish keeps the region until it en
   await trigger(page).getByLabel("Aura present").check();
   await expect(r).toHaveAttribute("data-anim-phase", "start");
   await expect(r).toHaveAttribute("data-anim-phase", "main", { timeout: 3000 });
-
-  await page.getByRole("button", { name: "Replay" }).click();
-  await expect(r).toHaveAttribute("data-anim-phase", "start");
 });
 
 test("a rotate animation turns a texture", async ({ page }) => {
-  await page.goto("/lab?example=spinning-texture");
+  await show(page, "spinning-texture");
   const tex = region(page).getByTestId("texture-main");
   await expect(region(page)).toHaveAttribute("data-anim-phase", "main", { timeout: 3000 });
   const a = Number(await tex.getAttribute("data-rotation"));

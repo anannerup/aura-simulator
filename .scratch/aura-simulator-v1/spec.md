@@ -147,7 +147,7 @@ address only names the workspace, never holds auras.
   - Known-good fixtures: the import strings shipped inside the addon itself (the Forever tutorial auras).
   - Run against more than one real addon version, so an addon update that breaks something is caught.
 - **Seam B, the running app from outside:**
-  - In the browser (Playwright): open the page with a state code and a situation, then assert what the preview shows (desaturated, glow on, hidden, bar width) and what the export yields.
+  - In the browser (Playwright): push an aura to a workspace (or import its file), open the window on it, set the situation, then assert what the game screen shows (desaturated, glow on, hidden, bar width) and what the export yields. (Superseded 2026-11-06: auras never go in the address, so tests no longer open the page with a state code.)
   - Over HTTP: pushing an aura updates an open page; spell search returns Forever spells; sync fills the cache.
   - wago.tools and Wowhead responses are recorded fixtures, so tests don't hit the internet.
 - **Final acceptance is manual, in the game.** The player imports and checks the v1 acceptance auras listed under Further Notes.
@@ -166,7 +166,7 @@ address only names the workspace, never holds auras.
 ## Further Notes
 
 - **v1 is done when** the player has imported each of these into the game and confirmed it works:
-  1. The buff reminder as two auras that work in combat: one shows the icon permanently desaturated and glowing as it runs low when under 3 minutes are left; the other shows it desaturated and glowing when the buff is missing.
+  1. The buff reminder as two auras that work in combat: one shows the icon desaturated only while under 3 minutes are left, glowing in its last 30 seconds (1a: the trigger's Remaining Time window, `desaturate`, a seconds-left glow); the other shows it desaturated and glowing when the buff is missing (1b).
   2. A cooldown icon that desaturates while on cooldown.
   3. A bar showing a debuff's time left on the target.
   4. A group holding these.

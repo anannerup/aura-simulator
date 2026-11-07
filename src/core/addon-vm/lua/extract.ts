@@ -205,7 +205,7 @@ function X.registries()
     processingOptions = D.processingOptions, showOnValues = D.showOnValues,
     singleUnits = D.singleUnits, approximateUnits = D.approximateUnits, missingTypes = D.missingTypes,
     remOperators = D.remOperators, totalOperators = D.totalOperators, stackOperators = D.stackOperators,
-    STACK_LIMIT = D.STACK_LIMIT,
+    STACK_LIMIT = D.STACK_LIMIT, missingRootProperties = D.missingRootProperties,
     supportedRegionTypes = {},
     supportsDurationColorCondition = D.SupportsDurationColorCondition and D.SupportsDurationColorCondition() or false,
   }

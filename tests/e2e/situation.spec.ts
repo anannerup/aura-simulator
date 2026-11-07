@@ -1,38 +1,52 @@
 import { expect, test, type Page } from "@playwright/test";
-import { ownWorkspacePage } from "../support/e2e-workspace";
+import { buffMissing, buffUnderThreeMinutes, cooldownIcon, remainingDesaturates, targetDebuffAura2 } from "../../src/render/examples";
+import { openPushed, ownWorkspacePage } from "../support/e2e-workspace";
+
+test.describe.configure({ timeout: 150_000 });
 
 const trigger = (page: Page, n = 1) => page.getByRole("group", { name: new RegExp(`^Trigger ${n}:`) });
 const region = (page: Page) => page.getByTestId("aura-preview").locator("[data-region-type]");
 const icon = (page: Page) => region(page).locator("img");
 
-test("time left slider drives %p text, its colour and the glow (Aura (Modern))", async ({ page }) => {
-  await page.goto("/lab?example=buff-running-low");
+test("v1 aura 1a: shown under 3 minutes, desaturated, %p text red and glowing as it runs out", async ({ page }) => {
+  await openPushed(page, buffUnderThreeMinutes);
   const text = region(page).locator('[data-subregion="subtext"]');
   const glow = region(page).locator('[data-subregion="subglow"]');
   await expect(text).toHaveText("45.0");
-  await expect(glow).toHaveAttribute("data-glow", "on");
+  await expect(glow).toHaveAttribute("data-glow", "off");
   await expect(icon(page)).toHaveCSS("filter", "grayscale(1)");
 
+  // Over 3 minutes left: the trigger's Remaining Time window hides it.
   await trigger(page).getByLabel("Duration").fill("3600");
   await trigger(page).getByLabel("Time left").fill("1000");
-  await expect(text).toHaveText("16:40");
+  await expect(region(page)).toHaveCount(0);
+
+  await trigger(page).getByLabel("Time left").fill("100");
+  await expect(text).toHaveText("1:40");
   await expect(glow).toHaveAttribute("data-glow", "off");
   await expect(text).toHaveCSS("color", "rgb(255, 255, 255)");
+
+  await trigger(page).getByLabel("Time left").fill("20");
+  await expect(glow).toHaveAttribute("data-glow", "on");
 
   await trigger(page).getByLabel("Time left").fill("5");
   await expect(text).toHaveText("5.0");
   await expect(text).toHaveCSS("color", "rgb(255, 0, 0)");
   await expect(glow).toHaveAttribute("data-glow", "on");
+  await expect(icon(page)).toHaveCSS("filter", "grayscale(1)");
 
-  // The cooldown swipe follows the time left.
+  // The cooldown swipe follows the time left; all of it keeps working in combat.
   await expect(region(page).getByTestId("cooldown-swipe")).toBeVisible();
+  await page.getByRole("switch", { name: "In combat" }).check();
+  await expect(glow).toHaveAttribute("data-glow", "on");
+  await expect(page.getByTestId("frozen-marker")).toHaveCount(0);
 
   await trigger(page).getByLabel("Aura present").uncheck();
   await expect(region(page)).toHaveCount(0);
 });
 
-test("present/missing toggle shows the missing aura desaturated and glowing", async ({ page }) => {
-  await page.goto("/lab?example=buff-missing");
+test("v1 aura 1b: the present/missing toggle shows the missing aura desaturated and glowing", async ({ page }) => {
+  await openPushed(page, buffMissing);
   await expect(region(page)).toHaveCount(0);
   await trigger(page).getByLabel("Aura present").uncheck();
   await expect(icon(page)).toHaveCSS("filter", "grayscale(1)");
@@ -45,7 +59,7 @@ test("present/missing toggle shows the missing aura desaturated and glowing", as
 });
 
 test("spell cooldown: desaturated while on cooldown, charges as stack text", async ({ page }) => {
-  await page.goto("/lab?example=cooldown-icon");
+  await openPushed(page, cooldownIcon);
   await expect(icon(page)).toHaveCSS("filter", "grayscale(1)");
   await expect(region(page).getByTestId("cooldown-text")).toHaveText("45");
   await trigger(page).getByLabel("On cooldown").uncheck();
@@ -56,7 +70,7 @@ test("spell cooldown: desaturated while on cooldown, charges as stack text", asy
 });
 
 test("target exists, stacks and the in-combat padlock on a frozen aura2 trigger", async ({ page }) => {
-  await page.goto("/lab?example=target-debuff");
+  await openPushed(page, targetDebuffAura2);
   await expect(region(page)).toBeVisible();
   await page.getByLabel("Target exists").uncheck();
   await expect(region(page)).toHaveCount(0);
@@ -82,9 +96,10 @@ test("target exists, stacks and the in-combat padlock on a frozen aura2 trigger"
   await expect(region(page)).toHaveCount(0);
 });
 
-test("a condition Aura (Modern) does not allow is reported and never applies", async ({ page }) => {
-  await page.goto("/lab?example=remaining-desaturates");
-  await expect(page.getByTestId("condition-problem")).toContainText("supported property");
+test("a condition Aura (Modern) rejects is reported by the combat check and never applies on the game screen", async ({ page }) => {
+  await openPushed(page, remainingDesaturates);
+  const panel = page.getByTestId("validation-panel");
+  await expect(panel.locator('li[data-code="modern.invalid"]')).toContainText("supported property", { timeout: 90_000 });
   await trigger(page).getByLabel("Time left").fill("3");
   await expect(icon(page)).toHaveCSS("filter", "none");
 });

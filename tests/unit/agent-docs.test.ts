@@ -58,6 +58,9 @@ describe("generated from the addon version", () => {
     expect(facts.triggers.find((t) => t.type === "secretAura")?.combat).toBe("ok");
     expect(facts.cooldownConditions.find((c) => c.variable === "onCooldown")?.combat).toBe("ok");
     expect(facts.cooldownConditions.find((c) => c.variable === "expirationTime")?.combat).toBe("limited");
+    // What a Missing condition may drive is read from the addon (AuraDisplay.missingRootProperties), not restated.
+    expect(facts.modern.missingRootProperties.icon).toEqual(expect.arrayContaining(["desaturate", "color"]));
+    expect(md).toContain(`icon: ${facts.modern.missingRootProperties.icon.map((p) => `\`${p}\``).join(", ")}`);
     // Defaults come from fillDefaults.
     expect(facts.regionDefaults.icon.width).toBe(64);
     expect(md).toMatch(/- `aurabar`: .*`width`=200/);

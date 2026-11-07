@@ -15,7 +15,8 @@
 ## Progress notes
 
 Standalone renderer: `src/render/glow/` (`<Glow type options width height visible time>`), shared texture
-loader `src/render/textures/`, demo page `/dev/glows`. Ported from LibCustomGlow-1.0 MINOR 25 as shipped in
+loader `src/render/textures/` (the `/dev/glows` demo page is gone since 2026-11-07: `tests/e2e/glows.spec.ts` pushes
+icons with each glow type to the window). Ported from LibCustomGlow-1.0 MINOR 25 as shipped in
 Musca Auras 1.15.0 (non-retail paths, since Musca's `isRetail` also requires interface >= 20000).
 Pixel and autocast geometry is cross-checked against the Lua itself (`tests/fixtures/lcg/`).
 
