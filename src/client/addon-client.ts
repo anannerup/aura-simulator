@@ -1,11 +1,10 @@
 /**
- * Browser side of the addon version picker: talks to /api/addon/* and builds the source fetcher the
- * aura core loads through (the server's cache first, jsDelivr directly if the server can't answer).
+ * Browser side of the addon version picker: talks to a game's `/api/<game>/addon/*` and builds the source fetcher the
+ * aura core loads through (the server's addon source cache: the whole bundle at once, single files as a fallback).
  */
 import { MAX_CLIENT_SPELL_IDS, type AddonDiff, type Resolution, type VersionList } from "@/api/addon";
 import {
   bundleFetcher,
-  jsDelivrFetcher,
   type AddonBundle,
   type AddonBundleSet,
   type AddonSourceFetcher,
@@ -14,39 +13,31 @@ import {
 } from "@/core";
 import { fetchJson, HttpError } from "@/lib/fetch-json";
 
-export function fetchVersions(): Promise<VersionList> {
-  return fetchJson("/api/addon/versions");
+/** A game's addon API: `/api/<game>/addon`. */
+const addonApi = (game: string) => `/api/${encodeURIComponent(game)}/addon`;
+
+export function fetchVersions(game: string): Promise<VersionList> {
+  return fetchJson(`${addonApi(game)}/versions`);
 }
 
-/**
- * Resolves a ref on the server. A ref the server says doesn't exist (4xx) throws; when the server itself
- * can't answer, returns null so the caller can fall back to jsDelivr with the ref as typed.
- */
-export async function resolveRef(ref: string): Promise<Resolution | null> {
-  try {
-    return await fetchJson(`/api/addon/resolve?ref=${encodeURIComponent(ref)}`);
-  } catch (e) {
-    if (e instanceof HttpError && e.status >= 400 && e.status < 500) throw e;
-    return null;
-  }
+/** The release a ref names, from the server (throws when there is none, or the server can't answer). */
+export function resolveRef(game: string, ref: string): Promise<Resolution> {
+  return fetchJson(`${addonApi(game)}/resolve?ref=${encodeURIComponent(ref)}`);
 }
 
-/** Fetches one file through the server's addon cache, falling back to jsDelivr. */
-function perFileFetcher(ref: string): AddonSourceFetcher {
-  const fallback = jsDelivrFetcher(ref);
+/** Fetches one file through the server's addon cache. */
+function perFileFetcher(game: string, ref: string): AddonSourceFetcher {
   return async (path) => {
-    try {
-      const res = await fetch(`/api/addon/${encodeURIComponent(ref)}/file?path=${encodeURIComponent(path)}`);
-      if (res.ok) return await res.text();
-    } catch {}
-    return fallback(path);
+    const res = await fetch(`${addonApi(game)}/${encodeURIComponent(ref)}/file?path=${encodeURIComponent(path)}`);
+    if (!res.ok) throw new HttpError(res.status, `Could not load ${path} of ${ref}: HTTP ${res.status}`);
+    return res.text();
   };
 }
 
 const BUNDLE_CACHE = "aura-simulator:addon-bundles";
 
-function addonBundleUrl(ref: string, set: AddonBundleSet): string {
-  return `/api/addon/${encodeURIComponent(ref)}/bundle?set=${set}&format=gzip`;
+function addonBundleUrl(game: string, ref: string, set: AddonBundleSet): string {
+  return `${addonApi(game)}/${encodeURIComponent(ref)}/bundle?set=${set}&format=gzip`;
 }
 
 /** Inflates and checks a `format=gzip` bundle response. */
@@ -68,11 +59,11 @@ async function openBundleCache(): Promise<Cache | null> {
 }
 
 /**
- * One request for every file of a bundle set. Immutable bundles (release tags, commit SHAs) are kept
- * in Cache Storage under their URL, which holds the resolved ref, so a repeat visit needs no network.
+ * One request for every file of a bundle set. Releases never change, so bundles are kept in Cache Storage under
+ * their URL (game, tag and set), and a repeat visit needs no network.
  */
-async function loadBundle(ref: string, set: AddonBundleSet): Promise<AddonBundle> {
-  const url = addonBundleUrl(ref, set);
+async function loadBundle(game: string, ref: string, set: AddonBundleSet): Promise<AddonBundle> {
+  const url = addonBundleUrl(game, ref, set);
   const cache = await openBundleCache();
   if (cache) {
     try {
@@ -93,13 +84,13 @@ async function loadBundle(ref: string, set: AddonBundleSet): Promise<AddonBundle
 /**
  * Fetches files through the server's addon cache: the whole bundle set in one request (from Cache
  * Storage when it's there), then any file the bundle doesn't hold, or every file if the bundle
- * fails, one by one from the server and then from jsDelivr.
+ * fails, one by one.
  */
-export function serverAddonFetcher(ref: string, set: AddonBundleSet = "full"): AddonSourceFetcher {
-  const perFile = perFileFetcher(ref);
+export function serverAddonFetcher(game: string, ref: string, set: AddonBundleSet = "full"): AddonSourceFetcher {
+  const perFile = perFileFetcher(game, ref);
   let fetcher: Promise<AddonSourceFetcher> | undefined;
   return async (path) => {
-    fetcher ??= loadBundle(ref, set).then(
+    fetcher ??= loadBundle(game, ref, set).then(
       (bundle) => bundleFetcher(bundle, perFile),
       () => perFile,
     );
@@ -107,31 +98,34 @@ export function serverAddonFetcher(ref: string, set: AddonBundleSet = "full"): A
   };
 }
 
-/** What the Forever client knows about spells, from the server's spell cache (for the addon VM). */
-export const fetchClientSpells: SpellInfoSource = async (ids) => {
-  const out: Record<number, ClientSpell | null> = {};
-  for (let i = 0; i < ids.length; i += MAX_CLIENT_SPELL_IDS) {
-    Object.assign(out, await fetchJson(`/api/addon/spells?ids=${ids.slice(i, i + MAX_CLIENT_SPELL_IDS).join(",")}`));
-  }
-  return out;
-};
-
-export function fetchDiff(from: string, to: string): Promise<AddonDiff> {
-  return fetchJson(`/api/addon/diff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+/** What the game client knows about spells, from the game's spell cache on the server (for the addon VM). */
+export function clientSpellsOf(game: string): SpellInfoSource {
+  return async (ids) => {
+    const out: Record<number, ClientSpell | null> = {};
+    for (let i = 0; i < ids.length; i += MAX_CLIENT_SPELL_IDS) {
+      Object.assign(out, await fetchJson(`${addonApi(game)}/spells?ids=${ids.slice(i, i + MAX_CLIENT_SPELL_IDS).join(",")}`));
+    }
+    return out;
+  };
 }
 
-const STORAGE_KEY = "aura-simulator:addon-ref";
+export function fetchDiff(game: string, from: string, to: string): Promise<AddonDiff> {
+  return fetchJson(`${addonApi(game)}/diff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+}
 
-export function readStoredRef(): string | null {
+/** The release the player picked last, per game (browser storage). */
+const refKey = (game: string) => `aura-simulator:${game}:addon-ref`;
+
+export function readStoredRef(game: string): string | null {
   try {
-    return window.localStorage.getItem(STORAGE_KEY);
+    return window.localStorage.getItem(refKey(game));
   } catch {
     return null;
   }
 }
 
-export function storeRef(ref: string): void {
+export function storeRef(game: string, ref: string): void {
   try {
-    window.localStorage.setItem(STORAGE_KEY, ref);
+    window.localStorage.setItem(refKey(game), ref);
   } catch {}
 }

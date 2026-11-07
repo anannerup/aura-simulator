@@ -1,19 +1,20 @@
 /**
- * The workspace: what the player is working on, a list of top-level auras (auras and groups, see `tree.ts`).
+ * The workspace: what the player is working on in one game, a list of top-level auras (auras and groups, see
+ * `tree.ts`).
  *
  * Stored form (browser storage in IndexedDB, and the workspace file the player exports/imports), JSON:
  *
- *   { "format": "aura-simulator/workspace", "version": 2, "updatedAt": "<ISO time>",
+ *   { "format": "aura-simulator/workspace", "version": 3, "game": "<game id>", "updatedAt": "<ISO time>",
  *     "selected": "<id>"?,                       // the selected aura (optional)
  *     "items": [ { "aura": {...}, "items": [ ... ], "code": "!WA:2!..."? }, ... ] }
  *
  * Each `aura` is the aura's canonical aura document (spell IDs and icon file IDs as the addon stores them, no
  * images); `items` is present exactly for groups and nests further. A top-level aura may carry its state code
  * (`code`): informational, handy to copy, and lets the page show the very same code again; the documents decide.
- * Version 1 (`items: [{code}]`, one state code per top-level aura) is still read and migrated by decoding each code.
+ * A workspace belongs to its game: another game's file is refused. Earlier versions (without a game) are not read.
  */
-import { canonicalize, isLuaTable, isStateCode, type AuraDocument, type AuraState } from "@/core";
-import { addSubtree, findNode, isGroupDoc, nodeFromState, nodeId, normalizeItems, type WorkspaceNode } from "./tree";
+import { canonicalize, isLuaTable, isStateCode, type AuraDocument } from "@/core";
+import { addSubtree, findNode, isGroupDoc, nodeId, normalizeItems, type WorkspaceNode } from "./tree";
 import { errorMessage } from "@/lib/errors";
 
 export interface Workspace {
@@ -24,32 +25,22 @@ export interface Workspace {
   selected?: string | null;
 }
 
-/** Decodes a state code (the aura core's `decode`); throws for anything that isn't an aura. */
-export type DecodeState = (code: string) => AuraState;
-
 export const WORKSPACE_FORMAT = "aura-simulator/workspace";
-const WORKSPACE_VERSION = 2;
-
-/** A workspace from state codes (one top-level aura each); clashing ids get the addon's "name 2". */
-function workspaceFromStates(states: AuraState[], updatedAt: string = new Date().toISOString()): Workspace {
-  let items: WorkspaceNode[] = [];
-  let selected: string | null = null;
-  for (const state of states) {
-    const added = addSubtree(items, nodeFromState(state), { parentId: null });
-    items = added.items;
-    selected ??= added.id;
-  }
-  return { items, updatedAt, selected };
-}
+const WORKSPACE_VERSION = 3;
 
 /** The stored/exported JSON (`pretty` indents it for a file). */
 export function serializeWorkspace(
   workspace: Workspace,
-  options: { pretty?: boolean; codeOf?: (node: WorkspaceNode) => string | null } = {},
+  options: { game: string; pretty?: boolean; codeOf?: (node: WorkspaceNode) => string | null },
 ): string {
   const write = (node: WorkspaceNode): Record<string, unknown> =>
     node.items ? { aura: node.aura, items: node.items.map(write) } : { aura: node.aura };
-  const body: Record<string, unknown> = { format: WORKSPACE_FORMAT, version: WORKSPACE_VERSION, updatedAt: workspace.updatedAt };
+  const body: Record<string, unknown> = {
+    format: WORKSPACE_FORMAT,
+    version: WORKSPACE_VERSION,
+    game: options.game,
+    updatedAt: workspace.updatedAt,
+  };
   if (workspace.selected) body.selected = workspace.selected;
   body.items = normalizeItems(workspace.items).map((node) => {
     const out = write(node);
@@ -70,10 +61,10 @@ export type ReadResult =
   | { ok: false; error: string };
 
 /**
- * Reads a stored workspace or workspace file, checking it strictly: the format, unique ids, groups only where
- * groups may be. Version 1 needs `decode` (codes that don't decode are left out).
+ * Reads a stored workspace or workspace file of `game`, checking it strictly: the format, the game, unique ids, groups
+ * only where groups may be.
  */
-export function readWorkspace(text: string | null | undefined, decode?: DecodeState): ReadResult {
+export function readWorkspace(text: string | null | undefined, game: string): ReadResult {
   if (!text) return { ok: false, error: "Empty file" };
   let data: unknown;
   try {
@@ -88,24 +79,10 @@ export function readWorkspace(text: string | null | undefined, decode?: DecodeSt
   const updatedAt =
     typeof d.updatedAt === "string" && !Number.isNaN(Date.parse(d.updatedAt)) ? d.updatedAt : new Date(0).toISOString();
 
-  if (d.version === 1) {
-    if (!decode) return { ok: false, error: "Version 1 workspaces need the aura core to read" };
-    const states: AuraState[] = [];
-    const codes: string[] = [];
-    for (const item of d.items) {
-      const code = (item as { code?: unknown } | null)?.code;
-      if (typeof code !== "string" || !isStateCode(code)) continue;
-      try {
-        states.push(decode(code.trim()));
-        codes.push(code.trim());
-      } catch {
-        // left out
-      }
-    }
-    if (states.length === 0) return { ok: false, error: "No aura of this version 1 workspace could be read" };
-    return { ok: true, workspace: workspaceFromStates(states, updatedAt), codes };
+  if (d.version !== WORKSPACE_VERSION) {
+    return { ok: false, error: `Workspace version ${String(d.version)} is not read (only version ${WORKSPACE_VERSION})` };
   }
-  if (d.version !== WORKSPACE_VERSION) return { ok: false, error: `Unknown workspace version ${String(d.version)}` };
+  if (d.game !== game) return { ok: false, error: `This workspace is for another game (${String(d.game)}), not ${game}` };
 
   const seen = new Set<string>();
   const readNode = (raw: unknown, where: string, parentDynamic: boolean): WorkspaceNode => {

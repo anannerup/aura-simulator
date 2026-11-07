@@ -3,8 +3,8 @@
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
 import { setTriggerSpellId, triggerCount, triggerSpellId, type AuraDocument } from "@/core";
 import { iconNameUrl } from "@/api/spells";
-import { QUESTION_MARK_ICON, iconStore } from "@/render/textures";
-import { getSpell, type Spell, type SpellFlag } from "./spell-api";
+import { QUESTION_MARK_ICON, useIconStore } from "@/render/textures";
+import { useSpellApi, type Spell, type SpellFlag } from "./spell-api";
 import { useSpellSearch } from "./useSpellSearch";
 import { Badge, Input, SearchIcon, Select } from "@/components/ui";
 import { SpellSync } from "./SpellSync";
@@ -24,6 +24,8 @@ const MEDIUM_ICON = (icon: string | null) => iconNameUrl(icon ?? QUESTION_MARK_I
 /** Spell search and choice for the aura's trigger, with the spell cache's sync status and warnings. */
 export function SpellPicker({ aura, onAuraChange }: SpellPickerProps) {
   const listId = useId();
+  const spellApi = useSpellApi();
+  const iconStore = useIconStore();
   const [triggerIndex, setTriggerIndex] = useState(1);
   const [syncVersion, setSyncVersion] = useState(0);
   const triggers = Math.max(1, triggerCount(aura));
@@ -35,7 +37,8 @@ export function SpellPicker({ aura, onAuraChange }: SpellPickerProps) {
   useEffect(() => {
     if (currentId === null) return;
     let cancelled = false;
-    getSpell(currentId)
+    spellApi
+      .get(currentId)
       .then((spell) => {
         if (cancelled) return;
         setInfo({ id: currentId, spell });
@@ -45,7 +48,7 @@ export function SpellPicker({ aura, onAuraChange }: SpellPickerProps) {
     return () => {
       cancelled = true;
     };
-  }, [currentId, syncVersion]);
+  }, [spellApi, iconStore, currentId, syncVersion]);
   const current = info && info.id === currentId ? info.spell : null;
 
   // Live search.
@@ -69,7 +72,8 @@ export function SpellPicker({ aura, onAuraChange }: SpellPickerProps) {
     if (previewId === null) return;
     let cancelled = false;
     const t = setTimeout(() => {
-      getSpell(previewId)
+      spellApi
+        .get(previewId)
         .then((spell) => !cancelled && setPreview({ id: previewId, spell }))
         .catch(() => !cancelled && setPreview({ id: previewId, spell: null }));
     }, 200);
@@ -77,7 +81,7 @@ export function SpellPicker({ aura, onAuraChange }: SpellPickerProps) {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [previewId]);
+  }, [spellApi, previewId]);
   const previewSpell = preview && preview.id === previewId ? preview.spell : null;
 
   function choose(option: Option) {
@@ -255,7 +259,7 @@ const FLAG_TEXT: Partial<Record<SpellFlag, { label: string; tooltip: string }>> 
     label: "Unknown",
     tooltip: "Neither WoW Forever's spell list nor Wowhead knows this spell ID. Check that the ID is right.",
   },
-  "not-in-forever": {
+  "not-in-game": {
     label: "Not in Forever",
     tooltip:
       "Wowhead knows this spell, but WoW Forever's spell list doesn't. The aura may never trigger in the game; check the ID in the game.",

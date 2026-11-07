@@ -7,7 +7,7 @@
  *   includes and the Lua files they expand to (the same expansion `loadAddonVM` uses).
  */
 import { ADDON_FILES, type AddonSourceFetcher } from "./addon-source";
-import { FULL_VM_ADDONS, addonLoadOrder } from "./addon-vm/toc";
+import { FULL_VM_ADDONS, addonLoadOrder, type AddonGameId } from "./addon-vm/toc";
 
 export type AddonBundleSet = "light" | "full";
 
@@ -23,12 +23,13 @@ export interface AddonBundle {
 
 /**
  * Reads every file of a bundle set through `fetchSource`. The file list is not hard-coded: the full
- * set records what the VM's load-order expansion asks for.
+ * set records what the VM's load-order expansion asks for, from the .toc files `game`'s client reads.
  */
 export async function collectAddonBundle(
   fetchSource: AddonSourceFetcher,
   ref: string,
   set: AddonBundleSet,
+  game: AddonGameId = "forever",
 ): Promise<AddonBundle> {
   const files = new Map<string, Promise<string>>();
   const read: AddonSourceFetcher = (path) => {
@@ -43,7 +44,7 @@ export async function collectAddonBundle(
   if (set === "full") {
     await Promise.all(
       FULL_VM_ADDONS.map(async (addon) => {
-        const { files: luaFiles } = await addonLoadOrder(read, addon);
+        const { files: luaFiles } = await addonLoadOrder(read, addon, game);
         await Promise.all(luaFiles.map((f) => read(`${addon}/${f}`)));
       }),
     );

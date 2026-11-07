@@ -1,10 +1,11 @@
+import { findServerGame } from "@/games/server";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeAll, describe, expect, test } from "vitest";
 import { loadAddon, type AuraCore, type AuraDocument } from "@/core";
-import { collectAddonFacts, type AddonFacts } from "@/docs/addon-facts";
-import { agentDocsMarkdown, DOCUMENTED_ENDPOINTS } from "@/docs/agent-docs";
-import { ALL_DOC_EXAMPLES } from "@/docs/worked-examples";
+import { collectAddonFacts, type AddonFacts } from "@/games/forever/docs/addon-facts";
+import { agentDocsMarkdown, DOCUMENTED_ENDPOINTS } from "@/games/forever/docs/agent-docs";
+import { ALL_DOC_EXAMPLES } from "@/games/forever/docs/worked-examples";
 import { cachedAddonFetcher } from "../support/addon-source";
 
 const REF = "v1.15.0";
@@ -42,7 +43,7 @@ describe("worked examples", () => {
   test("the addon's validation gives each example the combat status the docs promise", async () => {
     for (const e of ALL_DOC_EXAMPLES) {
       const result = await core.validate({ aura: e.body.aura, children: e.body.children ?? [] });
-      expect({ key: e.key, status: result.combat.status }).toEqual({ key: e.key, status: e.combat });
+      expect({ key: e.key, status: result.combat?.status }).toEqual({ key: e.key, status: e.combat });
       if (e.combat === "ok") expect(result.errors).toEqual([]);
     }
   });
@@ -101,7 +102,9 @@ describe("API endpoints", () => {
     expect([...mentioned].sort()).toEqual([...DOCUMENTED_ENDPOINTS].sort());
     for (const endpoint of DOCUMENTED_ENDPOINTS) {
       const [method, apiPath] = endpoint.split(" ");
-      const file = routeFile(apiPath);
+      // The game segment is the `[game]` folder; Forever must be a game the server knows.
+      expect(apiPath.startsWith("/api/forever/") && findServerGame("forever")).toBeTruthy();
+      const file = routeFile(apiPath.replace(/^\/api\/forever\//, "/api/<game>/"));
       expect(file, `${endpoint}: no route file`).toBeDefined();
       const source = readFileSync(file!, "utf8");
       expect(source, `${endpoint}: no ${method} handler`).toMatch(new RegExp(`export (async function ${method}\\b|\\{ ${method} \\})`));
@@ -109,7 +112,7 @@ describe("API endpoints", () => {
   });
 
   test("documents the workspace model, not address codes or short links", () => {
-    expect(md).toContain(`${ORIGIN}/?w=<id>`);
+    expect(md).toContain(`${ORIGIN}/forever?w=<id>`);
     expect(md).not.toMatch(/[?&](code|s)=/);
     expect(md).not.toMatch(/short[- ]links?/i);
   });

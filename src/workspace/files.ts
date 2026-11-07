@@ -3,7 +3,7 @@
  *
  * - An **aura file** (`<aura name>.txt`): exactly one state code (`!WA:2!...`), UTF-8, nothing else, so the
  *   player can open it and paste it into the game's import dialog.
- * - A **workspace file** (`.json`): the whole workspace, format v2 (see `workspace.ts`).
+ * - A **workspace file** (`.aura-workspace.json`): the whole workspace of one game (see `workspace.ts`).
  *
  * Importing accepts either: any text holding one or more state codes (several, e.g. one per line), or a
  * workspace file. Pure; the page reads the files and the session applies them.
@@ -48,7 +48,7 @@ export function auraFileName(auraId: string): string {
   return `${base || "aura"}.txt`;
 }
 
-/** File name for a workspace file. */
-export function workspaceFileName(workspaceId: string): string {
-  return `aura-workspace-${workspaceId}.json`;
+/** File name for a game's workspace file (`.aura-workspace.json`, so a plain `.json` can mean wago JSON). */
+export function workspaceFileName(gameId: string, workspaceId: string): string {
+  return `${gameId}-${workspaceId}.aura-workspace.json`;
 }

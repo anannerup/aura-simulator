@@ -1,0 +1,26 @@
+{
+  "wow": {
+    "product": "wow",
+    "version": "12.1.5.70783",
+    "created_at": "2026-11-04 00:38:01",
+    "build_config": "bc493ecb2898766c0f8947a99b4b3d65",
+    "product_config": "53020d32e1a25648c8e1eafd5771935f",
+    "cdn_config": "483baa37d48c06ae7d14c83a591c469e"
+  },
+  "wow_anniversary": {
+    "product": "wow_anniversary",
+    "version": "2.5.6.70577",
+    "created_at": "2026-10-26 23:16:08",
+    "build_config": "68581f70e323e88b2c44c928ffce7cd8",
+    "product_config": "92cbb948f8b043dc019e4447149478d5",
+    "cdn_config": "f58e6c66e61b069eb61d8bd41c57cb98"
+  },
+  "wowf": {
+    "product": "wowf",
+    "version": "1.60.1.70862",
+    "created_at": "2026-11-07 04:43:07",
+    "build_config": "5ada954223f7c409ea172361f5c9e565",
+    "product_config": "0d21f2f209a32c57f8c9b838cb35fd0a",
+    "cdn_config": "55a5dda25b026279080cad451b6cbf73"
+  }
+}

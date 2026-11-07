@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { buffMissing, buffUnderThreeMinutes, cooldownIcon, remainingDesaturates, targetDebuffAura2 } from "../../src/render/examples";
+import { buffMissing, buffUnderThreeMinutes, cooldownIcon, remainingDesaturates, targetDebuffAura2 } from "../../src/games/forever/examples";
 import { openPushed, ownWorkspacePage } from "../support/e2e-workspace";
 
 test.describe.configure({ timeout: 150_000 });

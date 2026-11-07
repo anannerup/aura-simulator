@@ -5,11 +5,11 @@ const item = (id: string, uid = `uid-${id}`): WorkspaceNode => ({ aura: { id, ui
 const ids = (items: WorkspaceNode[]) => items.map(nodeId);
 const NOW = "2026-11-07T12:00:00.000Z";
 const stored: Workspace = { items: [item("A"), item("B")], updatedAt: "2026-11-07T10:00:00.000Z", selected: "B" };
-const base = { stored: null, pushed: null, legacy: null, fallback: () => item("Sample"), now: NOW };
+const base = { stored: null, pushed: null, fallback: () => item("Sample"), now: NOW };
 
 describe("restoring a workspace", () => {
   it("shows the fallback when nothing has an aura", () => {
-    expect(chooseRestore(base)).toMatchObject({ selected: "Sample", fromServer: false, notice: null });
+    expect(chooseRestore(base)).toMatchObject({ selected: "Sample", fromServer: false });
   });
 
   it("prefers browser storage when it is newer than the server's latest push", () => {
@@ -29,18 +29,5 @@ describe("restoring a workspace", () => {
   it("uses the server's push alone when the browser has nothing", () => {
     const pushed = { node: item("Pushed"), updatedAt: "2026-11-07T09:00:00.000Z" };
     expect(chooseRestore({ ...base, pushed })).toMatchObject({ selected: "Pushed", fromServer: true });
-  });
-
-  it("imports an old ?code= link once, into what was restored, without the fallback", () => {
-    const r = chooseRestore({ ...base, stored, legacy: { node: item("Linked") } });
-    expect(ids(r.items)).toEqual(["A", "B", "Linked"]);
-    expect(r).toMatchObject({ selected: "Linked", updatedAt: NOW, fromServer: false });
-    expect(ids(chooseRestore({ ...base, legacy: { node: item("Linked") } }).items)).toEqual(["Linked"]);
-  });
-
-  it("says why an old link doesn't load, and still restores", () => {
-    const r = chooseRestore({ ...base, legacy: { error: "bad code" } });
-    expect(ids(r.items)).toEqual(["Sample"]);
-    expect(r.notice).toMatch(/bad code/);
   });
 });

@@ -15,10 +15,10 @@ The other changes:
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `/` shows the picker; picking Forever opens `/forever`; the title leads back to the picker
-- [ ] All existing features work under `/forever`, and all tests pass on the new routes
-- [ ] Old routes are gone; storage keys and server workspaces are per game
-- [ ] Version picker lists tags only
-- [ ] GLOSSARY.md and AGENTS.md describe games and where per-game code lives
+- [x] `/` shows the picker; picking Forever opens `/forever`; the title leads back to the picker
+- [x] All existing features work under `/forever`, and all tests pass on the new routes
+- [x] Old routes are gone; storage keys and server workspaces are per game
+- [x] Version picker lists tags only
+- [x] GLOSSARY.md and AGENTS.md describe games and where per-game code lives

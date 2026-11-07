@@ -1,4 +1,4 @@
-import { canonicalize, sampleIconAura, type AuraCore, type AuraDocument, type AuraState, type LuaObject } from "@/core";
+import { canonicalize, sampleIconAura, toWagoJson, type AuraCore, type AuraDocument, type AuraState, type LuaObject } from "@/core";
 import {
   addSubtree,
   auraFileName,
@@ -9,7 +9,7 @@ import {
   mergeWorkspaces,
   nodeFromState,
   nodeId,
-  parseAddress,
+  parseWorkspaceId,
   placeNewAura,
   readWorkspace,
   serializeWorkspace,
@@ -19,6 +19,7 @@ import {
   workspaceFileName,
   type PushInput,
   type Workspace,
+  type WorkspaceAddress,
   type WorkspaceNode,
 } from "@/workspace";
 import { StateCodes } from "./codes";
@@ -42,8 +43,6 @@ export interface WorkspaceView {
   children: AuraDocument[];
   /** True once restored. */
   ready: boolean;
-  /** Something the player should know about the restore (e.g. an old link); null when all is well. */
-  notice: string | null;
   /** Browser storage trouble (full, unavailable): the workspace still works, but isn't saved. Null when fine. */
   warning: string | null;
 }
@@ -56,7 +55,6 @@ export const EMPTY_VIEW: WorkspaceView = {
   aura: null,
   children: [],
   ready: false,
-  notice: null,
   warning: null,
 };
 
@@ -89,13 +87,13 @@ export interface ImportFilesResult {
 
 export interface SessionDeps {
   store?: WorkspaceStore;
-  link?: (workspaceId: string) => ServerLink;
+  link?: (workspace: WorkspaceAddress) => ServerLink;
 }
 
 const now = () => new Date().toISOString();
 
 /**
- * One page's workspace for one aura core: restores it (browser storage, or the server's newer push), applies every
+ * One page's workspace of a game for one aura core: restores it (browser storage, or the server's newer push), applies every
  * edit, keeps browser storage and the server in step, and follows pushes. Subscribe for the `WorkspaceView`.
  *
  * Every top-level aura a page change touched is sent to the server as a push, so agents can read the page's current
@@ -109,15 +107,17 @@ export class WorkspaceSession {
   private link: ServerLink | null = null;
   private readonly codes: StateCodes;
   private readonly store: WorkspaceStore;
-  private readonly makeLink: (workspaceId: string) => ServerLink;
+  private readonly makeLink: (workspace: WorkspaceAddress) => ServerLink;
 
   constructor(
     private readonly core: AuraCore,
+    /** The game the workspace belongs to: storage, the server and workspace files are per game. */
+    private readonly game: string,
     deps: SessionDeps = {},
   ) {
     this.codes = new StateCodes(core);
     this.store = deps.store ?? pageWorkspaceStore();
-    this.makeLink = deps.link ?? ((id) => new ServerLink(id));
+    this.makeLink = deps.link ?? ((w) => new ServerLink(w));
   }
 
   readonly getView = () => this.view;
@@ -127,26 +127,24 @@ export class WorkspaceSession {
     return () => void this.listeners.delete(listener);
   };
 
-  /** Restores the workspace the address (`?w=`) names; an old `?code=` in it is imported once. */
+  /** Restores the workspace the address (`?w=`) names. */
   async start(search: string): Promise<void> {
-    const address = parseAddress(search);
-    const id = address.workspaceId;
-    const link = (this.link = this.makeLink(id));
+    const id = parseWorkspaceId(search);
+    const link = (this.link = this.makeLink({ game: this.game, id }));
     // Ask the server first: no push is missed after its answer.
     const latest = await link.latest();
     if (this.disposed) return;
-    const stored = readWorkspace(await this.store.read(id), (c) => this.codes.decode(c));
+    const stored = readWorkspace(await this.store.read({ game: this.game, id }), this.game);
     if (this.disposed) return;
     if (stored.ok) this.codes.learn(stored.codes);
     const pushedNode = latest && this.tryNode(latest.code);
     const restored = chooseRestore({
       stored: stored.ok ? stored.workspace : null,
       pushed: pushedNode ? { node: pushedNode, updatedAt: latest!.updatedAt } : null,
-      legacy: address.legacyCode ? this.legacyNode(address.legacyCode) : null,
       fallback: () => ({ aura: sampleIconAura(this.core.internalVersion) }),
       now: now(),
     });
-    this.commit(id, restored.items, restored.selected, restored.fromServer ? "server" : "page", restored.notice, restored.updatedAt);
+    this.commit(id, restored.items, restored.selected, restored.fromServer ? "server" : "page", restored.updatedAt);
     link.follow((push) => this.adopt(push.code, push.updatedAt));
   }
 
@@ -242,13 +240,24 @@ export class WorkspaceSession {
     return { name: auraFileName(auraId), text: code, type: "text/plain;charset=utf-8" };
   }
 
-  /** The workspace file (JSON, format v2). */
+  /**
+   * An aura's wago JSON file: `<id>.json` holding what wago.io's Editor shows for its state code; the selected one
+   * by default. Throws WagoJsonError when wago can't hold the aura (a boolean key).
+   */
+  auraJsonFile(auraId: string | null = this.view.selectedId): ExportedFile | null {
+    const code = this.codeOf(auraId);
+    if (!code || !auraId) return null;
+    const name = auraFileName(auraId).replace(/\.txt$/, ".json");
+    return { name, text: toWagoJson(this.core.decode(code)), type: "application/json" };
+  }
+
+  /** The workspace file (`.aura-workspace.json`, see `workspace.ts`). */
   workspaceFile(): ExportedFile {
     const text = serializeWorkspace(
       { items: this.view.items, updatedAt: now(), selected: this.view.selectedId },
-      { pretty: true, codeOf: (n) => this.codes.of(n) },
+      { game: this.game, pretty: true, codeOf: (n) => this.codes.of(n) },
     );
-    return { name: workspaceFileName(this.view.workspaceId ?? "default"), text, type: "application/json" };
+    return { name: workspaceFileName(this.game, this.view.workspaceId ?? "default"), text, type: "application/json" };
   }
 
   /**
@@ -277,7 +286,7 @@ export class WorkspaceSession {
           else result.errors.push(`Could not read ${content.codes.length > 1 ? `${file.name} (code ${i + 1})` : file.name}: ${r.error}`);
         });
       } else {
-        const read = readWorkspace(content.text, (c) => this.codes.decode(c));
+        const read = readWorkspace(content.text, this.game);
         if (!read.ok) {
           fail(read.error);
           continue;
@@ -348,14 +357,6 @@ export class WorkspaceSession {
     }
   }
 
-  private legacyNode(code: string): { node: WorkspaceNode } | { error: string } {
-    try {
-      return { node: nodeFromState(this.codes.decode(code)) };
-    } catch (e) {
-      return { error: errorMessage(e) };
-    }
-  }
-
   private withSelection(view: WorkspaceView, items: WorkspaceNode[], selectedId: string | null): WorkspaceView {
     const found = selectedId ? findNode(items, selectedId) : null;
     const node = found?.node ?? items[0] ?? null;
@@ -375,13 +376,12 @@ export class WorkspaceSession {
     items: WorkspaceNode[],
     selectedId: string | null,
     origin: "page" | "server",
-    notice: string | null = null,
     updatedAt = now(),
   ) {
     if (this.disposed) return;
     const before = new Set(this.view.items.map((n) => this.codes.of(n)));
     const topCodes = items.map((n) => this.codes.of(n)); // throws (and changes nothing) if the addon can't encode it
-    this.show(this.withSelection({ ...this.view, workspaceId: id, ready: true, notice }, items, selectedId));
+    this.show(this.withSelection({ ...this.view, workspaceId: id, ready: true }, items, selectedId));
     this.save(id, updatedAt);
     if (origin === "page") for (const code of topCodes) if (!before.has(code)) void this.link?.push(code);
   }
@@ -389,8 +389,8 @@ export class WorkspaceSession {
   private save(id: string, updatedAt: string) {
     const { items, selectedId } = this.view;
     this.store.save(
-      id,
-      () => serializeWorkspace({ items, updatedAt, selected: selectedId }, { codeOf: (n) => this.codes.of(n) }),
+      { game: this.game, id },
+      () => serializeWorkspace({ items, updatedAt, selected: selectedId }, { game: this.game, codeOf: (n) => this.codes.of(n) }),
       (warning) => {
         if (!this.disposed && this.view.warning !== warning) this.show({ ...this.view, warning });
       },
@@ -404,7 +404,7 @@ export class WorkspaceSession {
     if (!node) return;
     try {
       const merged = mergeTopLevel(this.view.items, node);
-      this.commit(this.view.workspaceId, merged.items, merged.id, "server", null, updatedAt);
+      this.commit(this.view.workspaceId, merged.items, merged.id, "server", updatedAt);
     } catch {
       // Not encodable here: ignore.
     }

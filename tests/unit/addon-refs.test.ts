@@ -11,7 +11,7 @@ import {
   normalizeVersion,
 } from "@/server/addon";
 
-const fixture = (name: string) => JSON.parse(readFileSync(path.join(__dirname, "../fixtures/addon", name), "utf8"));
+const fixture = (name: string) => JSON.parse(readFileSync(path.join(__dirname, "../fixtures/forever/addon", name), "utf8"));
 const jsDelivrVersions: string[] = fixture("jsdelivr-versions.json").versions.map((v: { version: string }) => v.version);
 const tags = (fixture("github-tags.json") as { name: string; commit: { sha: string } }[]).map((t) => ({
   name: t.name,
@@ -89,7 +89,7 @@ describe("mapReleases (recorded jsDelivr versions + GitHub tags)", () => {
 });
 
 describe("validation", () => {
-  it("accepts tags, branches and SHAs; rejects path tricks", () => {
+  it("accepts names shaped like refs (resolve decides which are releases); rejects path tricks", () => {
     for (const ok of ["v1.15.0", "1.15.0-beta2", "main", "feature/x", "448b7b3"]) expect(() => assertValidRef(ok)).not.toThrow();
     for (const bad of ["", "../x", "/main", "a b", "x?y", "a%2Fb"]) expect(() => assertValidRef(bad)).toThrow();
   });

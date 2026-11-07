@@ -111,10 +111,12 @@ export function createWorkspaceHub(limits: HubLimits = {}): WorkspaceHub {
   };
 }
 
-const g = globalThis as typeof globalThis & { __workspaceHub?: WorkspaceHub };
+const g = globalThis as typeof globalThis & { __workspaceHubs?: Map<string, WorkspaceHub> };
 
-/** The app's workspace hub (in-memory, one per server process). */
-export function getWorkspaceHub(): WorkspaceHub {
-  g.__workspaceHub ??= createWorkspaceHub();
-  return g.__workspaceHub;
+/** A game's workspace hub (in-memory, one per game and server process): workspaces are namespaced per game. */
+export function getWorkspaceHub(gameId: string): WorkspaceHub {
+  const hubs = (g.__workspaceHubs ??= new Map());
+  let hub = hubs.get(gameId);
+  if (!hub) hubs.set(gameId, (hub = createWorkspaceHub()));
+  return hub;
 }

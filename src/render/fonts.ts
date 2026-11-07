@@ -5,7 +5,8 @@
  * has loaded, or if it fails, the text uses a similar web font.
  */
 import { useEffect, useSyncExternalStore, type CSSProperties } from "react";
-import { DEFAULT_ADDON_REF, type LuaValue } from "@/core";
+import type { LuaValue } from "@/core";
+import { forever } from "@/games/forever";
 import { rgbaCss } from "./color";
 import { DEFAULT_FONT, FONTS } from "./media";
 import { textureLoader, textureUrls } from "./textures";
@@ -30,7 +31,7 @@ export function fontFamily(value: LuaValue | undefined): string {
 }
 
 /** Where a game file (font, sound) is downloaded from: a FileDataID or an `Interface\\AddOns\\…` path. */
-export function fontUrl(source: number | string, addonRef = DEFAULT_ADDON_REF): string {
+export function fontUrl(source: number | string, addonRef = forever.addon.fallbackRef): string {
   return textureUrls(source, addonRef)[0];
 }
 

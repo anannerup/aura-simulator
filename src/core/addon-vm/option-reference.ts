@@ -6,12 +6,15 @@
  *
  * ## Table paths
  *
- * A table path names one key of an aura's table, as wago JSON and the aura document hold it:
- * - segments are joined with `.`, from the aura's own table (wago JSON's `d`; for a group's children: each `c[i]`);
- * - a string key is written as is (`trigger`, `subRegions`, `text_text`); keys never contain `.`;
- * - a number segment `n` is the Lua key n (1-based). In wago JSON it is the object key `"n"` (mixed tables such as
- *   `triggers`: `{"1": {…}, "disjunctive": "any"}`) or element n-1 of a JSON array when the table is a pure
- *   sequence (`subRegions`, `conditions`, `changes`); in the aura document it is `"[n]"` or element n-1;
+ * A table path is a chain of wago JSON keys, read from the aura's table (wago JSON's `d`; for a group's children,
+ * each `c[i]`):
+ * - the keys are joined with `.`; a string key is written as is (`trigger`, `subRegions`, `text_text`), and keys
+ *   never contain `.`;
+ * - a number `n` is the Lua key n, counted from 1. wago JSON writes a table whose keys are all numbers as a JSON
+ *   array, so there n is the n-th element (index n-1): `subRegions`, `conditions`, `changes`, a colour (`lists` names
+ *   the tables that always are). A table that also has string keys is an object, and n is its key `"n"`: `triggers`
+ *   (`{"1": {…}, "activeTriggerMode": -10}`; with only triggers in it, it is an array too). The aura document has the
+ *   same arrays and writes the object key as `"[n]"`;
  * - `*` (multiselect options only) stands for one key of the option's `values`: the option writes
  *   `<path with that key>: true` per checked value (e.g. `load.class.multi.*` → `load.class.multi.MAGE`);
  * - a path stops where a value changed as a whole: a scalar, a list of scalars (a colour `[r, g, b, a]` with 0..1
@@ -103,7 +106,7 @@ export interface OptionReferenceEntry {
 }
 
 /** The reference's shape and generator version: changes when either does (caches keyed by it regenerate). */
-export const OPTION_REFERENCE_FORMAT = 1;
+export const OPTION_REFERENCE_FORMAT = 2;
 
 export interface OptionReference {
   /** OPTION_REFERENCE_FORMAT of the generator that made it. */
@@ -121,6 +124,12 @@ export interface OptionReference {
   byPath: Record<string, number[]>;
   /** Same for a group's children's tables. */
   byChildPath: Record<string, number[]>;
+  /**
+   * Path patterns of the tables that were lists (only number keys: JSON arrays in wago JSON and the aura document)
+   * in every probed aura that had them: `subRegions`, `conditions`, `conditions.#.changes`, `color`, … A table with
+   * number and string keys is an object with `"n"` keys (`triggers`, usually). An empty table is `[]` in wago JSON.
+   */
+  lists: string[];
 }
 
 /** The AddonVM calls the generator uses (synchronous; it runs inside the VM's worker or inline). */
@@ -300,6 +309,15 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
   const entries: OptionReferenceEntry[] = [];
   const byContent = new Map<string, number>();
 
+  // Tables seen as lists, and seen as objects with keys (not lists), by path pattern.
+  const asList = new Set<string>();
+  const asObject = new Set<string>();
+  const collectArrays = (v: LuaValue, prefix: string[] = []) => {
+    if (!isLuaTable(v)) return;
+    if (prefix.length > 0 && !isEmpty(v)) (Array.isArray(v) ? asList : asObject).add(pathPattern(prefix.join(".")));
+    for (const [k, x] of entriesOf(v)) collectArrays(x, [...prefix, k]);
+  };
+
   const add = (entry: Omit<OptionReferenceEntry, "scopes">, scope: OptionScope) => {
     const key = JSON.stringify(entry);
     const i = byContent.get(key);
@@ -375,6 +393,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
       return recorded();
     }
     const e = r.edit;
+    collectArrays(e.aura);
     const value = r.value;
     const changed = changedPaths(state.aura, e.aura).sort();
     entry.writes = changed;
@@ -414,15 +433,31 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
   /**
    * The aura as the addon keeps it once a tab's set() has run: some set() calls also write settings the new aura
    * doesn't have yet (a group's anchor, its children's text formats). Setting a few options of the tab to the value
-   * they show does just that, so probes on the settled aura show only what each option writes.
+   * they show does just that, so probes on the settled aura show only what each option writes. An edit that changes
+   * which options the window shows (writing a default can: WeakAuras2's `disjunctive` hides a text's time formats) is
+   * not kept: the settled aura shows the new aura's options.
    */
+  const shownCache = new Map<string, string>();
+  const shown = (state: AuraState) => {
+    const key = JSON.stringify(state);
+    let s = shownCache.get(key);
+    if (s === undefined) {
+      s = JSON.stringify(src.options(state).tabs.map(({ key: tab }) => walk(tree(state, tab)).filter(isReferenced).map((n) => n.path)));
+      shownCache.set(key, s);
+    }
+    return s;
+  };
   const settle = (state: AuraState, tab: string): AuraState => {
     const nodes = walk(tree(state, tab)).filter((n) => n.canSet && !n.hidden && !n.disabled);
     const selects = nodes.filter((n) => n.type === "select" && (n.values ?? []).some(([k]) => k === n.value));
     const toggles = nodes.filter((n) => n.type === "toggle" && typeof n.value === "boolean");
+    let options: string | undefined;
     for (const same of [...selects, ...toggles].slice(0, 4)) {
       const r = edit(state, tab, same, same.value);
-      if (r.edit?.changed) state = { aura: r.edit.aura, children: r.edit.children ?? state.children };
+      if (!r.edit?.changed) continue;
+      const next = { aura: r.edit.aura, children: r.edit.children ?? state.children };
+      options ??= shown(state);
+      if (shown(next) === options) state = next;
     }
     return state;
   };
@@ -433,6 +468,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
    * scope.
    */
   const probeTab = async (state: AuraState, tab: string, scope: OptionScope, known = new Set<string>(), follow = true) => {
+    collectArrays(state.aura);
     const nodes = walk(tree(state, tab)).filter(isReferenced);
     const here = new Set(nodes.map((n) => JSON.stringify(n.path)));
     for (const node of nodes) {
@@ -516,5 +552,5 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
     index(byPath, e.writes, i);
     index(byChildPath, e.childWrites, i);
   });
-  return { format: OPTION_REFERENCE_FORMAT, ref: src.ref, generatedMs: Math.round(now() - t0), tabs, regionTypes, triggerTypes, entries, byPath, byChildPath };
+  return { format: OPTION_REFERENCE_FORMAT, ref: src.ref, generatedMs: Math.round(now() - t0), tabs, regionTypes, triggerTypes, entries, byPath, byChildPath, lists: [...asList].filter((p) => !asObject.has(p)).sort() };
 }

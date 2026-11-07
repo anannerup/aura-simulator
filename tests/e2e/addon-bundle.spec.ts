@@ -12,8 +12,8 @@ function addonRequests(page: Page) {
   const seen = { bundle: [] as string[], file: [] as string[], jsDelivr: [] as string[] };
   page.on("request", (r) => {
     const url = r.url();
-    if (/\/api\/addon\/[^/]+\/bundle\?/.test(url)) seen.bundle.push(url);
-    if (/\/api\/addon\/[^/]+\/files?[?/]/.test(url)) seen.file.push(url);
+    if (/\/api\/forever\/addon\/[^/]+\/bundle\?/.test(url)) seen.bundle.push(url);
+    if (/\/api\/forever\/addon\/[^/]+\/files?[?/]/.test(url)) seen.file.push(url);
     // Addon Lua only: the window's textures (logo, toolbar icons) come from the repository as media files.
     if (url.includes("cdn.jsdelivr.net/gh/") && !/\.(tga|blp)$/i.test(url)) seen.jsDelivr.push(url);
   });
@@ -24,7 +24,7 @@ test("the page loads the whole addon with one bundle request and no per-file req
   const seen = addonRequests(page);
   await loadFully(page);
   expect(seen.bundle).toHaveLength(1);
-  expect(seen.bundle[0]).toContain("/api/addon/v1.15.0/bundle?set=full");
+  expect(seen.bundle[0]).toContain("/api/forever/addon/v1.15.0/bundle?set=full");
   expect(seen.file).toEqual([]);
   expect(seen.jsDelivr).toEqual([]);
 });
@@ -38,7 +38,7 @@ test("a repeat visit takes the bundle from Cache Storage", async ({ page }) => {
 });
 
 test("when the bundle route fails, files are fetched one by one", async ({ page }) => {
-  await page.route("**/api/addon/*/bundle?*", (route) => route.abort());
+  await page.route("**/api/forever/addon/*/bundle?*", (route) => route.abort());
   const seen = addonRequests(page);
   await loadFully(page);
   expect(seen.file.some((u) => u.includes("WeakAuras%2FInit.lua"))).toBe(true);
@@ -46,7 +46,7 @@ test("when the bundle route fails, files are fetched one by one", async ({ page 
 });
 
 test("the bundle endpoint: light and full sets, immutable, ETag and 304, gzip format", async ({ request }) => {
-  const light = await request.get("/api/addon/v1.15.0/bundle?set=light");
+  const light = await request.get("/api/forever/addon/v1.15.0/bundle?set=light");
   expect(light.status()).toBe(200);
   expect(light.headers()["cache-control"]).toContain("immutable");
   const body = (await light.json()) as { ref: string; set: string; files: Record<string, string> };
@@ -57,14 +57,14 @@ test("the bundle endpoint: light and full sets, immutable, ETag and 304, gzip fo
 
   const etag = light.headers()["etag"];
   expect(etag).toMatch(/^"[A-Za-z0-9_-]+"$/);
-  const again = await request.get("/api/addon/v1.15.0/bundle?set=light", { headers: { "If-None-Match": etag } });
+  const again = await request.get("/api/forever/addon/v1.15.0/bundle?set=light", { headers: { "If-None-Match": etag } });
   expect(again.status()).toBe(304);
 
-  const full = await request.get("/api/addon/1.15.0/bundle?set=full&format=gzip");
+  const full = await request.get("/api/forever/addon/1.15.0/bundle?set=full&format=gzip");
   expect(full.status()).toBe(200);
   expect(full.headers()["content-type"]).toBe("application/gzip");
   expect(full.headers()["x-addon-ref"]).toBe("v1.15.0");
 
-  expect((await request.get("/api/addon/v1.15.0/bundle?set=everything")).status()).toBe(400);
-  expect((await request.get("/api/addon/v1.15.0/bundle?set=full&format=zip")).status()).toBe(400);
+  expect((await request.get("/api/forever/addon/v1.15.0/bundle?set=everything")).status()).toBe(400);
+  expect((await request.get("/api/forever/addon/v1.15.0/bundle?set=full&format=zip")).status()).toBe(400);
 });

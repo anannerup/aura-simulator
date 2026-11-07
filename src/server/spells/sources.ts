@@ -1,26 +1,33 @@
 /**
- * Remote data sources for the spell cache.
+ * Remote data sources for a game's spell cache.
  *
- * - wago.tools (authoritative WoW Forever data, product `wowf`): build list, and DB2 CSV
- *   exports SpellName (ID, Name_lang), SpellMisc (SpellID -> SpellIconFileDataID) and
- *   ManifestInterfaceData (FileDataID -> FilePath + FileName for every Interface\ file,
- *   including all of Interface\ICONS). ManifestInterfaceData is ~9 MB and maps icon
- *   FileDataIDs to names without the 150 MB community listfile.
- * - Wowhead tooltip API (Classic data; Wowhead has no Forever environment): name, icon and
- *   tooltip HTML per spell ID. Fetched one spell at a time, on lookup, never in bulk.
+ * - wago.tools (authoritative client data per product: `wowf` for WoW Forever, `wow_anniversary` for TBC
+ *   Anniversary): build list, and DB2 CSV exports SpellName (ID, Name_lang), SpellMisc (SpellID ->
+ *   SpellIconFileDataID) and ManifestInterfaceData (FileDataID -> FilePath + FileName for every Interface\ file,
+ *   including all of Interface\ICONS). ManifestInterfaceData maps icon FileDataIDs to names without the 150 MB
+ *   community listfile.
+ * - Wowhead tooltip API in the game's Wowhead environment (Forever has none of its own and uses Classic's):
+ *   name, icon and tooltip HTML per spell ID. Fetched one spell at a time, on lookup, never in bulk.
  */
 
 export type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 
-export const FOREVER_PRODUCT = "wowf";
+/** Where a game client's spell data comes from. Each game names its own (`src/games/<game>/sources.ts`). */
+export interface SpellSource {
+  /** wago.tools product whose builds are synced. */
+  product: string;
+  /** Wowhead tooltip environment: `nether.wowhead.com/<path>/tooltip/spell/<id>?dataEnv=<dataEnv>`. */
+  wowhead: { path: string; dataEnv: number };
+}
+
 const WAGO = "https://wago.tools";
-const WOWHEAD_TOOLTIP = "https://nether.wowhead.com/classic/tooltip/spell";
+
 function wagoCsvUrl(table: string, build: string): string {
   return `${WAGO}/db2/${table}/csv?build=${encodeURIComponent(build)}`;
 }
 
-function wowheadTooltipUrl(id: number): string {
-  return `${WOWHEAD_TOOLTIP}/${id}?dataEnv=4&locale=0`;
+function wowheadTooltipUrl(source: SpellSource, id: number): string {
+  return `https://nether.wowhead.com/${source.wowhead.path}/tooltip/spell/${id}?dataEnv=${source.wowhead.dataEnv}&locale=0`;
 }
 
 async function getOk(fetchFn: FetchFn, url: string): Promise<Response> {
@@ -29,12 +36,12 @@ async function getOk(fetchFn: FetchFn, url: string): Promise<Response> {
   return res;
 }
 
-/** Latest WoW Forever build version, e.g. "1.60.1.70790". */
-export async function fetchLatestForeverBuild(fetchFn: FetchFn): Promise<string> {
+/** Latest build version of a wago.tools product, e.g. "1.60.1.70790" for `wowf`. */
+export async function fetchLatestBuild(fetchFn: FetchFn, product: string): Promise<string> {
   const res = await getOk(fetchFn, `${WAGO}/api/builds/latest`);
   const data = (await res.json()) as Record<string, { version?: string } | undefined>;
-  const version = data[FOREVER_PRODUCT]?.version;
-  if (!version) throw new Error(`wago.tools lists no "${FOREVER_PRODUCT}" build`);
+  const version = data[product]?.version;
+  if (!version) throw new Error(`wago.tools lists no "${product}" build`);
   return version;
 }
 
@@ -48,12 +55,12 @@ export type WowheadSpell =
   | { status: "not_found" };
 
 /**
- * Fetches one spell from Wowhead's tooltip API. Returns `not_found` when Wowhead answers
- * with an error body (unknown or out-of-range ID). Throws on network or server errors, so
- * the caller can avoid caching a transient failure.
+ * Fetches one spell from Wowhead's tooltip API in the source's environment. Returns `not_found` when Wowhead
+ * answers with an error body (unknown or out-of-range ID). Throws on network or server errors, so the caller can
+ * avoid caching a transient failure.
  */
-export async function fetchWowheadSpell(fetchFn: FetchFn, id: number): Promise<WowheadSpell> {
-  const res = await fetchFn(wowheadTooltipUrl(id));
+export async function fetchWowheadSpell(fetchFn: FetchFn, source: SpellSource, id: number): Promise<WowheadSpell> {
+  const res = await fetchFn(wowheadTooltipUrl(source, id));
   if (res.status >= 500) throw new Error(`Wowhead tooltip ${id}: HTTP ${res.status}`);
   let body: Record<string, unknown>;
   try {

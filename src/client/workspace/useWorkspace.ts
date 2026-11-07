@@ -9,7 +9,7 @@ import { EMPTY_VIEW, WorkspaceSession, type WorkspaceView } from "./session";
 const noSubscription = () => () => {};
 const emptyView = () => EMPTY_VIEW;
 
-/** Leaves only `?w=` in the address (drops an old `?code=` and anything else). */
+/** Leaves only `?w=` in the address (drops anything else). */
 function cleanAddress(workspaceId: string) {
   const { pathname, search, hash } = window.location;
   const clean = buildSearch(workspaceId);
@@ -17,16 +17,16 @@ function cleanAddress(workspaceId: string) {
 }
 
 /**
- * The page's workspace session for an aura core, once restored (null before), and its view. A new core (another
+ * The page's workspace session of a game for an aura core, once restored (null before), and its view. A new core (another
  * addon version) starts a new session, which restores the same workspace; the old one shows until then. The restored
  * session also answers `window.auraSimulator` (see `page-api.ts`).
  */
-export function useWorkspace(core: AuraCore | null): { view: WorkspaceView; session: WorkspaceSession | null } {
+export function useWorkspace(core: AuraCore | null, game: string): { view: WorkspaceView; session: WorkspaceSession | null } {
   const [session, setSession] = useState<WorkspaceSession | null>(null);
 
   useEffect(() => {
     if (!core) return;
-    const s = new WorkspaceSession(core);
+    const s = new WorkspaceSession(core, game);
     let uninstall = () => {};
     let live = true;
     void s.start(window.location.search).then(() => {
@@ -41,7 +41,7 @@ export function useWorkspace(core: AuraCore | null): { view: WorkspaceView; sess
       uninstall();
       s.dispose();
     };
-  }, [core]);
+  }, [core, game]);
 
   const view = useSyncExternalStore(session?.subscribe ?? noSubscription, session?.getView ?? emptyView, emptyView);
   return { view, session };

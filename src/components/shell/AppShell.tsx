@@ -11,9 +11,11 @@ export interface DrawerTab {
 }
 
 export interface AppShellProps {
+  /** The window's accessible name ("Musca Auras options"). */
+  windowLabel: string;
   /** The portrait in the window's top-left corner (the logo). */
   portrait?: ReactNode;
-  /** The title bar's centre ("Musca Auras 1.15.0"; the version picker). */
+  /** The title bar's centre (the game, and the version picker). */
   title: ReactNode;
   /** The title bar's right side (the guide button). */
   titleActions?: ReactNode;
@@ -35,7 +37,7 @@ export interface AppShellProps {
 }
 
 /**
- * The app frame: Musca Auras' options window (title bar, toolbar, aura list, option tabs, footer) docked on the left,
+ * The app frame: the addon's options window (title bar, toolbar, aura list, option tabs, footer) docked on the left,
  * the game screen filling the rest, and an optional drawer under the screen. It fills the viewport and never scrolls
  * as a page; each pane scrolls on its own. Below 1100px the screen sits above the window.
  */
@@ -69,7 +71,7 @@ export function AppShell(props: AppShellProps) {
 
   return (
     <div className={styles.shell} data-minimized={minimized} {...dropHandlers}>
-      <section className={styles.window} aria-label="Musca Auras options" data-dragging={dragging}>
+      <section className={styles.window} aria-label={props.windowLabel} data-dragging={dragging}>
         {props.portrait && <div className={styles.portrait}>{props.portrait}</div>}
         <header className={styles.titleBar}>
           <div className={styles.title}>{props.title}</div>

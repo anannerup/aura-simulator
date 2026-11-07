@@ -1,10 +1,9 @@
 /**
- * Addon refs: release tags, branches and commits of Musca Auras, and how jsDelivr's version
- * list maps back to the repo's real tag names.
+ * Addon releases: a repo's release tags, and how jsDelivr's version list maps back to the real tag names. Only
+ * released tags are addon versions (no branches or commits).
  *
- * The repo's tags are inconsistently named: most are `v1.15.0`, some are `1.13.0`, and pre-releases
- * look like `1.15.0-beta2`. jsDelivr lists them all normalized (`1.15.0`, `1.13.0`, `1.15.0-beta2`),
- * so the real names come from GitHub's tag list.
+ * Tags can be inconsistently named (Musca Auras: most are `v1.15.0`, some `1.13.0`, pre-releases `1.15.0-beta2`).
+ * jsDelivr lists them all normalized (`1.15.0`, `1.13.0`, `1.15.0-beta2`), so the real names come from GitHub's tag list.
  */
 import type { AddonRelease } from "@/api/addon";
 
@@ -76,13 +75,10 @@ export function findRelease(releases: AddonRelease[], input: string): AddonRelea
   return version ? releases.find((r) => r.version === version) : undefined;
 }
 
-export const isFullSha = (s: string) => /^[0-9a-f]{40}$/i.test(s);
-export const looksLikeShortSha = (s: string) => /^[0-9a-f]{7,39}$/i.test(s);
-
-/** Allowed ref syntax (git's rules are looser; this keeps URLs and cache paths safe). */
+/** Allowed ref syntax (git's tag rules are looser; this keeps URLs and cache paths safe). */
 export function assertValidRef(ref: string): void {
   if (!ref || ref.length > 200 || !/^[A-Za-z0-9._\-/]+$/.test(ref) || ref.includes("..") || ref.startsWith("/")) {
-    throw new AddonRefError(`"${ref}" is not a valid release, branch or commit name`, 400);
+    throw new AddonRefError(`"${ref}" is not a valid release name`, 400);
   }
 }
 

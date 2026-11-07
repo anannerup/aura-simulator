@@ -13,8 +13,8 @@ export async function clientSpells(cache: SpellCache, ids: readonly number[]): P
     if (!Number.isSafeInteger(id) || id <= 0) continue;
     const spell = await cache.lookup(id, { fetchWowhead: false });
     const iconPath = (name: string | null) => (name ? `Interface\\Icons\\${name}` : null);
-    if (spell.forever) {
-      out[id] = { name: spell.forever.name, icon: spell.forever.iconFileId ?? iconPath(spell.forever.icon) };
+    if (spell.inGame) {
+      out[id] = { name: spell.inGame.name, icon: spell.inGame.iconFileId ?? iconPath(spell.inGame.icon) };
     } else if (spell.flags.includes("not-synced") && spell.name) {
       out[id] = { name: spell.name, icon: iconPath(spell.icon) };
     } else {

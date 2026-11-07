@@ -1,25 +1,7 @@
-/** Where the core gets Musca Auras' source files from. */
+/** Where the core gets an addon version's source files from. */
 
-/** Reads one file of the addon repo, by path relative to the repo root (e.g. "WeakAuras/Init.lua"). */
+/** Reads one file of an addon version, by path relative to its root (e.g. "WeakAuras/Init.lua"). */
 export type AddonSourceFetcher = (path: string) => Promise<string>;
-
-export const DEFAULT_ADDON_REF = "v1.15.0";
-export const ADDON_REPO = "dldvlpr-addons-wow/Musca-Auras";
-
-/** A file of the addon repo at `ref` on jsDelivr (`path` relative to the repo root, `/`-separated). */
-export function jsDelivrUrl(ref: string, path: string): string {
-  return `https://cdn.jsdelivr.net/gh/${ADDON_REPO}@${encodeURIComponent(ref)}/${path.split("/").map(encodeURIComponent).join("/")}`;
-}
-
-/** Fetches files from GitHub through jsDelivr (sends CORS headers, so it works in the browser). */
-export function jsDelivrFetcher(ref: string): AddonSourceFetcher {
-  return async (path) => {
-    const url = jsDelivrUrl(ref, path);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Could not load ${path} of Musca Auras ${ref}: HTTP ${res.status} (${url})`);
-    return res.text();
-  };
-}
 
 /** Files the core loads, in load order. */
 export const ADDON_FILES = {
@@ -31,5 +13,8 @@ export const ADDON_FILES = {
   transmission: "WeakAuras/Transmission.lua",
 } as const;
 
-/** Lua source as the VMs run it: Unix newlines (the repo has files with CRLF). */
-export const normalizeNewlines = (s: string) => s.replace(/\r\n?/g, "\n");
+/**
+ * Lua source as the VMs run it: Unix newlines (the repo has files with CRLF; WeakAuras2's release zip has CRLF
+ * throughout) and no UTF-8 byte order mark (the game skips it; Lua 5.1 can't parse it).
+ */
+export const normalizeNewlines = (s: string) => s.replace(/^﻿/, "").replace(/\r\n?/g, "\n");

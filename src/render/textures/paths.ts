@@ -1,4 +1,5 @@
-import { jsDelivrUrl } from "@/core";
+// The renderers port Musca Auras (Forever), so its own media come from its repository; ticket 07 splits them per game.
+import { muscaFileUrl } from "@/games/forever/sources";
 
 /**
  * Where a texture comes from. A number is a Blizzard FileDataID (fetched from wago.tools).
@@ -40,7 +41,7 @@ export function textureUrls(source: TextureSource, addonRef: string): string[] {
   const addonMatch = /^interface\/addons\/(.+)$/i.exec(source.replace(/\\/g, "/").replace(/^\//, ""));
   if (addonMatch) {
     const rel = addonMatch[1];
-    const base = jsDelivrUrl(addonRef, rel);
+    const base = muscaFileUrl(addonRef, rel);
     return /\.[a-z0-9]{3}$/i.test(rel) ? [base] : [base + ".tga", base + ".blp"];
   }
   throw new Error(`Unknown texture path (no FileDataID mapping): ${source}`);

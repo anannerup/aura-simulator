@@ -6,9 +6,11 @@ export default defineConfig({
   test: {
     include: ["src/**/*.test.ts", "tests/unit/**/*.test.ts"],
     testTimeout: 60_000,
-    // Server code under test (getAddonSourceCache) resolves refs from recorded answers and shares the tests' addon files.
+    // Server code under test (a game's ServerGame) resolves releases from recorded answers, shares the tests' addon
+    // files and keeps its spell database out of data/.
     env: {
-      ADDON_UPSTREAM_FIXTURES: path.resolve(__dirname, "tests/fixtures/addon"),
+      ADDON_UPSTREAM_FIXTURES: path.resolve(__dirname, "tests/fixtures"),
+      DATA_DIR: path.resolve(__dirname, ".cache/vitest-data"),
       ADDON_CACHE_DIR: path.resolve(__dirname, ".cache/addon"),
     },
   },

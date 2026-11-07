@@ -3,21 +3,37 @@
  * the options window, walks the addon's option tree generically and sets every editable option once (toggle flipped,
  * another choice, a value inside the range, a colour, text), each from the new aura, and runs every button. An option
  * the editor shows must build, take a value through its own set() and show that value again. Being generic, it
- * covers options a new addon version adds.
+ * covers options a new addon version adds. It runs per game: Forever (Musca Auras) and TBC Anniversary (WeakAuras2
+ * from its release zip; skipped when the zip can't be downloaded).
  */
-import { beforeAll, describe, expect, test } from "vitest";
-import { loadAddon, type AuraCore, type AuraDocument, type AuraState, type OptionNode } from "@/core";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { loadAddon, type AddonGameId, type AuraCore, type AuraDocument, type AuraState, type OptionNode } from "@/core";
 import { cachedAddonFetcher } from "../../tests/support/addon-source";
 import { sweepValue, walkOptions } from "../../tests/support/options-sweep";
+import { TBC_TEST_VERSION, weakAuras2Available, weakAuras2Fetcher } from "../../tests/support/weakauras2";
 
-const REF = "v1.15.0";
-let core: AuraCore;
 const TYPES = ["icon", "aurabar", "text", "texture", "progresstexture", "stopmotion", "model", "empty", "group", "dynamicgroup"];
 
-beforeAll(async () => {
-  core = await loadAddon(REF, { fetchSource: cachedAddonFetcher(REF) });
-  await core.loadFullAddon();
-}, 120_000);
+interface SweepGame {
+  game: AddonGameId;
+  /** The game's addon version, or undefined when it can't be loaded here (TBC offline). */
+  load(): Promise<AuraCore | undefined>;
+}
+
+const FOREVER_REF = "v1.15.0";
+const GAMES: SweepGame[] = [
+  { game: "forever", load: async () => loadAddon(FOREVER_REF, { fetchSource: cachedAddonFetcher(FOREVER_REF) }) },
+  {
+    game: "tbc",
+    load: async () =>
+      (await weakAuras2Available())
+        ? loadAddon(TBC_TEST_VERSION, { fetchSource: weakAuras2Fetcher(), game: "tbc" })
+        : undefined,
+  },
+];
+
+/** The core of the game whose tests run now (games run one after the other). */
+let core: AuraCore;
 
 async function newState(regionType: string): Promise<AuraState> {
   const aura = await core.newAura(regionType);
@@ -140,83 +156,99 @@ function report(name: string, out: SweepResult) {
 
 const fresh = (): SweepResult => ({ problems: [], mismatches: [], edited: 0 });
 
-describe.each(TYPES)("%s", (regionType) => {
-  test("every tab builds, and every editable option takes a value and shows it again", { timeout: 600_000 }, async () => {
-    const base = await newState(regionType);
-    const { tabs } = await core.options(base);
-    const out = fresh();
-    for (const { key: tab } of tabs) await sweepTab(base, tab, out);
-    expect(out.edited).toBeGreaterThan(5);
-    report(regionType, out);
+describe.each(GAMES)("$game", ({ game, load }) => {
+  let loaded: AuraCore | undefined;
+  beforeAll(async () => {
+    loaded = await load();
+    if (!loaded) return;
+    core = loaded;
+    await core.loadFullAddon();
+  }, 120_000);
+  afterAll(() => loaded?.dispose());
+
+  describe.each(TYPES)("%s", (regionType) => {
+    test("every tab builds, and every editable option takes a value and shows it again", { timeout: 600_000 }, async (ctx) => {
+      if (!loaded) return ctx.skip();
+      const base = await newState(regionType);
+      const { tabs } = await core.options(base);
+      const out = fresh();
+      for (const { key: tab } of tabs) await sweepTab(base, tab, out);
+      expect(out.edited).toBeGreaterThan(5);
+      report(regionType, out);
+    });
+
+    test("every button (add, delete, move, duplicate, …) runs", { timeout: 600_000 }, async (ctx) => {
+      if (!loaded) return ctx.skip();
+      const base = await newState(regionType);
+      const { tabs } = await core.options(base);
+      const out = fresh();
+      for (const { key: tab } of tabs) await pressAll(base, tab, out);
+      report(regionType, out);
+    });
   });
 
-  test("every button (add, delete, move, duplicate, …) runs", { timeout: 600_000 }, async () => {
-    const base = await newState(regionType);
-    const { tabs } = await core.options(base);
-    const out = fresh();
-    for (const { key: tab } of tabs) await pressAll(base, tab, out);
-    report(regionType, out);
-  });
-});
-
-describe("deeper", () => {
-  test("every trigger type (and event) of the Trigger tab builds and takes values", { timeout: 1_200_000 }, async () => {
-    const base = await newState("icon");
-    const out = fresh();
-    const trigger = (await core.options(base, { tab: "trigger" })).tree!;
-    const typeSelect = walkOptions(trigger).find((n) => n.type === "select" && /^trigger\.1\.[^.]+\.type$/.test(n.key))!;
-    expect(typeSelect).toBeDefined();
-    for (const [type] of typeSelect.values ?? []) {
-      const typed = { aura: (await core.setOption(base, { tab: "trigger", path: typeSelect.path }, type)).aura, children: [] };
-      const built = await core.options(typed, { tab: "trigger" });
-      if (!built.tree) {
-        out.problems.push(`[${String(type)}] trigger tab: ${built.error}`);
-        continue;
+  describe("deeper", () => {
+    test("every trigger type (and event) of the Trigger tab builds and takes values", { timeout: 1_200_000 }, async (ctx) => {
+      if (!loaded) return ctx.skip();
+      const base = await newState("icon");
+      const out = fresh();
+      const trigger = (await core.options(base, { tab: "trigger" })).tree!;
+      const typeSelect = walkOptions(trigger).find((n) => n.type === "select" && /^trigger\.1\.[^.]+\.type$/.test(n.key))!;
+      expect(typeSelect).toBeDefined();
+      for (const [type] of typeSelect.values ?? []) {
+        const typed = { aura: (await core.setOption(base, { tab: "trigger", path: typeSelect.path }, type)).aura, children: [] };
+        const built = await core.options(typed, { tab: "trigger" });
+        if (!built.tree) {
+          out.problems.push(`[${String(type)}] trigger tab: ${built.error}`);
+          continue;
+        }
+        const tree = built.tree;
+        // A trigger type with sub types (Event: the event list) is swept per sub type.
+        const sub = walkOptions(tree).find((n) => n.type === "select" && /^trigger\.1\.[^.]+\.event$/.test(n.key) && !n.hidden);
+        const states = [typed];
+        for (const [event] of sub?.values ?? []) {
+          if (event === sub!.value) continue;
+          states.push({ aura: (await core.setOption(typed, { tab: "trigger", path: sub!.path }, event)).aura, children: [] });
+        }
+        for (const state of states) await sweepTab(state, "trigger", out, `[${String(type)}] `);
       }
-      const tree = built.tree;
-      // A trigger type with sub types (Event: the event list) is swept per sub type.
-      const sub = walkOptions(tree).find((n) => n.type === "select" && /^trigger\.1\.[^.]+\.event$/.test(n.key) && !n.hidden);
-      const states = [typed];
-      for (const [event] of sub?.values ?? []) {
-        if (event === sub!.value) continue;
-        states.push({ aura: (await core.setOption(typed, { tab: "trigger", path: sub!.path }, event)).aura, children: [] });
+      expect(out.edited).toBeGreaterThan(200);
+      report("trigger types", out);
+    });
+
+    test("after each Add button, the new part's options take values too", { timeout: 1_200_000 }, async (ctx) => {
+      if (!loaded) return ctx.skip();
+      const base = await newState("icon");
+      const out = fresh();
+      for (const tab of ["region", "conditions", "action", "animation", "authorOptions", "trigger"]) {
+        const tree = await expandedTree(base, tab);
+        const adds = walkOptions(tree).filter((n) => n.type === "execute" && n.canRun && !n.hidden && !n.disabled && (/^Add\b/.test(n.name ?? "") || /(^|\\)add$/i.test(n.image ?? "")));
+        for (const add of adds) {
+          const edit = await core.setOption(base, { tab, path: add.path });
+          if (!edit.changed) continue;
+          const state = { aura: edit.aura, children: [] };
+          await sweepTab(state, tab, out, `[${add.name ?? add.key}] `);
+          await pressAll(state, tab, out, `[${add.name ?? add.key}] `);
+        }
       }
-      for (const state of states) await sweepTab(state, "trigger", out, `[${String(type)}] `);
-    }
-    expect(out.edited).toBeGreaterThan(200);
-    report("trigger types", out);
+      report("after adding", out);
+    });
   });
 
-  test("after each Add button, the new part's options take values too", { timeout: 1_200_000 }, async () => {
-    const base = await newState("icon");
-    const out = fresh();
-    for (const tab of ["region", "conditions", "action", "animation", "authorOptions", "trigger"]) {
-      const tree = await expandedTree(base, tab);
-      const adds = walkOptions(tree).filter((n) => n.type === "execute" && n.canRun && !n.hidden && !n.disabled && (/^Add\b/.test(n.name ?? "") || /(^|\\)add$/i.test(n.image ?? "")));
-      for (const add of adds) {
-        const edit = await core.setOption(base, { tab, path: add.path });
-        if (!edit.changed) continue;
-        const state = { aura: edit.aura, children: [] };
-        await sweepTab(state, tab, out, `[${add.name ?? add.key}] `);
-        await pressAll(state, tab, out, `[${add.name ?? add.key}] `);
-      }
-    }
-    report("after adding", out);
-  });
-});
-
-describe("Load tab lists from Forever's client data", () => {
-  test("Instance Type, Item Type Equipped and Talent offer the client's entries", async () => {
-    const tree = (await core.options(await newState("icon"), { tab: "load" })).tree!;
-    const labels = (t: OptionNode, key: string) => (walkOptions(t).find((n) => n.key === key)?.values ?? []).map(([, l]) => l);
-    expect(labels(tree, "multiselect_instance_type").length).toBeGreaterThan(5);
-    expect(labels(tree, "multiselect_itemtypeequipped")).toContain("Two-Handed Swords");
-    expect(labels(tree, "multiselect_talent").join()).toMatch(/Improved Heroic Strike/);
-    // With a single class chosen, that class's talents.
-    const base = await newState("icon");
-    const used = await core.setOption(base, { tab: "load", path: ["use_class"] }, true);
-    const mage = await core.setOption({ aura: used.aura, children: [] }, { tab: "load", path: ["class"] }, "MAGE");
-    const t2 = (await core.options({ aura: mage.aura, children: [] }, { tab: "load" })).tree!;
-    expect(labels(t2, "multiselect_talent").join()).toMatch(/Arcane Subtlety/);
+  describe("Load tab lists from the client data", () => {
+    test.runIf(game === "forever")("Instance Type, Item Type Equipped and Talent offer the client's entries", async (ctx) => {
+      if (!loaded) return ctx.skip();
+      const tree = (await core.options(await newState("icon"), { tab: "load" })).tree!;
+      const labels = (t: OptionNode, key: string) => (walkOptions(t).find((n) => n.key === key)?.values ?? []).map(([, l]) => l);
+      expect(labels(tree, "multiselect_instance_type").length).toBeGreaterThan(5);
+      expect(labels(tree, "multiselect_itemtypeequipped")).toContain("Two-Handed Swords");
+      expect(labels(tree, "multiselect_talent").join()).toMatch(/Improved Heroic Strike/);
+      // With a single class chosen, that class's talents.
+      const base = await newState("icon");
+      const used = await core.setOption(base, { tab: "load", path: ["use_class"] }, true);
+      const mage = await core.setOption({ aura: used.aura, children: [] }, { tab: "load", path: ["class"] }, "MAGE");
+      const t2 = (await core.options({ aura: mage.aura, children: [] }, { tab: "load" })).tree!;
+      expect(labels(t2, "multiselect_talent").join()).toMatch(/Arcane Subtlety/);
+    });
   });
 });

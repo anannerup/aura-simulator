@@ -29,9 +29,14 @@ Notes (implementation):
 - `core.optionReference()` (`src/core/addon-vm/option-reference.ts`, path form documented there). About a minute
   for v1.15.0 (~4000 entries, ~2 MB JSON); on the server it runs in the background (`{ background: true }`: half the
   thread, about two minutes) so other requests stay fast.
-- The server caches it per resolved ref in memory and on disk (`<addon cache>/<ref>/option-reference-v<format>.json`).
-- The main docs carry a short section (path rules, generated examples in both directions, links); the whole
-  reference in both directions is Markdown at `/docs/agents/options.md` (~640 KB, too big for the main docs agents
-  read whole) and JSON at `/docs/agents/options.json`.
+- The server caches it per game and resolved ref in memory and on disk, in the game's addon source cache
+  (`<ref>/option-reference-v<format>.json`; `src/server/option-reference.ts`).
+- Paths are wago JSON keys; the reference's `arrays` lists the tables that are JSON arrays, and the test checks every
+  replayed path against the aura's wago JSON.
+- The main docs carry a short section (path rules, generated examples in both directions with their wago JSON,
+  links); the whole reference in both directions is Markdown at `/<game>/docs/agents/options.md` (~640 KB, too big
+  for the main docs agents read whole) and JSON at `/<game>/docs/agents/options.json`
+  (`src/games/option-reference-docs.ts` renders both for any game). TBC gets its routes once it has a `ServerGame`
+  (ticket 04); its reference is generated and tested at seam A already.
 - Edits now always start from the document as given: evaluating a tab marks the VM's copy stale (its get()s can
   write defaults into it), so the next call reloads the document.

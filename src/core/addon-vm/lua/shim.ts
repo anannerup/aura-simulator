@@ -223,6 +223,8 @@ function GetNumGroupMembers() return 0 end
 function InCombatLockdown() return S.inCombat or false end
 function UnitAffectingCombat() return S.inCombat or false end
 function IsLoggedIn() return S.loggedIn or false end
+-- The global environment (LibUIDropDownMenu looks its named frames up in it).
+function GetCurrentEnvironment() return _G end
 function GetScreenWidth() return 1920 end
 function GetScreenHeight() return 1080 end
 function GetPhysicalScreenSize() return 1920, 1080 end

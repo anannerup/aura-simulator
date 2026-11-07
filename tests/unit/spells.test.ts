@@ -3,13 +3,14 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createSpellCache, type SpellCache } from "@/server/spells";
-import { createFixtureFetch } from "../fixtures/spells/fixture-fetch";
+import { FOREVER_SPELLS } from "@/games/forever/sources";
+import { createFixtureFetch } from "../fixtures/forever/spells/fixture-fetch";
 
 let dir: string;
 let caches: SpellCache[] = [];
 
 function open(fetchFn = createFixtureFetch().fetch, dbFile = "spells.sqlite") {
-  const cache = createSpellCache({ dbPath: path.join(dir, dbFile), fetch: fetchFn });
+  const cache = createSpellCache({ source: FOREVER_SPELLS, dbPath: path.join(dir, dbFile), fetch: fetchFn });
   caches.push(cache);
   return cache;
 }
@@ -121,7 +122,7 @@ describe("lookup", () => {
       icon: "spell_holy_magicalsentry",
       iconUrl: "https://wow.zamimg.com/images/wow/icons/large/spell_holy_magicalsentry.jpg",
       source: { name: "wago", icon: "wago", tooltip: "wowhead" },
-      forever: { name: "Arcane Intellect", icon: "spell_holy_magicalsentry", iconFileId: 135932 },
+      inGame: { name: "Arcane Intellect", icon: "spell_holy_magicalsentry", iconFileId: 135932 },
       wowhead: { status: "found", name: "Arcane Intellect", icon: "spell_holy_magicalsentry" },
       flags: [],
     });
@@ -227,7 +228,7 @@ describe("lookup", () => {
     expect(await cache.lookup(99999999)).toMatchObject({
       found: false,
       name: null,
-      forever: null,
+      inGame: null,
       wowhead: { status: "not_found" },
       flags: ["unknown"],
     });
@@ -247,8 +248,8 @@ describe("lookup", () => {
       name: "Arcane Intellect",
       icon: "spell_holy_magicalsentry",
       source: { name: "wowhead", icon: "wowhead", tooltip: "wowhead" },
-      forever: null,
-      flags: ["not-in-forever"],
+      inGame: null,
+      flags: ["not-in-game"],
     });
   });
 

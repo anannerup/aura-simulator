@@ -1,5 +1,5 @@
 import { Lua } from "wasmoon-lua5.1";
-import { ADDON_FILES, DEFAULT_ADDON_REF, jsDelivrFetcher, normalizeNewlines, type AddonSourceFetcher } from "./addon-source";
+import { ADDON_FILES, normalizeNewlines, type AddonSourceFetcher } from "./addon-source";
 import { AURA_CORE, LOAD_LIBRARY, LOAD_TRANSMISSION } from "./lua-glue";
 import { LUA_STDLIB } from "./lua-stdlib";
 import { canonicalize, isLuaTable, toLuaLiteral, type AuraDocument, type AuraState, type LuaObject, type LuaValue } from "./lua-value";
@@ -10,6 +10,7 @@ import type { OptionAddress, OptionEdit, OptionsTree } from "./addon-vm/options"
 import type { AuraPacks, NewAuraPage } from "./addon-vm/new-aura";
 import type { OptionReference, OptionReferenceOptions } from "./addon-vm/option-reference";
 import { createSpellPreloader, type SpellInfoSource } from "./addon-vm/spells";
+import type { AddonGameId } from "./addon-vm/toc";
 import { isStateCode } from "./state-code";
 
 export type { AuraDocument, AuraState };
@@ -22,7 +23,7 @@ export interface DecodedState extends AuraState {
 }
 
 export interface AuraCore {
-  /** The addon ref this core was loaded from (release tag, branch or commit). */
+  /** The addon version this core was loaded from (a release tag). */
   readonly ref: string;
   /** WeakAuras.versionString of that addon version, e.g. "5.22.0"; written as `s` into every state code. */
   readonly addonVersion: string;
@@ -88,8 +89,8 @@ type StateMethod = "fillDefaults" | "validate" | "options" | "setOption";
 type Tail<T extends unknown[]> = T extends [unknown, ...infer R] ? R : never;
 
 export interface LoadAddonOptions {
-  /** Where source files come from. Default: jsDelivr for `ref`. */
-  fetchSource?: AddonSourceFetcher;
+  /** Where the addon version's files come from (the game's addon source on the server, or a test cache). */
+  fetchSource: AddonSourceFetcher;
   /** Location of liblua5.1.wasm. Default: wasmoon's own (the page passes its own `/lua/liblua5.1.wasm` route). */
   wasmUri?: string;
   /** Where the full addon VM runs. Default: "worker" where Web Workers exist (browser), else "inline". */
@@ -100,6 +101,11 @@ export interface LoadAddonOptions {
    * an aura refers to before each full-VM call. Without it every spell is unknown (nil).
    */
   spellInfo?: SpellInfoSource;
+  /**
+   * Which game's client the addon runs in: "forever" (Musca Auras, the default) or "tbc" (official WeakAuras2 from
+   * its release zip). Decides the .toc files the full VM loads, its client profile and the addon contract.
+   */
+  game?: AddonGameId;
 }
 
 function readVersionString(init: string): string {
@@ -115,8 +121,8 @@ function readInternalVersion(weakAuras: string): number {
 }
 
 /** Loads an addon version's Lua and returns an aura core bound to it. */
-export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAddonOptions = {}): Promise<AuraCore> {
-  const fetchSource = options.fetchSource ?? jsDelivrFetcher(ref);
+export async function loadAddon(ref: string, options: LoadAddonOptions): Promise<AuraCore> {
+  const { fetchSource } = options;
   const names = Object.keys(ADDON_FILES) as (keyof typeof ADDON_FILES)[];
   const texts = await Promise.all(names.map((n) => fetchSource(ADDON_FILES[n])));
   const src = Object.fromEntries(names.map((n, i) => [n, normalizeNewlines(texts[i])])) as Record<
@@ -146,7 +152,7 @@ export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAd
   const full = () => {
     if (disposed) return Promise.reject(new Error("This aura core was disposed"));
     if (!fullVM) {
-      const loading = (fullAddonMode === "worker" ? loadWorkerAddonVM : loadInlineAddonVM)(ref, { fetchSource, wasmUri: options.wasmUri });
+      const loading = (fullAddonMode === "worker" ? loadWorkerAddonVM : loadInlineAddonVM)(ref, { fetchSource, wasmUri: options.wasmUri, game: options.game });
       // A failed load is retried on the next call.
       loading.catch(() => {
         if (fullVM === loading) fullVM = undefined;

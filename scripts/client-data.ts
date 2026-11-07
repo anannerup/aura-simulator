@@ -1,15 +1,19 @@
 /**
- * Generates src/core/addon-vm/client-data.json: the WoW Forever client data the addon VM's client profile answers
- * (classes, instance difficulties, item sub classes, class talents), from wago.tools' DB2 exports of the latest
- * Forever build (product `wowf`). Data only: names and numeric icon FileDataIDs, no art.
+ * Generates a game's client data JSON: the client data the addon VM's client profile answers (classes, instance
+ * difficulties, item sub classes, class talents), from wago.tools' DB2 exports of a product's latest build. Data
+ * only: names and numeric icon FileDataIDs, no art. One file per game, all in the same shape:
  *
- *   node scripts/client-data.ts [build]
+ *   node scripts/client-data.ts wowf src/core/addon-vm/client-data.json [build]                 # WoW Forever
+ *   node scripts/client-data.ts wow_anniversary src/core/addon-vm/client-data-tbc.json [build]  # TBC Anniversary
  */
 import { writeFileSync } from "node:fs";
+import path from "node:path";
 import { parseCsvRecords } from "../src/server/spells/csv.ts";
 
 const WAGO = "https://wago.tools";
-const OUT = new URL("../src/core/addon-vm/client-data.json", import.meta.url);
+const [product, outArg, buildArg] = process.argv.slice(2);
+if (!product || !outArg) throw new Error("usage: node scripts/client-data.ts <wago product> <output.json> [build]");
+const OUT = path.resolve(outArg);
 
 async function text(url: string): Promise<string> {
   const res = await fetch(url);
@@ -18,9 +22,9 @@ async function text(url: string): Promise<string> {
 }
 
 const build =
-  process.argv[2] ??
-  ((JSON.parse(await text(`${WAGO}/api/builds/latest`)) as Record<string, { version?: string }>).wowf?.version as string);
-if (!build) throw new Error("wago.tools lists no wowf build");
+  buildArg ??
+  ((JSON.parse(await text(`${WAGO}/api/builds/latest`)) as Record<string, { version?: string }>)[product]?.version as string);
+if (!build) throw new Error(`wago.tools lists no ${product} build`);
 const table = async (name: string) => parseCsvRecords(await text(`${WAGO}/db2/${name}/csv?build=${encodeURIComponent(build)}`));
 
 const [classes, difficulties, subClasses, talents, tabs, spellNames, spellMisc] = await Promise.all(
@@ -56,7 +60,7 @@ for (const c of classList) {
 }
 
 const data = {
-  source: `wago.tools DB2 exports, WoW Forever build ${build} (product wowf); scripts/client-data.ts`,
+  source: `wago.tools DB2 exports, build ${build} (product ${product}); scripts/client-data.ts`,
   build,
   classes: classList,
   talentTabs: Object.fromEntries(
@@ -78,4 +82,4 @@ const data = {
     .sort((a, b) => a.classId - b.classId || a.subClassId - b.subClassId),
 };
 writeFileSync(OUT, JSON.stringify(data, null, 1) + "\n");
-console.log(`wrote ${OUT.pathname}: ${classList.length} classes, ${Object.values(talentsByClass).flat().length} talents, ${data.difficulties.length} difficulties`);
+console.log(`wrote ${OUT}: ${classList.length} classes, ${Object.values(talentsByClass).flat().length} talents, ${data.difficulties.length} difficulties`);

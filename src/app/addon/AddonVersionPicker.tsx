@@ -1,33 +1,27 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { Button, Callout, ChevronDownIcon, Field, Input, Popover, Select, WarningIcon } from "@/components/ui";
+import { useState } from "react";
+import { Callout, ChevronDownIcon, Field, Popover, Select, WarningIcon } from "@/components/ui";
 import type { AddonCoreState } from "./useAddonCore";
 import styles from "./AddonVersionPicker.module.css";
 
-/** Picks the Musca Auras version the app follows: a release from the list, or any branch or commit. */
-function AddonVersionPicker({ addon }: { addon: AddonCoreState }) {
-  const { core, resolution, loadingRef, error, versions, diff, load } = addon;
-  const [custom, setCustom] = useState("");
+/** Picks the release of the game's addon the app follows (released tags only). */
+function AddonVersionPicker({ addon, addonName }: { addon: AddonCoreState; addonName: string }) {
+  const { core, loadingRef, error, versions, diff, load } = addon;
   const releases = versions?.releases ?? [];
-  const selectedTag = core ? releases.find((r) => r.tag === core.ref || r.version === core.ref.replace(/^v/, ""))?.tag : undefined;
+  const selectedTag = core ? releases.find((r) => r.tag === core.ref)?.tag : undefined;
   const busy = loadingRef !== null;
-
-  function submit(e: FormEvent) {
-    e.preventDefault();
-    if (custom.trim()) load(custom.trim());
-  }
 
   return (
     <section className={styles.picker} aria-label="Addon version picker">
-      <Field label="Musca Auras version" htmlFor="addon-release">
+      <Field label={`${addonName} version`} htmlFor="addon-release">
         <Select
           id="addon-release"
           value={selectedTag ?? ""}
           disabled={busy || releases.length === 0}
           onChange={(e) => e.target.value && load(e.target.value)}
         >
-          {!selectedTag && <option value="">{core ? `${core.ref} (branch or commit)` : "…"}</option>}
+          {!selectedTag && <option value="">{core?.ref ?? "…"}</option>}
           {releases.map((r) => (
             <option key={r.tag} value={r.tag}>
               {r.tag}
@@ -37,37 +31,14 @@ function AddonVersionPicker({ addon }: { addon: AddonCoreState }) {
           ))}
         </Select>
       </Field>
-      <form onSubmit={submit}>
-        <Field label="Branch or commit" htmlFor="addon-custom-ref">
-          <span className={styles.inline}>
-            <Input
-              id="addon-custom-ref"
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-              placeholder="main, forever-spell-ids, 448b7b3…"
-              list="addon-branches"
-              spellCheck={false}
-              mono
-            />
-            <datalist id="addon-branches">
-              {versions?.branches.map((b) => <option key={b} value={b} />)}
-            </datalist>
-            <Button type="submit" disabled={busy || !custom.trim()}>
-              Switch
-            </Button>
-          </span>
-        </Field>
-      </form>
 
       <p className={styles.status} data-testid="addon-loaded">
         {core ? (
           <>
-            Musca Auras {core.ref}
-            {resolution && resolution.kind !== "release" && resolution.sha && ` (${resolution.sha.slice(0, 7)})`} · WeakAuras{" "}
-            {core.addonVersion} · internal version {core.internalVersion}
+            {addonName} {core.ref} · WeakAuras {core.addonVersion} · internal version {core.internalVersion}
           </>
         ) : (
-          !error && "Loading Musca Auras…"
+          !error && `Loading ${addonName}…`
         )}
         {loadingRef && core && <span className={styles.loading}> · loading {loadingRef}…</span>}
       </p>
@@ -113,7 +84,7 @@ function AddonVersionPicker({ addon }: { addon: AddonCoreState }) {
  * The version picker for the top bar: a compact button showing the loaded version that opens the picker below it.
  * It opens by itself when no version could be loaded at all.
  */
-export function AddonVersionMenu({ addon }: { addon: AddonCoreState }) {
+export function AddonVersionMenu({ addon, addonName }: { addon: AddonCoreState; addonName: string }) {
   const [open, setOpen] = useState(false);
   const { core, loadingRef, error } = addon;
   const forcedOpen = !core && !!error;
@@ -124,14 +95,14 @@ export function AddonVersionMenu({ addon }: { addon: AddonCoreState }) {
       label="Choose the addon version"
       trigger={(props) => (
         <button type="button" className={styles.trigger} {...props} title="Addon version">
-          <span className={styles.triggerLabel}>Musca Auras</span>
+          <span className={styles.triggerLabel}>{addonName}</span>
           <span className={styles.triggerValue}>{core?.ref ?? "…"}</span>
           {loadingRef ? <span className={styles.spinner} aria-hidden /> : error ? <WarningIcon size={13} className={styles.triggerWarn} /> : null}
           <ChevronDownIcon size={14} className={styles.triggerChevron} />
         </button>
       )}
     >
-      <AddonVersionPicker addon={addon} />
+      <AddonVersionPicker addon={addon} addonName={addonName} />
     </Popover>
   );
 }

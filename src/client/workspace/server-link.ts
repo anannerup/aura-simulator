@@ -4,6 +4,7 @@ import {
   eventsUrl,
   pushUrl,
   snapshotUrl,
+  type WorkspaceAddress,
   type WorkspaceNotice,
   type WorkspaceSnapshot,
 } from "@/workspace";
@@ -45,7 +46,7 @@ export class ServerLink {
   private onPush: ((push: ServerPush) => void) | null = null;
 
   constructor(
-    private readonly workspaceId: string,
+    private readonly workspace: WorkspaceAddress,
     env?: LinkEnv,
   ) {
     this.env = env ?? browserEnv();
@@ -58,7 +59,7 @@ export class ServerLink {
   latest(): Promise<ServerPush | null> {
     const { EventSource: Source, timeoutMs = 3000 } = this.env;
     if (this.disposed || !Source) return Promise.resolve(null);
-    const events = new Source(eventsUrl(this.workspaceId));
+    const events = new Source(eventsUrl(this.workspace));
     this.events = events;
     return new Promise((resolve) => {
       let first = true;
@@ -102,7 +103,7 @@ export class ServerLink {
   async push(code: string) {
     try {
       // The page validates in the browser; the server only checks the code decodes.
-      await this.env.fetch(pushUrl(this.workspaceId, { validate: false }), {
+      await this.env.fetch(pushUrl(this.workspace, { validate: false }), {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8", [CLIENT_HEADER]: this.clientId },
         body: code,
@@ -121,13 +122,13 @@ export class ServerLink {
   /** The latest snapshot, or a given recent revision (the latest when that one is no longer kept). */
   private async fetchSnapshot(revision?: number): Promise<WorkspaceSnapshot | null> {
     try {
-      const get = (r?: number) => this.env.fetch(snapshotUrl(this.workspaceId, r), { cache: "no-store" });
+      const get = (r?: number) => this.env.fetch(snapshotUrl(this.workspace, r), { cache: "no-store" });
       let res = await get(revision);
       if (res.status === 404 && revision) res = await get();
       if (!res.ok) return null;
       const body = (await res.json()) as Partial<WorkspaceSnapshot>;
       return {
-        id: this.workspaceId,
+        id: this.workspace.id,
         code: typeof body.code === "string" ? body.code : null,
         revision: typeof body.revision === "number" ? body.revision : 0,
         updatedAt: typeof body.updatedAt === "string" ? body.updatedAt : null,

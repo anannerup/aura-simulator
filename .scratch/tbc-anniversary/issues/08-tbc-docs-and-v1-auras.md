@@ -9,7 +9,7 @@
 
 Write them as `.txt` and `.json` files in this folder, validated by the core.
 
-**Blocked by:** 05, 06, 07
+**Blocked by:** 03, 05, 06, 07
 
 **Status:** ready-for-agent
 

@@ -22,7 +22,7 @@ function fetchSource(path: string): Promise<string> {
 
 async function handle(msg: Exclude<ToWorker, { type: "fetched" }>): Promise<unknown> {
   if (msg.type === "load") {
-    vm = loadAddonVM(msg.ref, { fetchSource, wasmUri: msg.wasmUri });
+    vm = loadAddonVM(msg.ref, { fetchSource, wasmUri: msg.wasmUri, game: msg.game });
     return (await vm).report;
   }
   if (!vm) throw new Error("The addon VM is not loaded");

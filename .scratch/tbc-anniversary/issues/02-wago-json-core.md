@@ -1,4 +1,4 @@
-# 02: wago JSON in the core
+# 02: Export an aura as wago JSON
 
 **What to build:** a pure, shared core module that converts both ways:
 - **Aura → wago JSON:** a decoded aura (aura + children + addon version) becomes wago.io's JSON, byte-identical to wago's (pretty editor form and compact form).
@@ -13,10 +13,13 @@ All rules are in `../wago-json.md` (with a reference port). It covers:
 - fixed number-key paths on the way back;
 - refusing boolean keys.
 
+Then the window's Export offers the `.json` next to the `.txt` (both for the selected aura), in wago's editor form.
+
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Golden test: https://wago.io/LEPRolmHn's import string → JSON equal byte for byte to wago's stored JSON (recorded fixtures, pretty and compact)
-- [ ] Unit tests for every rule, including the sparse tables, keys above 1000, `-0`, inf, the 1e14 tie and the boolean-key refusal
-- [ ] JSON → aura → import string equals what wago would rebuild for that JSON (wago's paths)
+- [x] Golden test: https://wago.io/LEPRolmHn's import string → JSON equal byte for byte to wago's stored JSON (recorded fixtures, pretty and compact)
+- [x] Unit tests for every rule, including the sparse tables, keys above 1000, `-0`, inf, the 1e14 tie and the boolean-key refusal
+- [x] e2e: Export downloads a `.json` equal to the converter's pretty output
+- [x] JSON → aura → import string equals what wago would rebuild for that JSON (wago's paths)

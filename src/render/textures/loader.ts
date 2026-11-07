@@ -1,4 +1,4 @@
-import { DEFAULT_ADDON_REF } from "@/core";
+import { forever } from "@/games/forever";
 import { decodeTexture, type DecodedTexture } from "./decode";
 import { textureUrls, type TextureSource } from "./paths";
 import { cropTexture, shadePixels, type TextureVariant } from "./pixels";
@@ -60,7 +60,7 @@ function defaultPersistentCache(): Pick<CacheStorage, "open"> | null {
 export function createTextureLoader(options: TextureLoaderOptions = {}): TextureLoader {
   const doFetch = options.fetch ?? ((...args: Parameters<typeof fetch>) => fetch(...args));
   const persistent = options.persistentCache === undefined ? defaultPersistentCache() : options.persistentCache;
-  const addonRef = options.addonRef ?? DEFAULT_ADDON_REF;
+  const addonRef = options.addonRef ?? forever.addon.fallbackRef;
   const encode = options.encode ?? defaultEncode;
 
   const bytesCache = new Map<string, Promise<Uint8Array>>();

@@ -1,0 +1,309 @@
+[
+  {
+    "tag_name": "5.22.1",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-10-10T17:21:31Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 300,
+        "digest": "sha256:bd1d4c4f303f9bb6e6f2c88cb55520994f7bff0d558c8694000cd2ce773d61f5",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.22.1/release.json"
+      },
+      {
+        "name": "WeakAuras-5.22.1.zip",
+        "size": 10557265,
+        "digest": "sha256:d0d4406b62e84d5e023f2af95e93d229907a41074d2749dd46643c8843536c33",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.22.1/WeakAuras-5.22.1.zip"
+      }
+    ]
+  },
+  {
+    "tag_name": "5.22.0",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-09-05T19:43:51Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 300,
+        "digest": "sha256:34d7794e39ddc822927fb5574d604307edbde21c082d5596868d205e121244d1",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.22.0/release.json"
+      },
+      {
+        "name": "WeakAuras-5.22.0.zip",
+        "size": 10529827,
+        "digest": "sha256:298d3cbaa129af3e734f5bd4f87911acab9b10f10d079004b770fa43980cd4a9",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.22.0/WeakAuras-5.22.0.zip"
+      }
+    ]
+  },
+  {
+    "tag_name": "5.21.11",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-08-19T16:04:38Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 302,
+        "digest": "sha256:b1fc9fd20c9d143458be01821375e42595892c4b0888e81ad759a0e146485c1b",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.11/release.json"
+      },
+      {
+        "name": "WeakAuras-5.21.11.zip",
+        "size": 10529943,
+        "digest": "sha256:548067e5daf9b1784874406bd24e7a3a577058329cd5064ba08cf602124d281b",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.11/WeakAuras-5.21.11.zip"
+      }
+    ]
+  },
+  {
+    "tag_name": "5.21.10",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-08-13T19:39:18Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 302,
+        "digest": "sha256:c9e1f2cf5261ac8c5de0cf872ed27ca1813b184a6115df18e01747e664f6abe3",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.10/release.json"
+      },
+      {
+        "name": "WeakAuras-5.21.10.zip",
+        "size": 10528661,
+        "digest": "sha256:abb2ac9fcce98d1e8c9ded28ac5e468c3eda2d580a772f2e9fc54fd1139acde9",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.10/WeakAuras-5.21.10.zip"
+      }
+    ]
+  },
+  {
+    "tag_name": "5.21.9",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-07-29T23:13:35Z",
+    "assets": []
+  },
+  {
+    "tag_name": "5.21.8",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-06-28T17:43:49Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 409,
+        "digest": "sha256:c63509940ef02cd50da0f5a54a3f23e9d95f52bfafdca321d06a44ef8007191c",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.8/release.json"
+      },
+      {
+        "name": "WeakAuras-5.21.8.zip",
+        "size": 10523997,
+        "digest": "sha256:74ffec69e153fe6fb716d53d0aab23488a3eb0bd7027f701ad46007e8fc8483b",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.8/WeakAuras-5.21.8.zip"
+      }
+    ]
+  },
+  {
+    "tag_name": "5.21.7",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-06-02T22:38:55Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 411,
+        "digest": "sha256:f6cb61f121adc4efdf77802a2afef2e635d1ab65f496420ebed71d7f2c6b436d",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.7/release.json"
+      },
+      {
+        "name": "WeakAuras-5.21.7.zip",
+        "size": 10523792,
+        "digest": "sha256:436fb0d9ef6853c29804312e8f4fbefc426d31f74afcfc2b1ada73bf9b3e04e1",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.7/WeakAuras-5.21.7.zip"
+      }
+    ]
+  },
+  {
+    "tag_name": "5.21.6",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-04-18T10:11:56Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 374,
+        "digest": "sha256:d91213af22a4a698d3d12ac2238085167fbf5ea64ccdd1a81ef5695bd89fbb04",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.6/release.json"
+      },
+      {
+        "name": "WeakAuras-5.21.6.zip",
+        "size": 10516201,
+        "digest": "sha256:cd4be0f7173ee14a40f5654d3331e8fa9481aceb9450467dfa4f342042b53db8",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.6/WeakAuras-5.21.6.zip"
+      }
+    ]
+  },
+  {
+    "tag_name": "5.21.5",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-04-15T15:25:13Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 374,
+        "digest": "sha256:6a7af1a37709c72bd291eb482784c187615fdd7aba291d7d5e5315010589c9c9",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.5/release.json"
+      },
+      {
+        "name": "WeakAuras-5.21.5.zip",
+        "size": 10516704,
+        "digest": "sha256:43d58750c82d85826489e8d4e01d4dcef614b9695dbc1650c1af26c06cf47485",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.5/WeakAuras-5.21.5.zip"
+      }
+    ]
+  },
+  {
+    "tag_name": "5.21.4",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-04-06T17:46:44Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 337,
+        "digest": "sha256:b242337516f7d370b0c2d3e27684e2f3d815ce0984c5c7501b6842a297514e62",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.4/release.json"
+      },
+      {
+        "name": "WeakAuras-5.21.4.zip",
+        "size": 10515318,
+        "digest": "sha256:662b4e88c8d4871f5e2b05e2b805a854334da1758eb563260ebdbc02a8e93276",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.4/WeakAuras-5.21.4.zip"
+      }
+    ]
+  },
+  {
+    "tag_name": "5.21.3",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-04-03T18:54:07Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 337,
+        "digest": "sha256:b016edc1ed5ee9e2c5f3fe3e76168b2223ea57d82a31679ebe8be5f385fad66d",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.3/release.json"
+      },
+      {
+        "name": "WeakAuras-5.21.3.zip",
+        "size": 10515374,
+        "digest": "sha256:fc77a072e39707c16bd2aacc5dac618bfeb3cb8e167117b2f50392c6f4734244",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.3/WeakAuras-5.21.3.zip"
+      }
+    ]
+  },
+  {
+    "tag_name": "5.21.2",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-02-06T19:11:44Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 337,
+        "digest": "sha256:ef4e9796f29077e6220ec56bca917259ca69050203ddfd1836d6d2d7b6c7685a",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.2/release.json"
+      },
+      {
+        "name": "WeakAuras-5.21.2.zip",
+        "size": 10509723,
+        "digest": "sha256:5ad0b7f0b85a034c6c0fba90396c45e46d5dd571187fccae1a120e38bc2d73cb",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.2/WeakAuras-5.21.2.zip"
+      }
+    ]
+  },
+  {
+    "tag_name": "5.21.1",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-01-18T20:37:21Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 378,
+        "digest": "sha256:4fe2fb3ec770057af34bcd88a061e1dd835e124bf94418db8d54fabde0b92102",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.1/release.json"
+      },
+      {
+        "name": "WeakAuras-5.21.1.zip",
+        "size": 10522169,
+        "digest": "sha256:02266d4e648f999d41c431b5a951b67645b983bb7068e40437f9dbf99c8ad115",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.1/WeakAuras-5.21.1.zip"
+      }
+    ]
+  },
+  {
+    "tag_name": "5.21.0",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-01-12T18:35:38Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 378,
+        "digest": "sha256:7ecaa7335ef82ff66532c609b826be0c749cd24746ed5ad36eb0d9276d36d94b",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.0/release.json"
+      },
+      {
+        "name": "WeakAuras-5.21.0.zip",
+        "size": 10522549,
+        "digest": "sha256:6b2a081d2ffc133460db3a7e8ac18bfe311f7ee3a2fd935a260a928b7fed2c47",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.21.0/WeakAuras-5.21.0.zip"
+      }
+    ]
+  },
+  {
+    "tag_name": "5.20.7",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2025-11-28T20:29:02Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 343,
+        "digest": "sha256:0adbe75272159d08860bff148996bb5c794731ed0c56029f56adbe103264b8c2",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.20.7/release.json"
+      },
+      {
+        "name": "WeakAuras-5.20.7.zip",
+        "size": 10279665,
+        "digest": "sha256:658e927d7f605176c1b72d74315a1e186fa45400c5956730a2b746c70dd7616b",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.20.7/WeakAuras-5.20.7.zip"
+      }
+    ]
+  },
+  {
+    "tag_name": "5.20.6",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2025-10-22T01:49:44Z",
+    "assets": [
+      {
+        "name": "release.json",
+        "size": 269,
+        "digest": "sha256:12df806acd7b942ee65737ea3daab692ed98a665e96a6ab636c0c5598c18c44f",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.20.6/release.json"
+      },
+      {
+        "name": "WeakAuras-5.20.6.zip",
+        "size": 10028779,
+        "digest": "sha256:e00439eb5a2cf25334cf54ca2ba7fb373abca6cbbd88b4d0bdc13889fc667e93",
+        "browser_download_url": "https://github.com/WeakAuras/WeakAuras2/releases/download/5.20.6/WeakAuras-5.20.6.zip"
+      }
+    ]
+  }
+]

@@ -203,7 +203,7 @@ describe("setOption", () => {
     expect((condition.changes as AuraDocument[])[0]).toMatchObject({ property: "sub.2.glow", value: true });
     const result = await core.validate(state);
     expect(result.errors).toEqual([]);
-    expect(result.combat.status).toBe("ok");
+    expect(result.combat?.status).toBe("ok");
   });
 
   test("a value the addon refuses is an OptionEditError and leaves the aura alone", async () => {

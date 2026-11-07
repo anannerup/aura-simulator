@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { Blp, BlpImage, BLP_COLOR_FORMAT, BLP_IMAGE_FORMAT } from "@wowserhq/format";
-import { buffMissing, buffUnderThreeMinutes, cooldownText, targetDebuffBar, tickedBar, verticalBar } from "../../src/render/examples";
+import { buffMissing, buffUnderThreeMinutes, cooldownText, targetDebuffBar, tickedBar, verticalBar } from "../../src/games/forever/examples";
 import { openPushed } from "../support/e2e-workspace";
 
 test.describe.configure({ timeout: 150_000 });

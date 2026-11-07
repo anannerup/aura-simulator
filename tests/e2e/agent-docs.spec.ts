@@ -8,7 +8,7 @@ const uniqueId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math
  */
 test("every worked example in the docs pushes and validates with the combat status the docs claim", async ({ request }) => {
   test.setTimeout(180_000);
-  const md = await (await request.get("/docs/agents.md")).text();
+  const md = await (await request.get("/forever/docs/agents.md")).text();
   const blocks = [...md.matchAll(/^```json example=(\S+) combat=(\S+)\n([\s\S]*?)\n```$/gm)].map((m) => ({
     key: m[1],
     combat: m[2],
@@ -19,7 +19,7 @@ test("every worked example in the docs pushes and validates with the combat stat
   );
   for (const block of blocks) {
     const workspace = uniqueId(`docs-${block.key}`);
-    const res = await request.post(`/api/workspaces/${workspace}/aura`, {
+    const res = await request.post(`/api/forever/workspaces/${workspace}/aura`, {
       headers: { "Content-Type": "application/json" },
       data: block.body,
     });
@@ -31,7 +31,7 @@ test("every worked example in the docs pushes and validates with the combat stat
 });
 
 test("the docs are generated from the server's addon version", async ({ request }) => {
-  const md = await (await request.get("/llms.txt")).text();
+  const md = await (await request.get("/forever/llms.txt")).text();
   expect(md).toMatch(/This server follows Musca Auras \S+ \(WeakAuras [\d.]+, internalVersion \d+\)/);
   expect(md).toContain("### Defaults (generated)");
   expect(md).toContain("`faAuraRemaining` (Seconds left)");
@@ -40,7 +40,7 @@ test("the docs are generated from the server's addon version", async ({ request 
 test("the option ↔ table reference maps a known option and table key both ways, as JSON and Markdown", async ({ request }) => {
   // The first request for a version waits while the server generates the reference (about a minute).
   test.setTimeout(420_000);
-  const res = await request.get("/docs/agents/options.json", { timeout: 400_000 });
+  const res = await request.get("/forever/docs/agents/options.json", { timeout: 400_000 });
   expect(res.status()).toBe(200);
   const reference = (await res.json()) as {
     entries: { tab: string; option: string[]; writes: string[]; scopes: { regionType: string }[] }[];
@@ -51,13 +51,15 @@ test("the option ↔ table reference maps a known option and table key both ways
   );
   expect(desaturate?.writes).toEqual(["desaturate"]);
   expect(reference.byPath["desaturate"].map((i) => reference.entries[i].option)).toContainEqual(["icon.desaturate"]);
+  expect((reference as unknown as { lists: string[] }).lists).toContain("subRegions");
+  expect((await request.get("/nogame/docs/agents/options.json")).status()).toBe(404);
 
-  const md = await (await request.get("/docs/agents/options.md")).text();
+  const md = await (await request.get("/forever/docs/agents/options.md")).text();
   expect(md).toContain("- **Desaturate** (`icon.desaturate`, toggle) → `desaturate`");
   expect(md).toContain("- `desaturate` ← Display › Desaturate");
 
-  const docs = await (await request.get("/llms.txt")).text();
+  const docs = await (await request.get("/forever/llms.txt")).text();
   expect(docs).toContain("## Option ↔ table reference");
-  expect(docs).toContain("/docs/agents/options.json?ref=");
+  expect(docs).toContain("/forever/docs/agents/options.json?ref=");
   expect(docs).toContain("- **Desaturate** (`icon.desaturate`, toggle) → `desaturate`");
 });

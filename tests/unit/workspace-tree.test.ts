@@ -1,8 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { DEFAULT_ADDON_REF, loadAddon, sampleIconAura, type AuraCore, type AuraDocument } from "@/core";
+import { loadAddon, sampleIconAura, type AuraCore, type AuraDocument } from "@/core";
 import {
   addSubtree,
-  allIds,
   duplicateNode,
   findNode,
   mergeTopLevel,
@@ -181,7 +180,7 @@ describe("new items", () => {
 describe("state codes and the workspace file", () => {
   let core: AuraCore;
   beforeAll(async () => {
-    core = await loadAddon(DEFAULT_ADDON_REF, { fetchSource: cachedAddonFetcher(DEFAULT_ADDON_REF) });
+    core = await loadAddon("v1.15.0", { fetchSource: cachedAddonFetcher("v1.15.0") });
   });
 
   function nested(): WorkspaceNode[] {
@@ -221,49 +220,29 @@ describe("state codes and the workspace file", () => {
   it("round-trips the workspace file losslessly", () => {
     const items = nested();
     const ws = { items, updatedAt: "2026-11-06T10:00:00.000Z", selected: "Inner" };
-    const text = serializeWorkspace(ws, { pretty: true });
+    const text = serializeWorkspace(ws, { game: "forever", pretty: true });
     const json = JSON.parse(text);
-    expect(json).toMatchObject({ format: "aura-simulator/workspace", version: 2 });
+    expect(json).toMatchObject({ format: "aura-simulator/workspace", version: 3, game: "forever" });
     expect(json.items[0].items[2].items[0].aura.id).toBe("C");
-    const read = readWorkspace(text);
+    const read = readWorkspace(text, "forever");
     expect(read.ok && read.workspace).toEqual(ws);
 
     // Top-level items may carry their state code; the documents still decide.
-    const withCodes = serializeWorkspace(ws, { codeOf: (n) => core.encode(stateFromNode(n)) });
-    const again = readWorkspace(withCodes);
+    const withCodes = serializeWorkspace(ws, { game: "forever", codeOf: (n) => core.encode(stateFromNode(n)) });
+    const again = readWorkspace(withCodes, "forever");
     expect(again.ok && again.workspace).toEqual(ws);
     expect(again.ok && again.codes.map((c) => nodeFromState(core.decode(c)))).toEqual(items);
   });
 
   it("rejects broken files with a reason", () => {
-    const file = (items: unknown) => JSON.stringify({ format: "aura-simulator/workspace", version: 2, items });
+    const file = (items: unknown) => JSON.stringify({ format: "aura-simulator/workspace", version: 3, game: "forever", items });
     const icon = (id: string) => ({ aura: { id, regionType: "icon" } });
-    expect(readWorkspace(file([icon("A"), icon("A")]))).toMatchObject({ ok: false, error: /twice/ });
-    expect(readWorkspace(file([{ aura: { id: "A", regionType: "icon" }, items: [] }]))).toMatchObject({ ok: false });
+    expect(readWorkspace(file([icon("A"), icon("A")]), "forever")).toMatchObject({ ok: false, error: /twice/ });
+    expect(readWorkspace(file([{ aura: { id: "A", regionType: "icon" }, items: [] }]), "forever")).toMatchObject({ ok: false });
     expect(
-      readWorkspace(file([{ aura: { id: "D", regionType: "dynamicgroup" }, items: [{ aura: { id: "G", regionType: "group" } }] }])),
+      readWorkspace(file([{ aura: { id: "D", regionType: "dynamicgroup" }, items: [{ aura: { id: "G", regionType: "group" } }] }]), "forever"),
     ).toMatchObject({ ok: false, error: /dynamic group/ });
-    expect(readWorkspace(file([{ aura: { regionType: "icon" } }]))).toMatchObject({ ok: false, error: /id/ });
-    expect(readWorkspace("[]")).toMatchObject({ ok: false });
-  });
-
-  it("migrates a version 1 workspace (one state code per aura) by decoding each code", () => {
-    const items = nested();
-    const codes = items.map((n) => core.encode(stateFromNode(n)));
-    const v1 = JSON.stringify({
-      format: "aura-simulator/workspace",
-      version: 1,
-      updatedAt: "2026-01-01T00:00:00.000Z",
-      items: [...codes.map((code) => ({ code })), { code: "!WA:2!broken" }],
-    });
-    const read = readWorkspace(v1, (c) => core.decode(c));
-    expect(read.ok).toBe(true);
-    if (!read.ok) return;
-    expect(read.workspace.updatedAt).toBe("2026-01-01T00:00:00.000Z");
-    expect(read.workspace.items).toEqual(items);
-    expect(allIds(read.workspace.items).size).toBe(6);
-    // The migrated workspace is stored as version 2 from then on.
-    expect(JSON.parse(serializeWorkspace(read.workspace)).version).toBe(2);
-    expect(readWorkspace(v1)).toMatchObject({ ok: false });
+    expect(readWorkspace(file([{ aura: { regionType: "icon" } }]), "forever")).toMatchObject({ ok: false, error: /id/ });
+    expect(readWorkspace("[]", "forever")).toMatchObject({ ok: false });
   });
 });

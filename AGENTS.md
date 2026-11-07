@@ -1,9 +1,10 @@
 # Aura Simulator
 
-A Next.js web app for building auras for Musca Auras (the WeakAuras fork for WoW Forever):
-an agent or the user describes an aura, the app previews it the way the game draws it, and
-the user exports the import string and imports it in the game. See
-`.scratch/aura-simulator-v1/spec.md`.
+A Next.js web app for building WeakAuras auras per **game** (WoW Forever with Musca Auras; TBC Anniversary with
+official WeakAuras2 is coming): an agent or the user describes an aura, the app previews it the way the game draws it,
+and the user exports the import string and imports it in the game. `/` is the game picker; each game is its own site
+(`/<game>`, `/<game>/docs/agents`, `/api/<game>/...`). See `.scratch/aura-simulator-v1/spec.md` and
+`.scratch/tbc-anniversary/spec.md`.
 
 ## Agent skills
 
@@ -23,33 +24,71 @@ Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root (created when nee
 
 Parallel agents work on this repo; keep to these boundaries so work merges cleanly.
 
+- `src/games/`: what differs per game, one folder each (`forever/`, `tbc/`). Share only what is truly the same
+  concept (the Lua engine, the aura document, wago JSON, workspace storage and push, the window frame, renderers by
+  the hash rule); code that merely looks alike stays per game.
+  - `game.ts`: `Game` (page-safe: id, name, addon name, fallback release); `index.ts`: the picker's `GAMES` and
+    `UPCOMING_GAMES`, `findGame`. The id is the URL segment, the storage namespace and the aura core's game
+    (`loadAddon(ref, { game })`, whose per-game client profile, contract and extractors live in
+    `src/core/addon-vm/games.ts`).
+  - `server.ts`: `findServerGame`/`routeGame` over each game's `ServerGame` (`src/server/game.ts`: its addon source
+    cache, spell cache and agent docs). Routes under `src/app/[game]` and `src/app/api/[game]` take the game from the
+    URL, so a new game needs no new routes.
+  - `forever/`: `index.ts` (the `Game`), `sources.ts` (Musca's repo, `FOREVER_SPELLS`, `muscaFileUrl`), `server.ts`
+    (`foreverServer`), `docs/` (agent docs, addon facts, worked examples, `load.ts`), `examples.ts` (the example
+    auras the docs and browser tests push), `v1-auras/` (the in-game check's import strings). Fixtures:
+    `tests/fixtures/forever/`.
+  - `tbc/`: `sources.ts` (`TBC_SPELLS`) so far; ticket 04 adds its `Game` and `ServerGame`. Fixtures: `tests/fixtures/tbc/`.
+  - Per-game rules (`auraRules(game)`, `TRIGGER_KINDS[game]`) live in the aura core by the same id; the page passes
+    `game.id` (e.g. `GameScreenAuras`' `game`). Still Musca's for every game: the renderers' addon media
+    (`render/textures/paths.ts`, `muscaFileUrl`).
+
 - `src/core/`: the **aura core** (spec seam A). Loads an addon version's Lua in wasmoon-lua5.1,
   encodes/decodes state codes (`state-code.ts` is the one pattern: `!WA:<n>!`, n ≥ 2, as the addon's decoder
   reads them), fills defaults, validates. No React, no DOM. Runs in browser and Node.
-  It also holds the situation model (`situation/`) and the trigger/condition evaluation with Forever's combat rules
-  (`conditions/`, `evaluateAura`): what an aura shows in a situation. Those restate addon rules; the files they mirror
-  are pinned by hash in `conditions/mirrored.ts` (a test fails when they change or the default addon version moves).
+  It also holds the situation model (`situation/`) and the trigger/condition evaluation per game (`conditions/`):
+  what an aura shows in a situation. `auraRules(game)` gives a game's rules (trigger kinds, `setInCombat`,
+  `evaluate`, `combatRestricted`). Forever (`evaluateAura`, `conditions/forever.ts` + `secret-aura-rules.ts`) adds
+  Aura (Modern), freezing and held properties to plain WeakAuras; TBC (`evaluateTbcAura`, `conditions/tbc.ts`) is
+  plain WeakAuras2, nothing changes in combat. Only what both addons do the same is shared (`conditions/evaluate.ts`,
+  `triggers.ts`, `region-defaults.ts`). Validation's `combat` verdict exists only for Forever (`AddonVMGame.combatCheck`);
+  on TBC `ValidationResult` has just the addon's errors and warnings.
+  Rules and renderers restate addon files; `src/core/mirrored.ts` pins them per game by hash at the game's default
+  version (Forever: Musca tag; TBC: WeakAuras2 5.22.1 from the release zip) and lists every module both games share
+  with the files it ports (`SHARED_PORTS`): a test fails when a pinned file changes, when a game's version moves, or
+  when a ported file's sameness between the addons changes. A module stays shared while the Lua it ports does the
+  same in both; each differing file says why (or which part is per game, e.g. `layoutScreen(…, game)`'s group border).
   Whether Aura (Modern) conditions are valid is never restated: the preview takes `conditionProblem(validate(...))`.
   Import it via `@/core` only. The aura document (a Lua table as JSON: arrays for sequences, `"[1]"`-style keys
   for number/boolean keys) is defined in `src/core/lua-value.ts`, with its readers (`getField`, `field`, `list`,
-  `num`); core tests cache addon files in `.cache/addon` (gitignored).
+  `num`); core tests cache addon files in `.cache/addon/<game>` (gitignored).
+  wago JSON (`wago-json.ts`, `toWagoJson`/`fromWagoJson`) is the third form of an aura: byte-identical to wago.io's
+  JSON, with wago's own rules both ways (`.scratch/tbc-anniversary/wago-json.md`); pure and shared by every game.
   `fillDefaults`/`validate`/`registries` run the whole addon in a lazily loaded second VM (`src/core/addon-vm/`,
   a Web Worker in the browser). To add a full-VM call, add the method to `AddonVM` (`vm.ts`) and `AuraCore`
   (`aura-core.ts`); the worker and its host (`host.ts`) forward any `AddonVM` method by name. Both VMs share `lua-stdlib.ts`; answers to the page
   are one JSON (`B.json` in `lua/bridge.ts`, aura documents inside marked with `B.doc`). A core that is replaced
-  must be `dispose()`d (its worker holds a whole Lua heap). Client answers that change validation belong in its Forever client profile
-  (`profile.ts`), and every addon internal it uses in its contract (`contract.ts`).
+  must be `dispose()`d (its worker holds a whole Lua heap). `loadAddon(ref, { game, fetchSource })` picks the game's
+  client: `"forever"` (default: Musca Auras, `<Addon>.toc`) or `"tbc"` (WeakAuras2 from its release zip,
+  `<Addon>_TBC.toc`); the core never fetches on its own. Per game the full VM takes a client profile, a contract and its own extractors
+  (`addon-vm/games.ts`). Client answers belong in the game's client profile (Forever: `profile.ts`; TBC:
+  `profile-tbc.ts`, every answer marked UNVERIFIED until checked in game). Every addon internal the extractors use is
+  in the contract (`contract.ts`): `COMMON_CONTRACT` for what every WeakAuras has (`lua/extract.ts`, `lua/options.ts`),
+  `FOREVER_CONTRACT` for Musca's own (Aura (Modern), combat warnings, packs: `lua/extract-forever.ts`, `lua/new-aura.ts`).
   The options editor (`options`/`setOption`) builds the in-game options tabs in that VM with WeakAurasOptions' own
   generators and applies edits through each option's own `set()` (`addon-vm/options.ts`, `lua/options.ts`, dialogs in
   `lua/dialogs.ts`); its form is `src/components/options-editor/`. Tabs are the addon's keys (`region` is Display,
   `action` is Actions); validation pointers use the same keys, so `options({tab: pointer.tab})` opens the right tab. Buttons that open a game dialog (icon/texture/model picker, code editor,
   confirmation popups) return `edit.dialog`; the page shows its own and answers with the same button. The New Aura
   page (`newAuraPage`/`newAura`/`packs`; `addon-vm/new-aura.ts`, `lua/new-aura.ts`) comes from the addon too. Forever client data the profile answers (classes,
-  difficulties, item types, talents) is `addon-vm/client-data.json`, generated by `node scripts/client-data.ts`.
+  difficulties, item types, talents) is `addon-vm/client-data.json`; TBC's, same shape, is `addon-vm/client-data-tbc.json`. Both are
+  generated by `node scripts/client-data.ts <wago product> <output.json>` (`wowf`, `wow_anniversary`).
   The option reference (`optionReference`, `addon-vm/option-reference.ts`) probes every option through its own `set()`
-  on a fresh aura and records the table paths it writes (path form documented there); it takes about a minute (two in the background), so the
-  server caches it per version (`server/agent-docs.ts`, served as `/docs/agents/options.json` and `options.md`), and
-  `option-reference.test.ts` replays every probe. Bump `OPTION_REFERENCE_FORMAT` when the generator's output changes.
+  on a fresh aura and records the table paths (wago JSON keys) it writes, with the reverse index; path form documented
+  there. It takes about a minute per game and version (two in the background), so the server caches it per game and
+  version (`server/option-reference.ts`; served at `/<game>/docs/agents/options.json` and `options.md`, Markdown from
+  `src/games/option-reference-docs.ts`), and `option-reference.test.ts` replays every probe for each game. Bump
+  `OPTION_REFERENCE_FORMAT` when the generator's output changes.
   The tab sweeps (`src/core/options-sweep.test.ts`, `tests/e2e/tab-sweep.spec.ts`) walk every tab of every display
   type generically; keep them green when the editor or the profile changes.
 - `src/render/`: hand-written renderers (React components + CSS) per region and sub-region type.
@@ -60,34 +99,47 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   surface) and `screen/GameScreenAuras.tsx` (every aura of the workspace on it, laid out by `group/layout.ts`);
   positions are `Box`es (`screen/geometry.ts`: CSS left/top/width/height). Colours: `color.ts`.
 - `src/server/`: server-only code (SQLite via built-in `node:sqlite`, wago/Wowhead sync, addon source cache).
-  Database file lives in `/data/` (gitignored). The addon source cache (`server/addon/source-cache.ts`) is the only
-  place the server reads addon files; the server's aura core (`server/addon/core.ts`, one per resolved ref) and the
-  agent-docs loader (`server/agent-docs.ts`) use it. Push, docs and diff follow `?ref=` (default: newest release).
+  Server data is per game under `DATA_DIR` (default `data/`, gitignored): `data/<game>/spells.sqlite` (a
+  `SpellSource` names the wago product and Wowhead environment: `FOREVER_SPELLS`, `TBC_SPELLS`) and
+  `data/<game>/addon/` (or `ADDON_CACHE_DIR/<game>`). The addon source cache (`server/addon/source-cache.ts`: a repo's
+  released tags via jsDelivr/GitHub, no branches or commits) is the only place the server reads Forever's addon files;
+  the server's aura core (`server/addon/core.ts`, one per game and release) and the game's agent docs use it. Push,
+  docs and diff follow `?ref=` (a release; default: the newest).
+  WeakAuras2 (TBC) comes from GitHub release zips instead (`server/addon/weakauras2-releases.ts`: tags from 5.21.0
+  with a `WeakAuras-<tag>.zip`, checked against GitHub's sha256, unpacked once per version; `unzip.ts`). Its tests
+  use a recorded release list (`tests/fixtures/weakauras2`) and download the 5.22.1 zip once into
+  `.cache/weakauras2` (`tests/support/weakauras2.ts`), skipping when offline.
 - `src/api/`: wire types and limits of the HTTP API shared by server and page (`addon.ts`, `spells.ts`, with
   `iconNameUrl`). No server code: client code imports these, never `@/server/*`.
 - `src/workspace/`: the workspace model (`tree.ts`: top-level auras as nodes, groups nest their `items`; pure operations keep ids unique and
-  `controlledChildren`/`parent` in step), its storage/file format (`workspace.ts`, v2 JSON; v1 still read), import/export
-  files (`files.ts`: aura `.txt` = exactly one state code; text with several codes; workspace `.json`), undo/redo
-  (`history.ts`), the restore decision (`restore.ts`), the push/SSE wire protocol (`protocol.ts`: header, event names,
-  notice/snapshot types, URLs, push input; used by page and server) and the page address (`address.ts`: only `?w=`).
+  `controlledChildren`/`parent` in step), its storage/file format (`workspace.ts`, v3 JSON recording its game; older
+  versions and other games' files are refused), import/export files (`files.ts`: aura `.txt` = exactly one state code;
+  text with several codes; workspace `.aura-workspace.json`), undo/redo (`history.ts`), the restore decision
+  (`restore.ts`), the push/SSE wire protocol (`protocol.ts`: header, event names, notice/snapshot types, URLs per game
+  and workspace, push input; used by page and server) and the page address (`address.ts`: `/<game>?w=`).
   **Auras never go in the address**: they can be megabytes, so they travel as files, over the push API, or by
-  clipboard (an old `?code=` link is imported once; every other parameter is dropped). New auras come only from the
+  clipboard (every other parameter is dropped). New auras come only from the
   addon's New Aura (`placeNewAura` places them). Pure, shared by page and server.
 - `src/client/`: page-side libraries (browser only, no routes). `client/workspace/`: `WorkspaceSession` (one page's
-  workspace per aura core) over `StateCodes` (`codes.ts`), `ServerLink` (`server-link.ts`: the push/SSE protocol) and
-  the write-behind `WorkspaceStore` (`storage.ts`, IndexedDB via `src/lib/idb.ts`, migrating old localStorage
-  copies); `useWorkspace`/`useUndo` hooks; `window.auraSimulator` (`page-api.ts`, documented in the agent docs).
-  `client/addon-client.ts`: the page's side of `/api/addon/*` (versions, the bundle fetcher the aura core loads
-  through, client spells, diff).
-- `src/server/workspaces/`: push API (bodies up to 32 MB) and the hub of recent pushes per workspace, in memory.
-  Every top-level aura a page changes is pushed there too, so agents read the player's current aura with
-  `GET /api/workspaces/<id>`; it holds the latest few pushes, not workspaces (those live in the browser).
-- `src/docs/`: the agent docs (one Markdown source, served at `/docs/agents`, `/llms.txt`, `/docs/agents.md`).
-  Update it when an API or format changes; `agent-docs.ts` has one function per section. Lists of types, triggers, condition variables and defaults are generated
-  from the addon version (`addon-facts.ts`); the worked examples (`worked-examples.ts`) are the documents in
-  `src/render/examples.ts` (the browser tests push them to the window) and tests push every example block of the served docs.
+  workspace of a game per aura core) over `StateCodes` (`codes.ts`), `ServerLink` (`server-link.ts`: the push/SSE
+  protocol) and the write-behind `WorkspaceStore` (`storage.ts`, IndexedDB via `src/lib/idb.ts`, keyed per game and
+  workspace); `useWorkspace`/`useUndo` hooks; `window.auraSimulator` (`page-api.ts`, documented in the agent docs).
+  `client/addon-client.ts`: the page's side of `/api/<game>/addon/*` (versions, the bundle fetcher the aura core
+  loads through, client spells, diff). The page's game reaches components by context: the spell picker's
+  `SpellApiContext` (`components/spell-picker/spell-api.ts`) and the renderers' `IconStoreContext`
+  (`render/textures/icons.ts`), both provided by `AuraSimulator`.
+- `src/server/workspaces/`: push API (bodies up to 32 MB) and a hub of recent pushes per game and workspace, in
+  memory. Every top-level aura a page changes is pushed there too, so agents read the player's current aura with
+  `GET /api/<game>/workspaces/<id>`; it holds the latest few pushes, not workspaces (those live in the browser).
+- Agent docs are per game (`src/games/<game>/docs/`, served at `/<game>/docs/agents`, `/<game>/llms.txt`,
+  `/<game>/docs/agents.md` through `ServerGame.agentDocs`). Forever's: update it when an API or format changes;
+  `agent-docs.ts` has one function per section. Lists of types, triggers, condition variables and defaults are
+  generated from the addon version (`addon-facts.ts`); the worked examples (`worked-examples.ts`) are the documents in
+  `src/games/forever/examples.ts` (the browser tests push them to the window) and tests push every example block of
+  the served docs.
 - `src/app/`: Next.js routes and pages. Thin; delegates to the modules above (page logic goes in `src/client/`).
-  `AuraSimulator.tsx` is the page's composition root: it fills `src/components/shell`'s `AppShell` (the window
+  `page.tsx` is the game picker; `[game]/page.tsx` a game's site. `AuraSimulator.tsx` is a game site's composition
+  root (its title's game name leads back to the picker): it fills `src/components/shell`'s `AppShell` (the window
   and the game screen pane) with the features (`components/aura-list`, `components/options-editor`, `app/addon`
   for the version picker, `app/screen` for the game screen pane). `components/ui` is the generic UI kit (no game code). `/lua/liblua5.1.wasm` serves wasmoon's
   Lua binary from `node_modules`, so the browser's aura core loads no CDN. Links the server writes into answers use
@@ -97,14 +149,11 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   `HttpError`; `idb.ts`: one IndexedDB object store, used by the workspace storage and the screenshot store).
 - Tests: unit/seam A with Vitest (`npm test`), browser/HTTP seam B with Playwright (`npm run test:e2e`,
   `E2E_PORT` picks the port so parallel worktrees don't clash). Network-dependent tests use recorded
-  fixtures in `tests/fixtures/`. The e2e dev server gets addon versions/refs from recorded GitHub/jsDelivr
-  answers (`ADDON_UPSTREAM_FIXTURES`; addon files are cached in `.cache/addon`, the source cache's layout, shared with
-  the unit tests); `LIVE=1 npm test -- addon-live`
-  checks the real upstream.
-- Musca Auras source: GitHub `dldvlpr-addons-wow/Musca-Auras`, per file via
-  `https://cdn.jsdelivr.net/gh/dldvlpr-addons-wow/Musca-Auras@<ref>/<path>`. A local install of v1.15.0 is at
-  `~/Games/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns/WeakAuras*` (read only).
-- Ticket files: `.scratch/aura-simulator-v1/issues/`. Tick acceptance boxes and set `Status:` when done.
+  fixtures in `tests/fixtures/<game>/`. The e2e dev server gets addon versions from recorded GitHub/jsDelivr
+  answers (`ADDON_UPSTREAM_FIXTURES=tests/fixtures`, read as `<game>/addon`; addon files are cached in
+  `.cache/addon/<game>`, the source cache's layout, shared with the unit tests) and keeps its data in
+  `.cache/e2e/<port>` (`DATA_DIR`); `LIVE=1 npm test -- addon-live` checks the real upstream.
+- Ticket files: `.scratch/<feature>/issues/`. Tick acceptance boxes and set `Status:` when done.
 - Blizzard art (icons, glow textures) is fetched at runtime and never committed.
 <!-- BEGIN:nextjs-agent-rules -->
 

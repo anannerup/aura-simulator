@@ -161,7 +161,7 @@ async function readOptional(cache: AddonSourceCache, ref: string, file: string):
   }
 }
 
-/** Diffs two refs (any release, branch or commit). */
+/** Diffs two releases. */
 export async function diffAddonVersions(
   cache: AddonSourceCache,
   registriesOf: RegistriesOf,

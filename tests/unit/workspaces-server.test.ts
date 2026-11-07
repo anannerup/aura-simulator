@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { DEFAULT_ADDON_REF, loadAddon, sampleIconAura, type AuraCore } from "@/core";
+import { loadAddon, sampleIconAura, type AuraCore } from "@/core";
 import { createWorkspaceHub, MAX_PUSH_BYTES, parsePushBody, PushError, readBodyText, toStateCode } from "@/server/workspaces";
 import { nodeFromState } from "@/workspace";
 import { cachedAddonFetcher } from "../support/addon-source";
@@ -57,7 +57,7 @@ describe("push body", () => {
 describe("push", () => {
   let core: AuraCore;
   beforeAll(async () => {
-    core = await loadAddon(DEFAULT_ADDON_REF, { fetchSource: cachedAddonFetcher(DEFAULT_ADDON_REF) });
+    core = await loadAddon("v1.15.0", { fetchSource: cachedAddonFetcher("v1.15.0") });
   });
 
   it("reads JSON code, JSON documents and bare codes", () => {

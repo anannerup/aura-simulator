@@ -23,7 +23,7 @@ import {
   remainingDesaturates,
   secretWithCombatCondition,
   targetDebuffAura2,
-} from "@/render/examples";
+} from "@/games/forever/examples";
 import { formatSubText, formatTime } from "@/render/text-format";
 import { cachedAddonFetcher } from "../support/addon-source";
 

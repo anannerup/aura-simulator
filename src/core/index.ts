@@ -1,16 +1,16 @@
 /** The aura core (spec seam A): everything Lua-related hides behind this interface. */
 export { loadAddon } from "./aura-core";
 export type { AuraCore, AuraDocument, AuraState, DecodedState, LoadAddonOptions } from "./aura-core";
-export { ADDON_REPO, DEFAULT_ADDON_REF, jsDelivrFetcher, jsDelivrUrl } from "./addon-source";
 export type { AddonSourceFetcher } from "./addon-source";
 export { ADDON_BUNDLE_SETS, bundleFetcher, collectAddonBundle } from "./addon-bundle";
 export type { AddonBundle, AddonBundleSet } from "./addon-bundle";
+export { ADDON_GAME_IDS, tocPath } from "./addon-vm/toc";
+export type { AddonGameId } from "./addon-vm/toc";
 export { canonicalize, field, getField, isLuaTable, list, num } from "./lua-value";
-export { DEFAULT_SITUATION, auraTriggers, setInCombat, triggerSituation, withTrigger } from "./situation";
-export type { Situation, TriggerKind, TriggerSituation } from "./situation";
-export { conditionProblem, evaluateAura } from "./conditions";
-export type { AuraRenderState, ConditionProblem, GlowState, TriggerState } from "./conditions";
-export { findStateCodes, isStateCode } from "./state-code";
+export { DEFAULT_SITUATION, TRIGGER_KINDS, auraTriggers, setInCombat, triggerSituation, withTrigger } from "./situation";
+export type { Situation, TriggerInfo, TriggerKind, TriggerSituation } from "./situation";
+export { auraRules, conditionProblem, evaluateAura, evaluateTbcAura } from "./conditions";
+export type { AuraRenderState, AuraRules, ConditionProblem, GlowState, TriggerState } from "./conditions";export { findStateCodes, isStateCode } from "./state-code";
 export { plainText } from "./wow-text";
 export { LuaLiteralError, parseLuaLiteral, printLuaLiteral } from "./lua-literal";
 export { parseCanonicalJson, printCanonicalJson } from "./canonical-json";
@@ -33,3 +33,4 @@ export { OPTION_REFERENCE_FORMAT, changedPaths, pathPattern } from "./addon-vm/o
 export type { OptionChoice, OptionReference, OptionReferenceEntry, OptionReferenceOptions, OptionScope, TablePath } from "./addon-vm/option-reference";
 export type { CombatStatus, ValidationMessage, ValidationResult } from "./addon-vm/validation";
 export { setTriggerSpellId, triggerCount, triggerSpellId } from "./trigger-spell";
+export { WagoJsonError, fromWagoJson, toWagoJson } from "./wago-json";

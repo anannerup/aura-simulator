@@ -1,0 +1,63 @@
+.picker {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  background: var(--surface-sunken);
+}
+
+.title {
+  font-family: var(--font-title);
+  font-size: var(--text-xl);
+  color: var(--accent);
+  text-shadow: 0 1px 1px #000;
+}
+
+.lead {
+  color: var(--text-3);
+  font-size: var(--text-base);
+}
+
+.games {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  padding: 0;
+}
+
+.game {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 240px;
+  padding: 16px 20px;
+  border: 1px solid var(--red-border);
+  background: var(--surface-overlay);
+  text-decoration: none;
+}
+
+a.game:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+
+.game[aria-disabled="true"] {
+  opacity: 0.55;
+  border-color: var(--border);
+}
+
+.name {
+  font-family: var(--font-title);
+  font-size: var(--text-lg);
+  color: var(--accent);
+}
+
+.addon {
+  color: var(--text-3);
+  font-size: var(--text-sm);
+}

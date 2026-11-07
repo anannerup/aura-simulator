@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getSpellStatus, syncSpells, type SpellCacheStatus } from "./spell-api";
+import { useSpellApi, type SpellCacheStatus } from "./spell-api";
 import { Button, Callout, IconButton, RefreshIcon, WarningIcon } from "@/components/ui";
 import styles from "./SpellPicker.module.css";
 import { errorMessage } from "@/lib/errors";
@@ -11,26 +11,28 @@ import { errorMessage } from "@/lib/errors";
  * line with the build and last sync time. Both offer a sync (takes a few seconds; wago.tools).
  */
 export function SpellSync({ onSynced }: { onSynced?: () => void }) {
+  const api = useSpellApi();
   const [status, setStatus] = useState<SpellCacheStatus | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    getSpellStatus()
+    api
+      .status()
       .then((s) => !cancelled && setStatus(s))
       .catch((e: unknown) => !cancelled && setError(errorMessage(e)));
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [api]);
 
   async function sync() {
     setSyncing(true);
     setError(null);
     try {
-      await syncSpells();
-      setStatus(await getSpellStatus());
+      await api.sync();
+      setStatus(await api.status());
       onSynced?.();
     } catch (e) {
       setError(errorMessage(e));
