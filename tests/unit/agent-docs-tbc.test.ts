@@ -79,6 +79,19 @@ describe("TBC agent docs", () => {
     expect(result.combat).toBeUndefined();
   });
 
+  test("every worked example is wago JSON the addon imports and validates with no problems", async (ctx) => {
+    const c = loaded(ctx);
+    const blocks = [...md.matchAll(/^```json example=(\S+)\n([\s\S]*?)\n```$/gm)].map((m) => ({ key: m[1], state: fromWagoJson(m[2]) }));
+    expect(blocks.map((b) => b.key)).toEqual(["buff-under-3-min", "buff-missing", "cooldown-icon", "target-debuff-bar", "v1-group"]);
+    for (const { key, state } of blocks) {
+      expect(await c.importCheck(state), key).toEqual({ importable: true });
+      const result = await c.validate(state);
+      expect({ key, errors: result.errors, warnings: result.warnings }).toEqual({ key, errors: [], warnings: [] });
+    }
+    expect(md).toContain("## Situation: show that an aura works");
+    expect(md).toContain("PUT /api/tbc/workspaces/<id>/situation");
+  });
+
   test("still render without the generated lists when the addon can't be loaded", () => {
     const fallback = tbcAgentDocsMarkdown({ origin: ORIGIN, addonRef: TBC_TEST_VERSION, addon: null });
     expect(fallback).toContain("could not be loaded");

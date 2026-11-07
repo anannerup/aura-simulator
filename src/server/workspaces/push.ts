@@ -1,4 +1,15 @@
-import { canonicalize, fromWagoJson, isStateCode, WagoJsonError, type AuraCore, type AuraDocument, type ValidationResult } from "@/core";
+import {
+  canonicalize,
+  DEFAULT_SITUATION,
+  fromWagoJson,
+  isStateCode,
+  previewSituation,
+  WagoJsonError,
+  type AuraCore,
+  type AuraDocument,
+  type SituationPreview,
+  type ValidationResult,
+} from "@/core";
 import { buildPageUrl, readPushInput, type PushInput } from "@/workspace";
 import { getServerAuraCore } from "@/server/addon/core";
 import type { ServerGame } from "@/server/game";
@@ -139,6 +150,8 @@ export interface PushResult {
   revision: number;
   /** The addon's own checks and combat warnings for the pushed aura (null when skipped). Export is never blocked. */
   validation: ValidationResult | null;
+  /** What each display shows in the workspace's situation (the one an agent set, else the default). */
+  preview: SituationPreview;
 }
 
 export interface PushOptions {
@@ -163,13 +176,17 @@ export async function pushToWorkspace(
   // As the game's import: the addon's own import dialog decides (e.g. it refuses an aura made with a newer version).
   const check = await core.importCheck(core.decode(code));
   if (!check.importable) throw new PushError(check.message, 422);
-  const snap = getWorkspaceHub(server.game.id).set(workspaceId, code, options.source ?? null);
+  const hub = getWorkspaceHub(server.game.id);
+  const snap = hub.set(workspaceId, code, options.source ?? null);
+  const state = core.decode(code);
+  const validation = options.validate === false ? null : await core.validate(state);
   return {
     workspace: workspaceId,
     code,
     url: buildPageUrl(origin, server.game.id, workspaceId),
     updatedAt: snap.updatedAt!,
     revision: snap.revision,
-    validation: options.validate === false ? null : await core.validate(core.decode(code)),
+    validation,
+    preview: previewSituation(state, hub.getSituation(workspaceId) ?? DEFAULT_SITUATION, server.game.id, validation),
   };
 }

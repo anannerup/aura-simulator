@@ -1,0 +1,116 @@
+{
+  "d": {
+    "anchorPoint": "CENTER",
+    "backgroundColor": [
+      0,
+      0,
+      0,
+      0.5
+    ],
+    "barColor": [
+      0.62,
+      0.22,
+      0.85,
+      1
+    ],
+    "conditions": [
+      {
+        "changes": [
+          {
+            "property": "sub.4.text_color",
+            "value": [
+              1,
+              0.2,
+              0.2,
+              1
+            ]
+          }
+        ],
+        "check": {
+          "op": "<",
+          "trigger": 1,
+          "value": "5",
+          "variable": "expirationTime"
+        }
+      }
+    ],
+    "displayIcon": 136118,
+    "height": 20,
+    "icon": true,
+    "icon_side": "LEFT",
+    "id": "Corruption on target",
+    "orientation": "HORIZONTAL",
+    "regionType": "aurabar",
+    "selfPoint": "CENTER",
+    "spark": true,
+    "subRegions": [
+      {
+        "type": "subbackground"
+      },
+      {
+        "type": "subforeground"
+      },
+      {
+        "anchorXOffset": 2,
+        "anchorYOffset": 0,
+        "anchor_point": "INNER_LEFT",
+        "text_color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "text_font": "Friz Quadrata TT",
+        "text_fontSize": 12,
+        "text_fontType": "OUTLINE",
+        "text_justify": "LEFT",
+        "text_selfPoint": "AUTO",
+        "text_text": "%n",
+        "text_visible": true,
+        "type": "subtext"
+      },
+      {
+        "anchorXOffset": -2,
+        "anchorYOffset": 0,
+        "anchor_point": "INNER_RIGHT",
+        "text_color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "text_font": "Friz Quadrata TT",
+        "text_fontSize": 12,
+        "text_fontType": "OUTLINE",
+        "text_justify": "RIGHT",
+        "text_selfPoint": "AUTO",
+        "text_text": "%p",
+        "text_visible": true,
+        "type": "subtext"
+      }
+    ],
+    "texture": "Blizzard",
+    "triggers": {
+      "1": {
+        "trigger": {
+          "auranames": [
+            "Corruption"
+          ],
+          "debuffType": "HARMFUL",
+          "ownOnly": true,
+          "type": "aura2",
+          "unit": "target",
+          "useName": true
+        },
+        "untrigger": []
+      },
+      "activeTriggerMode": -10
+    },
+    "width": 200,
+    "xOffset": 0,
+    "yOffset": 0
+  },
+  "m": "d",
+  "s": "5.22.1",
+  "v": 1421
+}

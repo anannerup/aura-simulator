@@ -106,7 +106,7 @@ export interface OptionReferenceEntry {
 }
 
 /** The reference's shape and generator version: changes when either does (caches keyed by it regenerate). */
-export const OPTION_REFERENCE_FORMAT = 2;
+export const OPTION_REFERENCE_FORMAT = 3;
 
 export interface OptionReference {
   /** OPTION_REFERENCE_FORMAT of the generator that made it. */
@@ -153,6 +153,12 @@ const finite = (v: unknown): v is number => typeof v === "number" && Number.isFi
 /** Every node of an option tree, pre-order. */
 function walk(node: OptionNode): OptionNode[] {
   return [node, ...(node.args ?? []).flatMap(walk)];
+}
+
+/** The node at an option path in a tree, if it is there. */
+function nodeAt(root: OptionNode, path: string[]): OptionNode | undefined {
+  const key = JSON.stringify(path);
+  return walk(root).find((n) => JSON.stringify(n.path) === key);
 }
 
 /** A value of the kind the option takes, different from its current one; undefined when there is none. */
@@ -452,10 +458,17 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
     const selects = nodes.filter((n) => n.type === "select" && (n.values ?? []).some(([k]) => k === n.value));
     const toggles = nodes.filter((n) => n.type === "toggle" && typeof n.value === "boolean");
     let options: string | undefined;
-    for (const same of [...selects, ...toggles].slice(0, 4)) {
+    let tried = 0;
+    for (const same of [...selects, ...toggles]) {
+      if (tried === 4) break;
       const r = edit(state, tab, same, same.value);
-      if (!r.edit?.changed) continue;
-      const next = { aura: r.edit.aura, children: r.edit.children ?? state.children };
+      const next = r.edit && { aura: r.edit.aura, children: r.edit.children ?? state.children };
+      // Setting an option to the value it shows must leave it showing that value. A tristate toggle shows `false`
+      // for "not set", and setting it to false means "Not" (a Load option's "Not Alive" unloads the aura): a real
+      // change, so it is skipped and doesn't count.
+      if (next && r.edit!.changed && !sameJson(nodeAt(tree(next, tab), same.path)?.value, same.value)) continue;
+      tried++;
+      if (!next || !r.edit!.changed) continue;
       options ??= shown(state);
       if (shown(next) === options) state = next;
     }

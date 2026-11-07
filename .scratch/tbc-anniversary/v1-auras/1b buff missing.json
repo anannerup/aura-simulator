@@ -1,0 +1,47 @@
+{
+  "d": {
+    "anchorPoint": "CENTER",
+    "cooldown": true,
+    "desaturate": true,
+    "displayIcon": 135932,
+    "height": 64,
+    "id": "Arcane Intellect missing",
+    "regionType": "icon",
+    "selfPoint": "CENTER",
+    "subRegions": [
+      {
+        "type": "subbackground"
+      },
+      {
+        "glow": true,
+        "glowType": "buttonOverlay",
+        "type": "subglow",
+        "useGlowColor": false
+      }
+    ],
+    "triggers": {
+      "1": {
+        "trigger": {
+          "auranames": [
+            "Arcane Intellect",
+            "Arcane Brilliance"
+          ],
+          "debuffType": "HELPFUL",
+          "matchesShowOn": "showOnMissing",
+          "type": "aura2",
+          "unit": "player",
+          "useName": true,
+          "use_matchesShowOn": true
+        },
+        "untrigger": []
+      },
+      "activeTriggerMode": -10
+    },
+    "width": 64,
+    "xOffset": 0,
+    "yOffset": 0
+  },
+  "m": "d",
+  "s": "5.22.1",
+  "v": 1421
+}

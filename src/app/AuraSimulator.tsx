@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { PageSituation } from "@/client/situation";
 import { NOT_READY, type EditResult } from "@/client/workspace/session";
 import { useUndo } from "@/client/workspace/useUndo";
 import { useWorkspace } from "@/client/workspace/useWorkspace";
-import { auraRules, DEFAULT_SITUATION, type AuraDocument } from "@/core";
+import { auraRules, type AuraDocument } from "@/core";
 import { OptionsEditor } from "@/components/options-editor/OptionsEditor";
 import { AppShell, EmptyNote, ListSection, ScreenMessage, ScreenPane } from "@/components/shell";
 import { SpellPicker } from "@/components/spell-picker/SpellPicker";
@@ -49,7 +50,9 @@ export function AuraSimulator({ gameId }: { gameId: string }) {
   // The agent docs of the game and the version this window uses.
   const docsQuery = core ? `?ref=${encodeURIComponent(core.ref)}` : "";
   const docs = `/${game.id}/docs/agents${docsQuery}`;
-  const [situation, setSituation] = useState(DEFAULT_SITUATION);
+  const [situationStore] = useState(() => new PageSituation());
+  const situation = useSyncExternalStore(situationStore.subscribe, situationStore.get, situationStore.get);
+  const setSituation = situationStore.set;
   const screen = useGameScreen();
   const [creating, setCreating] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -58,7 +61,7 @@ export function AuraSimulator({ gameId }: { gameId: string }) {
   // The window's title font (Friz Quadrata), from the game files at runtime.
   useEffect(() => ensureFont("Friz Quadrata TT"), []);
 
-  const { view: workspace, session } = useWorkspace(core, game.id);
+  const { view: workspace, session } = useWorkspace(core, game.id, situationStore);
   const importer = useImporter(session);
 
   // Edits (tabs, spell picker) replace the selected aura's document (a group's tabs its descendants too).

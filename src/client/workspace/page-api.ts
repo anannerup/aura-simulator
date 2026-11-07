@@ -1,5 +1,6 @@
-import type { AuraState } from "@/core";
+import { previewSituation, readSituation, situationJson, type AddonGameId, type AuraState, type SituationPreview } from "@/core";
 import { readPushInput } from "@/workspace";
+import type { PageSituation } from "../situation";
 import type { WorkspaceSession } from "./session";
 import { errorMessage } from "@/lib/errors";
 
@@ -20,6 +21,13 @@ export interface AuraSimulatorApi {
   code(id?: string): string | null;
   /** An aura's document and a group's descendants (what `load` takes); the selected one by default. */
   state(id?: string): AuraState | null;
+  /**
+   * The game screen's situation as JSON; with an argument, sets it first (a whole situation, as the push API's
+   * situation takes it: what is left out has its default) and answers `{ok: false, error}` when it isn't one.
+   */
+  situation(input?: unknown): { ok: true; situation: Record<string, unknown> } | { ok: false; error: string };
+  /** What each display of an aura (the selected one by default) shows in the page's situation, as a push answers. */
+  preview(id?: string): SituationPreview | null;
 }
 
 declare global {
@@ -29,7 +37,7 @@ declare global {
 }
 
 /** Installs `window.auraSimulator` for a restored session; returns the uninstall. */
-export function installPageApi(session: WorkspaceSession, workspaceId: string): () => void {
+export function installPageApi(session: WorkspaceSession, workspaceId: string, situation: PageSituation, game: AddonGameId): () => void {
   const api: AuraSimulatorApi = {
     workspaceId,
     async load(input) {
@@ -41,6 +49,20 @@ export function installPageApi(session: WorkspaceSession, workspaceId: string): 
     },
     code: (id) => session.codeOf(id),
     state: (id) => session.stateOf(id),
+    situation(input) {
+      if (input !== undefined) {
+        try {
+          situation.set(readSituation(input, game));
+        } catch (e) {
+          return { ok: false, error: errorMessage(e) };
+        }
+      }
+      return { ok: true, situation: situationJson(situation.get()) };
+    },
+    preview(id) {
+      const state = session.stateOf(id);
+      return state ? previewSituation(state, situation.get(), game) : null;
+    },
   };
   window.auraSimulator = api;
   return () => {

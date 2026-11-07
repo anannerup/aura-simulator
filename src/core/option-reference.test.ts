@@ -125,10 +125,19 @@ async function settle(state: AuraState, tab: string): Promise<AuraState> {
   const selects = nodes.filter((n) => n.type === "select" && (n.values ?? []).some(([k]) => k === n.value));
   const toggles = nodes.filter((n) => n.type === "toggle" && typeof n.value === "boolean");
   let options: string | undefined;
-  for (const n of [...selects, ...toggles].slice(0, 4)) {
+  let tried = 0;
+  for (const n of [...selects, ...toggles]) {
+    if (tried === 4) break;
     const e = await core!.setOption(state, { tab, path: n.path }, n.value).catch(() => undefined);
-    if (!e?.changed) continue;
-    const next = { aura: e.aura, children: e.children ?? state.children };
+    const next = e && { aura: e.aura, children: e.children ?? state.children };
+    // The option must still show the value it showed (a tristate toggle's false is "not set"; setting it is "Not"):
+    // otherwise it is skipped and doesn't count.
+    if (next && e!.changed) {
+      const after = walkOptions(await tree(next, tab)).find((m) => JSON.stringify(m.path) === JSON.stringify(n.path));
+      if (JSON.stringify(after?.value) !== JSON.stringify(n.value)) continue;
+    }
+    tried++;
+    if (!next || !e!.changed) continue;
     options ??= await shown(state);
     if ((await shown(next)) === options) state = next;
   }
@@ -286,6 +295,15 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
     expect(reference.lists).toEqual(expect.arrayContaining(["subRegions", "conditions", "conditions.#.changes"]));
     expect(reference.lists).not.toContain("triggers");
     expect(at("load.class.multi.*").some((e) => e.tab === "load" && e.type === "multiselect")).toBe(true);
+    // Probes start from the new aura as the window shows it: a Load option writes only its own load key (the base is
+    // not left unloaded by a "Not" set while settling, which made e.g. Alive also write every text's formats).
+    const alive = reference.entries.filter(
+      (e) => e.tab === "load" && e.option.join(".") === "use_alive" && e.scopes.some((s) => !s.regionType.endsWith("group")),
+    );
+    expect(alive.length).toBeGreaterThan(0);
+    for (const e of alive) expect(e.writes, JSON.stringify(e.scopes)).toEqual(["load.use_alive"]);
+    const offLoad = reference.entries.filter((e) => e.tab === "load" && e.writes.some((p) => !p.startsWith("load.")));
+    expect(offLoad.map((e) => `${e.option.join(".")}: ${e.writes.join(", ")}`)).toEqual([]);
     for (const [path, indices] of Object.entries(reference.byPath)) {
       for (const i of indices) expect(reference.entries[i].writes.map((p) => p.replace(/(^|\.)\d+(?=\.|$)/g, "$1#")), path).toContain(path);
     }

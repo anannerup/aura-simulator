@@ -114,3 +114,87 @@ export function setInCombat(situation: Situation, inCombat: boolean, game: Addon
 export function frozenFacts(situation: Situation): SituationFacts {
   return situation.inCombat ? (situation.beforeCombat ?? { ...situation, inCombat: false }) : situation;
 }
+
+/** The default of one trigger's situation, for the docs: the aura is up, 45 of 60 seconds left, no stacks. */
+export const DEFAULT_TRIGGER_SITUATION: Readonly<TriggerSituation> = defaultTriggerSituation;
+
+/** A situation an agent sent that isn't one; the message says what's wrong. */
+export class SituationError extends Error {
+  override name = "SituationError";
+}
+
+const TRIGGER_FIELDS = ["present", "remaining", "duration", "stacks"] as const;
+const FACT_FIELDS = ["triggers", "targetExists", "inCombat"] as const;
+
+function readFacts(value: unknown, where: string, base: SituationFacts): SituationFacts {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new SituationError(`${where} must be an object`);
+  const v = value as Record<string, unknown>;
+  const bool = (key: "targetExists" | "inCombat") => {
+    if (v[key] === undefined) return base[key];
+    if (typeof v[key] !== "boolean") throw new SituationError(`${where}.${key} must be true or false`);
+    return v[key];
+  };
+  let facts: Situation = { triggers: {}, targetExists: bool("targetExists"), inCombat: bool("inCombat") };
+  const triggers = v.triggers ?? {};
+  if (typeof triggers !== "object" || triggers === null || Array.isArray(triggers)) {
+    throw new SituationError(`${where}.triggers must be an object keyed by trigger number: {"1": {...}}`);
+  }
+  for (const [key, raw] of Object.entries(triggers)) {
+    const index = Number(key);
+    if (!Number.isInteger(index) || index < 1) throw new SituationError(`${where}.triggers: "${key}" is not a trigger number (1, 2, …)`);
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) throw new SituationError(`${where}.triggers.${key} must be an object`);
+    const t = raw as Record<string, unknown>;
+    const patch: Partial<TriggerSituation> = {};
+    for (const field of Object.keys(t)) {
+      if (!(TRIGGER_FIELDS as readonly string[]).includes(field)) {
+        throw new SituationError(`${where}.triggers.${key}.${field} is unknown (known: ${TRIGGER_FIELDS.join(", ")})`);
+      }
+    }
+    if (t.present !== undefined) {
+      if (typeof t.present !== "boolean") throw new SituationError(`${where}.triggers.${key}.present must be true or false`);
+      patch.present = t.present;
+    }
+    for (const field of ["remaining", "duration", "stacks"] as const) {
+      if (t[field] === undefined) continue;
+      if (typeof t[field] !== "number" || !Number.isFinite(t[field]) || t[field] < 0) {
+        throw new SituationError(`${where}.triggers.${key}.${field} must be a number of at least 0`);
+      }
+      patch[field] = t[field];
+    }
+    // withTrigger keeps time left within the duration (when there is one).
+    facts = withTrigger(facts, index, patch);
+  }
+  return { triggers: facts.triggers, targetExists: facts.targetExists, inCombat: facts.inCombat };
+}
+
+/**
+ * Reads a situation as agents send it (the push API's situation and `auraSimulator.situation`): JSON
+ * `{"targetExists", "inCombat", "triggers": {"1": {"present", "remaining", "duration", "stacks"}}}`. It is a whole
+ * situation: what is left out has its default (`DEFAULT_SITUATION`; a trigger's fields `DEFAULT_TRIGGER_SITUATION`).
+ * Forever only: `beforeCombat` (the same facts) is the moment combat started, which frozen auras keep; left out, the
+ * given facts stand in for it (nothing changed since combat started). Throws a `SituationError` saying what's wrong.
+ */
+export function readSituation(value: unknown, game: AddonGameId): Situation {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new SituationError("The situation must be a JSON object");
+  const v = value as Record<string, unknown>;
+  const known = game === "forever" ? [...FACT_FIELDS, "beforeCombat"] : FACT_FIELDS;
+  for (const key of Object.keys(v)) {
+    if (!(known as readonly string[]).includes(key)) {
+      const why = key === "beforeCombat" ? " (only Forever has a combat restriction)" : "";
+      throw new SituationError(`"${key}" is not part of a situation${why}; known: ${known.join(", ")}`);
+    }
+  }
+  const facts = readFacts(v, "situation", DEFAULT_SITUATION);
+  if (v.beforeCombat === undefined || !facts.inCombat) return facts;
+  return { ...facts, beforeCombat: { ...readFacts(v.beforeCombat, "situation.beforeCombat", { ...DEFAULT_SITUATION, inCombat: false }), inCombat: false } };
+}
+
+/** A situation as JSON (what `readSituation` reads back): trigger numbers as keys, every field written. */
+export function situationJson(situation: Situation): Record<string, unknown> {
+  const facts = (f: SituationFacts) => ({
+    targetExists: f.targetExists,
+    inCombat: f.inCombat,
+    triggers: Object.fromEntries(Object.entries(f.triggers).map(([k, t]) => [k, { ...t }])),
+  });
+  return situation.beforeCombat ? { ...facts(situation), beforeCombat: facts(situation.beforeCombat) } : facts(situation);
+}

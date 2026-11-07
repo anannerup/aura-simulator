@@ -97,7 +97,7 @@ describe("API endpoints", () => {
 
   test("every endpoint the docs mention exists with that method", () => {
     const mentioned = new Set([...md.matchAll(/\b(GET|POST|PUT|PATCH|DELETE) (\/api\/[^\s`?]+)/g)].map((m) => `${m[1]} ${m[2]}`));
-    for (const m of md.matchAll(/curl -s(?: -X (POST))? '?\$?\{?[^ ]*?(\/api\/[^\s'?\\]+)/g)) {
+    for (const m of md.matchAll(/curl -s(?: -X (POST|PUT))? '?\$?\{?[^ ]*?(\/api\/[^\s'?\\]+)/g)) {
       mentioned.add(`${m[1] ?? "GET"} ${m[2].replace(/\/\d+$/, "/<id>").replace(/workspaces\/[^/]+/, "workspaces/<id>")}`);
     }
     expect([...mentioned].sort()).toEqual([...DOCUMENTED_ENDPOINTS].sort());

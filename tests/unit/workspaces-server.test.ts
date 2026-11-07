@@ -27,6 +27,24 @@ describe("workspace hub", () => {
     expect(hub.get("a", 9)).toBeNull();
   });
 
+  it("keeps the situation an agent set per workspace and tells that workspace's situation listeners", () => {
+    const hub = createWorkspaceHub({ maxWorkspaces: 2 });
+    const seen: string[] = [];
+    hub.subscribeSituation("a", (s) => seen.push(`a:${s.inCombat}`));
+    const notices: string[] = [];
+    hub.subscribe("a", () => notices.push("state"));
+    expect(hub.getSituation("a")).toBeNull();
+    const fight = { triggers: {}, targetExists: true, inCombat: true };
+    hub.setSituation("a", fight);
+    hub.setSituation("b", { ...fight, inCombat: false });
+    expect(hub.getSituation("a")).toEqual(fight);
+    expect(seen).toEqual(["a:true"]);
+    expect(notices).toEqual([]); // a situation is no push
+    hub.setSituation("c", fight); // past maxWorkspaces: the least recently set goes
+    expect(hub.getSituation("a")).toBeNull();
+    expect(hub.getSituation("c")).toEqual(fight);
+  });
+
   it("forgets old revisions and workspaces past its size limits, keeping the latest code", () => {
     const hub = createWorkspaceHub({ revisionsKept: 2, maxTotalChars: 100 });
     hub.set("a", `!WA:2!${"a".repeat(40)}`);

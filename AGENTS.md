@@ -39,9 +39,12 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
     auras the docs and browser tests push), `v1-auras/` (the in-game check's import strings). Fixtures:
     `tests/fixtures/forever/`.
   - `tbc/`: `index.ts` (the `Game`), `sources.ts` (`TBC_SPELLS`), `server.ts` (`tbcServer`: the WeakAuras2 release
-    cache as its addon source), `docs/` (minimal agent docs generated from WeakAuras2's registries; full docs are
-    ticket 08), `examples.ts`. Fixtures: `tests/fixtures/tbc/` (`addon/github-releases.json`, `spells/`).
-  - `docs/shared.ts`: agent-doc sections that are the same concept in every game (wago JSON, push API, wago links),
+    cache as its addon source), `docs/` (agent docs: plain WeakAuras2, no combat rules, generated lists, worked
+    examples in `worked-examples.ts`), `examples.ts` (the docs' and tests' auras, the TBC v1 auras among them; their
+    `.txt`/`.json` files are in `.scratch/tbc-anniversary/v1-auras/`, checked by `tests/unit/tbc-v1-auras.test.ts`,
+    `WRITE_V1_AURAS=1` rewrites them). Fixtures: `tests/fixtures/tbc/` (`addon/github-releases.json`, `spells/`).
+  - `docs/shared.ts`: agent-doc sections that are the same concept in every game (wago JSON, push API with driving
+    the page, the situation, the spell API, wago links),
     used by each game's docs with its id.
   - Per-game rules (`auraRules(game)`, `TRIGGER_KINDS[game]`) live in the aura core by the same id; the page passes
     `game.id` (e.g. `GameScreenAuras`' `game`, `SituationControls`, `useConditionProblems`). The page-safe `Game`
@@ -53,8 +56,9 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
 - `src/core/`: the **aura core** (spec seam A). Loads an addon version's Lua in wasmoon-lua5.1,
   encodes/decodes state codes (`state-code.ts` is the one pattern: `!WA:<n>!`, n ≥ 2, as the addon's decoder
   reads them), fills defaults, validates. No React, no DOM. Runs in browser and Node.
-  It also holds the situation model (`situation/`) and the trigger/condition evaluation per game (`conditions/`):
-  what an aura shows in a situation. `auraRules(game)` gives a game's rules (trigger kinds, `setInCombat`,
+  It also holds the situation model (`situation/`, with `readSituation`/`situationJson`: the JSON form agents send)
+  and the trigger/condition evaluation per game (`conditions/`): what an aura shows in a situation
+  (`previewSituation`, `conditions/preview.ts`, is that in words for agents: the push answer's `preview`). `auraRules(game)` gives a game's rules (trigger kinds, `setInCombat`,
   `evaluate`, `combatRestricted`). Forever (`evaluateAura`, `conditions/forever.ts` + `secret-aura-rules.ts`) adds
   Aura (Modern), freezing and held properties to plain WeakAuras; TBC (`evaluateTbcAura`, `conditions/tbc.ts`) is
   plain WeakAuras2, nothing changes in combat. Only what both addons do the same is shared (`conditions/evaluate.ts`,
@@ -97,8 +101,9 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   The option reference (`optionReference`, `addon-vm/option-reference.ts`) probes every option through its own `set()`
   on a fresh aura and records the table paths (wago JSON keys) it writes, with the reverse index; path form documented
   there. It takes about a minute per game and version (two in the background), so the server caches it per game and
-  version (`server/option-reference.ts`; served at `/<game>/docs/agents/options.json` and `options.md`, Markdown from
-  `src/games/docs/option-reference.ts`), and `option-reference.test.ts` replays every probe for each game. Bump
+  version (`server/option-reference.ts`; served at `/<game>/docs/agents/options.json`, and as Markdown from
+  `src/games/docs/option-reference.ts`: `options.md` is an index of parts, `options/<part>.md` each part in full: key
+  → options, each tab, the Display tab per display type, the Trigger tab per trigger type), and `option-reference.test.ts` replays every probe for each game. Bump
   `OPTION_REFERENCE_FORMAT` when the generator's output changes.
   The tab sweeps (`src/core/options-sweep.test.ts`, `tests/e2e/tab-sweep.spec.ts`) walk every tab of every display
   type generically; keep them green when the editor or the profile changes.
@@ -139,6 +144,8 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   workspace of a game per aura core) over `StateCodes` (`codes.ts`), `ServerLink` (`server-link.ts`: the push/SSE
   protocol) and the write-behind `WorkspaceStore` (`storage.ts`, IndexedDB via `src/lib/idb.ts`, keyed per game and
   workspace); `useWorkspace`/`useUndo` hooks; `window.auraSimulator` (`page-api.ts`, documented in the agent docs).
+  `client/situation.ts`: `PageSituation`, the page's one situation (the Situation panel, an agent's
+  `PUT .../situation` followed over the event stream, `auraSimulator.situation`).
   `client/addon-client.ts`: the page's side of `/api/<game>/addon/*` (versions, the bundle fetcher the aura core
   loads through, client spells, diff). The page's game reaches components by context: the spell picker's
   `SpellApiContext` (`components/spell-picker/spell-api.ts`, with the game's words) and the renderers'
@@ -147,6 +154,8 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
 - `src/server/workspaces/`: push API (bodies up to 32 MB) and a hub of recent pushes per game and workspace, in
   memory. Every top-level aura a page changes is pushed there too, so agents read the player's current aura with
   `GET /api/<game>/workspaces/<id>`; it holds the latest few pushes, not workspaces (those live in the browser).
+  It also holds the situation an agent set per workspace (`situation.ts`, `PUT/GET /api/<game>/workspaces/<id>/situation`,
+  sent to pages as `event: situation`); push answers carry `preview`, what the aura shows in it.
   Every push form becomes a state code first (wago JSON by `fromWagoJson`, a wago link by fetching it), so answers and
   validation are the same for all. Wago links: `server/wago.ts` fetches `https://data.wago.io/api/raw/encoded?id=`
   (`GET /api/<game>/wago/<id>` for the page's Import box); tests and the e2e server answer from recorded import
@@ -156,8 +165,10 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   `agent-docs.ts` has one function per section. Lists of types, triggers, condition variables and defaults are
   generated from the addon version (`addon-facts.ts`); the worked examples (`worked-examples.ts`) are the documents in
   `src/games/forever/examples.ts` (the browser tests push them to the window) and tests push every example block of
-  the served docs. TBC's (`src/games/tbc/docs/`) are minimal for now: generated lists from WeakAuras2, no combat
-  rules; sections the same in every game come from `src/games/docs/shared.ts`.
+  the served docs (both games, `tests/e2e/agent-docs.spec.ts`). TBC's (`src/games/tbc/docs/`): the same layout, plain
+  WeakAuras2 rules (no combat rules), generated lists from WeakAuras2, worked examples (`worked-examples.ts`) that
+  validate with no problems; sections the same in every game come from `src/games/docs/shared.ts`. The docs page
+  streams the docs in, so its shell links the Markdown (`llms.txt`) for agents without JavaScript.
 - `src/app/`: Next.js routes and pages. Thin; delegates to the modules above (page logic goes in `src/client/`).
   `page.tsx` is the game picker; `[game]/page.tsx` a game's site. `AuraSimulator.tsx` is a game site's composition
   root (its title's game name leads back to the picker): it fills `src/components/shell`'s `AppShell` (the window

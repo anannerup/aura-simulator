@@ -5,6 +5,7 @@
  * - `GET eventsUrl(w)`: Server-Sent Events. First a `snapshot` event, then a `state` event per change; each carries a
  *   `WorkspaceNotice` (never the code: codes can be megabytes).
  * - `GET snapshotUrl(w, revision?)`: the `WorkspaceSnapshot` (latest, or that recent revision; 404 when no longer kept).
+ * - `PUT situationUrl(w)`: an agent sets the situation the game screen shows (open pages take it over); `GET` reads it.
  *
  * The server keeps only the latest few pushes per workspace, in memory: one aura or group each, not a Workspace.
  */
@@ -15,7 +16,11 @@ import { parseWagoLink } from "./wago-link";
 /** Header a page sends with its own pushes. HTTP header names are case-insensitive. */
 export const CLIENT_HEADER = "x-aura-client";
 
-export const EVENTS = { snapshot: "snapshot", state: "state" } as const;
+/**
+ * Event names. `situation` carries the situation an agent set for the workspace (`PUT situationUrl(w)`) as JSON
+ * (`situationJson`; small, so it travels whole): sent on connect when one is set, then on every change.
+ */
+export const EVENTS = { snapshot: "snapshot", state: "state", situation: "situation" } as const;
 
 export interface WorkspaceSnapshot {
   id: string;
@@ -100,3 +105,4 @@ export const snapshotUrl = (w: WorkspaceAddress, revision?: number) => (revision
 export const eventsUrl = (w: WorkspaceAddress) => `${base(w)}/events`;
 export const pushUrl = (w: WorkspaceAddress, options: { validate?: boolean } = {}) =>
   options.validate === false ? `${base(w)}/aura?validate=false` : `${base(w)}/aura`;
+export const situationUrl = (w: WorkspaceAddress) => `${base(w)}/situation`;

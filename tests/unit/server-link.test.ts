@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ServerLink, type ServerPush } from "@/client/workspace/server-link";
 import { createWorkspaceHub, notice } from "@/server/workspaces";
 import { CLIENT_HEADER } from "@/workspace";
+import { readSituation, situationJson } from "@/core";
 
 /** A server in memory: the real hub behind fake `fetch` and `EventSource`, as the routes wire them. */
 function fakeServer() {
@@ -12,7 +13,12 @@ function fakeServer() {
       const id = decodeURIComponent(url.split("/")[4]);
       const emit = (event: string, data: unknown) => this.listeners.get(event)?.({ data: JSON.stringify(data) } as MessageEvent);
       hub.subscribe(id, (n) => queueMicrotask(() => emit("state", n)));
-      queueMicrotask(() => emit("snapshot", notice(hub.get(id))));
+      hub.subscribeSituation(id, (s) => queueMicrotask(() => emit("situation", situationJson(s))));
+      queueMicrotask(() => {
+        emit("snapshot", notice(hub.get(id)));
+        const s = hub.getSituation(id);
+        if (s) emit("situation", situationJson(s));
+      });
     }
     addEventListener(event: string, listener: (ev: Event) => void) {
       this.listeners.set(event, listener);
@@ -55,5 +61,21 @@ describe("server link", () => {
     await settle();
     expect(heard.map((p) => p.code)).toEqual(["!WA:2!agent-1", "!WA:2!agent-2"]);
     expect(hub.get("w", 3)).toMatchObject({ code: "!WA:2!own", source: link.clientId });
+  });
+
+  it("hands over the situation an agent set: the one set before the page opened, then every change", async () => {
+    const { hub, env } = fakeServer();
+    hub.setSituation("w", readSituation({ targetExists: false }, "tbc"));
+    const link = new ServerLink({ game: "tbc", id: "w" }, env);
+    await link.latest();
+    await settle();
+    const heard: unknown[] = [];
+    link.followSituation((s) => heard.push(s));
+    hub.setSituation("w", readSituation({ triggers: { "1": { present: false } } }, "tbc"));
+    await settle();
+    expect(heard.map((s) => readSituation(s, "tbc"))).toEqual([
+      { targetExists: false, inCombat: false, triggers: {} },
+      { targetExists: true, inCombat: false, triggers: { 1: { present: false, remaining: 45, duration: 60, stacks: 0 } } },
+    ]);
   });
 });

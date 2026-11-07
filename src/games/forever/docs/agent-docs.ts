@@ -2,7 +2,7 @@ import type { OptionReference } from "@/core";
 import { optionReferenceSection } from "../../docs/option-reference";
 import { forever } from "..";
 import { DEFAULT_WORKSPACE_ID } from "@/workspace";
-import { compactJson, pushApiSection, wagoJsonSection, wagoLinksSection } from "../../docs/shared";
+import { compactJson, pushApiSection, situationSection, spellApiSection, wagoJsonSection, wagoLinksSection } from "../../docs/shared";
 import { DOCUMENTED_REGION_TYPES, type AddonFacts, type ModernVariableFact } from "./addon-facts";
 import { COUNTER_EXAMPLE, exampleWagoJson, WORKED_EXAMPLES, type WorkedExample } from "./worked-examples";
 
@@ -26,6 +26,8 @@ export const DOCUMENTED_ENDPOINTS = [
   "POST /api/forever/workspaces/<id>/aura",
   "GET /api/forever/workspaces/<id>",
   "GET /api/forever/workspaces/<id>/events",
+  "GET /api/forever/workspaces/<id>/situation",
+  "PUT /api/forever/workspaces/<id>/situation",
   "GET /api/forever/wago/<id>",
   "GET /api/forever/spells/search",
   "GET /api/forever/spells/<id>",
@@ -155,6 +157,7 @@ export function agentDocsMarkdown(f: AgentDocsFacts): string {
     optionTableReference,
     combatRules,
     validation,
+    situation,
     spells,
     pushApi,
     wagoLinks,
@@ -176,7 +179,7 @@ This server follows ${version}. Lists marked *generated* below are read from tha
 add \`?ref=<version>\` to this page's address and to your pushes.
 
 Contents: Workflow · wago JSON · The aura document · Field reference · Triggers · Conditions ·
-Option ↔ table reference · Combat rules · Validation · Spells · Push API · Wago links · Worked examples ·
+Option ↔ table reference · Combat rules · Validation · Situation · Spells · Push API · Wago links · Worked examples ·
 Troubleshooting.
 `;
 }
@@ -191,9 +194,10 @@ function workflow({ o, d }: Ctx): string {
 3. **Write the aura as wago JSON** (below), starting from the closest worked example.
 4. **Push it**: \`POST /api/forever/workspaces/<id>/aura\` with the JSON as the body. Read \`validation\` in the answer. Fix errors; if
    \`combat.status\` is not \`ok\`, change the aura or tell the player exactly what stops working in combat.
-5. **The player checks it** on the game screen: the situation controls set time left, aura present or missing,
-   stacks, target exists and **in combat** (frozen auras show a padlock). The window's tabs (Display, Trigger,
-   Conditions, …) show the options as in the game; the player may adjust them there.
+5. **Show that it works**: set the situations the request is about (\`PUT /api/forever/workspaces/<id>/situation\`:
+   buff missing, under 3 minutes left, in combat, …) and read \`preview\` (see Situation). The open page's game screen
+   follows; the player can set the situation there too (frozen auras show a padlock in combat). The window's tabs
+   (Display, Trigger, Conditions, …) show the options as in the game; the player may adjust them there.
 6. **The player exports a file**: select the aura (or the group, to take everything in it) in the window's aura
    list → Export → **Save as file** (a \`.txt\` with the import string) or Copy to clipboard; **Save as .json** saves
    its wago JSON. The whole workspace can be saved as a workspace file.
@@ -293,6 +297,11 @@ every element, backgrounds included) as \`sub.N.<key>\`.
 - \`subtick\` (bars only): \`tick_visible\`, \`tick_color\`, \`tick_placement_mode\` (\`AtValue\`, \`AtPercent\`),
   \`tick_placements\` (strings), \`tick_thickness\`, \`automatic_length\`/\`tick_length\`, \`use_texture\`.
 - \`subbackground\`, \`subforeground\`: no fields; the display's own background and (bars) foreground.
+
+\`subRegions\` is the whole list: an aura you write has exactly the elements you list. Nothing is merged with what
+the window's New Aura gives a new aura (an icon gets a \`%s\` stack text and a glow there): to keep those, list them.
+The addon itself only adds a missing \`subbackground\` first (and on bars a \`subforeground\`) and renumbers your
+conditions' \`sub.N\` to match, so write them yourself and the numbers you write are the ones the window shows.
 
 ${a ? generatedDefaults(a) : ""}
 ### Groups
@@ -488,25 +497,37 @@ How to act:
 `;
 }
 
+function situation({ o, d }: Ctx): string {
+  return situationSection({
+    game: "forever",
+    origin: o,
+    workspace: d,
+    kinds: `What a trigger's situation means depends on the trigger: for Aura (Modern) and Aura (\`aura2\`) it is the buff
+or debuff (present, time left, duration, stacks); for the spell cooldown trigger it is the cooldown (on cooldown, time
+left, the cooldown, charges); any other trigger is active while "present". Only the target can be missing (Target
+exists); every other unit exists.`,
+    combat: `**In combat** is Forever's combat restriction: auras that freeze keep what they showed when combat started
+(the game screen shows a padlock) and held properties keep their pre-combat value. Over HTTP, \`"inCombat": true\`
+alone means nothing changed since combat started; to test freezing, add \`"beforeCombat"\` (the same fields:
+\`targetExists\`, \`triggers\`) with the situation when combat started. \`preview\` then says \`"frozen": true\` for a
+frozen display and lists \`heldInCombat\` properties.`,
+    example: {
+      situation: { triggers: { "1": { present: false } } },
+      shows: "With worked example 1b (Arcane Intellect missing) pushed, this makes its `preview` say `\"shown\": true`.",
+    },
+  });
+}
+
 function spells({ o }: Ctx): string {
   return `## Spells
 
 Use Forever's spell IDs. The server keeps a spell cache from wago.tools (Forever's own data) with icons and tooltips
 from Wowhead.
 
-- \`GET /api/forever/spells/search?q=<name or ID>&limit=<1-100>\` → \`{"query", "build", "results": [{"id", "name", "icon",
-  "iconUrl"}]}\`.
-- \`GET /api/forever/spells/<id>\` → \`{"id", "found", "name", "icon", "iconUrl", "tooltip", "inGame": {"name", "icon",
-  "iconFileId"}, "flags": [...]}\`. \`inGame.iconFileId\` is the \`displayIcon\` for an icon or bar. \`flags\` (e.g.
-  \`not-in-game\`, \`name-mismatch\`, \`not-synced\`) mean "double-check in the game": tell the player. 404 when no
-  source knows the ID.
+${spellApiSection({ game: "forever", origin: o, whose: "Forever's", example: { name: "arcane intellect", id: 1459 } })}
+
 - \`GET /api/forever/spells/status\` → whether the cache is synced; \`POST /api/forever/spells/sync\` refreshes it (slow, uses the
   internet; only when the player asks or the cache is empty).
-
-\`\`\`sh
-curl -s '${o}/api/forever/spells/search?q=arcane%20intellect'
-curl -s ${o}/api/forever/spells/1459
-\`\`\`
 
 Spell IDs go into Aura (Modern) and \`aura2\` triggers as strings (\`"auraspellids": ["1459"]\`) and into the spell
 cooldown trigger as a number (\`"spellName": 2136\`).

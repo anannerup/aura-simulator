@@ -7,10 +7,24 @@ export type { AddonBundle, AddonBundleSet } from "./addon-bundle";
 export { ADDON_GAME_IDS, tocPath } from "./addon-vm/toc";
 export type { AddonGameId } from "./addon-vm/toc";
 export { canonicalize, field, getField, isLuaTable, list, num } from "./lua-value";
-export { DEFAULT_SITUATION, TRIGGER_KINDS, auraTriggers, setInCombat, triggerSituation, withTrigger } from "./situation";
+export {
+  DEFAULT_SITUATION,
+  DEFAULT_TRIGGER_SITUATION,
+  SituationError,
+  TRIGGER_KINDS,
+  auraTriggers,
+  readSituation,
+  setInCombat,
+  situationJson,
+  triggerSituation,
+  withTrigger,
+} from "./situation";
 export type { Situation, TriggerInfo, TriggerKind, TriggerSituation } from "./situation";
 export { auraRules, conditionProblem, evaluateAura, evaluateTbcAura } from "./conditions";
-export type { AuraRenderState, AuraRules, ConditionProblem, GlowState, TriggerState } from "./conditions";export { findStateCodes, isStateCode } from "./state-code";
+export type { AuraRenderState, AuraRules, ConditionProblem, GlowState, TriggerState } from "./conditions";
+export { previewSituation } from "./conditions/preview";
+export type { DisplayPreview, SituationPreview } from "./conditions/preview";
+export { findStateCodes, isStateCode } from "./state-code";
 export { plainText } from "./wow-text";
 export type { LuaKey, LuaObject, LuaTable, LuaValue } from "./lua-value";
 export { sampleIconAura } from "./samples";

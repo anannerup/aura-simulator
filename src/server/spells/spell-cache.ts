@@ -195,7 +195,7 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
     const q = normalizeName(query);
     const limit = Math.max(1, Math.min(MAX_LIMIT, Math.floor(opts.limit ?? DEFAULT_LIMIT)));
     const build = getMeta("build");
-    if (q === "") return { query, build, results: [] };
+    if (q === "") return { query, build, limit, total: 0, results: [] };
 
     const words = q.split(" ");
     const where = words.map((_, i) => `name_lower LIKE :w${i} ESCAPE '\\'`).join(" AND ");
@@ -222,10 +222,15 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
          LIMIT :limit`,
       )
       .all(params) as { id: number; name: string; icon: string | null }[];
+    const { total } = db
+      .prepare(`SELECT count(*) AS total FROM spells WHERE id = :id OR (${where})`)
+      .get(Object.fromEntries(Object.entries(params).filter(([k]) => k === "id" || /^w\d+$/.test(k)))) as { total: number };
 
     return {
       query,
       build,
+      limit,
+      total,
       results: rows.map((r) => ({ id: r.id, name: r.name, icon: r.icon, iconUrl: r.icon ? iconNameUrl(r.icon) : null })),
     };
   }

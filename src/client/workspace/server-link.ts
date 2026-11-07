@@ -44,6 +44,9 @@ export class ServerLink {
   private readonly queue: number[] = [];
   private pulling = false;
   private onPush: ((push: ServerPush) => void) | null = null;
+  /** The latest situation an agent set (JSON, as the server sent it), until someone follows it. */
+  private situation: unknown = undefined;
+  private onSituation: ((situation: unknown) => void) | null = null;
 
   constructor(
     private readonly workspace: WorkspaceAddress,
@@ -90,6 +93,14 @@ export class ServerLink {
       };
       events.addEventListener(EVENTS.snapshot, onNotice);
       events.addEventListener(EVENTS.state, onNotice);
+      events.addEventListener(EVENTS.situation, (ev) => {
+        try {
+          this.situation = JSON.parse((ev as MessageEvent<string>).data);
+        } catch {
+          return;
+        }
+        this.onSituation?.(this.situation);
+      });
     });
   }
 
@@ -97,6 +108,15 @@ export class ServerLink {
   follow(onPush: (push: ServerPush) => void) {
     this.onPush = onPush;
     void this.pull();
+  }
+
+  /**
+   * Hands the situation an agent set for the workspace to `onSituation` (as JSON, for `readSituation`): the one set
+   * before the page opened, if any, then every change.
+   */
+  followSituation(onSituation: (situation: unknown) => void) {
+    this.onSituation = onSituation;
+    if (this.situation !== undefined) onSituation(this.situation);
   }
 
   /** Sends a change made on this page, so other pages and agents see it. */

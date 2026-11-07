@@ -19,6 +19,10 @@ export interface SpellSearchHit {
 export interface SpellSearchResult {
   query: string;
   build: string | null;
+  /** The most results answered (the request's `limit`, 1-100; 20 by default). */
+  limit: number;
+  /** How many spells match; more than `results.length` when the limit cut the list (raise it or narrow the query). */
+  total: number;
   results: SpellSearchHit[];
 }
 

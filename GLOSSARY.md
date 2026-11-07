@@ -24,7 +24,10 @@ Terms the project uses. Use them in code, tickets, docs and messages to the user
   its real position and size, over an optional screenshot.
   _Avoid_: stage, mock screen, canvas.
 - **Situation**: the simulated game state the game screen shows (time left, present/missing, stacks,
-  target, in combat).
+  target, in combat). The player sets it in the window's Situation panel; an agent sets a workspace's over HTTP or
+  with `auraSimulator.situation`.
+- **Preview**: what each display of an aura shows in a situation (shown, active conditions, what they changed,
+  glows), in words: the push answer's `preview`, so an agent can show an aura works without a browser.
 
 ## Auras
 

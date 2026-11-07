@@ -420,6 +420,11 @@ export class WorkspaceSession {
     });
   }
 
+  /** Follows the situation an agent sets for the workspace over the push API (JSON, for `readSituation`). */
+  followSituation(onSituation: (situation: unknown) => void) {
+    this.link?.followSituation(onSituation);
+  }
+
   dispose() {
     this.disposed = true;
     this.link?.dispose();

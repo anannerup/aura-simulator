@@ -1,0 +1,50 @@
+{
+  "d": {
+    "anchorPoint": "CENTER",
+    "conditions": [
+      {
+        "changes": [
+          {
+            "property": "desaturate",
+            "value": true
+          }
+        ],
+        "check": {
+          "trigger": 1,
+          "value": 1,
+          "variable": "onCooldown"
+        }
+      }
+    ],
+    "cooldown": true,
+    "displayIcon": 135807,
+    "height": 64,
+    "id": "Fire Blast cooldown",
+    "regionType": "icon",
+    "selfPoint": "CENTER",
+    "subRegions": [
+      {
+        "type": "subbackground"
+      }
+    ],
+    "triggers": {
+      "1": {
+        "trigger": {
+          "event": "Cooldown Progress (Spell)",
+          "genericShowOn": "showAlways",
+          "spellName": 27079,
+          "type": "spell",
+          "use_genericShowOn": true
+        },
+        "untrigger": []
+      },
+      "activeTriggerMode": -10
+    },
+    "width": 64,
+    "xOffset": 0,
+    "yOffset": 0
+  },
+  "m": "d",
+  "s": "5.22.1",
+  "v": 1421
+}

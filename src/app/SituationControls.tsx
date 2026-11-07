@@ -12,7 +12,17 @@ const KIND_LABELS: Record<TriggerKind, { title: string; present: string; remaini
   other: { title: "Trigger", present: "Active", remaining: "Time left", duration: "Duration", stacks: "Stacks" },
 };
 
-const fmt = (s: number) => (s >= 60 ? `${Math.floor(s / 60)}m ${String(Math.round(s % 60)).padStart(2, "0")}s` : `${s.toFixed(1)}s`);
+/**
+ * Time left as the panel shows it: "1m 05s", "45s", "9.5s". Tenths only under 10 seconds: in the panel's narrow font
+ * the decimal point is easy to miss ("45.0s" read as "450s").
+ */
+export function formatSeconds(s: number): string {
+  if (s >= 59.5) {
+    const whole = Math.round(s);
+    return `${Math.floor(whole / 60)}m ${String(whole % 60).padStart(2, "0")}s`;
+  }
+  return s >= 10 ? `${Math.round(s)}s` : `${(Math.round(s * 10) / 10).toFixed(1)}s`;
+}
 
 /**
  * The situation controls: per trigger present/time left/stacks, plus target and combat, by the game's rules (its trigger
@@ -63,7 +73,7 @@ export function SituationControls({
                   {labels.remaining}
                 </label>
                 <output className={styles.value} htmlFor={`${ids}-remaining-${index}`}>
-                  {fmt(t.remaining)}
+                  {formatSeconds(t.remaining)}
                 </output>
               </span>
               <Slider

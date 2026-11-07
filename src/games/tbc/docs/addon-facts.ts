@@ -13,11 +13,19 @@ export interface TbcAddonFacts {
   subRegionTypes: { type: string; displayName: string; supports: string[] }[];
   /** Trigger types (`trigger.type`) with the events (`trigger.event`) the addon offers for each, by options name. */
   triggers: { type: string; events: { event: string; name: string }[] }[];
+  /** Per display type, the properties conditions can change (key: the options window's name). */
+  conditionProperties: Record<string, Record<string, string>>;
 }
+
+/** The display types the docs list condition properties for. */
+export const TBC_DOCUMENTED_REGION_TYPES = ["icon", "aurabar", "text", "progresstexture", "texture"] as const;
 
 const asRecord = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
 /** A Lua sequence from the VM: an array, or {} when empty. */
 const listOf = (v: unknown): unknown[] => (Array.isArray(v) ? v : Object.values(asRecord(v)));
+/** An options-window name: a string or a list of parts (non-strings are flags, not words). */
+const displayName = (d: unknown, fallback: string) =>
+  plainText(Array.isArray(d) ? d.filter((x) => typeof x === "string").join(" ") : typeof d === "string" ? d : fallback);
 
 export async function collectTbcAddonFacts(core: AuraCore): Promise<TbcAddonFacts> {
   const r = await core.registries();
@@ -42,5 +50,15 @@ export async function collectTbcAddonFacts(core: AuraCore): Promise<TbcAddonFact
     triggers: [...byType]
       .map(([type, events]) => ({ type, events: events.sort((a, b) => a.event.localeCompare(b.event)) }))
       .sort((a, b) => a.type.localeCompare(b.type)),
+    conditionProperties: Object.fromEntries(
+      TBC_DOCUMENTED_REGION_TYPES.map((name) => [
+        name,
+        Object.fromEntries(
+          Object.entries(asRecord(asRecord(asRecord(r.regionTypes)[name]).properties))
+            .map(([k, raw]) => [k, displayName(asRecord(raw).display, k)] as const)
+            .sort(([a], [b]) => a.localeCompare(b)),
+        ),
+      ]),
+    ),
   };
 }

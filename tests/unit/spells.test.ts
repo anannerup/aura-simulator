@@ -102,8 +102,14 @@ describe("search", () => {
   });
 
   it("limits results and returns nothing for an empty query", () => {
-    expect(cache.search("a", { limit: 2 }).results).toHaveLength(2);
-    expect(cache.search("   ").results).toEqual([]);
+    const cut = cache.search("a", { limit: 2 });
+    expect(cut.results).toHaveLength(2);
+    // The answer says how many match, so a caller knows the list was cut.
+    expect(cut).toMatchObject({ limit: 2 });
+    expect(cut.total).toBeGreaterThan(2);
+    expect(cut.total).toBe(cache.search("a", { limit: 100 }).total);
+    expect(cache.search("frostbolt")).toMatchObject({ limit: 20, total: 2 });
+    expect(cache.search("   ")).toMatchObject({ results: [], total: 0 });
   });
 });
 

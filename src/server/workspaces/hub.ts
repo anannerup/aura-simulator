@@ -6,9 +6,11 @@
  * Listeners get a notice (revision, time, source), never the code: codes can be megabytes, and a page fetches the
  * revision it needs. The last few revisions per workspace are kept so a page can fetch each in turn.
  */
+import type { Situation } from "@/core";
 import type { WorkspaceNotice, WorkspaceSnapshot } from "@/workspace";
 
 export type WorkspaceListener = (notice: WorkspaceNotice) => void;
+export type SituationListener = (situation: Situation) => void;
 
 export interface WorkspaceHub {
   /** The latest snapshot, or (with `revision`) that recent revision; null when it is no longer kept. */
@@ -18,6 +20,12 @@ export interface WorkspaceHub {
   set(id: string, code: string, source?: string | null): WorkspaceSnapshot;
   /** Returns an unsubscribe function. */
   subscribe(id: string, listener: WorkspaceListener): () => void;
+  /** The situation an agent last set for the workspace (null: none, the page's own stands). */
+  getSituation(id: string): Situation | null;
+  /** Records the workspace's situation and tells every situation listener. */
+  setSituation(id: string, situation: Situation): void;
+  /** Returns an unsubscribe function. */
+  subscribeSituation(id: string, listener: SituationListener): () => void;
 }
 
 export interface HubLimits {
@@ -44,7 +52,29 @@ export function createWorkspaceHub(limits: HubLimits = {}): WorkspaceHub {
   /** Per workspace, oldest revision first. Map order: least recently changed workspace first. */
   const states = new Map<string, Entry[]>();
   const listeners = new Map<string, Set<WorkspaceListener>>();
+  /** Per workspace, least recently set first; small, capped by workspace count. */
+  const situations = new Map<string, Situation>();
+  const situationListeners = new Map<string, Set<SituationListener>>();
   let totalChars = 0;
+
+  const listen = <L>(all: Map<string, Set<L>>, id: string, listener: L) => {
+    let set = all.get(id);
+    if (!set) all.set(id, (set = new Set()));
+    set.add(listener);
+    return () => {
+      set.delete(listener);
+      if (set.size === 0) all.delete(id);
+    };
+  };
+  const tell = <T>(all: Set<(value: T) => void> | undefined, value: T) => {
+    for (const listener of all ?? []) {
+      try {
+        listener(value);
+      } catch {
+        // A broken listener (closed stream) must not stop the others.
+      }
+    }
+  };
 
   const toSnapshot = (id: string, e: Entry | undefined): WorkspaceSnapshot => ({
     id,
@@ -89,25 +119,21 @@ export function createWorkspaceHub(limits: HubLimits = {}): WorkspaceHub {
       states.set(id, entries);
       evict(id);
       const snap = toSnapshot(id, entry);
-      const n = notice(snap);
-      for (const listener of listeners.get(id) ?? []) {
-        try {
-          listener(n);
-        } catch {
-          // A broken listener (closed stream) must not stop the others.
-        }
-      }
+      tell(listeners.get(id), notice(snap));
       return snap;
     },
-    subscribe(id, listener) {
-      let set = listeners.get(id);
-      if (!set) listeners.set(id, (set = new Set()));
-      set.add(listener);
-      return () => {
-        set.delete(listener);
-        if (set.size === 0) listeners.delete(id);
-      };
+    subscribe: (id, listener) => listen(listeners, id, listener),
+    getSituation: (id) => situations.get(id) ?? null,
+    setSituation(id, situation) {
+      situations.delete(id);
+      situations.set(id, situation);
+      for (const old of situations.keys()) {
+        if (situations.size <= maxWorkspaces) break;
+        situations.delete(old);
+      }
+      tell(situationListeners.get(id), situation);
     },
+    subscribeSituation: (id, listener) => listen(situationListeners, id, listener),
   };
 }
 

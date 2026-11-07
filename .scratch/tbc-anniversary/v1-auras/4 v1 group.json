@@ -1,0 +1,320 @@
+{
+  "c": [
+    {
+      "anchorPoint": "CENTER",
+      "conditions": [
+        {
+          "changes": [
+            {
+              "property": "sub.3.glow",
+              "value": true
+            }
+          ],
+          "check": {
+            "op": "<",
+            "trigger": 1,
+            "value": "30",
+            "variable": "expirationTime"
+          }
+        },
+        {
+          "changes": [
+            {
+              "property": "sub.2.text_color",
+              "value": [
+                1,
+                0.2,
+                0.2,
+                1
+              ]
+            }
+          ],
+          "check": {
+            "op": "<",
+            "trigger": 1,
+            "value": "10",
+            "variable": "expirationTime"
+          }
+        }
+      ],
+      "cooldown": true,
+      "desaturate": true,
+      "displayIcon": 135932,
+      "height": 64,
+      "id": "Arcane Intellect under 3 min",
+      "parent": "TBC v1 auras",
+      "regionType": "icon",
+      "selfPoint": "CENTER",
+      "subRegions": [
+        {
+          "type": "subbackground"
+        },
+        {
+          "anchorXOffset": 0,
+          "anchorYOffset": 0,
+          "anchor_point": "CENTER",
+          "text_color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "text_font": "Friz Quadrata TT",
+          "text_fontSize": 14,
+          "text_fontType": "OUTLINE",
+          "text_justify": "CENTER",
+          "text_selfPoint": "AUTO",
+          "text_text": "%p",
+          "text_visible": true,
+          "type": "subtext"
+        },
+        {
+          "glow": false,
+          "glowType": "buttonOverlay",
+          "type": "subglow",
+          "useGlowColor": false
+        }
+      ],
+      "triggers": {
+        "1": {
+          "trigger": {
+            "auranames": [
+              "Arcane Intellect",
+              "Arcane Brilliance"
+            ],
+            "debuffType": "HELPFUL",
+            "rem": "180",
+            "remOperator": "<",
+            "type": "aura2",
+            "unit": "player",
+            "useName": true,
+            "useRem": true
+          },
+          "untrigger": []
+        },
+        "activeTriggerMode": -10
+      },
+      "width": 64,
+      "xOffset": 0,
+      "yOffset": 0
+    },
+    {
+      "anchorPoint": "CENTER",
+      "cooldown": true,
+      "desaturate": true,
+      "displayIcon": 135932,
+      "height": 64,
+      "id": "Arcane Intellect missing",
+      "parent": "TBC v1 auras",
+      "regionType": "icon",
+      "selfPoint": "CENTER",
+      "subRegions": [
+        {
+          "type": "subbackground"
+        },
+        {
+          "glow": true,
+          "glowType": "buttonOverlay",
+          "type": "subglow",
+          "useGlowColor": false
+        }
+      ],
+      "triggers": {
+        "1": {
+          "trigger": {
+            "auranames": [
+              "Arcane Intellect",
+              "Arcane Brilliance"
+            ],
+            "debuffType": "HELPFUL",
+            "matchesShowOn": "showOnMissing",
+            "type": "aura2",
+            "unit": "player",
+            "useName": true,
+            "use_matchesShowOn": true
+          },
+          "untrigger": []
+        },
+        "activeTriggerMode": -10
+      },
+      "width": 64,
+      "xOffset": 0,
+      "yOffset": 0
+    },
+    {
+      "anchorPoint": "CENTER",
+      "conditions": [
+        {
+          "changes": [
+            {
+              "property": "desaturate",
+              "value": true
+            }
+          ],
+          "check": {
+            "trigger": 1,
+            "value": 1,
+            "variable": "onCooldown"
+          }
+        }
+      ],
+      "cooldown": true,
+      "displayIcon": 135807,
+      "height": 64,
+      "id": "Fire Blast cooldown",
+      "parent": "TBC v1 auras",
+      "regionType": "icon",
+      "selfPoint": "CENTER",
+      "subRegions": [
+        {
+          "type": "subbackground"
+        }
+      ],
+      "triggers": {
+        "1": {
+          "trigger": {
+            "event": "Cooldown Progress (Spell)",
+            "genericShowOn": "showAlways",
+            "spellName": 27079,
+            "type": "spell",
+            "use_genericShowOn": true
+          },
+          "untrigger": []
+        },
+        "activeTriggerMode": -10
+      },
+      "width": 64,
+      "xOffset": 72,
+      "yOffset": 0
+    },
+    {
+      "anchorPoint": "CENTER",
+      "backgroundColor": [
+        0,
+        0,
+        0,
+        0.5
+      ],
+      "barColor": [
+        0.62,
+        0.22,
+        0.85,
+        1
+      ],
+      "conditions": [
+        {
+          "changes": [
+            {
+              "property": "sub.4.text_color",
+              "value": [
+                1,
+                0.2,
+                0.2,
+                1
+              ]
+            }
+          ],
+          "check": {
+            "op": "<",
+            "trigger": 1,
+            "value": "5",
+            "variable": "expirationTime"
+          }
+        }
+      ],
+      "displayIcon": 136118,
+      "height": 20,
+      "icon": true,
+      "icon_side": "LEFT",
+      "id": "Corruption on target",
+      "orientation": "HORIZONTAL",
+      "parent": "TBC v1 auras",
+      "regionType": "aurabar",
+      "selfPoint": "CENTER",
+      "spark": true,
+      "subRegions": [
+        {
+          "type": "subbackground"
+        },
+        {
+          "type": "subforeground"
+        },
+        {
+          "anchorXOffset": 2,
+          "anchorYOffset": 0,
+          "anchor_point": "INNER_LEFT",
+          "text_color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "text_font": "Friz Quadrata TT",
+          "text_fontSize": 12,
+          "text_fontType": "OUTLINE",
+          "text_justify": "LEFT",
+          "text_selfPoint": "AUTO",
+          "text_text": "%n",
+          "text_visible": true,
+          "type": "subtext"
+        },
+        {
+          "anchorXOffset": -2,
+          "anchorYOffset": 0,
+          "anchor_point": "INNER_RIGHT",
+          "text_color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "text_font": "Friz Quadrata TT",
+          "text_fontSize": 12,
+          "text_fontType": "OUTLINE",
+          "text_justify": "RIGHT",
+          "text_selfPoint": "AUTO",
+          "text_text": "%p",
+          "text_visible": true,
+          "type": "subtext"
+        }
+      ],
+      "texture": "Blizzard",
+      "triggers": {
+        "1": {
+          "trigger": {
+            "auranames": [
+              "Corruption"
+            ],
+            "debuffType": "HARMFUL",
+            "ownOnly": true,
+            "type": "aura2",
+            "unit": "target",
+            "useName": true
+          },
+          "untrigger": []
+        },
+        "activeTriggerMode": -10
+      },
+      "width": 200,
+      "xOffset": 36,
+      "yOffset": -56
+    }
+  ],
+  "d": {
+    "anchorPoint": "CENTER",
+    "controlledChildren": [
+      "Arcane Intellect under 3 min",
+      "Arcane Intellect missing",
+      "Fire Blast cooldown",
+      "Corruption on target"
+    ],
+    "id": "TBC v1 auras",
+    "regionType": "group",
+    "selfPoint": "CENTER",
+    "xOffset": 0,
+    "yOffset": -200
+  },
+  "m": "d",
+  "s": "5.22.1",
+  "v": 1421
+}
