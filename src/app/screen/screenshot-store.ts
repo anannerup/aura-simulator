@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { idbStore } from "@/lib/idb";
 import { errorMessage } from "@/lib/errors";
 
-/** The screenshot behind the mock screen. It stays in this browser (IndexedDB) and is never uploaded. */
+/** The screenshot behind the game screen. It stays in this browser (IndexedDB) and is never uploaded. */
 export interface Screenshot {
   url: string;
   name: string;

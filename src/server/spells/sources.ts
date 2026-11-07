@@ -15,15 +15,6 @@ export type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 export const FOREVER_PRODUCT = "wowf";
 const WAGO = "https://wago.tools";
 const WOWHEAD_TOOLTIP = "https://nether.wowhead.com/classic/tooltip/spell";
-const ICON_BASE = "https://wow.zamimg.com/images/wow/icons";
-
-export type IconSize = "small" | "medium" | "large";
-
-/** URL of a spell icon on Wowhead's image server (icon = lower-case file name, no extension). */
-export function iconUrl(icon: string, size: IconSize = "large"): string {
-  return `${ICON_BASE}/${size}/${encodeURIComponent(icon)}.jpg`;
-}
-
 export function wagoCsvUrl(table: string, build: string): string {
   return `${WAGO}/db2/${table}/csv?build=${encodeURIComponent(build)}`;
 }

@@ -7,7 +7,7 @@ import { AuraRegion } from "./AuraRegion";
 import { RegionClockContext } from "./clock";
 import { color } from "./color";
 import { regionInfo } from "./region-types";
-import { animatedRect, type Rect } from "./screen/geometry";
+import { animatedRect, type Box } from "./screen/geometry";
 import { isTimedStopMotion } from "./stop-motion";
 
 
@@ -19,7 +19,7 @@ function needsClock(aura: AuraDocument): boolean {
 
 export interface AnimatedAuraRegionProps {
   aura: AuraDocument;
-  rect: Rect;
+  rect: Box;
   state: AuraRenderState;
   /** Whether the aura is shown (defaults to `state.shown`). */
   shown?: boolean;
@@ -36,7 +36,7 @@ export function AnimatedAuraRegion({ aura, rect, state, shown = state.shown, sel
   const anims = useMemo(() => auraAnimations(aura.animation, aura.regionType), [aura.animation, aura.regionType]);
   const [tracked, setTracked] = useState(shown);
   const [life, setLife] = useState<Life>(() => (shown ? showLife(anims) : GONE));
-  const [last, setLast] = useState<{ state: AuraRenderState; rect: Rect } | null>(shown ? { state, rect } : null);
+  const [last, setLast] = useState<{ state: AuraRenderState; rect: Box } | null>(shown ? { state, rect } : null);
   const [now, setNow] = useState(0);
 
   // Show/hide (state derived from props during render, so the finish animation starts without a gap).

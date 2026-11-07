@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, type CSSProperties, type ReactNode } from "react";
-import type { Box } from "./bar-geometry";
+import type { Box } from "./screen/geometry";
 import { clipPolygon, cssMatrix, IDENTITY, textureElementMatrix, type Affine, type Pt } from "./texture-geometry";
 import type { TextureSource } from "./textures/paths";
 import { useTextureUrl } from "./textures";

@@ -103,14 +103,14 @@ export function ImportPanel({ importer }: { importer: Importer }) {
       {pendingFile && (
         <div className={styles.confirm} role="dialog" aria-label="Import workspace file">
           <p>
-            {pendingFile.name} holds {count} item{count === 1 ? "" : "s"}. Replace this workspace, or add them to it?
+            {pendingFile.name} holds {count} aura{count === 1 ? "" : "s"}. Replace this workspace, or add them to it?
           </p>
           <div className={styles.buttons}>
             <Button size="sm" onClick={() => importer.finishImport(pendingFile, "replace")}>
               Replace workspace
             </Button>
             <Button size="sm" onClick={() => importer.finishImport(pendingFile, "merge")}>
-              Add items
+              Add auras
             </Button>
             <Button size="sm" variant="ghost" onClick={() => importer.finishImport(pendingFile, "cancel")}>
               Cancel

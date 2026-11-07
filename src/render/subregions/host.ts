@@ -3,7 +3,8 @@
  * `AnchorSubRegion` in the addon (RegionPrototype.lua:804-823, Icon.lua:165-210, AuraBar.lua:878-940).
  */
 import type { LuaValue } from "@/core";
-import type { Box, Orientation } from "../bar-geometry";
+import type { Orientation } from "../bar-geometry";
+import type { Box } from "../screen/geometry";
 import { anchorFraction } from "../screen/geometry";
 
 export interface PointAnchor {

@@ -1,5 +1,5 @@
 /**
- * JS <-> Lua helpers inside the addon VM (from prototypes/headless-addon/bridge.lua): run one file,
+ * JS <-> Lua helpers inside the addon VM: run one file,
  * fire events, drive the frame loop, JSON-encode arbitrary Lua values, evaluate AceConfig option tables.
  */
 export const BRIDGE_LUA = String.raw`-- JS <-> Lua bridge helpers: run one addon file, JSON-encode Lua values (handles functions,

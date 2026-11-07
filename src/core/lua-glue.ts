@@ -163,7 +163,7 @@ function AuraCore.decode(code)
   local ok, received = pcall(AuraCorePrivate.StringToTable, code, true)
   if not ok then return "E" .. tostring(received) end
   if type(received) == "string" then return "E" .. received end
-  if type(received) ~= "table" then return "E" .. "Not an import string" end
+  if type(received) ~= "table" then return "E" .. "Not a state code" end
   local ok2, json = pcall(AuraCore.toJSON, received)
   if not ok2 then return "E" .. tostring(json) end
   return "J" .. json

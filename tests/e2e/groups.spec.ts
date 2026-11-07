@@ -11,7 +11,7 @@ async function openPopover(page: Page, name: string) {
 }
 /** Paste and workspace-file import live behind the window's Import button. */
 const openWorkspaceMenu = (page: Page) => openPopover(page, "Import");
-/** The selected item's state code and the workspace file export live behind the list's Export button. */
+/** The selected aura's state code and the workspace file export live behind the list's Export button. */
 const openExport = (page: Page) => openPopover(page, "Export");
 
 /** New Aura, then a display type from the chooser ("Icon", "Group", "Dynamic Group"). */
@@ -56,7 +56,7 @@ test("build a group with two auras, see both laid out, and paste its code into a
   await expect.poll(() => treeShape(page)).toEqual(["1:Buffs", "2:Arcane Intellect", "2:New"]);
   await row(page, "Buffs").click();
 
-  // The stage shows both auras at once, the second 64 + 4 units right of the first, and outlines the group.
+  // The game screen shows both auras at once, the second 64 + 4 units right of the first, and outlines the group.
   const a = await box(region(page, "Arcane Intellect"));
   const b = await box(region(page, "New"));
   expect(b.y).toBeCloseTo(a.y, 0);

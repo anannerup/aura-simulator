@@ -25,9 +25,9 @@ export interface AppShellProps {
   options: ReactNode;
   /** The window's footer links. */
   footer?: ReactNode;
-  /** The game screen beside the window (use `Stage`). */
-  stage: ReactNode;
-  /** Optional tabs in a drawer under the stage. Each tab's content stays mounted (hidden when not shown). */
+  /** The game screen beside the window (use `ScreenPane`). */
+  screen: ReactNode;
+  /** Optional tabs in a drawer under the game screen. Each tab's content stays mounted (hidden when not shown). */
   drawerTabs?: DrawerTab[];
   drawerMeta?: ReactNode;
   /** Files dropped anywhere on the window (import). */
@@ -102,7 +102,7 @@ export function AppShell(props: AppShellProps) {
       </section>
 
       <main className={styles.main}>
-        <div className={styles.stage}>{props.stage}</div>
+        <div className={styles.screen}>{props.screen}</div>
         {tabs.length > 0 && (
           <section className={styles.drawer} data-open={drawerTab !== null}>
             <div className={styles.drawerBar}>

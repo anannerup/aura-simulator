@@ -1,10 +1,10 @@
 /**
- * The workspace tree: top-level items, each an aura or a group, groups nesting further items.
+ * The workspace tree: top-level auras, each an aura or a group, groups nesting further items.
  *
- * A node holds the item's aura document (the addon's own table). The links WeakAuras keeps inside the documents
+ * A node holds the aura's aura document (the addon's own table). The links WeakAuras keeps inside the documents
  * are derived from the tree and kept in step by every operation here (`normalizeItems`):
  * - a group's `controlledChildren` lists its children's `id`s in order (`{}` when empty, the canonical empty table);
- * - a child's `parent` is its group's `id`; top-level items have no `parent`;
+ * - a child's `parent` is its group's `id`; top-level auras have no `parent`;
  * - `id`s are unique across the whole workspace, as in the addon's saved variables (`db.displays[id]`).
  *
  * State codes carry a group as the group's document plus its descendants flattened in the order of
@@ -88,7 +88,7 @@ export interface Located {
   /** The group holding it; null at top level. */
   parent: WorkspaceNode | null;
   index: number;
-  /** Ids from the top-level item down to the node itself. */
+  /** Ids from the top-level aura down to the node itself. */
   path: string[];
 }
 
@@ -169,7 +169,7 @@ function makeUnique(node: WorkspaceNode, takenIds: Set<string>, takenUids: Set<s
 
 export class TreeError extends Error {}
 
-/** Where an item goes: into a group (`parentId`) or the top level (null), at `index` (default: the end). */
+/** Where an aura goes: into a group (`parentId`) or the top level (null), at `index` (default: the end). */
 export interface Target {
   parentId: string | null;
   index?: number;
@@ -178,7 +178,7 @@ export interface Target {
 function childrenOf(items: WorkspaceNode[], parentId: string | null): WorkspaceNode[] {
   if (parentId === null) return items;
   const found = findNode(items, parentId);
-  if (!found) throw new TreeError(`No item "${parentId}"`);
+  if (!found) throw new TreeError(`No aura "${parentId}"`);
   if (!found.node.items) throw new TreeError(`"${parentId}" is not a group`);
   return found.node.items;
 }
@@ -223,19 +223,19 @@ export function addSubtree(items: WorkspaceNode[], node: WorkspaceNode, target: 
 
 export function removeNode(items: WorkspaceNode[], id: string): WorkspaceNode[] {
   const found = findNode(items, id);
-  if (!found) throw new TreeError(`No item "${id}"`);
+  if (!found) throw new TreeError(`No aura "${id}"`);
   const parentId = found.parent ? nodeId(found.parent) : null;
   return normalizeItems(editChildren(items, parentId, (children) => children.filter((_, i) => i !== found.index)));
 }
 
-/** Moves an item into a group or to the top level. `index` counts in the target list without the moved item. */
+/** Moves an aura into a group or to the top level. `index` counts in the target list without the moved aura. */
 export function moveNode(items: WorkspaceNode[], id: string, target: Target): WorkspaceNode[] {
   const found = findNode(items, id);
-  if (!found) throw new TreeError(`No item "${id}"`);
+  if (!found) throw new TreeError(`No aura "${id}"`);
   if (target.parentId !== null) {
     const parent = findNode(items, target.parentId);
-    if (!parent) throw new TreeError(`No item "${target.parentId}"`);
-    if (parent.path.includes(id)) throw new TreeError("An item can't go into itself");
+    if (!parent) throw new TreeError(`No aura "${target.parentId}"`);
+    if (parent.path.includes(id)) throw new TreeError("An aura can't go into itself");
   }
   checkCanHold(items, target.parentId, found.node);
   const without = removeNode(items, id);
@@ -248,10 +248,10 @@ export function moveNode(items: WorkspaceNode[], id: string, target: Target): Wo
   return normalizeItems(next);
 }
 
-/** Moves an item one place up or down among its siblings. */
+/** Moves an aura one place up or down among its siblings. */
 export function shiftNode(items: WorkspaceNode[], id: string, delta: -1 | 1): WorkspaceNode[] {
   const found = findNode(items, id);
-  if (!found) throw new TreeError(`No item "${id}"`);
+  if (!found) throw new TreeError(`No aura "${id}"`);
   const parentId = found.parent ? nodeId(found.parent) : null;
   const siblings = childrenOf(items, parentId).length;
   const index = found.index + delta;
@@ -259,14 +259,14 @@ export function shiftNode(items: WorkspaceNode[], id: string, delta: -1 | 1): Wo
   return moveNode(items, id, { parentId, index });
 }
 
-/** Renames an item; ids must be non-empty and unique across the workspace. */
+/** Renames an aura; ids must be non-empty and unique across the workspace. */
 export function renameNode(items: WorkspaceNode[], id: string, newId: string): WorkspaceNode[] {
   const name = newId.trim();
   if (!name) throw new TreeError("A name can't be empty");
   if (name === id) return items;
   const found = findNode(items, id);
-  if (!found) throw new TreeError(`No item "${id}"`);
-  if (allIds(items).has(name)) throw new TreeError(`There is already an item named "${name}"`);
+  if (!found) throw new TreeError(`No aura "${id}"`);
+  if (allIds(items).has(name)) throw new TreeError(`There is already an aura named "${name}"`);
   const rec = (list: WorkspaceNode[]): WorkspaceNode[] =>
     list.map((node) => {
       let n = node;
@@ -286,10 +286,10 @@ function renameHybridKey(doc: AuraDocument, from: string, to: string): AuraDocum
   return { ...doc, sortHybridTable: next };
 }
 
-/** A deep copy of an item placed right after it, with fresh ids ("name 2") and uids. */
+/** A deep copy of an aura placed right after it, with fresh ids ("name 2") and uids. */
 export function duplicateNode(items: WorkspaceNode[], id: string): { items: WorkspaceNode[]; id: string } {
   const found = findNode(items, id);
-  if (!found) throw new TreeError(`No item "${id}"`);
+  if (!found) throw new TreeError(`No aura "${id}"`);
   const strip = (n: WorkspaceNode): WorkspaceNode => {
     const aura = { ...n.aura };
     delete aura.uid;
@@ -302,12 +302,12 @@ export function duplicateNode(items: WorkspaceNode[], id: string): { items: Work
 }
 
 /**
- * Replaces an item's document (e.g. from an editor). A changed `id` is a rename (and must be unique); the tree
+ * Replaces an aura's document (e.g. from an editor). A changed `id` is a rename (and must be unique); the tree
  * decides `controlledChildren` and `parent`. A group with children can't stop being a group.
  */
 export function updateNode(items: WorkspaceNode[], id: string, doc: AuraDocument): { items: WorkspaceNode[]; id: string } {
   const found = findNode(items, id);
-  if (!found) throw new TreeError(`No item "${id}"`);
+  if (!found) throw new TreeError(`No aura "${id}"`);
   let aura: AuraDocument;
   try {
     const c = canonicalize(doc);
@@ -357,8 +357,8 @@ export function updateWithDescendants(
 }
 
 /**
- * Merges a pushed or pasted item into the top level, like the addon's import updates an installed aura: it
- * replaces the top-level item with the same `uid` (else the same `id`), keeping its place, or is appended.
+ * Merges a pushed or pasted aura into the top level, like the addon's import updates an installed aura: it
+ * replaces the top-level aura with the same `uid` (else the same `id`), keeping its place, or is appended.
  */
 export function mergeTopLevel(items: WorkspaceNode[], node: WorkspaceNode): { items: WorkspaceNode[]; id: string } {
   const uid = typeof node.aura.uid === "string" ? node.aura.uid : null;
@@ -375,14 +375,14 @@ export function mergeTopLevel(items: WorkspaceNode[], node: WorkspaceNode): { it
 // ---------------------------------------------------------------------------------------------
 // New items
 
-/** Where a new item goes when `selectedId` is selected: into a selected group, else right after the selected item. */
+/** Where a new aura goes when `selectedId` is selected: into a selected group, else right after the selected aura. */
 export function insertionTarget(items: WorkspaceNode[], selectedId: string | null, isGroup: boolean): Target {
   const found = selectedId ? findNode(items, selectedId) : null;
   if (!found) return { parentId: null };
   if (found.node.items && !(isGroup && isDynamicGroupDoc(found.node.aura))) return { parentId: selectedId };
   const parent = found.parent;
   if (parent && !(isGroup && isDynamicGroupDoc(parent.aura))) return { parentId: nodeId(parent), index: found.index + 1 };
-  // Top level, or a group next to a child of a dynamic group: after the top-level item.
+  // Top level, or a group next to a child of a dynamic group: after the top-level aura.
   const top = items.findIndex((n) => nodeId(n) === found.path[0]);
   return { parentId: null, index: top + 1 };
 }
@@ -392,7 +392,7 @@ export function insertionTarget(items: WorkspaceNode[], selectedId: string | nul
  * into a selected group, else after the selection. In a group it is placed beside its future siblings so it doesn't
  * hide them (the game puts it on top of them).
  */
-export function placeNewItem(items: WorkspaceNode[], selectedId: string | null, made: AuraDocument): { items: WorkspaceNode[]; id: string } {
+export function placeNewAura(items: WorkspaceNode[], selectedId: string | null, made: AuraDocument): { items: WorkspaceNode[]; id: string } {
   const group = isGroupDoc(made);
   const target = insertionTarget(items, selectedId, group);
   const aura: AuraDocument = { ...made, id: "New" };
@@ -406,7 +406,7 @@ export function placeNewItem(items: WorkspaceNode[], selectedId: string | null, 
 // State codes
 
 /**
- * The state of an item as the addon exports it (Private.DisplayToString, Transmission.lua:447-485): its document
+ * The state of an aura as the addon exports it (Private.DisplayToString, Transmission.lua:447-485): its document
  * and, for a group, every descendant in TraverseAllChildren order. The root's `parent` is left out: it only means
  * something inside this workspace, and the addon's import sets its own (Update.lua GetPhase2Data, rootParent).
  */
@@ -433,7 +433,7 @@ export function stateKey(state: AuraState): string {
 }
 
 /**
- * Rebuilds an item from a decoded state code. As the addon's import does (Transmission.lua:642-649 and 807-814),
+ * Rebuilds an aura from a decoded state code. As the addon's import does (Transmission.lua:642-649 and 807-814),
  * a code without sub groups (transmission version 1421, where `controlledChildren`/`parent` aren't sent) makes
  * every child a direct child of the root, in order; with sub groups (2000) the nesting follows `controlledChildren`.
  * Children no group lists are kept, under the root.

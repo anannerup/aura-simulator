@@ -7,10 +7,9 @@ import {
   fetchLatestForeverBuild,
   fetchWagoCsv,
   fetchWowheadSpell,
-  iconUrl,
   type FetchFn,
 } from "./sources";
-import type { IconLookupResult, Spell, SpellCacheStatus, SpellFlag, SpellSearchHit, SpellSearchResult, SyncResult, WowheadStatus } from "@/api/spells";
+import { iconNameUrl, type IconLookupResult, type Spell, type SpellCacheStatus, type SpellFlag, type SpellSearchHit, type SpellSearchResult, type SyncResult, type WowheadStatus } from "@/api/spells";
 
 export type { IconLookupResult, Spell, SpellCacheStatus, SpellFlag, SpellSearchHit, SpellSearchResult, SyncResult, WowheadStatus };
 
@@ -217,7 +216,7 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
     return {
       query,
       build,
-      results: rows.map((r) => ({ id: r.id, name: r.name, icon: r.icon, iconUrl: r.icon ? iconUrl(r.icon) : null })),
+      results: rows.map((r) => ({ id: r.id, name: r.name, icon: r.icon, iconUrl: r.icon ? iconNameUrl(r.icon) : null })),
     };
   }
 
@@ -280,7 +279,7 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
       found,
       name,
       icon,
-      iconUrl: icon ? iconUrl(icon) : null,
+      iconUrl: icon ? iconNameUrl(icon) : null,
       tooltip: whFound?.tooltip ?? null,
       buff: whFound?.buff ?? null,
       source: {

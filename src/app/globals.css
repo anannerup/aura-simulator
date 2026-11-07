@@ -7,7 +7,7 @@
   color-scheme: dark;
 
   /* Surfaces. */
-  --surface-sunken: #050505; /* the stage surround behind the game screen */
+  --surface-sunken: #050505; /* the surround behind the game screen */
   --surface-0: #0b0b0b; /* app background, panes */
   --surface-1: #151515; /* the options window body */
   --surface-2: #1c1c1c; /* inputs, buttons, tabs */

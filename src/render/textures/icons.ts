@@ -7,15 +7,10 @@
  */
 import { useEffect, useSyncExternalStore } from "react";
 import { triggerSpellId, type AuraDocument, type LuaValue } from "@/core";
+import { iconNameUrl } from "@/api/spells";
 import { fetchJson } from "@/lib/fetch-json";
 
-const ICON_BASE = "https://wow.zamimg.com/images/wow/icons";
 export const QUESTION_MARK_ICON = "inv_misc_questionmark";
-
-/** Image URL of an icon by file name (lower case, no extension). Large is 56 px, medium 36, small 18. */
-export function iconNameUrl(name: string, size: "small" | "medium" | "large" = "large"): string {
-  return `${ICON_BASE}/${size}/${encodeURIComponent(name)}.jpg`;
-}
 
 /** Something an icon can be looked up by. */
 export type IconRef = { kind: "file"; id: number } | { kind: "spell"; id: number } | { kind: "name"; name: string };
@@ -173,13 +168,6 @@ export function useAuraIconUrl(aura: AuraDocument, store: IconStore = iconStore)
   }, [aura, store, version]);
   const { icon } = resolveAuraIcon(aura, store.lookup);
   return icon ? iconNameUrl(icon) : null;
-}
-
-/** Image URL for a FileDataID already looked up, else the question mark (kept for simple callers). */
-export function iconUrl(fileDataId: number | string | undefined): string {
-  const ref = displayIconRef(fileDataId);
-  const name = ref ? iconStore.lookup(ref) : null;
-  return iconNameUrl(name || QUESTION_MARK_ICON);
 }
 
 /** Image URL of one icon value (FileDataID, `spell:` ref or icon name), or null while it's being looked up or unknown. */

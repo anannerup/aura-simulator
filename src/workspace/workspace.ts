@@ -1,16 +1,16 @@
 /**
- * The workspace: what the player is working on, a list of top-level items (auras and groups, see `tree.ts`).
+ * The workspace: what the player is working on, a list of top-level auras (auras and groups, see `tree.ts`).
  *
  * Stored form (browser storage in IndexedDB, and the workspace file the player exports/imports), JSON:
  *
  *   { "format": "aura-simulator/workspace", "version": 2, "updatedAt": "<ISO time>",
- *     "selected": "<id>"?,                       // the selected item (optional)
+ *     "selected": "<id>"?,                       // the selected aura (optional)
  *     "items": [ { "aura": {...}, "items": [ ... ], "code": "!WA:2!..."? }, ... ] }
  *
- * Each `aura` is the item's canonical aura document (spell IDs and icon file IDs as the addon stores them, no
- * images); `items` is present exactly for groups and nests further. A top-level item may carry its state code
+ * Each `aura` is the aura's canonical aura document (spell IDs and icon file IDs as the addon stores them, no
+ * images); `items` is present exactly for groups and nests further. A top-level aura may carry its state code
  * (`code`): informational, handy to copy, and lets the page show the very same code again; the documents decide.
- * Version 1 (`items: [{code}]`, one state code per top-level item) is still read and migrated by decoding each code.
+ * Version 1 (`items: [{code}]`, one state code per top-level aura) is still read and migrated by decoding each code.
  */
 import { canonicalize, isLuaTable, isStateCode, type AuraDocument, type AuraState } from "@/core";
 import { addSubtree, findNode, isGroupDoc, nodeFromState, nodeId, normalizeItems, type WorkspaceNode } from "./tree";
@@ -20,7 +20,7 @@ export interface Workspace {
   items: WorkspaceNode[];
   /** ISO time of the last change; decides between browser storage and the server's copy. */
   updatedAt: string;
-  /** The selected item's id, if any. */
+  /** The selected aura's id, if any. */
   selected?: string | null;
 }
 
@@ -30,7 +30,7 @@ export type DecodeState = (code: string) => AuraState;
 export const WORKSPACE_FORMAT = "aura-simulator/workspace";
 export const WORKSPACE_VERSION = 2;
 
-/** A workspace from state codes (one top-level item each); clashing ids get the addon's "name 2". */
+/** A workspace from state codes (one top-level aura each); clashing ids get the addon's "name 2". */
 export function workspaceFromStates(states: AuraState[], updatedAt: string = new Date().toISOString()): Workspace {
   let items: WorkspaceNode[] = [];
   let selected: string | null = null;
@@ -64,7 +64,7 @@ export type ReadResult =
   | {
       ok: true;
       workspace: Workspace;
-      /** State codes the file carries for its top-level items (unchecked: decode them before trusting them). */
+      /** State codes the file carries for its top-level auras (unchecked: decode them before trusting them). */
       codes: string[];
     }
   | { ok: false; error: string };
@@ -102,7 +102,7 @@ export function readWorkspace(text: string | null | undefined, decode?: DecodeSt
         // left out
       }
     }
-    if (states.length === 0) return { ok: false, error: "No item of this version 1 workspace could be read" };
+    if (states.length === 0) return { ok: false, error: "No aura of this version 1 workspace could be read" };
     return { ok: true, workspace: workspaceFromStates(states, updatedAt), codes };
   }
   if (d.version !== WORKSPACE_VERSION) return { ok: false, error: `Unknown workspace version ${String(d.version)}` };
@@ -152,7 +152,7 @@ export function newerWorkspace<T extends { updatedAt: string }>(a: T | null, b: 
   return Date.parse(b.updatedAt) > Date.parse(a.updatedAt) ? b : a;
 }
 
-/** Adds every top-level item of `other` to `base` (ids that clash get the addon's "name 2"). */
+/** Adds every top-level aura of `other` to `base` (ids that clash get the addon's "name 2"). */
 export function mergeWorkspaces(base: WorkspaceNode[], other: WorkspaceNode[]): WorkspaceNode[] {
   let items = base;
   for (const node of other) items = addSubtree(items, node, { parentId: null }).items;

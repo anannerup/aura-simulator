@@ -1,5 +1,5 @@
-import { Workbench } from "./Workbench";
+import { AuraSimulator } from "./AuraSimulator";
 
 export default function Home() {
-  return <Workbench />;
+  return <AuraSimulator />;
 }

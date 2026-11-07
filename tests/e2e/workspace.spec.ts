@@ -45,7 +45,7 @@ async function iconSize(page: Page, id?: string): Promise<number> {
   const which = id ? `[data-aura-id="${id}"]` : "";
   const icon = page.getByTestId("aura-preview").locator(`[data-region-type="icon"]${which} img`);
   await expect(icon).toBeVisible({ timeout: 60_000 });
-  // In UI units: the mock screen scales UI units to the browser.
+  // In UI units: the game screen scales UI units to the browser.
   const screen = (await page.getByTestId("aura-preview").boundingBox())!;
   const uiHeight = Number(await page.getByTestId("mock-screen").getAttribute("data-ui-height"));
   return Math.round(((await icon.boundingBox())!.width * uiHeight) / screen.height);
@@ -57,7 +57,7 @@ async function openWorkspaceMenu(page: Page) {
   if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
 }
 
-/** The selected item's state code and file exports live behind the list's Export button. */
+/** The selected aura's state code and file exports live behind the list's Export button. */
 async function openExport(page: Page) {
   const button = page.getByRole("button", { name: "Export", exact: true });
   if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();

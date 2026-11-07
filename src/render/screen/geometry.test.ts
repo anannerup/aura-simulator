@@ -44,22 +44,22 @@ const icon = (selfPoint: string, anchorPoint: string, xOffset = 0, yOffset = 0, 
 describe("placeAura in window pixels", () => {
   it.each([
     // [window, aura, expected pixel rect]
-    ["1080p, no UI scale, centred", res(1920, 1080, null), icon("CENTER", "CENTER"), { x: 915, y: 495, width: 90, height: 90 }],
-    ["1440p ×0.6, TOPLEFT +10,-20", res(2560, 1440, 0.6), icon("TOPLEFT", "TOPLEFT", 10, -20), { x: 11.25, y: 22.5, width: 72, height: 72 }],
-    ["pixel perfect, BOTTOMRIGHT -5,+5", res(1920, 1080, 768 / 1080), icon("BOTTOMRIGHT", "BOTTOMRIGHT", -5, 5), { x: 1851, y: 1011, width: 64, height: 64 }],
-    ["pixel perfect, TOP of icon on BOTTOM", res(1920, 1080, 768 / 1080), icon("TOP", "BOTTOM"), { x: 928, y: 1080, width: 64, height: 64 }],
-    ["pixel perfect, LEFT on RIGHT", res(1920, 1080, 768 / 1080), icon("LEFT", "RIGHT"), { x: 1920, y: 508, width: 64, height: 64 }],
-    ["pixel perfect, TOPRIGHT on BOTTOMLEFT", res(1920, 1080, 768 / 1080), icon("TOPRIGHT", "BOTTOMLEFT"), { x: -64, y: 1080, width: 64, height: 64 }],
-    ["pixel perfect, BOTTOMLEFT on TOPRIGHT", res(1920, 1080, 768 / 1080), icon("BOTTOMLEFT", "TOPRIGHT"), { x: 1920, y: -64, width: 64, height: 64 }],
-    ["pixel perfect, RIGHT on LEFT", res(1920, 1080, 768 / 1080), icon("RIGHT", "LEFT"), { x: -64, y: 508, width: 64, height: 64 }],
-    ["pixel perfect, BOTTOM on TOP, +y moves up", res(1920, 1080, 768 / 1080), icon("BOTTOM", "TOP", 0, -100), { x: 928, y: 36, width: 64, height: 64 }],
-    ["1024x768 ×1, UIPARENT CENTER +100,+50", res(1024, 768, 1), icon("CENTER", "CENTER", 100, 50, "UIPARENT"), { x: 580, y: 302, width: 64, height: 64 }],
-    ["4:3 ×0.8, CENTER", res(1600, 1200, 0.8), icon("CENTER", "CENTER"), { x: 760, y: 560, width: 80, height: 80 }],
+    ["1080p, no UI scale, centred", res(1920, 1080, null), icon("CENTER", "CENTER"), { left: 915, top: 495, width: 90, height: 90 }],
+    ["1440p ×0.6, TOPLEFT +10,-20", res(2560, 1440, 0.6), icon("TOPLEFT", "TOPLEFT", 10, -20), { left: 11.25, top: 22.5, width: 72, height: 72 }],
+    ["pixel perfect, BOTTOMRIGHT -5,+5", res(1920, 1080, 768 / 1080), icon("BOTTOMRIGHT", "BOTTOMRIGHT", -5, 5), { left: 1851, top: 1011, width: 64, height: 64 }],
+    ["pixel perfect, TOP of icon on BOTTOM", res(1920, 1080, 768 / 1080), icon("TOP", "BOTTOM"), { left: 928, top: 1080, width: 64, height: 64 }],
+    ["pixel perfect, LEFT on RIGHT", res(1920, 1080, 768 / 1080), icon("LEFT", "RIGHT"), { left: 1920, top: 508, width: 64, height: 64 }],
+    ["pixel perfect, TOPRIGHT on BOTTOMLEFT", res(1920, 1080, 768 / 1080), icon("TOPRIGHT", "BOTTOMLEFT"), { left: -64, top: 1080, width: 64, height: 64 }],
+    ["pixel perfect, BOTTOMLEFT on TOPRIGHT", res(1920, 1080, 768 / 1080), icon("BOTTOMLEFT", "TOPRIGHT"), { left: 1920, top: -64, width: 64, height: 64 }],
+    ["pixel perfect, RIGHT on LEFT", res(1920, 1080, 768 / 1080), icon("RIGHT", "LEFT"), { left: -64, top: 508, width: 64, height: 64 }],
+    ["pixel perfect, BOTTOM on TOP, +y moves up", res(1920, 1080, 768 / 1080), icon("BOTTOM", "TOP", 0, -100), { left: 928, top: 36, width: 64, height: 64 }],
+    ["1024x768 ×1, UIPARENT CENTER +100,+50", res(1024, 768, 1), icon("CENTER", "CENTER", 100, 50, "UIPARENT"), { left: 580, top: 302, width: 64, height: 64 }],
+    ["4:3 ×0.8, CENTER", res(1600, 1200, 0.8), icon("CENTER", "CENTER"), { left: 760, top: 560, width: 80, height: 80 }],
   ])("%s", (_name, window, aura, expected) => {
     const ui = uiParent(window);
     const px = toPixels(placeAura(aura, ui).rect, ui);
-    expect(px.x).toBeCloseTo(expected.x, 6);
-    expect(px.y).toBeCloseTo(expected.y, 6);
+    expect(px.left).toBeCloseTo(expected.left, 6);
+    expect(px.top).toBeCloseTo(expected.top, 6);
     expect(px.width).toBeCloseTo(expected.width, 6);
     expect(px.height).toBeCloseTo(expected.height, 6);
   });
@@ -67,7 +67,7 @@ describe("placeAura in window pixels", () => {
   it("an unknown anchor point means CENTER", () => {
     const ui = uiParent(res(1920, 1080, 768 / 1080));
     const px = toPixels(placeAura(icon("NOPE", "CENTER"), ui).rect, ui);
-    expect(px).toEqual({ x: 928, y: 508, width: 64, height: 64 });
+    expect(px).toEqual({ left: 928, top: 508, width: 64, height: 64 });
   });
 });
 
@@ -76,7 +76,7 @@ describe("anchorFrameFor", () => {
 
   it.each(["SCREEN", "UIPARENT", undefined])("%s is the whole screen", (type) => {
     const frame = anchorFrameFor({ anchorFrameType: type, anchorPoint: "TOP" }, ui);
-    expect(frame.rect).toEqual({ x: 0, y: 0, width: ui.width, height: ui.height });
+    expect(frame.rect).toEqual({ left: 0, top: 0, width: ui.width, height: ui.height });
     expect(frame.label).toBeUndefined();
     expect(frame.anchorPoint).toBe("TOP");
   });
@@ -91,18 +91,18 @@ describe("anchorFrameFor", () => {
   ])("%s gets a labelled stand-in on screen", (type, label) => {
     const frame = anchorFrameFor({ anchorFrameType: type, anchorPoint: "TOP" }, ui);
     expect(frame.label).toBe(label);
-    expect(frame.rect.x).toBeGreaterThanOrEqual(0);
-    expect(frame.rect.y).toBeGreaterThanOrEqual(0);
-    expect(frame.rect.x + frame.rect.width).toBeLessThanOrEqual(ui.width);
-    expect(frame.rect.y + frame.rect.height).toBeLessThanOrEqual(ui.height);
+    expect(frame.rect.left).toBeGreaterThanOrEqual(0);
+    expect(frame.rect.top).toBeGreaterThanOrEqual(0);
+    expect(frame.rect.left + frame.rect.width).toBeLessThanOrEqual(ui.width);
+    expect(frame.rect.top + frame.rect.height).toBeLessThanOrEqual(ui.height);
   });
 
   it("MOUSE always anchors to the cursor's centre", () => {
     const frame = anchorFrameFor({ anchorFrameType: "MOUSE", anchorPoint: "TOPLEFT" }, ui);
     expect(frame.anchorPoint).toBe("CENTER");
     const placed = placeAura(icon("CENTER", "TOPLEFT", 0, 0, "MOUSE"), ui);
-    expect(placed.rect.x + 32).toBeCloseTo(frame.rect.x, 6);
-    expect(placed.rect.y + 32).toBeCloseTo(frame.rect.y, 6);
+    expect(placed.rect.left + 32).toBeCloseTo(frame.rect.left, 6);
+    expect(placed.rect.top + 32).toBeCloseTo(frame.rect.top, 6);
   });
 
   it("names the selected frame", () => {

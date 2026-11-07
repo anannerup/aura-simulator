@@ -18,11 +18,11 @@ import {
   type Target,
   type WorkspaceNode,
 } from "@/workspace";
-import styles from "./WorkspaceTree.module.css";
+import styles from "./AuraList.module.css";
 import { errorMessage } from "@/lib/errors";
 
-export interface WorkspaceTreeProps {
-  /** The workspace's top-level items. */
+export interface AuraListProps {
+  /** The workspace's top-level auras. */
   items: WorkspaceNode[];
   selectedId: string | null;
   onSelect(id: string): void;
@@ -85,7 +85,7 @@ const actionIcon = (name: string) => <GameTexture source={ADDON_MEDIA(name)} siz
  * Self-contained: every edit is a pure operation from `@/workspace`, handed to `onChange`. New auras and groups come
  * from the window's New Aura page (the addon's own), not from here.
  */
-export function WorkspaceTree({ items, selectedId, onSelect, onChange, hiddenIds, onToggleHidden }: WorkspaceTreeProps) {
+export function AuraList({ items, selectedId, onSelect, onChange, hiddenIds, onToggleHidden }: AuraListProps) {
   const [error, setError] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   // Enter commits and unmounts the input, whose blur would commit the same rename again.
@@ -133,7 +133,7 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, hiddenIds
     apply(() => ({ items: moveNode(items, id, target), select: id }));
   }
 
-  // Groups an item may move into: not itself or below itself, and no group into a dynamic group.
+  // Groups an aura may move into: not itself or below itself, and no group into a dynamic group.
   const moveTargets: { id: string | null; label: string }[] = [{ id: null, label: "Top level" }];
   if (selected) {
     for (const n of traverse(items)) {
@@ -164,7 +164,7 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, hiddenIds
     const target = findNode(items, d.id);
     if (!target) return;
     const parentId = target.parent ? nodeId(target.parent) : null;
-    // Indexes count without the moved item.
+    // Indexes count without the moved aura.
     const moving = findNode(items, id)!;
     const sameList = (moving.parent ? nodeId(moving.parent) : null) === parentId;
     let index = target.index + (d.where === "after" ? 1 : 0);
@@ -193,7 +193,7 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, hiddenIds
             aria-selected={isSelected}
             aria-expanded={node.items ? true : undefined}
             aria-label={id}
-            data-item-id={id}
+            data-aura-id={id}
             tabIndex={isSelected ? 0 : -1}
             className={`${styles.row} ${isSelected ? styles.selected : ""} ${dropClass}`}
             style={{ paddingLeft: 3 + (level - 1) * 14 }}
@@ -261,7 +261,7 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, hiddenIds
     });
 
   return (
-    <section className={styles.tree} aria-label="Workspace items">
+    <section className={styles.tree} aria-label="Auras">
       <label className={styles.search}>
         <SearchIcon size={13} aria-hidden />
         <input type="search" placeholder="Search" aria-label="Search auras" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -289,7 +289,7 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, hiddenIds
         {items.length > 0 && search && !items.some((n) => matches(n, search)) && <li className={styles.empty}>No aura matches “{query.trim()}”.</li>}
       </ul>
       {selected && (
-        <div className={styles.actions} aria-label="Selected item">
+        <div className={styles.actions} aria-label="Selected aura">
           <button type="button" aria-label="Rename" title="Rename (F2)" onClick={() => setRenaming({ id: selectedId!, value: selectedId! })}>
             {actionIcon("edit")}
           </button>

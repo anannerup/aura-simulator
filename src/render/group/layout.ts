@@ -1,5 +1,5 @@
 /**
- * Where every aura of a workspace sits on the mock screen: top-level items at their anchors, group children
+ * Where every aura of a workspace sits on the game screen: top-level auras at their anchors, group children
  * relative to their group, dynamic group children laid out by the group's growth.
  *
  * All rects are in UIParent units, y down (see `../screen/geometry.ts`); WoW offsets are y up.
@@ -19,7 +19,7 @@
  *   (:1630-1636), not with anchor-per-unit (:1099).
  */
 import { field, num, type AuraDocument } from "@/core";
-import { anchorFraction, anchorFrameFor, type AnchorFrame, type Rect, type UiParent } from "../screen/geometry";
+import { anchorFraction, anchorFrameFor, type AnchorFrame, type Box, type UiParent } from "../screen/geometry";
 import { dynamicSelfPoint, growPositions, type Size } from "./grow";
 
 export interface LayoutNode {
@@ -30,7 +30,7 @@ export interface LayoutNode {
 export interface PlacedAura {
   id: string;
   aura: AuraDocument;
-  rect: Rect;
+  rect: Box;
   /** Effective scale relative to UIParent (a group's scale applies to its children). */
   scale: number;
   visible: boolean;
@@ -41,15 +41,15 @@ export interface PlacedGroup {
   aura: AuraDocument;
   kind: "group" | "dynamicgroup";
   /** Bounding box of the shown children; null when none is shown. */
-  bounds: Rect | null;
+  bounds: Box | null;
   /** The group's own frame (a group's 2x2 frame; a dynamic group's selfPoint as a zero-size rect). */
-  frame: Rect;
+  frame: Box;
   /** The border/backdrop rect when the game draws one. */
-  border: Rect | null;
+  border: Box | null;
   scale: number;
 }
 
-export interface StageLayout {
+export interface ScreenLayout {
   /** Leaf auras in draw order (pre-order). */
   auras: PlacedAura[];
   groups: PlacedGroup[];
@@ -64,28 +64,28 @@ const scaleOf = (a: AuraDocument) => {
   return s > 0 && s <= 10 ? s : 1;
 };
 
-function pointOf(rect: Rect, point: unknown): [number, number] {
+function pointOf(rect: Box, point: unknown): [number, number] {
   const [fx, fy] = anchorFraction(point);
-  return [rect.x + rect.width * fx, rect.y + rect.height * fy];
+  return [rect.left + rect.width * fx, rect.top + rect.height * fy];
 }
 
 /** The rect whose `point` lies at `at`. */
-function rectAt(point: unknown, at: [number, number], width: number, height: number): Rect {
+function rectAt(point: unknown, at: [number, number], width: number, height: number): Box {
   const [fx, fy] = anchorFraction(point);
-  return { x: at[0] - width * fx, y: at[1] - height * fy, width, height };
+  return { left: at[0] - width * fx, top: at[1] - height * fy, width, height };
 }
 
-function union(rects: Rect[]): Rect | null {
+function union(rects: Box[]): Box | null {
   if (rects.length === 0) return null;
-  const x1 = Math.min(...rects.map((r) => r.x));
-  const y1 = Math.min(...rects.map((r) => r.y));
-  const x2 = Math.max(...rects.map((r) => r.x + r.width));
-  const y2 = Math.max(...rects.map((r) => r.y + r.height));
-  return { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
+  const x1 = Math.min(...rects.map((r) => r.left));
+  const y1 = Math.min(...rects.map((r) => r.top));
+  const x2 = Math.max(...rects.map((r) => r.left + r.width));
+  const y2 = Math.max(...rects.map((r) => r.top + r.height));
+  return { left: x1, top: y1, width: x2 - x1, height: y2 - y1 };
 }
 
-function grow(rect: Rect, by: number): Rect {
-  return { x: rect.x - by, y: rect.y - by, width: rect.width + 2 * by, height: rect.height + 2 * by };
+function grow(rect: Box, by: number): Box {
+  return { left: rect.left - by, top: rect.top - by, width: rect.width + 2 * by, height: rect.height + 2 * by };
 }
 
 /** A parent frame children are placed in: the point SCREEN children anchor to, and the effective scale. */
@@ -104,8 +104,8 @@ function anchorFor(aura: AuraDocument, parent: Parent | null, ui: UiParent, stan
 }
 
 /** Lays out every item. `isShown(aura)` says whether a leaf aura is shown in the current situation. */
-export function layoutStage(items: LayoutNode[], ui: UiParent, isShown: (aura: AuraDocument) => boolean): StageLayout {
-  const out: StageLayout = { auras: [], groups: [], standIns: [] };
+export function layoutScreen(items: LayoutNode[], ui: UiParent, isShown: (aura: AuraDocument) => boolean): ScreenLayout {
+  const out: ScreenLayout = { auras: [], groups: [], standIns: [] };
 
   const placeLeaf = (aura: AuraDocument, parent: Parent | null): PlacedAura => {
     const { at, scale } = anchorFor(aura, parent, ui, out.standIns);
@@ -154,7 +154,7 @@ export function layoutStage(items: LayoutNode[], ui: UiParent, isShown: (aura: A
       aura,
       kind: "dynamicgroup",
       bounds: null,
-      frame: { x: origin[0], y: origin[1], width: 0, height: 0 },
+      frame: { left: origin[0], top: origin[1], width: 0, height: 0 },
       border: null,
       scale,
     };
@@ -228,24 +228,24 @@ function chainFlow(group: AuraDocument, children: LayoutNode[], leaves: PlacedAu
   if (chain.length < 2 && !key.startsWith("CENTER")) return;
   if (chain.length === 0) return;
   const first = chain[0].rect;
-  let x = sx < 0 ? first.x + first.width : first.x;
-  let y = sy < 0 ? first.y + first.height : first.y;
-  const placed: Rect[] = [];
+  let x = sx < 0 ? first.left + first.width : first.left;
+  let y = sy < 0 ? first.top + first.height : first.top;
+  const placed: Box[] = [];
   for (const l of chain) {
     const r = l.rect;
     const rx = sx < 0 ? x - r.width : x;
     const ry = sy < 0 ? y - r.height : y;
-    placed.push({ x: rx, y: ry, width: r.width, height: r.height });
+    placed.push({ left: rx, top: ry, width: r.width, height: r.height });
     x += sx * (r.width + spacing);
     y += sy * (r.height + spacing);
   }
   if (key.startsWith("CENTER")) {
     const total = union(placed)!;
-    const dx = sx ? first.x + first.width / 2 - (total.x + total.width / 2) : 0;
-    const dy = sy ? first.y + first.height / 2 - (total.y + total.height / 2) : 0;
+    const dx = sx ? first.left + first.width / 2 - (total.left + total.width / 2) : 0;
+    const dy = sy ? first.top + first.height / 2 - (total.top + total.height / 2) : 0;
     for (const p of placed) {
-      p.x += dx;
-      p.y += dy;
+      p.left += dx;
+      p.top += dy;
     }
   }
   chain.forEach((l, i) => (l.rect = placed[i]));

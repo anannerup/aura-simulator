@@ -438,7 +438,8 @@ Every push answer has a \`validation\` field, from the real Musca Auras code:
 - \`combat.status\`: \`ok\` (fully usable in combat), \`limited\` (works, but some parts stop updating or comparing in
   combat), \`broken\` (won't work as built).
 - Each error or warning has a \`code\`, a \`severity\` (\`error\`, \`warning\`, \`info\`), a \`message\` in the addon's
-  words, often a \`pointer\` (\`tab\`, \`path\` of keys into the document, and a \`label\` such as
+  words, often a \`pointer\` (\`tab\`: the options tab's key, \`region\` for Display, \`trigger\`, \`conditions\`,
+  \`action\` or \`animation\`; \`path\` of keys into the document; and a \`label\` such as
   "Condition 1, change 1 (desaturate)") and, in a group, the \`auraId\` it is about. Codes: \`modern.invalid\`
   (an Aura (Modern) rule is broken), \`modern.status\`, \`modern.notEligible\` (the display can't use the trigger),
   \`modern.note\` (a caution, e.g. "Hostile units only."), \`combat.hiddenValues\` (the game hides values this
@@ -483,7 +484,7 @@ cooldown trigger as a number (\`"spellName": 2136\`).
 function pushApi({ o, d }: Ctx): string {
   return `## Push API
 
-A **workspace** is what an open page shows: top-level items (auras and groups), all drawn at once on the game
+A **workspace** is what an open page shows: top-level auras (displays and groups), all drawn at once on the game
 screen, one selected. Workspace IDs are 1-64 of \`A-Z a-z 0-9 _ -\`.
 
 ### POST /api/workspaces/<id>/aura
@@ -503,7 +504,7 @@ need). Errors: \`{"error": "..."}\` with 400 (malformed request), 413 (too large
 (it takes seconds for very large auras); \`validation\` is then null. The answer's \`url\` is the page that follows
 this workspace (\`?w=\`): if no page is open, hand it to the player and the pushed aura is waiting there.
 
-Merge rules: the pushed item, with a group's whole subtree, **replaces the top-level item with the same \`uid\`,
+Merge rules: the pushed aura, with a group's whole subtree, **replaces the top-level aura with the same \`uid\`,
 else the same \`id\`**, keeping its place, or is added at the end; it becomes selected. So keep the \`id\` while you
 iterate on an aura, and use a new \`id\` for another aura. Ids are unique across the workspace: a pushed child whose
 \`id\` is taken elsewhere is renamed (\`Name 2\`), so push either the separate auras or a group holding them, not both
@@ -511,9 +512,9 @@ iterate on an aura, and use a new \`id\` for another aura. Ids are unique across
 
 ### Reading the workspace
 
-- \`GET /api/workspaces/<id>\` → \`{"id", "code", "updatedAt", "revision", "source", "url"}\`: the top-level item
+- \`GET /api/workspaces/<id>\` → \`{"id", "code", "updatedAt", "revision", "source", "url"}\`: the top-level aura
   pushed or changed last, as an import string (\`code\` is null until something was pushed or changed since the
-  server started). The page reports every top-level item the player changes, so read this to see their edits.
+  server started). The page reports every top-level aura the player changes, so read this to see their edits.
   \`?revision=<n>\` gives one of the last few revisions instead (404 once it is no longer kept).
 - \`GET /api/workspaces/<id>/events\` → Server-Sent Events: \`event: snapshot\` on connect, then \`event: state\` on
   every change, each a notice \`{"id", "revision", "updatedAt", "source"}\` without the code (codes can be
@@ -543,7 +544,7 @@ instead of clicking through forms. It exists once the page has restored its work
 - \`auraSimulator.load(input)\` takes what a push takes: \`{aura, children?}\`, \`{code}\`, or an import string. It
   merges like a push (same \`uid\`, else \`id\`, replaces; otherwise added), selects it, and the window, browser
   storage and server follow. Returns \`{ok: true, id, code}\` or \`{ok: false, error}\` (nothing changed).
-- \`auraSimulator.code(id?)\`: the import string of an item (a group's holds everything in it); the selected one by
+- \`auraSimulator.code(id?)\`: the import string of an aura (a group's holds everything in it); the selected one by
   default. \`auraSimulator.state(id?)\`: its \`{aura, children}\`, what \`load\` takes. \`auraSimulator.workspaceId\`.
 
 \`\`\`js

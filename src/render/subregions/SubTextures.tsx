@@ -2,7 +2,7 @@
 
 import { getField, num, type AuraRenderState, type LuaTable } from "@/core";
 import { anchorFraction } from "../screen/geometry";
-import type { Box } from "../bar-geometry";
+import type { Box } from "../screen/geometry";
 import { useRegionClock } from "../clock";
 import { MappedTexture } from "../MappedTexture";
 import { textureSourceOf } from "../media";

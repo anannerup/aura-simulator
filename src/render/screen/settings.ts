@@ -11,7 +11,7 @@ export interface ScreenSettings {
   showGrid: boolean;
   /** Draw the uploaded screenshot behind the screen (when there is one). */
   showBackground: boolean;
-  /** How the screen is sized in the stage: all of it (fit), covering the stage (fill), or one CSS pixel per window pixel. */
+  /** How the screen is sized in its pane: all of it (fit), covering the pane (fill), or one CSS pixel per window pixel. */
   zoom: ScreenZoom;
 }
 

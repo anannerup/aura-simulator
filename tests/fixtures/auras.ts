@@ -1,8 +1,8 @@
 import type { AuraDocument } from "@/core";
 
 /**
- * Sample auras written the way an agent would (only the fields that matter, no defaults), from
- * prototypes/headless-addon/samples.mjs. Expected results were read from the addon's own validation.
+ * Sample auras written the way an agent would (only the fields that matter, no defaults).
+ * Expected results were read from the addon's own validation.
  */
 
 const ARCANE_INTELLECT = "1459";

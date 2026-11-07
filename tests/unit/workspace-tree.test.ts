@@ -8,7 +8,7 @@ import {
   mergeTopLevel,
   moveNode,
   newUid,
-  placeNewItem,
+  placeNewAura,
   nodeFromState,
   nodeId,
   readWorkspace,
@@ -125,7 +125,7 @@ describe("workspace tree operations", () => {
     expect(() => updateNode(items, "G", { ...findNode(items, "G")!.node.aura, regionType: "icon" })).toThrow(TreeError);
   });
 
-  it("merges a pushed item: same uid (else id) replaces in place, anything else is appended", () => {
+  it("merges a pushed aura: same uid (else id) replaces in place, anything else is appended", () => {
     const items = build();
     const c = findNode(items, "C")!.node;
     const replaced = mergeTopLevel(items, { aura: { ...c.aura, id: "C renamed", width: 10 } });
@@ -153,17 +153,17 @@ describe("new items", () => {
   const made = { ...sampleIconAura(V), id: "Icon from the addon", width: 40 };
 
   it("go after the selection, or at the end with nothing selected, named New with a fresh uid", () => {
-    const end = placeNewItem(build(), null, made);
+    const end = placeNewAura(build(), null, made);
     expect(end.id).toBe("New");
     expect(shape(end.items).at(-1)).toBe("New");
     expect(typeof findNode(end.items, "New")!.node.aura.uid).toBe("string");
-    const after = placeNewItem(end.items, "C", made);
+    const after = placeNewAura(end.items, "C", made);
     expect(after.id).toBe("New 2");
     expect(shape(after.items)).toEqual([{ G: ["A", "B"] }, { D: [] }, "C", "New 2", "New"]);
   });
 
   it("go into a selected group, beside the children already there", () => {
-    const placed = placeNewItem(build(), "G", made);
+    const placed = placeNewAura(build(), "G", made);
     expect(shape(placed.items)[0]).toEqual({ G: ["A", "B", "New"] });
     expect(findNode(placed.items, "New")!.node.aura.xOffset).toBe(2 * (40 + 4));
     expectConsistent(placed.items);
@@ -171,7 +171,7 @@ describe("new items", () => {
 
   it("a new group is an empty group; next to a dynamic group's child it goes to the top level", () => {
     let items = moveNode(build(), "C", { parentId: "D" });
-    const placed = placeNewItem(items, "C", { id: "x", regionType: "group" });
+    const placed = placeNewAura(items, "C", { id: "x", regionType: "group" });
     items = placed.items;
     expect(shape(items)).toEqual([{ G: ["A", "B"] }, { D: ["C"] }, { New: [] }]);
     expect(findNode(items, "New")!.node.aura.controlledChildren).toEqual({});
@@ -247,7 +247,7 @@ describe("state codes and the workspace file", () => {
     expect(readWorkspace("[]")).toMatchObject({ ok: false });
   });
 
-  it("migrates a version 1 workspace (one state code per item) by decoding each code", () => {
+  it("migrates a version 1 workspace (one state code per aura) by decoding each code", () => {
     const items = nested();
     const codes = items.map((n) => core.encode(stateFromNode(n)));
     const v1 = JSON.stringify({

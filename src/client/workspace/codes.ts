@@ -1,11 +1,11 @@
 import type { AuraCore, DecodedState } from "@/core";
 import { stateFromNode, stateKey, type WorkspaceNode } from "@/workspace";
 
-/** Codes remembered by content; enough for every top-level item of a large workspace between decode and first use. */
+/** Codes remembered by content; enough for every top-level aura of a large workspace between decode and first use. */
 const KNOWN_LIMIT = 512;
 
 /**
- * State codes of workspace items through the aura core. An item whose content came from a code (pasted, pushed,
+ * State codes of workspace items through the aura core. An aura whose content came from a code (pasted, pushed,
  * stored) shows that very code again: a re-encode would change the table order and so the text.
  */
 export class StateCodes {
@@ -37,7 +37,7 @@ export class StateCodes {
     }
   }
 
-  /** An item's state code (a group's holds its descendants). Throws when the addon can't encode it. */
+  /** An aura's state code (a group's holds its descendants). Throws when the addon can't encode it. */
   of(node: WorkspaceNode): string {
     let code = this.byNode.get(node);
     if (!code) {

@@ -3,15 +3,10 @@
  * rects relative to the region's top left. WoW offsets are y up and are flipped here.
  */
 import type { LuaValue } from "@/core";
+import type { Box } from "./screen/geometry";
 
 export type Orientation = "HORIZONTAL" | "HORIZONTAL_INVERSE" | "VERTICAL" | "VERTICAL_INVERSE";
 
-export interface Box {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
 
 export function orientationOf(value: LuaValue | undefined): Orientation {
   return value === "HORIZONTAL_INVERSE" || value === "VERTICAL" || value === "VERTICAL_INVERSE" ? value : "HORIZONTAL";

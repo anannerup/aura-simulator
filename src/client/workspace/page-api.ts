@@ -11,13 +11,13 @@ export interface AuraSimulatorApi {
   /** The workspace this page follows (`?w=`). */
   workspaceId: string;
   /**
-   * Loads an aura the way a push does: a state code, `{code}`, or `{aura, children?}`. It replaces the top-level item
+   * Loads an aura the way a push does: a state code, `{code}`, or `{aura, children?}`. It replaces the top-level aura
    * with the same uid (else id) or is added, and is selected.
    */
   load(input: unknown): { ok: true; id: string; code: string } | { ok: false; error: string };
-  /** The state code of an item (an aura, or a group with everything in it); the selected one by default. */
+  /** The state code of an aura (an aura, or a group with everything in it); the selected one by default. */
   code(id?: string): string | null;
-  /** An item's document and a group's descendants (what `load` takes); the selected one by default. */
+  /** An aura's document and a group's descendants (what `load` takes); the selected one by default. */
   state(id?: string): AuraState | null;
 }
 

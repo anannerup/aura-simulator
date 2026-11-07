@@ -10,7 +10,7 @@ import {
   nodeFromState,
   nodeId,
   parseAddress,
-  placeNewItem,
+  placeNewAura,
   readWorkspace,
   serializeWorkspace,
   stateFromNode,
@@ -30,13 +30,13 @@ import { errorMessage } from "@/lib/errors";
 export interface WorkspaceView {
   /** The workspace the page follows (from `?w=`, else "default"); null until restored. */
   workspaceId: string | null;
-  /** Every top-level item; empty until restored. */
+  /** Every top-level aura; empty until restored. */
   items: WorkspaceNode[];
-  /** The selected item's id. */
+  /** The selected aura's id. */
   selectedId: string | null;
-  /** The selected item's state code (a group's includes its descendants). */
+  /** The selected aura's state code (a group's includes its descendants). */
   code: string | null;
-  /** The selected item's document. */
+  /** The selected aura's document. */
   aura: AuraDocument | null;
   /** The selected group's descendants, flattened as in its state code. */
   children: AuraDocument[];
@@ -79,7 +79,7 @@ export interface PendingWorkspaceFile {
 }
 
 export interface ImportFilesResult {
-  /** Ids of the top-level items added (from state codes, or a workspace file applied directly). */
+  /** Ids of the top-level auras added (from state codes, or a workspace file applied directly). */
   added: string[];
   /** One message per file or code that couldn't be imported (the others still are). */
   errors: string[];
@@ -98,7 +98,7 @@ const now = () => new Date().toISOString();
  * One page's workspace for one aura core: restores it (browser storage, or the server's newer push), applies every
  * edit, keeps browser storage and the server in step, and follows pushes. Subscribe for the `WorkspaceView`.
  *
- * Every top-level item a page change touched is sent to the server as a push, so agents can read the page's current
+ * Every top-level aura a page change touched is sent to the server as a push, so agents can read the page's current
  * aura there; pushes from elsewhere are merged into the top level (`mergeTopLevel`). A new core (another addon
  * version) gets a new session, which restores the same workspace from browser storage.
  */
@@ -161,7 +161,7 @@ export class WorkspaceSession {
   }
 
   /**
-   * Loads an aura the way a push does (`window.auraSimulator.load`): replaces the top-level item with its uid (else
+   * Loads an aura the way a push does (`window.auraSimulator.load`): replaces the top-level aura with its uid (else
    * id), or adds it; selects it. Returns its id and state code.
    */
   load(input: PushInput): { ok: true; id: string; code: string } | { ok: false; error: string } {
@@ -195,7 +195,7 @@ export class WorkspaceSession {
   }
 
   /**
-   * Replaces the selected item's document (editors, spell picker); a changed `id` renames it. A group's tabs edit
+   * Replaces the selected aura's document (editors, spell picker); a changed `id` renames it. A group's tabs edit
    * its descendants too: pass them as `descendants`.
    */
   updateSelected(doc: AuraDocument, descendants?: AuraDocument[]): EditResult {
@@ -216,30 +216,30 @@ export class WorkspaceSession {
       const made = await this.core.newAura(regionType, sourceData);
       const id = this.view.workspaceId;
       if (!id) return NOT_READY;
-      const placed = placeNewItem(this.view.items, this.view.selectedId, made);
+      const placed = placeNewAura(this.view.items, this.view.selectedId, made);
       return this.attempt(() => this.commit(id, placed.items, placed.id, "page"));
     } catch (e) {
       return { ok: false, error: errorMessage(e) };
     }
   }
 
-  /** The state code of an item (an aura, or a group with everything in it); the selected one by default. */
-  codeOf(itemId: string | null = this.view.selectedId): string | null {
-    const found = itemId ? findNode(this.view.items, itemId) : null;
+  /** The state code of an aura (an aura, or a group with everything in it); the selected one by default. */
+  codeOf(auraId: string | null = this.view.selectedId): string | null {
+    const found = auraId ? findNode(this.view.items, auraId) : null;
     return found ? this.codes.of(found.node) : null;
   }
 
-  /** An item's document and (for a group) its descendants, as a push takes them; the selected one by default. */
-  stateOf(itemId: string | null = this.view.selectedId): AuraState | null {
-    const found = itemId ? findNode(this.view.items, itemId) : null;
+  /** An aura's document and (for a group) its descendants, as a push takes them; the selected one by default. */
+  stateOf(auraId: string | null = this.view.selectedId): AuraState | null {
+    const found = auraId ? findNode(this.view.items, auraId) : null;
     return found ? stateFromNode(found.node) : null;
   }
 
-  /** An item's aura file: `<id>.txt` holding exactly its state code; the selected one by default. */
-  auraFile(itemId: string | null = this.view.selectedId): ExportedFile | null {
-    const code = this.codeOf(itemId);
-    if (!code || !itemId) return null;
-    return { name: auraFileName(itemId), text: code, type: "text/plain;charset=utf-8" };
+  /** An aura's aura file: `<id>.txt` holding exactly its state code; the selected one by default. */
+  auraFile(auraId: string | null = this.view.selectedId): ExportedFile | null {
+    const code = this.codeOf(auraId);
+    if (!code || !auraId) return null;
+    return { name: auraFileName(auraId), text: code, type: "text/plain;charset=utf-8" };
   }
 
   /** The workspace file (JSON, format v2). */

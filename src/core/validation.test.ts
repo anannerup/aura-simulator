@@ -101,6 +101,20 @@ describe("validate", () => {
     expect(warning?.pointer).toMatchObject({ tab: "trigger", trigger: 1 });
   });
 
+  test("a pointer's tab is the options editor's tab key, so it opens that tab", async () => {
+    const states = [modernDesaturateBad, aura2SpellIds, { ...modernGlowOk, regionType: "model" }].map(single);
+    const tabs = new Set<string>();
+    for (const state of states) {
+      const result = await core.validate(state);
+      for (const { pointer } of [...result.errors, ...result.warnings]) {
+        if (!pointer) continue;
+        tabs.add(pointer.tab);
+        expect((await core.options(state, { tab: pointer.tab })).tab).toBe(pointer.tab);
+      }
+    }
+    expect([...tabs].sort()).toEqual(["conditions", "region", "trigger"]);
+  });
+
   test("validates every aura of a group and names the aura", async () => {
     const states = await tutorialStates();
     const group = states.find((s) => s.children.length > 0)!;

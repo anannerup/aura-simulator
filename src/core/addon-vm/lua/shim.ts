@@ -1,5 +1,5 @@
 /**
- * WoW API shim for running Musca Auras headlessly (from prototypes/headless-addon/shim.lua).
+ * WoW API shim for running Musca Auras headlessly.
  * Lua source as a string so it bundles for Node, the browser and Web Workers alike.
  */
 export const SHIM_LUA = String.raw`-- WoW API shim for loading Musca Auras headlessly in wasmoon-lua5.1.

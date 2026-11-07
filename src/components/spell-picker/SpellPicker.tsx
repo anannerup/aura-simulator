@@ -2,7 +2,8 @@
 
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
 import { setTriggerSpellId, triggerCount, triggerSpellId, type AuraDocument } from "@/core";
-import { QUESTION_MARK_ICON, iconNameUrl, iconStore } from "@/render/textures";
+import { iconNameUrl } from "@/api/spells";
+import { QUESTION_MARK_ICON, iconStore } from "@/render/textures";
 import { getSpell, type Spell, type SpellFlag } from "./spell-api";
 import { useSpellSearch } from "./useSpellSearch";
 import { Badge, Input, SearchIcon, Select } from "@/components/ui";

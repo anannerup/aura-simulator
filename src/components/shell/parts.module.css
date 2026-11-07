@@ -4,8 +4,8 @@
   color: var(--text-3);
 }
 
-/* ---- Stage ---- */
-.stage {
+/* ---- ScreenPane ---- */
+.screenPane {
   position: absolute;
   inset: 0;
   display: flex;
@@ -16,7 +16,7 @@
     var(--surface-sunken);
 }
 
-/* The toolbar and notices float over the screen, so the screen can take the whole stage. */
+/* The toolbar and notices float over the screen, so the screen can take the whole pane. */
 .toolbarDock {
   position: absolute;
   z-index: 5;
@@ -54,7 +54,7 @@
   min-height: 0;
 }
 
-.stageMessage {
+.screenMessage {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -64,7 +64,7 @@
   text-align: center;
 }
 
-.stageMessageText {
+.screenMessageText {
   max-width: 420px;
   font-size: var(--text-base);
   color: var(--text-2);
@@ -89,7 +89,7 @@
   }
 }
 
-/* ---- Stage toolbar ---- */
+/* ---- ScreenPane toolbar ---- */
 .toolbar {
   display: inline-flex;
   align-items: center;
@@ -121,16 +121,16 @@
 }
 
 /* ---- Tool blocks in the aura list pane ---- */
-.inspector {
+.listSection {
   margin-top: 6px;
 }
 
-.inspectorHeading {
+.listSectionHeading {
   font-size: inherit;
   font-weight: inherit;
 }
 
-.inspectorToggle {
+.listSectionToggle {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -147,22 +147,22 @@
   cursor: pointer;
 }
 
-.inspectorToggle:hover {
+.listSectionToggle:hover {
   color: var(--accent);
 }
 
-.inspectorChevron {
+.listSectionChevron {
   flex: none;
   stroke-width: 2.4;
   transform: rotate(-90deg);
   transition: transform var(--dur) var(--ease);
 }
 
-.inspectorToggle[aria-expanded="true"] .inspectorChevron {
+.listSectionToggle[aria-expanded="true"] .listSectionChevron {
   transform: none;
 }
 
-.inspectorBody {
+.listSectionBody {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -170,6 +170,6 @@
   font-size: var(--text-sm);
 }
 
-.inspectorBody[hidden] {
+.listSectionBody[hidden] {
   display: none;
 }

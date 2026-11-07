@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { getField, num, type AuraRenderState, type LuaTable } from "@/core";
-import type { Box } from "../bar-geometry";
+import type { Box } from "../screen/geometry";
 import { borderEdge } from "../media";
 import type { TextureSource } from "../textures/paths";
 import { useTextureUrl } from "../textures";

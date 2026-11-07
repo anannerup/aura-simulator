@@ -3,9 +3,9 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { fitScale, uiParent, type UiParent } from "./geometry";
 import type { ScreenSettings } from "./settings";
-import styles from "./MockScreen.module.css";
+import styles from "./GameScreen.module.css";
 
-export interface MockScreenProps {
+export interface GameScreenProps {
   settings: ScreenSettings;
   /** Object URL of a screenshot drawn behind the UI, stretched over the whole window (1:1 at the same resolution). */
   backgroundUrl?: string | null;
@@ -24,7 +24,7 @@ const GRID_STEP = 50;
  * The game window, scaled to fit the browser area with its aspect ratio kept. Its child layer is UIParent: sized in
  * UI units and scaled by CSS so that one unit takes as many CSS pixels as it takes window pixels in game, times the fit.
  */
-export function MockScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, fill = false, children }: MockScreenProps) {
+export function GameScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, fill = false, children }: GameScreenProps) {
   const container = useRef<HTMLDivElement>(null);
   const [area, setArea] = useState({ width: 800, height: 600 });
 
@@ -46,7 +46,7 @@ export function MockScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, f
   }, [maxViewportHeight, fill]);
 
   const ui = uiParent(settings);
-  // In the stage (`fill`), the zoom setting picks the size; "fill" and "actual" may overflow, and the stage scrolls.
+  // In the screen pane (`fill`), the zoom setting picks the size; "fill" and "actual" may overflow, and the pane scrolls.
   const zoom = fill ? (settings.zoom ?? "fit") : "fit";
   const fit =
     zoom === "fill"
@@ -58,7 +58,7 @@ export function MockScreen({ settings, backgroundUrl, maxViewportHeight = 0.7, f
   const display = { width: settings.width * fit, height: settings.height * fit };
   const showBackground = settings.showBackground && !!backgroundUrl;
 
-  // Zoomed in, start at the screen's centre, where auras usually are; keep it there when the stage resizes.
+  // Zoomed in, start at the screen's centre, where auras usually are; keep it there when the pane resizes.
   useLayoutEffect(() => {
     const el = container.current;
     if (!el || !fill) return;

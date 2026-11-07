@@ -4,7 +4,7 @@
  * ProgressTextureNative.lua, NativeProgressPainter.lua). Pure; no React.
  */
 import { num, type LuaValue } from "@/core";
-import type { Box } from "./bar-geometry";
+import type { Box } from "./screen/geometry";
 import { inflate } from "./subregions/host";
 import {
   circularProgressAngles,

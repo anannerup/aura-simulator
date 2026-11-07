@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { DEFAULT_SITUATION, evaluateAura, type AuraCore, type AuraDocument, type AuraPacks, type LuaObject, type NewAuraPage } from "@/core";
 import { AuraRegion } from "@/render/AuraRegion";
-import { displayIconRef, iconNameUrl } from "@/render/textures";
+import { iconNameUrl } from "@/api/spells";
+import { displayIconRef } from "@/render/textures";
 import type { EditResult } from "@/client/workspace/session";
 import { findNode, isDynamicGroupDoc, type WorkspaceNode } from "@/workspace";
 import styles from "./NewAuraChooser.module.css";
@@ -171,7 +172,7 @@ function TypeThumb({ regionType, icon, sample }: { regionType: string; icon?: st
   return (
     <span className={styles.thumbRegion} aria-hidden>
       <span style={{ position: "absolute", left: "50%", top: "50%", width: w, height: h, transform: `translate(-50%, -50%) scale(${scale})` }}>
-        <AuraRegion aura={{ ...sample, selfPoint: "TOPLEFT" }} rect={{ x: 0, y: 0, width: w, height: h }} state={state} />
+        <AuraRegion aura={{ ...sample, selfPoint: "TOPLEFT" }} rect={{ left: 0, top: 0, width: w, height: h }} state={state} />
       </span>
     </span>
   );

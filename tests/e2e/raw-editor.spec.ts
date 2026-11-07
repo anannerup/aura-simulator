@@ -6,7 +6,7 @@ const uniqueId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math
 async function iconSize(page: Page): Promise<number> {
   const icon = page.getByTestId("aura-preview").locator('[data-region-type="icon"] img');
   await expect(icon).toBeVisible({ timeout: 60_000 });
-  // In UI units: the mock screen scales them to the browser window.
+  // In UI units: the game screen scales them to the browser window.
   const screen = page.getByTestId("mock-screen");
   const uiHeight = Number(await screen.getAttribute("data-ui-height"));
   return Math.round(((await icon.boundingBox())!.width * uiHeight) / (await screen.boundingBox())!.height);

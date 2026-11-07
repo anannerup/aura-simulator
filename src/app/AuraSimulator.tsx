@@ -8,28 +8,28 @@ import { useWorkspace } from "@/client/workspace/useWorkspace";
 import { DEFAULT_SITUATION, type AuraDocument } from "@/core";
 import { OptionsEditor } from "@/components/options-editor/OptionsEditor";
 import { RawEditor } from "@/components/raw-editor/RawEditor";
-import { AppShell, EmptyNote, InspectorSection, Stage, StageMessage } from "@/components/shell";
+import { AppShell, EmptyNote, ListSection, ScreenPane, ScreenMessage } from "@/components/shell";
 import { SpellPicker } from "@/components/spell-picker/SpellPicker";
-import { WorkspaceTree } from "@/components/workspace-tree/WorkspaceTree";
+import { AuraList } from "@/components/aura-list/AuraList";
 import { ADDON_MEDIA, Button, GameTexture, Popover, ToastProvider } from "@/components/ui";
 import { ensureFont } from "@/render/fonts";
-import { WorkspaceStage } from "@/render/screen/WorkspaceStage";
+import { GameScreenAuras } from "@/render/screen/GameScreenAuras";
 import { DEFAULT_WORKSPACE_ID, type WorkspaceNode } from "@/workspace";
-import { AddonVersionMenu } from "./_addon/AddonVersionPicker";
-import { useAddonCore } from "./_addon/useAddonCore";
+import { AddonVersionMenu } from "./addon/AddonVersionPicker";
+import { useAddonCore } from "./addon/useAddonCore";
 import { ExportPanel, ImportPanel, useImporter } from "./import-export/ImportExport";
 import { NewAuraChooser } from "./NewAuraChooser";
-import { GameScreenStage, useGameScreen } from "./screen/GameScreen";
+import { GameScreenPane, useGameScreen } from "./screen/GameScreenPane";
 import { SituationControls } from "./SituationControls";
 import { useConditionProblems } from "./validation/useConditionProblems";
 import { ValidationPanel } from "./validation/ValidationPanel";
-import styles from "./Workbench.module.css";
+import styles from "./AuraSimulator.module.css";
 
 /**
  * The composition root: loads the chosen addon version, follows the workspace, and wires each feature into the app
  * shell (`src/components/shell`): the window (title, toolbar, aura list, tabs, footer) beside the game screen.
  */
-export function Workbench() {
+export function AuraSimulator() {
   const addon = useAddonCore();
   const { core } = addon;
   // The agent docs of the version this window uses.
@@ -46,7 +46,7 @@ export function Workbench() {
   const { view: workspace, session } = useWorkspace(core);
   const importer = useImporter(session);
 
-  // Edits (tabs, spell picker, raw table) replace the selected item's document (a group's tabs its descendants too).
+  // Edits (tabs, spell picker, raw table) replace the selected aura's document (a group's tabs its descendants too).
   const changeAura = useCallback(
     (aura: AuraDocument, descendants?: AuraDocument[]): EditResult => session?.updateSelected(aura, descendants) ?? NOT_READY,
     [session],
@@ -134,7 +134,7 @@ export function Workbench() {
         list={
           <>
             {ready ? (
-              <WorkspaceTree
+              <AuraList
                 items={workspace.items}
                 selectedId={workspace.selectedId}
                 onSelect={select}
@@ -162,19 +162,19 @@ export function Workbench() {
               </div>
             )}
             {aura && !selectedIsGroup && (
-              <InspectorSection title="Spell">
+              <ListSection title="Spell">
                 <SpellPicker aura={aura} onAuraChange={changeAura} />
-              </InspectorSection>
+              </ListSection>
             )}
             {aura && (
-              <InspectorSection title="Situation">
+              <ListSection title="Situation">
                 <SituationControls aura={aura} situation={situation} onChange={setSituation} />
-              </InspectorSection>
+              </ListSection>
             )}
             {core && aura && code && (
-              <InspectorSection title="Combat check">
+              <ListSection title="Combat check">
                 <ValidationPanel core={core} code={code} aura={aura} childAuras={workspace.children} />
-              </InspectorSection>
+              </ListSection>
             )}
           </>
         }
@@ -219,9 +219,9 @@ export function Workbench() {
             </span>
           </>
         }
-        stage={
+        screen={
           ready ? (
-            <GameScreenStage
+            <GameScreenPane
               screen={screen}
               notice={
                 workspace.notice || workspace.warning ? (
@@ -237,7 +237,7 @@ export function Workbench() {
               }
             >
               {(ui) => (
-                <WorkspaceStage
+                <GameScreenAuras
                   items={workspace.items}
                   situation={situation}
                   screen={ui}
@@ -247,19 +247,19 @@ export function Workbench() {
                   onSelect={select}
                 />
               )}
-            </GameScreenStage>
+            </GameScreenPane>
           ) : (
-            <Stage>
+            <ScreenPane>
               {addon.error && !core ? (
-                <StageMessage tone="danger">
+                <ScreenMessage tone="danger">
                   Could not load Musca Auras: {addon.error}
                   <br />
                   Pick another version from the window&apos;s title.
-                </StageMessage>
+                </ScreenMessage>
               ) : (
-                <StageMessage>{core ? "Loading aura…" : "Loading Musca Auras…"}</StageMessage>
+                <ScreenMessage>{core ? "Loading aura…" : "Loading Musca Auras…"}</ScreenMessage>
               )}
-            </Stage>
+            </ScreenPane>
           )
         }
         drawerMeta={core && <span>Musca Auras {core.ref} · WeakAuras {core.addonVersion}</span>}

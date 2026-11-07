@@ -10,11 +10,11 @@ import {
   sparkCenter,
   sparkTextureTurn,
   sparkVisible,
-  type Box,
 } from "./bar-geometry";
 import { IconTexture } from "./IconRegion";
 import { CASTING_BAR_SPARK, statusBarTexture, textureSourceOf } from "./media";
 import { fullBox, type SubRegionHost } from "./subregions/host";
+import type { Box } from "./screen/geometry";
 import { SubRegions } from "./subregions/SubRegions";
 import { color, rgbaCss } from "./color";
 import { TurnedTexture } from "./TurnedTexture";

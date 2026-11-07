@@ -3,7 +3,7 @@
  * options tabs for it with WeakAurasOptions' own generators (OptionsPrivate.Get*Options), evaluates them the
  * way AceConfigDialog does (names, values, ranges, hidden, disabled, current value from get()), and applies
  * edits through the options' own set()/func(). Its dialogs are in dialogs.ts, the New Aura page in
- * new-aura.ts (loaded after this). Grown from prototypes/headless-addon.
+ * new-aura.ts (loaded after this).
  *
  * Paths: option keys with `tostring(table)` in them (condition options) change on every build, so
  * every key is normalized (`table: 0x…` → `@`) and resolved again against a fresh build.

@@ -45,19 +45,20 @@ function placeRegion(
 }
 
 /** A rect scaled by (sx, sy) about its `selfPoint` (the point the region is pinned by), then moved by (dx, dy) (y up). */
-export function animatedRect(rect: Rect, selfPoint: unknown, sx: number, sy: number, dx: number, dy: number): Rect {
+export function animatedRect(rect: Box, selfPoint: unknown, sx: number, sy: number, dx: number, dy: number): Box {
   const [fx, fy] = anchorFraction(selfPoint);
   const width = rect.width * Math.abs(sx);
   const height = rect.height * Math.abs(sy);
-  return { x: rect.x + rect.width * fx - width * fx + dx, y: rect.y + rect.height * fy - height * fy - dy, width, height };
+  return { left: rect.left + rect.width * fx - width * fx + dx, top: rect.top + rect.height * fy - height * fy - dy, width, height };
 }
 
 /** The height of the UI coordinate system at scale 1. */
 export const UI_BASE_HEIGHT = 768;
 
-export interface Rect {
-  x: number;
-  y: number;
+/** A rectangle in CSS terms (y down from the top left), so it can be spread into a style. */
+export interface Box {
+  left: number;
+  top: number;
   width: number;
   height: number;
 }
@@ -90,7 +91,7 @@ export function fitScale(window: { width: number; height: number }, available: {
 
 /** The frame an aura is anchored to: UIParent itself, or a stand-in for a frame the simulator does not draw. */
 export interface AnchorFrame {
-  rect: Rect;
+  rect: Box;
   /** The anchor point WeakAuras really uses (MOUSE always anchors to the cursor's CENTER). */
   anchorPoint: unknown;
   /** Set for stand-ins: what the box stands for. */
@@ -108,10 +109,10 @@ export function anchorFrameFor(
   aura: { anchorFrameType?: unknown; anchorPoint?: unknown; anchorFrameFrame?: unknown },
   ui: UiParent,
 ): AnchorFrame {
-  const screen = { x: 0, y: 0, width: ui.width, height: ui.height };
-  const centredAt = (cx: number, cy: number, width: number, height: number): Rect => ({
-    x: cx - width / 2,
-    y: cy - height / 2,
+  const screen = { left: 0, top: 0, width: ui.width, height: ui.height };
+  const centredAt = (cx: number, cy: number, width: number, height: number): Box => ({
+    left: cx - width / 2,
+    top: cy - height / 2,
     width,
     height,
   });
@@ -138,7 +139,7 @@ export function anchorFrameFor(
       };
     case "UNITFRAME":
       // Blizzard's PlayerFrame: 232x100 at TOPLEFT (-19, -4) of UIParent; its art starts about 19 units in.
-      return { rect: { x: 0, y: 4, width: 232, height: 100 }, anchorPoint: aura.anchorPoint, label: "Unit frame" };
+      return { rect: { left: 0, top: 4, width: 232, height: 100 }, anchorPoint: aura.anchorPoint, label: "Unit frame" };
     case "MOUSE":
       return { rect: centredAt(ui.width * 0.6, ui.height * 0.45, 0, 0), anchorPoint: "CENTER", label: "Mouse cursor" };
     case "SELECTFRAME": {
@@ -171,16 +172,16 @@ export function placeAura(
     height: number;
   },
   ui: UiParent,
-): { rect: Rect; frame: AnchorFrame } {
+): { rect: Box; frame: AnchorFrame } {
   const frame = anchorFrameFor(aura, ui);
   const { left, top } = placeRegion(frame.rect, { ...aura, selfPoint: aura.selfPoint, anchorPoint: frame.anchorPoint });
-  return { rect: { x: frame.rect.x + left, y: frame.rect.y + top, width: aura.width, height: aura.height }, frame };
+  return { rect: { left: frame.rect.left + left, top: frame.rect.top + top, width: aura.width, height: aura.height }, frame };
 }
 
 /** A rect in UIParent units as physical window pixels. */
-export function toPixels(rect: Rect, ui: UiParent): Rect {
+export function toPixels(rect: Box, ui: UiParent): Box {
   const k = ui.pixelsPerUnit;
-  return { x: rect.x * k, y: rect.y * k, width: rect.width * k, height: rect.height * k };
+  return { left: rect.left * k, top: rect.top * k, width: rect.width * k, height: rect.height * k };
 }
 
 /** Frame strata (Types.lua frame_strata_types; 1 = inherited) as a CSS z-index. */

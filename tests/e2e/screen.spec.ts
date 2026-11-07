@@ -21,7 +21,7 @@ async function setNumber(page: Page, label: string, value: number) {
   await input.press("Enter");
 }
 
-/** The screen settings live in a popover behind the stage toolbar's settings button. */
+/** The screen settings live in a popover behind the game screen toolbar's settings button. */
 const openSettings = (page: Page) => page.getByRole("button", { name: "Screen settings" }).click();
 
 /** A PNG "screenshot" of the given size, drawn by the browser. */

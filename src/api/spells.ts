@@ -1,5 +1,12 @@
 /** Wire types of the spell API (`/api/spells/*`, `/api/icons`), shared by the server and the page. No server code here. */
 
+const ICON_BASE = "https://wow.zamimg.com/images/wow/icons";
+
+/** Image URL of a game icon on Wowhead's image server, by file name (lower case, no extension): 56, 36 or 18 px. */
+export function iconNameUrl(name: string, size: "small" | "medium" | "large" = "large"): string {
+  return `${ICON_BASE}/${size}/${encodeURIComponent(name)}.jpg`;
+}
+
 /** One hit in a name search. Icons come from Forever data (wago); no network on search. */
 export interface SpellSearchHit {
   id: number;

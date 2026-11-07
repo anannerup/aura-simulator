@@ -1,5 +1,5 @@
 /**
- * The core's entry points inside the addon VM (grown from prototypes/headless-addon/extract.lua):
+ * The core's entry points inside the addon VM:
  * contract check, registries, fill defaults, validate. Every addon internal used here is listed in
  * the contract (contract.ts); keep the two in step.
  */

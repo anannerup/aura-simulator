@@ -1,12 +1,12 @@
 import type { LuaKey } from "../lua-value";
 import { plainText } from "../wow-text";
 
-/** The part of the in-game options that causes a message. Indexes are 1-based, as in the game. */
+/** The part of the in-game options that causes a message: `tab` is the options window's tab key (`OptionTab.key`). Indexes are 1-based, as in the game. */
 export type OptionTarget =
   | { tab: "trigger"; trigger: number }
   | { tab: "conditions"; condition?: number; change?: number; property?: string }
-  | { tab: "display"; property?: string }
-  | { tab: "actions" }
+  | { tab: "region"; property?: string }
+  | { tab: "action" }
   | { tab: "animation" };
 
 export type OptionPointer = OptionTarget & {
@@ -119,13 +119,13 @@ function problemPointer(p: Problem, sourceTrigger: number | undefined): OptionPo
     case "conditions":
       return { tab: "conditions", path: ["conditions"], label: "Conditions" };
     case "actions":
-      return { tab: "actions", path: ["actions"], label: "Actions" };
+      return { tab: "action", path: ["actions"], label: "Actions" };
     case "animation":
       return { tab: "animation", path: ["animation"], label: "Animations" };
     case "display":
       return p.property
-        ? { tab: "display", property: p.property, path: [p.property], label: `Display (${p.property})` }
-        : { tab: "display", path: [], label: "Display" };
+        ? { tab: "region", property: p.property, path: [p.property], label: `Display (${p.property})` }
+        : { tab: "region", path: [], label: "Display" };
     case "trigger":
       return triggerPointer(p.trigger ?? sourceTrigger);
   }
@@ -188,8 +188,8 @@ export function interpretValidation(raw: RawValidation, auraId?: string): Valida
   } else if (raw.notEligible) {
     status = "broken";
     const pointer: OptionPointer = raw.regionSupported
-      ? { tab: "display", property: "progressSource", path: ["progressSource"], label: "Display (progress source)" }
-      : { tab: "display", property: "regionType", path: ["regionType"], label: "Display type" };
+      ? { tab: "region", property: "progressSource", path: ["progressSource"], label: "Display (progress source)" }
+      : { tab: "region", property: "regionType", path: ["regionType"], label: "Display type" };
     errors.push(tag({ code: "modern.notEligible", severity: "error", message: raw.notEligible, pointer }));
     combatMessages.push(`Won't work: ${raw.notEligible}`);
   }

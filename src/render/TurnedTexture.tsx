@@ -1,7 +1,8 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import type { Box, TextureTurn } from "./bar-geometry";
+import type { TextureTurn } from "./bar-geometry";
+import type { Box } from "./screen/geometry";
 import { useTextureUrl } from "./textures";
 import type { TextureSource } from "./textures/paths";
 

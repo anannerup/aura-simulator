@@ -1,17 +1,17 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Stage, StageToolbar, ToolbarSeparator, ToolbarText } from "@/components/shell";
+import { ScreenPane, ScreenToolbar, ToolbarSeparator, ToolbarText } from "@/components/shell";
 import { GridIcon, IconButton, ImageIcon, Popover, SlidersIcon } from "@/components/ui";
 import type { UiParent } from "@/render/screen/geometry";
-import { MockScreen } from "@/render/screen/MockScreen";
+import { GameScreen } from "@/render/screen/GameScreen";
 import type { ScreenZoom } from "@/render/screen/settings";
 import { ScreenSettingsPanel } from "./ScreenSettingsPanel";
 import { useScreenSettings } from "./screen-settings-store";
 import { useScreenshot } from "./screenshot-store";
-import styles from "./GameScreen.module.css";
+import styles from "./GameScreenPane.module.css";
 
-/** The mock screen's settings and screenshot, shared by the screen and its settings panel. */
+/** The game screen's settings and screenshot, shared by the screen and its settings panel. */
 export function useGameScreen() {
   const [settings, update] = useScreenSettings();
   const shot = useScreenshot();
@@ -31,7 +31,7 @@ const ZOOMS: { zoom: ScreenZoom; label: string; title: string }[] = [
  * resolution, and a settings popover; screen settings are set once and then left alone, so they stay out of the way).
  * Draws `children` inside UIParent at the configured resolution and scale.
  */
-export function GameScreenStage({
+export function GameScreenPane({
   screen,
   notice,
   children,
@@ -45,10 +45,10 @@ export function GameScreenStage({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const backgroundOn = settings.showBackground && !!screenshot;
   return (
-    <Stage
+    <ScreenPane
       banner={notice}
       toolbar={
-        <StageToolbar label="Game screen">
+        <ScreenToolbar label="Game screen">
           <IconButton
             label={settings.showGrid ? "Hide grid" : "Show grid"}
             icon={<GridIcon />}
@@ -110,12 +110,12 @@ export function GameScreenStage({
               onClearScreenshot={screen.clear}
             />
           </Popover>
-        </StageToolbar>
+        </ScreenToolbar>
       }
     >
-      <MockScreen settings={settings} backgroundUrl={screenshot?.url} fill>
+      <GameScreen settings={settings} backgroundUrl={screenshot?.url} fill>
         {children}
-      </MockScreen>
-    </Stage>
+      </GameScreen>
+    </ScreenPane>
   );
 }

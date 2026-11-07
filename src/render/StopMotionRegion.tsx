@@ -2,7 +2,7 @@
 
 import { useId, type ReactNode } from "react";
 import { num } from "@/core";
-import type { Box } from "./bar-geometry";
+import type { Box } from "./screen/geometry";
 import { useRegionClock } from "./clock";
 import { blendCss, needsShade, ShadeFilter } from "./MappedTexture";
 import {

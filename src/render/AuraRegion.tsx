@@ -2,17 +2,17 @@ import type { CSSProperties } from "react";
 import { num, type AuraDocument, type AuraRenderState } from "@/core";
 import { regionInfo, type RegionAnim } from "./region-types";
 import { regionRenderer } from "./regions";
-import { anchorFraction, strataZIndex, type Rect } from "./screen/geometry";
+import { anchorFraction, strataZIndex, type Box } from "./screen/geometry";
 import styles from "./regions.module.css";
 
 
 export interface AuraRegionProps {
   aura: AuraDocument;
   /** Where the region goes, in UIParent units (`screen/layout.ts`). */
-  rect: Rect;
+  rect: Box;
   /** The aura's evaluated state for the current situation (`evaluateAura`). */
   state: AuraRenderState;
-  /** Marks the selected region (the stage outlines it). */
+  /** Marks the selected region (the game screen outlines it). */
   selected?: boolean;
   onSelect?: () => void;
   /** Animation scale of the region's size (Scale), absolute values; the rect is already scaled. */
@@ -38,8 +38,8 @@ export function AuraRegion({ aura, rect, state, selected, onSelect, scale = [1, 
   // Auto-sized regions (text) are pinned by their selfPoint, which sits where it would on the rect; the content
   // sizes them.
   const regionStyle: CSSProperties = autoSize
-    ? { left: rect.x + rect.width * sx, top: rect.y + rect.height * sy, transform: `translate(${-sx * 100}%, ${-sy * 100}%)` }
-    : { left: rect.x, top: rect.y, width: rect.width, height: rect.height };
+    ? { left: rect.left + rect.width * sx, top: rect.top + rect.height * sy, transform: `translate(${-sx * 100}%, ${-sy * 100}%)` }
+    : { ...rect };
   // Only an explicit strata or alpha makes the region its own stacking context: that would isolate it, and
   // additively blended parts (sparks, glows) would then add onto nothing instead of onto the screen.
   regionStyle.zIndex = aura.frameStrata === undefined || aura.frameStrata === 1 ? undefined : strataZIndex(aura.frameStrata);
