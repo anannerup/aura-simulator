@@ -84,6 +84,11 @@ describe("full VM", () => {
     const page = await c.newAuraPage();
     expect(page.types.map((t) => t.regionType).sort()).toEqual([...TYPES, "group", "dynamicgroup"].sort());
     for (const type of TYPES) expect((await c.newAura(type)).internalVersion).toBe(90);
+    // Only what WeakAuras2 offers: Premade Auras, no Modern Aura Group and no Packs (Musca Auras' own).
+    expect(page.premade.name).toBe("Premade Auras");
+    expect(page.modernGroup).toBeUndefined();
+    expect(page.packs).toBeUndefined();
+    await expect(c.packs()).rejects.toThrow(/WeakAuras has no Packs page/);
   });
 
   test("the Load tab lists TBC's client data and WeakAuras2's TBC options (races, difficulties, item types)", async (ctx) => {

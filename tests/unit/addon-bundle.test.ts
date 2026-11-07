@@ -109,14 +109,14 @@ describe("server bundle", () => {
 
   it("reads every file through the disk cache, at the resolved ref", async () => {
     const first = open();
-    const bundle = await buildAddonBundle(first.cache, "1.15.0", "full");
+    const bundle = await buildAddonBundle(first.cache, "1.15.0", "full", "forever");
     expect(bundle.ref).toBe("v1.15.0");
     expect(Object.keys(bundle.files)).toEqual(FULL);
     expect(first.cdn.sort()).toEqual(FULL);
 
     // A restarted server builds it from disk alone.
     const second = open();
-    expect(await buildAddonBundle(second.cache, "v1.15.0", "full")).toEqual(bundle);
+    expect(await buildAddonBundle(second.cache, "v1.15.0", "full", "forever")).toEqual(bundle);
     expect(second.cdn).toEqual([]);
   });
 
@@ -124,7 +124,7 @@ describe("server bundle", () => {
     const { cache } = open();
     delete ADDON["WeakAurasOptions/Options.lua"];
     try {
-      await expect(buildAddonBundle(cache, "v1.15.0", "full")).rejects.toThrow();
+      await expect(buildAddonBundle(cache, "v1.15.0", "full", "forever")).rejects.toThrow();
     } finally {
       ADDON["WeakAurasOptions/Options.lua"] = "-- Options";
     }
@@ -132,14 +132,14 @@ describe("server bundle", () => {
 
   it("encodes JSON with a content ETag and a gzip body that inflates to the same JSON", async () => {
     const { cache } = open();
-    const encoded = await getEncodedAddonBundle(cache, "v1.15.0", "light");
+    const encoded = await getEncodedAddonBundle(cache, "v1.15.0", "light", "forever");
     expect(encoded.resolution.ref).toBe("v1.15.0");
     expect(encoded.etag).toMatch(/^"[A-Za-z0-9_-]{32}"$/);
     const json = JSON.parse(new TextDecoder().decode(encoded.json));
     expect(json).toEqual({ ref: "v1.15.0", set: "light", files: Object.fromEntries(LIGHT.map((p) => [p, ADDON[p]])) });
     expect(Buffer.from(gunzipSync(await encoded.gzipped()))).toEqual(Buffer.from(encoded.json));
     // The same ref and set come from memory; the other set is a different bundle.
-    expect(await getEncodedAddonBundle(cache, "1.15.0", "light")).toBe(encoded);
-    expect((await getEncodedAddonBundle(cache, "v1.15.0", "full")).etag).not.toBe(encoded.etag);
+    expect(await getEncodedAddonBundle(cache, "1.15.0", "light", "forever")).toBe(encoded);
+    expect((await getEncodedAddonBundle(cache, "v1.15.0", "full", "forever")).etag).not.toBe(encoded.etag);
   });
 });

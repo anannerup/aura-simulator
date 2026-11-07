@@ -19,13 +19,17 @@ export interface NewAuraButton {
   icon?: string;
 }
 
-/** What the window's New Aura page offers, read from the addon (OptionsFrame.lua frame.NewAura). */
+/**
+ * What the window's New Aura page offers, read from the addon (OptionsFrame.lua frame.NewAura). The Modern Aura Group
+ * and Packs are Musca Auras' own (Forever); WeakAuras2 (TBC) has neither, so they are absent there.
+ */
 export interface NewAuraPage {
   /** Display types in the page's order (group and dynamic group first, then by name). */
   types: NewAuraType[];
-  /** The Modern Aura Group button: a group made with these settings. */
-  modernGroup: NewAuraButton & { sourceData: Record<string, unknown> };
-  packs: NewAuraButton;
+  /** The Modern Aura Group button: a group made with these settings (Musca Auras only). */
+  modernGroup?: NewAuraButton & { sourceData: Record<string, unknown> };
+  /** The Packs button, opening `packs()` (Musca Auras only). */
+  packs?: NewAuraButton;
   premade: NewAuraButton;
 }
 

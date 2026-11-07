@@ -4,9 +4,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { deflateRawSync } from "node:zlib";
 import { afterEach, describe, expect, test } from "vitest";
+import { buildAddonBundle } from "@/server/addon/bundle";
 import { unzip } from "@/server/addon/unzip";
 import {
   createWeakAuras2ReleaseCache,
+  weakAuras2AddonSource,
   selectWeakAuras2Releases,
   type WeakAuras2Release,
 } from "@/server/addon/weakauras2-releases";
@@ -170,12 +172,48 @@ describe("the release cache", () => {
   });
 });
 
+describe("the release cache as TBC's addon source (ServerGame.addon)", () => {
+  const zip = makeZip({
+    "WeakAuras/WeakAuras_TBC.toc": "## X-Flavor: TBC\r\n",
+    "WeakAuras/Media/Textures/logo_256_round.tga": "\u0000\u0001tga",
+  });
+  const source = () =>
+    weakAuras2AddonSource(
+      createWeakAuras2ReleaseCache({ root: tempRoot(), fetch: fakeUpstream([githubRelease("5.22.1", zip), githubRelease("5.21.0", zip)], { "5.22.1": zip }) }),
+    );
+
+  test("lists the releases with a zip as versions (a release's tag is its version) and resolves them", async () => {
+    const s = source();
+    expect(await s.versions()).toEqual({
+      releases: [
+        { version: "5.22.1", tag: "5.22.1", tagConfirmed: true, prerelease: false },
+        { version: "5.21.0", tag: "5.21.0", tagConfirmed: true, prerelease: false },
+      ],
+      defaultRef: "5.22.1",
+      tagsConfirmed: true,
+    });
+    expect(await s.resolve("v5.22.1")).toEqual({ input: "v5.22.1", ref: "5.22.1", key: "5.22.1", version: "5.22.1" });
+    await expect(s.resolve("5.20.7")).rejects.toThrow(/no release 5\.20\.7 with a zip/);
+  });
+
+  test("serves a release's files as bytes (media) and lists them with their hashes", async () => {
+    const s = source();
+    const { bytes } = await s.readFile("5.22.1", "WeakAuras/Media/Textures/logo_256_round.tga");
+    expect(new TextDecoder().decode(bytes)).toBe("\u0000\u0001tga");
+    const { listing } = await s.listFiles("5.22.1");
+    expect(listing.source).toBe("release-zip");
+    expect(listing.files.map((f) => f.path)).toEqual(["WeakAuras/Media/Textures/logo_256_round.tga", "WeakAuras/WeakAuras_TBC.toc"]);
+    expect(listing.files[1].hash).toBe(createHash("sha256").update("## X-Flavor: TBC\r\n").digest("hex"));
+  });
+});
+
 describe("WeakAuras2 5.22.1's real zip (downloaded once into .cache)", () => {
   test("its full bundle holds the _TBC.toc file sets, not the other flavors' files", async (ctx) => {
     if (!(await weakAuras2Available())) return ctx.skip();
     const release: WeakAuras2Release = await testWeakAuras2Cache().ensure(TBC_TEST_VERSION);
     expect(release.zip.digest).toBe("sha256:d0d4406b62e84d5e023f2af95e93d229907a41074d2749dd46643c8843536c33");
-    const bundle = await testWeakAuras2Cache().bundle(TBC_TEST_VERSION, "full");
+    const source = weakAuras2AddonSource(testWeakAuras2Cache());
+    const bundle = await buildAddonBundle(source, TBC_TEST_VERSION, "full", "tbc");
     const paths = Object.keys(bundle.files);
     expect(paths).toContain("WeakAuras/WeakAuras_TBC.toc");
     expect(paths).toContain("WeakAuras/Types_TBC.lua");
@@ -184,7 +222,7 @@ describe("WeakAuras2 5.22.1's real zip (downloaded once into .cache)", () => {
     expect(paths).not.toContain("WeakAuras/Types_Vanilla.lua");
     expect(paths).not.toContain("WeakAuras/Types_Mists.lua");
     expect(bundle.files["WeakAuras/Init.lua"]).toMatch(/^local versionString = "5\.22\.1"/m);
-    const light = await testWeakAuras2Cache().bundle(TBC_TEST_VERSION, "light");
+    const light = await buildAddonBundle(source, TBC_TEST_VERSION, "light", "tbc");
     expect(Object.keys(light.files).sort()).toEqual([
       "WeakAuras/Init.lua",
       "WeakAuras/Libs/LibDeflate/LibDeflate.lua",

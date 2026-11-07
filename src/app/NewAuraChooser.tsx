@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { DEFAULT_SITUATION, evaluateAura, type AuraCore, type AuraDocument, type AuraPacks, type LuaObject, type NewAuraPage } from "@/core";
+import {
+  auraRules,
+  DEFAULT_SITUATION,
+  type AddonGameId,
+  type AuraCore,
+  type AuraDocument,
+  type AuraPacks,
+  type LuaObject,
+  type NewAuraPage,
+} from "@/core";
 import { AuraRegion } from "@/render/AuraRegion";
 import { iconNameUrl } from "@/api/spells";
 import { displayIconRef } from "@/render/textures";
@@ -11,25 +20,27 @@ import styles from "./NewAuraChooser.module.css";
 import { errorMessage } from "@/lib/errors";
 
 export interface NewAuraChooserProps {
+  /** Whose rules draw the thumbnails. */
+  game: AddonGameId;
   core: AuraCore;
   items: WorkspaceNode[];
   selectedId: string | null;
   /** Makes a new aura of the type with the addon's New Aura and places it (`WorkspaceSession.createAura`). */
   onCreate(regionType: string, sourceData?: LuaObject): Promise<EditResult>;
   /** Imports a state code (a pack). */
-  onImport(code: string): EditResult;
+  onImport(code: string): Promise<EditResult>;
   onCancel(): void;
 }
 
 const isGroupType = (t: string) => t === "group" || t === "dynamicgroup";
 
 /**
- * The window's New Aura page, read from the addon (OptionsFrame.lua frame.NewAura): Packs and Premade Auras, then
- * the Modern Aura Group and every display type the addon registers, with the game's names and descriptions. New
- * auras are made by the addon's own WeakAuras.NewAura, so they start as they do in the game, and go where the game
- * puts them (into a selected group, else after the selection).
+ * The window's New Aura page, read from the addon (OptionsFrame.lua frame.NewAura): Premade Auras (and Musca Auras'
+ * Packs), then Musca's Modern Aura Group and every display type the addon registers, with the game's names and
+ * descriptions; only what the game's addon offers. New auras are made by the addon's own WeakAuras.NewAura, so they
+ * start as they do in the game, and go where the game puts them (into a selected group, else after the selection).
  */
-export function NewAuraChooser({ core, items, selectedId, onCreate, onImport, onCancel }: NewAuraChooserProps) {
+export function NewAuraChooser({ game, core, items, selectedId, onCreate, onImport, onCancel }: NewAuraChooserProps) {
   const [page, setPage] = useState<NewAuraPage | null>(null);
   const [samples, setSamples] = useState<Record<string, AuraDocument>>({});
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +85,9 @@ export function NewAuraChooser({ core, items, selectedId, onCreate, onImport, on
           <>
             <h2 className={styles.heading}>Simple</h2>
             <ul className={styles.list}>
-              <Entry name={page.packs.name} description={page.packs.description} thumb={page.packs.icon && <IconThumb source={page.packs.icon} />} onClick={() => setView("packs")} />
+              {page.packs && (
+                <Entry name={page.packs.name} description={page.packs.description} thumb={page.packs.icon && <IconThumb source={page.packs.icon} />} onClick={() => setView("packs")} />
+              )}
               <Entry
                 name={page.premade.name}
                 description={page.premade.description}
@@ -84,21 +97,23 @@ export function NewAuraChooser({ core, items, selectedId, onCreate, onImport, on
             </ul>
             <h2 className={styles.heading}>Advanced</h2>
             <ul className={styles.list}>
-              <Entry
-                name={page.modernGroup.name}
-                description={page.modernGroup.description}
-                thumb={<ModernGroupThumb />}
-                disabledReason={inDynamic ? groupOff : undefined}
-                onClick={() => create("group", page.modernGroup.sourceData)}
-                type="modern-group"
-              />
+              {page.modernGroup && (
+                <Entry
+                  name={page.modernGroup.name}
+                  description={page.modernGroup.description}
+                  thumb={<ModernGroupThumb />}
+                  disabledReason={inDynamic ? groupOff : undefined}
+                  onClick={() => create("group", page.modernGroup!.sourceData)}
+                  type="modern-group"
+                />
+              )}
               {page.types.map((t) => (
                 <Entry
                   key={t.regionType}
                   type={t.regionType}
                   name={t.displayName}
                   description={t.description ?? ""}
-                  thumb={<TypeThumb regionType={t.regionType} icon={t.icon} sample={samples[t.regionType]} />}
+                  thumb={<TypeThumb game={game} regionType={t.regionType} icon={t.icon} sample={samples[t.regionType]} />}
                   disabledReason={inDynamic && isGroupType(t.regionType) ? groupOff : undefined}
                   onClick={() => create(t.regionType)}
                 />
@@ -147,8 +162,8 @@ function Entry(props: { name: string; description: string; thumb?: ReactNode; di
 const THUMB = 40;
 
 /** A type's thumbnail: its registered texture, or the new aura drawn by the simulator's renderer. */
-function TypeThumb({ regionType, icon, sample }: { regionType: string; icon?: string; sample?: AuraDocument }) {
-  const state = useMemo(() => (sample?.regionType ? evaluateAura(sample, DEFAULT_SITUATION) : null), [sample]);
+function TypeThumb({ game, regionType, icon, sample }: { game: AddonGameId; regionType: string; icon?: string; sample?: AuraDocument }) {
+  const state = useMemo(() => (sample?.regionType ? auraRules(game).evaluate(sample, DEFAULT_SITUATION) : null), [game, sample]);
   if (icon) return <IconThumb source={icon} />;
   if (regionType === "group")
     return (
@@ -212,9 +227,9 @@ function PacksPage({ core, onImport, onBack, onCancel }: { core: AuraCore; onImp
     };
   }, [core]);
 
-  const add = (name: string, code: string | (() => string)) => {
+  const add = async (name: string, code: string | (() => string)) => {
     try {
-      const r = onImport(typeof code === "string" ? code : code());
+      const r = await onImport(typeof code === "string" ? code : code());
       if (!r.ok) setError(r.error);
       else {
         setError(null);
@@ -247,14 +262,14 @@ function PacksPage({ core, onImport, onBack, onCancel }: { core: AuraCore; onImp
                   <IconThumb source={c.icon ?? ""} size={20} /> {c.class.charAt(0) + c.class.slice(1).toLowerCase()}
                 </summary>
                 <ul className={styles.list}>
-                  {c.code && <Entry name={c.name} description={c.description} thumb={c.icon && <IconThumb source={c.icon} />} onClick={() => add(`${c.class} ${c.name}`, c.code!)} />}
+                  {c.code && <Entry name={c.name} description={c.description} thumb={c.icon && <IconThumb source={c.icon} />} onClick={() => void add(`${c.class} ${c.name}`, c.code!)} />}
                   {c.blocks.map((b) => (
                     <Entry
                       key={b.label}
                       name={b.name}
                       description={b.description}
                       thumb={c.icon && <IconThumb source={c.icon} />}
-                      onClick={() => add(b.name, () => core.encode({ aura: b.aura as AuraDocument, children: b.children as AuraDocument[] }))}
+                      onClick={() => void add(b.name, () => core.encode({ aura: b.aura as AuraDocument, children: b.children as AuraDocument[] }))}
                     />
                   ))}
                 </ul>
@@ -268,7 +283,7 @@ function PacksPage({ core, onImport, onBack, onCancel }: { core: AuraCore; onImp
                   {packs.utility
                     .filter((p) => (p.category ?? "") === cat)
                     .map((p) => (
-                      <Entry key={p.name} name={p.name} description={p.description} thumb={p.icon && <IconThumb source={p.icon} />} onClick={p.code ? () => add(p.name, p.code!) : undefined} />
+                      <Entry key={p.name} name={p.name} description={p.description} thumb={p.icon && <IconThumb source={p.icon} />} onClick={p.code ? () => void add(p.name, p.code!) : undefined} />
                     ))}
                 </ul>
               </div>

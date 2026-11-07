@@ -1,31 +1,27 @@
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { AddonSourceFetcher } from "@/core";
-import { createWeakAuras2ReleaseCache, WEAKAURAS2_REPO, type WeakAuras2ReleaseCache } from "@/server/addon/weakauras2-releases";
+import {
+  createWeakAuras2FixtureFetch,
+  createWeakAuras2ReleaseCache,
+  type WeakAuras2ReleaseCache,
+} from "@/server/addon/weakauras2-releases";
 import type { FetchFn } from "@/server/addon/upstream";
 
 /**
- * WeakAuras2 releases for tests. The release list is a recorded GitHub answer (tests/fixtures/weakauras2); the
- * release zip (~10 MB, too big to commit) is downloaded once into `.cache/weakauras2` (gitignored), checked against
- * GitHub's recorded sha256, and unpacked there. Tests that need it skip when it can't be downloaded (offline).
+ * WeakAuras2 releases for tests. The release list is a recorded GitHub answer (tests/fixtures/tbc/addon, the layout
+ * ADDON_UPSTREAM_FIXTURES reads); the release zip (~10 MB, too big to commit) is downloaded once into
+ * `.cache/weakauras2` (gitignored), checked against GitHub's recorded sha256, and unpacked there. The e2e dev server
+ * uses the same folder (ADDON_CACHE_DIR_TBC in playwright.config.ts). Tests that need it skip when it can't be
+ * downloaded (offline).
  */
 export const TEST_WEAKAURAS2_CACHE_DIR = path.resolve(__dirname, "../../.cache/weakauras2");
-export const WEAKAURAS2_FIXTURES = path.resolve(__dirname, "../fixtures/weakauras2");
+export const WEAKAURAS2_FIXTURES = path.resolve(__dirname, "../fixtures/tbc/addon");
 /** The release the TBC tests load. */
 export const TBC_TEST_VERSION = "5.22.1";
 
-const releasesPath = `/repos/${WEAKAURAS2_REPO}/releases`;
-
 /** GitHub's releases API answered from the recording; everything else (the zip download) goes to `passthrough`. */
 export function weakAuras2FixtureFetch(passthrough: FetchFn): FetchFn {
-  const releases = readFileSync(path.join(WEAKAURAS2_FIXTURES, "github-releases.json"), "utf8");
-  return async (input, init) => {
-    const u = new URL(String(input));
-    if (u.host === "api.github.com" && u.pathname === releasesPath) {
-      return new Response(u.searchParams.get("page") === "1" ? releases : "[]", { headers: { "Content-Type": "application/json" } });
-    }
-    return passthrough(String(input), init);
-  };
+  return createWeakAuras2FixtureFetch(WEAKAURAS2_FIXTURES, passthrough);
 }
 
 let cache: WeakAuras2ReleaseCache | undefined;

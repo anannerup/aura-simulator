@@ -17,7 +17,7 @@ export { sampleIconAura } from "./samples";
 export { AddonContractError } from "./addon-vm/contract";
 export { collectSpellIds } from "./addon-vm/spells";
 export type { ClientSpell, SpellInfoSource } from "./addon-vm/spells";
-export type { AddonVMReport, Registries } from "./addon-vm/vm";
+export type { AddonVMReport, ImportCheck, Registries } from "./addon-vm/vm";
 export { OptionEditError } from "./addon-vm/options";
 export type { AuraPacks, NewAuraPage } from "./addon-vm/new-aura";
 export type {

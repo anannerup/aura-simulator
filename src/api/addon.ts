@@ -42,9 +42,9 @@ export interface Resolution {
 }
 
 export interface FileListing {
-  /** Repo-relative paths with a content hash (git blob SHA or jsDelivr's SHA-256), sorted by path. */
+  /** Repo-relative paths with a content hash (git blob SHA, jsDelivr's SHA-256, or a release zip file's SHA-256), sorted by path. */
   files: { path: string; hash: string }[];
-  source: "github-tree" | "jsdelivr-flat";
+  source: "github-tree" | "jsdelivr-flat" | "release-zip";
   /** False when the source cut the list short (jsDelivr lists at most 1000 files). */
   complete: boolean;
 }

@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { optionReferenceMarkdown } from "@/games/option-reference-docs";
+import { optionReferenceMarkdown } from "@/games/docs/option-reference";
 import { routeGame } from "@/games/server";
 import { errorMessage } from "@/lib/errors";
 import { loadOptionReference } from "@/server/option-reference";

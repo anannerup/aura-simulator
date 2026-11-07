@@ -9,6 +9,7 @@ import { BRIDGE_LUA } from "./lua/bridge";
 import { EXTRACT_LUA } from "./lua/extract";
 import type { AuraPacks, NewAuraPage } from "./new-aura";
 import { DIALOGS_LUA } from "./lua/dialogs";
+import { IMPORT_LUA } from "./lua/import";
 import { NEW_AURA_LUA } from "./lua/new-aura";
 import { OPTIONS_LUA } from "./lua/options";
 import {
@@ -26,6 +27,9 @@ import { SHIM_LUA } from "./lua/shim";
 import { spellsToLua, type ClientSpell } from "./spells";
 import { FULL_VM_ADDONS as ADDONS, addonLoadOrder, type AddonGameId } from "./toc";
 import { interpretValidation, mergeValidation, type RawValidation, type ValidationResult } from "./validation";
+
+/** The addon's import dialog's answer: Import offered, or the dialog's reason it isn't. */
+export type ImportCheck = { importable: true } | { importable: false; message: string };
 
 /** Region and sub-region defaults and properties, trigger prototypes, Aura (Modern) registries. Plain JSON. */
 export type Registries = Record<string, unknown> & { internalVersion: number; versionString: string };
@@ -58,8 +62,14 @@ export interface AddonVM {
   newAuraPage(): NewAuraPage;
   /** A new aura as WeakAuras.NewAura builds it (sourceData mixed in, e.g. the Modern Aura Group's settings). */
   newAura(regionType: string, sourceData?: LuaObject): AuraDocument;
-  /** The Packs page: utility packs and every class's HUD pack with its blocks. */
+  /** The Packs page: utility packs and every class's HUD pack with its blocks. Throws when the addon has none (WeakAuras2). */
   packs(): AuraPacks;
+  /**
+   * Whether the addon's own import (WeakAuras.Import and its import dialog) would offer to import this aura, and the
+   * dialog's reason when it wouldn't (e.g. made with a newer version of the addon). `senderVersion`: the code's `s`
+   * (the addon version that made it); without it the aura counts as made by this version.
+   */
+  importCheck(state: AuraState & { senderVersion?: string }): ImportCheck;
   /** Adds spells the client knows (C_Spell.GetSpellInfo and friends answer them; any other ID is nil). */
   setSpells(spells: Record<number, ClientSpell>): void;
   /**
@@ -144,6 +154,9 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
   lua.doStringSync(OPTIONS_LUA);
   lua.doStringSync(DIALOGS_LUA);
   lua.doStringSync(NEW_AURA_LUA);
+  for (const chunk of game.newAuraLua) lua.doStringSync(chunk);
+  lua.doStringSync(IMPORT_LUA);
+  const hasPacks = lua.doStringSync("return __options.packs ~= nil") === true;
   const optionsAddon = plans.find((p) => p.addon === "WeakAurasOptions");
   const frameIndex = optionsAddon?.files.indexOf(OPTIONS_FRAME_FILE) ?? -1;
   const tabSources = frameIndex >= 0 ? parseOptionTabs(optionsAddon!.sources[frameIndex]) : undefined;
@@ -271,8 +284,20 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
       return toAura(r.aura);
     },
     packs() {
+      if (!hasPacks) throw new Error(`${game.addonName} has no Packs page`);
       packsCache ??= json<AuraPacks>("__options.packs()");
       return packsCache;
+    },
+    importCheck(state) {
+      const aura = toAura(state.aura);
+      const children = state.children.map(toAura);
+      // The transmit table's v, as Private.DisplayToString writes it (2000 when it holds nested groups).
+      const v = children.some((c) => "controlledChildren" in c) ? 2000 : 1421;
+      const transmit: LuaObject = { d: aura, v };
+      if (children.length > 0) transmit.c = children;
+      if (state.senderVersion !== undefined) transmit.s = state.senderVersion;
+      const r = json<{ importable: boolean; message?: string }>(`__options.importCheck(${toLuaLiteral(transmit)})`);
+      return r.importable ? { importable: true } : { importable: false, message: r.message ?? "The addon won't import this aura" };
     },
     setSpells(spells) {
       if (Object.keys(spells).length > 0) lua.doStringSync(spellsToLua(spells));

@@ -21,6 +21,8 @@ export default defineConfig({
       // (shared by every port and the unit tests), so only the first run downloads them. Live check: LIVE=1, addon-live.test.ts.
       ADDON_UPSTREAM_FIXTURES: path.resolve(__dirname, "tests/fixtures"),
       ADDON_CACHE_DIR: path.resolve(__dirname, ".cache/addon"),
+      // TBC's WeakAuras2 release zips: the unit tests' cache (tests/support/weakauras2.ts), unpacked by the global setup.
+      ADDON_CACHE_DIR_TBC: path.resolve(__dirname, ".cache/weakauras2"),
       // Wago links answer from recorded import strings (`<id>.txt`); any other id is wago's 404.
       WAGO_FIXTURES: path.resolve(__dirname, "tests/fixtures/wago"),
     },

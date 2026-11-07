@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import type { AuraCore } from "@/core";
+import type { AddonGameId, AuraCore } from "@/core";
 import { buildSearch } from "@/workspace";
 import { installPageApi } from "./page-api";
 import { EMPTY_VIEW, WorkspaceSession, type WorkspaceView } from "./session";
@@ -21,7 +21,7 @@ function cleanAddress(workspaceId: string) {
  * addon version) starts a new session, which restores the same workspace; the old one shows until then. The restored
  * session also answers `window.auraSimulator` (see `page-api.ts`).
  */
-export function useWorkspace(core: AuraCore | null, game: string): { view: WorkspaceView; session: WorkspaceSession | null } {
+export function useWorkspace(core: AuraCore | null, game: AddonGameId): { view: WorkspaceView; session: WorkspaceSession | null } {
   const [session, setSession] = useState<WorkspaceSession | null>(null);
 
   useEffect(() => {

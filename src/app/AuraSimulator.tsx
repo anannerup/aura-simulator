@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { NOT_READY, type EditResult } from "@/client/workspace/session";
 import { useUndo } from "@/client/workspace/useUndo";
 import { useWorkspace } from "@/client/workspace/useWorkspace";
-import { DEFAULT_SITUATION, type AuraDocument } from "@/core";
+import { auraRules, DEFAULT_SITUATION, type AuraDocument } from "@/core";
 import { OptionsEditor } from "@/components/options-editor/OptionsEditor";
 import { AppShell, EmptyNote, ListSection, ScreenMessage, ScreenPane } from "@/components/shell";
 import { SpellPicker } from "@/components/spell-picker/SpellPicker";
@@ -14,11 +14,11 @@ import { AuraList } from "@/components/aura-list/AuraList";
 import { Button, Popover, ToastProvider } from "@/components/ui";
 import { ensureFont } from "@/render/fonts";
 import { ADDON_MEDIA } from "@/render/media";
-import { createIconStore, GameTexture, IconStoreContext, iconsFromApi } from "@/render/textures";
+import { createIconStore, createTextureLoader, GameTexture, IconStoreContext, iconsFromApi, TextureLoaderContext } from "@/render/textures";
 import { findGame } from "@/games";
 import { GameScreenAuras } from "@/render/screen/GameScreenAuras";
 import { DEFAULT_WORKSPACE_ID, type WorkspaceNode } from "@/workspace";
-import { AddonVersionMenu } from "./addon/AddonVersionPicker";
+import { addonLabel, AddonVersionMenu } from "./addon/AddonVersionPicker";
 import { useAddonCore } from "./addon/useAddonCore";
 import { ExportPanel, ImportPanel, useImporter } from "./import-export/ImportExport";
 import { WagoJsonTab } from "./wago-json/WagoJsonTab";
@@ -38,10 +38,14 @@ export function AuraSimulator({ gameId }: { gameId: string }) {
   const game = findGame(gameId);
   if (!game) throw new Error(`No game called "${gameId}"`);
   const api = `/api/${game.id}`;
-  const spellApi = useMemo(() => createSpellApi(`${api}/spells`), [api]);
+  const spellApi = useMemo(() => createSpellApi(`${api}/spells`, game), [api, game]);
   const iconStore = useMemo(() => createIconStore(iconsFromApi(`${api}/icons`)), [api]);
   const addon = useAddonCore(game);
   const { core } = addon;
+  const rules = auraRules(game.id);
+  // The game's addon media (logo, toolbar icons, addon textures and fonts) at the release the window follows.
+  const mediaRef = core?.ref ?? game.addon.fallbackRef;
+  const textures = useMemo(() => createTextureLoader({ addonFileUrl: (path) => game.addon.fileUrl(mediaRef, path) }), [game, mediaRef]);
   // The agent docs of the game and the version this window uses.
   const docsQuery = core ? `?ref=${encodeURIComponent(core.ref)}` : "";
   const docs = `/${game.id}/docs/agents${docsQuery}`;
@@ -78,7 +82,7 @@ export function AuraSimulator({ gameId }: { gameId: string }) {
     });
   }, []);
 
-  const problems = useConditionProblems(core, workspace.items);
+  const problems = useConditionProblems(core, workspace.items, game.id);
 
   const ready = !!core && workspace.ready;
   const aura = ready ? workspace.aura : null;
@@ -93,9 +97,10 @@ export function AuraSimulator({ gameId }: { gameId: string }) {
     <ToastProvider>
       <SpellApiContext value={spellApi}>
       <IconStoreContext value={iconStore}>
+      <TextureLoaderContext value={textures}>
       <AppShell
         windowLabel={`${game.addon.name} options`}
-        portrait={<GameTexture source={ADDON_MEDIA("logo_musca_round")} size={62} />}
+        portrait={<GameTexture source={game.addon.logo} size={62} />}
         title={
           <>
             <Link href="/" className={styles.gameLink} title="Choose another game">
@@ -189,12 +194,13 @@ export function AuraSimulator({ gameId }: { gameId: string }) {
             )}
             {aura && (
               <ListSection title="Situation">
-                <SituationControls aura={aura} situation={situation} onChange={setSituation} />
+                <SituationControls game={game.id} aura={aura} situation={situation} onChange={setSituation} />
               </ListSection>
             )}
             {core && aura && code && (
-              <ListSection title="Combat check">
-                <ValidationPanel core={core} code={code} aura={aura} childAuras={workspace.children} />
+              // A combat verdict only where the game restricts addons in combat (Forever); else the addon's own checks.
+              <ListSection title={rules.combatRestricted ? "Combat check" : "Addon check"}>
+                <ValidationPanel core={core} addonName={game.addon.name} code={code} aura={aura} childAuras={workspace.children} />
               </ListSection>
             )}
           </>
@@ -202,11 +208,12 @@ export function AuraSimulator({ gameId }: { gameId: string }) {
         options={
           creating && ready && core && session ? (
             <NewAuraChooser
+              game={game.id}
               core={core}
               items={workspace.items}
               selectedId={workspace.selectedId}
-              onImport={(code) => {
-                const r = session.addCode(code);
+              onImport={async (code) => {
+                const r = await session.addCode(code);
                 if (r.ok) setCreating(false);
                 return r;
               }}
@@ -279,7 +286,7 @@ export function AuraSimulator({ gameId }: { gameId: string }) {
             </ScreenPane>
           )
         }
-        drawerMeta={core && <span>{game.addon.name} {core.ref} · WeakAuras {core.addonVersion}</span>}
+        drawerMeta={core && <span>{addonLabel(game.addon.name, core)}</span>}
         drawerTabs={[
           {
             id: "json",
@@ -298,6 +305,7 @@ export function AuraSimulator({ gameId }: { gameId: string }) {
           void importer.importFiles(files);
         }}
       />
+      </TextureLoaderContext>
       </IconStoreContext>
       </SpellApiContext>
     </ToastProvider>

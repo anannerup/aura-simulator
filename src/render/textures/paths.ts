@@ -1,13 +1,17 @@
-// The renderers port Musca Auras (Forever), so its own media come from its repository; ticket 07 splits them per game.
-import { muscaFileUrl } from "@/games/forever/sources";
-
 /**
  * Where a texture comes from. A number is a Blizzard FileDataID (fetched from wago.tools).
  * A string is a game texture path as the Lua writes it (`Interface\\Buttons\\WHITE8X8`):
  * Blizzard paths are mapped to FileDataIDs through {@link KNOWN_FILE_DATA_IDS}; paths under
- * `Interface\\AddOns\\` are addon files fetched from the Musca Auras repository.
+ * `Interface\\AddOns\\` are the game's addon's own files ({@link AddonFileUrl}).
  */
 export type TextureSource = number | string;
+
+/**
+ * Where the page loads a file of the game's addon at the release it follows, by its path in the addon
+ * (`WeakAuras/Media/Textures/Square_White.tga`): Musca's repository on jsDelivr (Forever), the server's WeakAuras2
+ * release cache (TBC). See `Game.addon.fileUrl`.
+ */
+export type AddonFileUrl = (path: string) => string;
 
 /** Blizzard texture paths used by the renderers, by FileDataID (lower case, `/`, no extension). */
 const KNOWN_FILE_DATA_IDS: Readonly<Record<string, number>> = {
@@ -33,7 +37,7 @@ export function normalizeTexturePath(path: string): string {
  * Candidate URLs for a texture (or another game file, such as a font), tried in order. Addon paths without an
  * extension try `.tga` then `.blp` (WoW resolves extension-less texture paths the same way).
  */
-export function textureUrls(source: TextureSource, addonRef: string): string[] {
+export function textureUrls(source: TextureSource, addonFileUrl: AddonFileUrl): string[] {
   if (typeof source === "number") return [WAGO_CASC_URL + source];
   const normalized = normalizeTexturePath(source);
   const known = KNOWN_FILE_DATA_IDS[normalized];
@@ -41,8 +45,7 @@ export function textureUrls(source: TextureSource, addonRef: string): string[] {
   const addonMatch = /^interface\/addons\/(.+)$/i.exec(source.replace(/\\/g, "/").replace(/^\//, ""));
   if (addonMatch) {
     const rel = addonMatch[1];
-    const base = muscaFileUrl(addonRef, rel);
-    return /\.[a-z0-9]{3}$/i.test(rel) ? [base] : [base + ".tga", base + ".blp"];
+    return /\.[a-z0-9]{3}$/i.test(rel) ? [addonFileUrl(rel)] : [addonFileUrl(rel + ".tga"), addonFileUrl(rel + ".blp")];
   }
   throw new Error(`Unknown texture path (no FileDataID mapping): ${source}`);
 }

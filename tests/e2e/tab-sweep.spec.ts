@@ -131,11 +131,13 @@ async function change(page: Page, field: Locator, type: string): Promise<boolean
 
 const KINDS = ["toggle", "select", "range", "input", "color", "multiselect"];
 
+// Every game: each builds its tabs from its own addon (Musca Auras on /forever, WeakAuras2 on /tbc).
+for (const game of ["forever", "tbc"] as const)
 for (const [type, label] of TYPES) {
-  test(`tab sweep: ${label}`, async ({ page }) => {
+  test(`tab sweep (${game}): ${label}`, async ({ page }) => {
     test.setTimeout(Number(process.env.SWEEP_TIMEOUT ?? 600_000));
     const errors = watchErrors(page);
-    await page.goto(ownWorkspacePage(`sweep-${type}`));
+    await page.goto(ownWorkspacePage(`sweep-${type}`, game));
     await newAura(page, type);
 
     const tabNames = await editor(page).getByRole("tab").allTextContents();

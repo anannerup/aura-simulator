@@ -10,6 +10,8 @@ import {
   textureUrls,
   type DecodedTexture,
 } from "./index";
+import { forever } from "@/games/forever";
+import { tbc } from "@/games/tbc";
 
 // 2×2 test image, RGBA: red, green / blue, half-transparent white
 const PIXELS = [255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 128];
@@ -43,21 +45,28 @@ describe("decodeTexture", () => {
 });
 
 describe("texture paths", () => {
+  const musca = (path: string) => forever.addon.fileUrl("1.15.0", path);
+  const weakAuras2 = (path: string) => tbc.addon.fileUrl("5.22.1", path);
+
   it("maps FileDataIDs and known Blizzard paths to wago.tools", () => {
-    expect(textureUrls(457293, "1.15.0")).toEqual(["https://wago.tools/api/casc/457293"]);
-    expect(textureUrls("Interface\\SpellActivationOverlay\\IconAlertAnts", "x")).toEqual(["https://wago.tools/api/casc/457294"]);
-    expect(textureUrls("Interface\\BUTTONS\\WHITE8X8.blp", "x")).toEqual(["https://wago.tools/api/casc/130871"]);
+    expect(textureUrls(457293, musca)).toEqual(["https://wago.tools/api/casc/457293"]);
+    expect(textureUrls("Interface\\SpellActivationOverlay\\IconAlertAnts", weakAuras2)).toEqual(["https://wago.tools/api/casc/457294"]);
+    expect(textureUrls("Interface\\BUTTONS\\WHITE8X8.blp", musca)).toEqual(["https://wago.tools/api/casc/130871"]);
   });
 
-  it("maps addon paths to the Musca Auras repository, trying .tga then .blp", () => {
-    expect(textureUrls("Interface\\AddOns\\WeakAuras\\Media\\Textures\\Square_White", "1.15.0")).toEqual([
+  it("maps addon paths to the game's addon files, trying .tga then .blp", () => {
+    expect(textureUrls("Interface\\AddOns\\WeakAuras\\Media\\Textures\\Square_White", musca)).toEqual([
       "https://cdn.jsdelivr.net/gh/dldvlpr-addons-wow/Musca-Auras@1.15.0/WeakAuras/Media/Textures/Square_White.tga",
       "https://cdn.jsdelivr.net/gh/dldvlpr-addons-wow/Musca-Auras@1.15.0/WeakAuras/Media/Textures/Square_White.blp",
+    ]);
+    // TBC: WeakAuras2's release zip, through the server (release downloads send no CORS headers).
+    expect(textureUrls("Interface\\AddOns\\WeakAuras\\Media\\Textures\\logo_256_round.tga", weakAuras2)).toEqual([
+      "/api/tbc/addon/5.22.1/file?path=WeakAuras%2FMedia%2FTextures%2Flogo_256_round.tga",
     ]);
   });
 
   it("rejects unknown Blizzard paths", () => {
-    expect(() => textureUrls("Interface\\Nope\\Nothing", "x")).toThrow(/Unknown texture path/);
+    expect(() => textureUrls("Interface\\Nope\\Nothing", musca)).toThrow(/Unknown texture path/);
   });
 });
 

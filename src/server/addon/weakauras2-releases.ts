@@ -12,11 +12,13 @@
  * A release never changes, so its files are kept forever.
  */
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { collectAddonBundle, type AddonBundle, type AddonBundleSet, type AddonSourceFetcher } from "@/core";
+import type { AddonSourceFetcher } from "@/core";
+import type { FileListing, Resolution, VersionList } from "@/api/addon";
 import { HttpError } from "@/lib/fetch-json";
-import { AddonRefError, assertValidPath, compareVersionsDesc, normalizeVersion } from "./refs";
+import { AddonRefError, assertValidPath, assertValidRef, compareVersionsDesc, normalizeVersion } from "./refs";
+import type { AddonSourceCache } from "./source-cache";
 import type { FetchFn } from "./upstream";
 import { unzip } from "./unzip";
 import { writeAtomic } from "./write-atomic";
@@ -47,10 +49,10 @@ export interface WeakAuras2ReleaseCache {
   ensure(version: string): Promise<WeakAuras2Release>;
   /** Reads one file of a release (repo-relative path inside the zip, e.g. "WeakAuras/WeakAuras_TBC.toc"). */
   readText(version: string, filePath: string): Promise<string>;
+  /** The same as bytes (textures, fonts). */
+  readBytes(version: string, filePath: string): Promise<Uint8Array>;
   /** A source fetcher over one release's files, for `loadAddon`. */
   fetcher(version: string): AddonSourceFetcher;
-  /** A light or full bundle of a release: the files TBC Anniversary loads (its `_TBC.toc` file sets). */
-  bundle(version: string, set: AddonBundleSet): Promise<AddonBundle>;
 }
 
 export interface WeakAuras2ReleaseCacheOptions {
@@ -194,14 +196,18 @@ export function createWeakAuras2ReleaseCache(options: WeakAuras2ReleaseCacheOpti
     return running;
   }
 
-  async function readText(version: string, filePath: string): Promise<string> {
+  async function readBytes(version: string, filePath: string): Promise<Uint8Array> {
     assertValidPath(filePath);
     const release = await ensure(version);
     try {
-      return await readFile(path.join(releaseDir(release.version), "src", filePath), "utf8");
+      return new Uint8Array(await readFile(path.join(releaseDir(release.version), "src", filePath)));
     } catch {
       throw new AddonRefError(`WeakAuras ${release.version} has no file ${filePath}`, 404);
     }
+  }
+
+  async function readText(version: string, filePath: string): Promise<string> {
+    return new TextDecoder().decode(await readBytes(version, filePath));
   }
 
   const fetcher = (version: string): AddonSourceFetcher => (filePath) => readText(version, filePath);
@@ -211,10 +217,108 @@ export function createWeakAuras2ReleaseCache(options: WeakAuras2ReleaseCacheOpti
     versions,
     ensure,
     readText,
+    readBytes,
     fetcher,
-    async bundle(version, set) {
-      const release = await ensure(version);
-      return collectAddonBundle(fetcher(release.version), release.version, set, "tbc");
+  };
+}
+
+/**
+ * The release cache as a game's addon source (`ServerGame.addon`), what the shared addon routes, the server's aura
+ * core, the version diff and the bundles read. Its versions are the releases with a zip; a release's tag is its
+ * version (WeakAuras2 tags are bare semver). File listings hash the unpacked zip's files.
+ */
+export function weakAuras2AddonSource(releases: WeakAuras2ReleaseCache): AddonSourceCache {
+  const name = "WeakAuras";
+  const running = new Map<string, Promise<unknown>>();
+
+  async function versions(): Promise<VersionList> {
+    const list = await releases.versions();
+    return {
+      releases: list.releases.map((r) => ({ version: r.version, tag: r.version, tagConfirmed: true, prerelease: r.prerelease })),
+      defaultRef: list.defaultVersion,
+      tagsConfirmed: true,
+    };
+  }
+
+  async function resolve(rawInput: string): Promise<Resolution> {
+    const input = rawInput.trim();
+    assertValidRef(input);
+    const version = normalizeVersion(input);
+    const list = await releases.versions().catch(() => null);
+    if (version && list?.releases.some((r) => r.version === version)) return { input, ref: version, key: version, version };
+    // No release list (GitHub unreachable, none saved): a version-shaped ref is taken for a release; one already
+    // unpacked is read from disk, any other fails when its zip can't be found.
+    if (!list && version) return { input, ref: version, key: version, version };
+    throw new AddonRefError(`${name} has no release ${input} with a zip (TBC Anniversary needs ${WEAKAURAS2_MIN_VERSION} or later)`, 404);
+  }
+
+  async function memo<T>(resolution: Resolution, memoName: string, compute: () => Promise<T>): Promise<T> {
+    const file = path.join(releases.root, resolution.key, `${memoName}.json`);
+    try {
+      return JSON.parse(await readFile(file, "utf8")) as T;
+    } catch {}
+    let work = running.get(file) as Promise<T> | undefined;
+    if (!work) {
+      work = (async () => {
+        const value = await compute();
+        await writeAtomic(file, JSON.stringify(value));
+        return value;
+      })().finally(() => running.delete(file));
+      running.set(file, work);
+    }
+    return work;
+  }
+
+  async function listFiles(input: string): Promise<{ resolution: Resolution; listing: FileListing }> {
+    const resolution = await resolve(input);
+    await releases.ensure(resolution.version);
+    const listing = await memo<FileListing>(resolution, "listing", async () => {
+      const dir = path.join(releases.root, resolution.key, "src");
+      const entries = (await readdir(dir, { recursive: true, withFileTypes: true })).filter((e) => e.isFile());
+      const files = await Promise.all(
+        entries.map(async (e) => {
+          const full = path.join(e.parentPath, e.name);
+          const hash = createHash("sha256").update(await readFile(full)).digest("hex");
+          return { path: path.relative(dir, full).split(path.sep).join("/"), hash };
+        }),
+      );
+      files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+      return { files, source: "release-zip", complete: true };
+    });
+    return { resolution, listing };
+  }
+
+  return {
+    name,
+    root: releases.root,
+    versions,
+    resolve,
+    async readFile(input, filePath) {
+      const resolution = await resolve(input);
+      return { resolution, bytes: await releases.readBytes(resolution.version, filePath) };
     },
+    async readText(input, filePath) {
+      return releases.readText((await resolve(input)).version, filePath);
+    },
+    listFiles,
+    memo,
+  };
+}
+
+/**
+ * Recorded GitHub release list for tests (ADDON_UPSTREAM_FIXTURES=<dir>, read as `<dir>/tbc/addon/github-releases.json`):
+ * GitHub's releases API is answered from it; everything else (the zip download) goes to `passthrough`, and the
+ * release cache keeps what it unpacks, so repeat runs need no network.
+ */
+export function createWeakAuras2FixtureFetch(dir: string, passthrough: FetchFn): FetchFn {
+  const releasesPath = `/repos/${WEAKAURAS2_REPO}/releases`;
+  return async (input, init) => {
+    const u = new URL(String(input));
+    if (u.host === "api.github.com") {
+      if (u.pathname !== releasesPath) return Response.json({ message: "Not Found" }, { status: 404 });
+      const body = u.searchParams.get("page") === "1" ? await readFile(path.join(dir, "github-releases.json"), "utf8") : "[]";
+      return new Response(body, { headers: { "Content-Type": "application/json" } });
+    }
+    return passthrough(String(input), init);
   };
 }
