@@ -13,7 +13,8 @@ export const FOREVER_FIXTURES: SpellFixtures = { dir: __dirname, build: "1.60.1.
 
 /**
  * A fetch replacement serving recorded wago.tools / Wowhead responses from a fixture folder
- * (Forever's, this folder, by default). The CSVs are real wago.tools rows, trimmed;
+ * (Forever's, this folder, by default). The CSVs (SpellName, SpellMisc, ManifestInterfaceData, ItemSparse, Item) are
+ * real wago.tools rows, trimmed (ItemSparse and Item to the columns the item cache reads; recorded 2026-11-07);
  * wowhead/<id>.json are real Wowhead tooltip responses (an `error` body is served as 404).
  * Unknown URLs fail like a network error. `calls` records every requested URL.
  */

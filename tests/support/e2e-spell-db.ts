@@ -1,6 +1,8 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { createSpellCache, type SpellSource } from "@/server/spells";
+import { createGameFiles } from "@/server/game-files";
+import { createItemCache } from "@/server/items";
 import { FOREVER_SPELLS } from "@/games/forever/sources";
 import { TBC_SPELLS } from "@/games/tbc/sources";
 import { createFixtureFetch } from "../fixtures/forever/spells/fixture-fetch";
@@ -37,8 +39,8 @@ const SEEDS: Record<"forever" | "tbc", () => SpellSeed> = {
 };
 
 /**
- * Fills a game's e2e spell database from recorded fixtures, so the dev server never hits the network:
- * syncs the fixture build and caches a Wowhead answer for every fixture spell (spells without a
+ * Fills a game's e2e spell database (and its file list and items, next to it) from recorded fixtures, so the dev
+ * server never hits the network: syncs the fixture build and caches a Wowhead answer for every fixture spell (spells without a
  * recorded Wowhead response are cached as "not on Wowhead"). Safe to rerun while the server has it open.
  */
 export async function seedE2eSpellDb(dbPath: string, game: "forever" | "tbc" = "forever"): Promise<void> {
@@ -60,5 +62,15 @@ export async function seedE2eSpellDb(dbPath: string, game: "forever" | "tbc" = "
     for (const id of ids) await cache.lookup(id);
   } finally {
     cache.close();
+  }
+  // The game's file list and items, next to it (the server's layout: files.sqlite, items.sqlite).
+  const files = createGameFiles({ source, dbPath: path.join(path.dirname(dbPath), "files.sqlite"), fetch: fetchFn });
+  const items = createItemCache({ source, files, dbPath: path.join(path.dirname(dbPath), "items.sqlite"), fetch: fetchFn });
+  try {
+    await files.sync();
+    await items.sync();
+  } finally {
+    items.close();
+    files.close();
   }
 }

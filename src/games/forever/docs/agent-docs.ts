@@ -2,7 +2,16 @@ import type { OptionReference } from "@/core";
 import { optionReferenceSection } from "../../docs/option-reference";
 import { forever } from "..";
 import { DEFAULT_WORKSPACE_ID } from "@/workspace";
-import { compactJson, pushApiSection, situationSection, spellApiSection, wagoJsonSection, wagoLinksSection } from "../../docs/shared";
+import {
+  compactJson,
+  displayMediaNotes,
+  gameDataSection,
+  pushApiSection,
+  situationSection,
+  spellApiSection,
+  wagoJsonSection,
+  wagoLinksSection,
+} from "../../docs/shared";
 import { DOCUMENTED_REGION_TYPES, type AddonFacts, type ModernVariableFact } from "./addon-facts";
 import { COUNTER_EXAMPLE, exampleWagoJson, WORKED_EXAMPLES, type WorkedExample } from "./worked-examples";
 
@@ -33,6 +42,11 @@ export const DOCUMENTED_ENDPOINTS = [
   "GET /api/forever/spells/<id>",
   "GET /api/forever/spells/status",
   "POST /api/forever/spells/sync",
+  "GET /api/forever/items/search",
+  "GET /api/forever/items/<id>",
+  "GET /api/forever/icons/search",
+  "GET /api/forever/files",
+  "GET /api/forever/media",
 ] as const;
 
 const code = (s: string) => `\`${s}\``;
@@ -159,6 +173,7 @@ export function agentDocsMarkdown(f: AgentDocsFacts): string {
     validation,
     situation,
     spells,
+    gameData,
     pushApi,
     wagoLinks,
     workedExamples,
@@ -179,8 +194,8 @@ This server follows ${version}. Lists marked *generated* below are read from tha
 add \`?ref=<version>\` to this page's address and to your pushes.
 
 Contents: Workflow · wago JSON · The aura document · Field reference · Triggers · Conditions ·
-Option ↔ table reference · Combat rules · Validation · Situation · Spells · Push API · Wago links · Worked examples ·
-Troubleshooting.
+Option ↔ table reference · Combat rules · Validation · Situation · Spells · Items, icons and media · Push API ·
+Wago links · Worked examples · Troubleshooting.
 `;
 }
 
@@ -250,7 +265,7 @@ ${compactJson(MINIMAL_AURA)}
 `;
 }
 
-function fieldReference({ a }: Ctx): string {
+function fieldReference({ a, o, ref }: Ctx): string {
   return `## Field reference
 
 Common to every display: \`id\`, \`regionType\`, \`anchorPoint\` (point of the screen or group), \`selfPoint\` (point
@@ -259,7 +274,8 @@ of the aura), \`xOffset\`/\`yOffset\` (pixels from the anchor; up and right are 
 \`actions\`, \`animation\`. Points: \`CENTER\`, \`TOP\`, \`BOTTOM\`, \`LEFT\`, \`RIGHT\`, \`TOPLEFT\`, \`TOPRIGHT\`,
 \`BOTTOMLEFT\`, \`BOTTOMRIGHT\`.
 
-- \`icon\`: \`displayIcon\` (icon file ID; see Spells), \`desaturate\`, \`color\`, \`zoom\` (0-1), \`keepAspectRatio\`,
+- \`icon\`: \`displayIcon\` (a FileDataID, see Spells, or an \`Interface\\Icons\\\` path; see Icons, textures, fonts
+  and borders), \`desaturate\`, \`color\`, \`zoom\` (0-1), \`keepAspectRatio\`,
   \`cooldown\` (draw the cooldown swipe), \`cooldownSwipe\`, \`cooldownEdge\`, \`cooldownTextDisabled\`
   (hide the game's countdown numbers), \`inverse\`.
 - \`aurabar\`: \`texture\` (a bar texture name, e.g. \`"Blizzard"\`, \`"Solid"\`), \`orientation\` (\`HORIZONTAL\`,
@@ -274,7 +290,8 @@ of the aura), \`xOffset\`/\`yOffset\` (pixels from the anchor; up and right are 
   \`border*\`/\`backdropColor\`.
 - \`dynamicgroup\`: lays out the shown children: \`grow\` (\`RIGHT\`, \`LEFT\`, \`UP\`, \`DOWN\`, \`HORIZONTAL\`,
   \`VERTICAL\`, \`CIRCLE\`, \`COUNTERCIRCLE\`, \`GRID\`), \`align\`, \`space\`, \`stagger\`, \`useLimit\`/\`limit\`,
-  \`radius\`, \`gridType\`/\`gridWidth\`, \`sort\`. Shown children close up. A dynamic group holds no groups.
+  \`radius\`, \`gridType\`/\`gridWidth\`, \`sort\` (Group tab options, see below). Shown children close up. A dynamic
+  group holds no groups.
 
 Format codes in texts: \`%p\` time left, \`%t\` total time, \`%n\` name, \`%s\` stacks, \`%i\` icon. Literal \`%\` is
 \`%%\`.
@@ -293,7 +310,7 @@ every element, backgrounds included) as \`sub.N.<key>\`.
   \`glowLength\`, \`glowThickness\`, \`glowScale\`, \`glowXOffset\`/\`glowYOffset\`, \`anchor_area\` (bars:
   \`"bar"\` or \`"icon"\`).
 - \`subborder\`: \`border_visible\`, \`border_color\`, \`border_edge\` (e.g. \`"Square Full White"\`),
-  \`border_size\`, \`border_offset\`, \`anchor_area\` (bars).
+  \`border_size\`, \`border_offset\` (how they draw: below), \`anchor_area\` (bars).
 - \`subtick\` (bars only): \`tick_visible\`, \`tick_color\`, \`tick_placement_mode\` (\`AtValue\`, \`AtPercent\`),
   \`tick_placements\` (strings), \`tick_thickness\`, \`automatic_length\`/\`tick_length\`, \`use_texture\`.
 - \`subbackground\`, \`subforeground\`: no fields; the display's own background and (bars) foreground.
@@ -303,6 +320,7 @@ the window's New Aura gives a new aura (an icon gets a \`%s\` stack text and a g
 The addon itself only adds a missing \`subbackground\` first (and on bars a \`subforeground\`) and renumbers your
 conditions' \`sub.N\` to match, so write them yourself and the numbers you write are the ones the window shows.
 
+${displayMediaNotes({ game: "forever", origin: o, ref })}
 ${a ? generatedDefaults(a) : ""}
 ### Groups
 
@@ -532,6 +550,10 @@ ${spellApiSection({ game: "forever", origin: o, whose: "Forever's", example: { n
 Spell IDs go into Aura (Modern) and \`aura2\` triggers as strings (\`"auraspellids": ["1459"]\`) and into the spell
 cooldown trigger as a number (\`"spellName": 2136\`).
 `;
+}
+
+function gameData({ o }: Ctx): string {
+  return gameDataSection({ game: "forever", origin: o, whose: "Forever's", item: { name: "major mana potion", id: 13444 }, icon: "food basilisk" });
 }
 
 function pushApi({ o, d }: Ctx): string {

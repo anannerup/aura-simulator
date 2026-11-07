@@ -5,7 +5,9 @@
 import path from "node:path";
 import type { Game } from "@/games/game";
 import type { AddonSourceCache } from "./addon/source-cache";
-import type { SpellCache } from "./spells";
+import { createGameFiles, type GameFiles } from "./game-files";
+import { createItemCache, type ItemCache } from "./items";
+import type { SpellCache, SpellSource } from "./spells";
 
 export interface ServerGame {
   readonly game: Game;
@@ -13,6 +15,10 @@ export interface ServerGame {
   readonly addon: AddonSourceCache;
   /** The game client's spells and icon names. */
   readonly spells: SpellCache;
+  /** The game client's file list (`Interface\…` path ↔ FileDataID; icon search). */
+  readonly files: GameFiles;
+  /** The game client's items. */
+  readonly items: ItemCache;
   /** The agent docs (Markdown) for an origin, generated from the requested addon version (default: the newest). */
   agentDocs(origin: string, requestedRef?: string | null): Promise<string>;
 }
@@ -20,6 +26,16 @@ export interface ServerGame {
 /** Where a game keeps its server data: `<DATA_DIR or <repo>/data>/<game>`. */
 export function gameDataDir(gameId: string): string {
   return path.join(process.env.DATA_DIR ?? path.join(process.cwd(), "data"), gameId);
+}
+
+/**
+ * A game client's file list and items from wago.tools (`<data>/<game>/files.sqlite`, `items.sqlite`), for the product
+ * and Wowhead environment its spell source names. Each is downloaded on first use.
+ */
+export function createClientCaches(gameId: string, source: SpellSource): { files: GameFiles; items: ItemCache } {
+  const files = createGameFiles({ source, dbPath: path.join(gameDataDir(gameId), "files.sqlite") });
+  const items = createItemCache({ source, files, dbPath: path.join(gameDataDir(gameId), "items.sqlite") });
+  return { files, items };
 }
 
 /**

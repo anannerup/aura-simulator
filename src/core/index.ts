@@ -4,9 +4,9 @@ export type { AuraCore, AuraDocument, AuraState, DecodedState, LoadAddonOptions 
 export type { AddonSourceFetcher } from "./addon-source";
 export { ADDON_BUNDLE_SETS, bundleFetcher, collectAddonBundle } from "./addon-bundle";
 export type { AddonBundle, AddonBundleSet } from "./addon-bundle";
-export { ADDON_GAME_IDS, tocPath } from "./addon-vm/toc";
+export { ADDON_GAME_IDS, FULL_VM_ADDONS, tocPath } from "./addon-vm/toc";
 export type { AddonGameId } from "./addon-vm/toc";
-export { canonicalize, field, getField, isLuaTable, list, num } from "./lua-value";
+export { canonicalize, entries, field, getField, isLuaTable, list, num } from "./lua-value";
 export {
   DEFAULT_SITUATION,
   DEFAULT_TRIGGER_SITUATION,

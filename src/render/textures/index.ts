@@ -2,6 +2,7 @@ export { decodeTexture, type DecodedTexture } from "./decode";
 export {
   createTextureLoader,
   textureLoader,
+  TextureMissingError,
   TextureLoaderContext,
   useTextureLoader,
   type TextureLoader,
@@ -20,4 +21,5 @@ export {
 } from "./pixels";
 export * from "./icons";
 export { GameTexture } from "./GameTexture";
-export { useTextureUrl } from "./useTexture";
+export { useTextureState, useTextureUrl, type TextureState } from "./useTexture";
+export { gameFilesFromApi, type ResolvePath } from "./files";
