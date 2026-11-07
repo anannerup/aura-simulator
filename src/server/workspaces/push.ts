@@ -1,7 +1,8 @@
-import { canonicalize, isStateCode, type AuraCore, type AuraDocument, type ValidationResult } from "@/core";
+import { canonicalize, fromWagoJson, isStateCode, WagoJsonError, type AuraCore, type AuraDocument, type ValidationResult } from "@/core";
 import { buildPageUrl, readPushInput, type PushInput } from "@/workspace";
 import { getServerAuraCore } from "@/server/addon/core";
 import type { ServerGame } from "@/server/game";
+import { fetchWagoCode, WagoFetchError } from "@/server/wago";
 import { getWorkspaceHub } from "./hub";
 import { errorMessage } from "@/lib/errors";
 
@@ -52,22 +53,42 @@ export async function readBodyText(request: Request, maxBytes = MAX_PUSH_BYTES):
 }
 
 /**
- * Reads a push body: JSON `{code}` or `{aura, children?}`, or a bare state code as text
- * (so `curl --data-binary @aura.txt` works).
+ * Reads a push body: wago JSON (pretty or compact, the aura in `d`), JSON `{code}`, `{aura, children?}` or
+ * `{wago: "<link>"}`, or as plain text a bare state code or wago link (so `curl --data-binary @aura.txt` works).
  */
 export function parsePushBody(text: string, contentType: string | null): PushInput {
   const trimmed = text.trim();
-  if (!contentType?.includes("json") && isStateCode(trimmed)) return { code: trimmed };
+  if (!contentType?.includes("json") && !trimmed.startsWith("{")) {
+    try {
+      const input = readPushInput(trimmed);
+      if (!("code" in input) || isStateCode(input.code)) return input;
+    } catch (e) {
+      throw new PushError(errorMessage(e));
+    }
+  }
   let body: unknown;
   try {
     body = JSON.parse(trimmed);
-  } catch {
-    throw new PushError('Send JSON {"code": "!WA:2!..."} or {"aura": {...}, "children": [...]}, or a bare state code');
+  } catch (e) {
+    throw new PushError(
+      `Not JSON (${errorMessage(e)}). Send wago JSON, {"code": "!WA:2!..."}, {"aura": {...}, "children": [...]} or ` +
+        '{"wago": "https://wago.io/<id>"}, or a bare state code or wago link as text',
+    );
   }
   try {
     return readPushInput(body);
   } catch (e) {
     throw new PushError(errorMessage(e));
+  }
+}
+
+/** A wago link's push as its import string, fetched from wago; any other input as it is. */
+export async function resolveWago(input: PushInput, fetchCode = fetchWagoCode): Promise<PushInput> {
+  if (!("wagoId" in input)) return input;
+  try {
+    return { code: await fetchCode(input.wagoId) };
+  } catch (e) {
+    throw new PushError(errorMessage(e), e instanceof WagoFetchError ? e.status : 502);
   }
 }
 
@@ -81,6 +102,22 @@ export function toStateCode(core: AuraCore, input: PushInput): string {
       throw fail("Not a valid state code: ", e);
     }
     return input.code;
+  }
+  if ("wagoId" in input) throw new PushError("A wago link's import string must be fetched first (resolveWago)", 500);
+  if ("wagoJson" in input) {
+    let state;
+    try {
+      state = fromWagoJson(input.wagoJson);
+    } catch (e) {
+      throw fail(e instanceof WagoJsonError ? "" : "Not wago JSON of an aura: ", e);
+    }
+    try {
+      const code = core.encode(state);
+      core.decode(code);
+      return code;
+    } catch (e) {
+      throw fail("", e);
+    }
   }
   try {
     const aura = canonicalize(input.aura) as AuraDocument;
@@ -122,7 +159,7 @@ export async function pushToWorkspace(
   options: PushOptions = {},
 ): Promise<PushResult> {
   const core = await getServerAuraCore(server, options.ref);
-  const code = toStateCode(core, input);
+  const code = toStateCode(core, await resolveWago(input));
   const snap = getWorkspaceHub(server.game.id).set(workspaceId, code, options.source ?? null);
   return {
     workspace: workspaceId,

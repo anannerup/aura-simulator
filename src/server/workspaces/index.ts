@@ -13,6 +13,7 @@ export {
   PushError,
   pushToWorkspace,
   readBodyText,
+  resolveWago,
   toStateCode,
   type PushInput,
   type PushOptions,

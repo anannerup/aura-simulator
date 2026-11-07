@@ -21,6 +21,8 @@ export default defineConfig({
       // (shared by every port and the unit tests), so only the first run downloads them. Live check: LIVE=1, addon-live.test.ts.
       ADDON_UPSTREAM_FIXTURES: path.resolve(__dirname, "tests/fixtures"),
       ADDON_CACHE_DIR: path.resolve(__dirname, ".cache/addon"),
+      // Wago links answer from recorded import strings (`<id>.txt`); any other id is wago's 404.
+      WAGO_FIXTURES: path.resolve(__dirname, "tests/fixtures/wago"),
     },
   },
 });

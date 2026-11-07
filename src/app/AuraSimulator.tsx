@@ -7,7 +7,6 @@ import { useUndo } from "@/client/workspace/useUndo";
 import { useWorkspace } from "@/client/workspace/useWorkspace";
 import { DEFAULT_SITUATION, type AuraDocument } from "@/core";
 import { OptionsEditor } from "@/components/options-editor/OptionsEditor";
-import { RawEditor } from "@/components/raw-editor/RawEditor";
 import { AppShell, EmptyNote, ListSection, ScreenMessage, ScreenPane } from "@/components/shell";
 import { SpellPicker } from "@/components/spell-picker/SpellPicker";
 import { createSpellApi, SpellApiContext } from "@/components/spell-picker/spell-api";
@@ -22,6 +21,7 @@ import { DEFAULT_WORKSPACE_ID, type WorkspaceNode } from "@/workspace";
 import { AddonVersionMenu } from "./addon/AddonVersionPicker";
 import { useAddonCore } from "./addon/useAddonCore";
 import { ExportPanel, ImportPanel, useImporter } from "./import-export/ImportExport";
+import { WagoJsonTab } from "./wago-json/WagoJsonTab";
 import { NewAuraChooser } from "./NewAuraChooser";
 import { GameScreenPane, useGameScreen } from "./screen/GameScreenPane";
 import { SituationControls } from "./SituationControls";
@@ -57,7 +57,7 @@ export function AuraSimulator({ gameId }: { gameId: string }) {
   const { view: workspace, session } = useWorkspace(core, game.id);
   const importer = useImporter(session);
 
-  // Edits (tabs, spell picker, raw table) replace the selected aura's document (a group's tabs its descendants too).
+  // Edits (tabs, spell picker) replace the selected aura's document (a group's tabs its descendants too).
   const changeAura = useCallback(
     (aura: AuraDocument, descendants?: AuraDocument[]): EditResult => session?.updateSelected(aura, descendants) ?? NOT_READY,
     [session],
@@ -282,9 +282,14 @@ export function AuraSimulator({ gameId }: { gameId: string }) {
         drawerMeta={core && <span>{game.addon.name} {core.ref} · WeakAuras {core.addonVersion}</span>}
         drawerTabs={[
           {
-            id: "raw",
-            label: "Raw table",
-            content: aura ? <RawEditor value={aura} onChange={changeAura} /> : <EmptyNote>No aura selected.</EmptyNote>,
+            id: "json",
+            label: "JSON",
+            content:
+              session && workspace.selectedId && code ? (
+                <WagoJsonTab session={session} code={code} />
+              ) : (
+                <EmptyNote>No aura selected.</EmptyNote>
+              ),
           },
         ]}
         // The only drop handler: files dropped on the window are imported.

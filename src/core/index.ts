@@ -12,8 +12,6 @@ export type { Situation, TriggerInfo, TriggerKind, TriggerSituation } from "./si
 export { auraRules, conditionProblem, evaluateAura, evaluateTbcAura } from "./conditions";
 export type { AuraRenderState, AuraRules, ConditionProblem, GlowState, TriggerState } from "./conditions";export { findStateCodes, isStateCode } from "./state-code";
 export { plainText } from "./wow-text";
-export { LuaLiteralError, parseLuaLiteral, printLuaLiteral } from "./lua-literal";
-export { parseCanonicalJson, printCanonicalJson } from "./canonical-json";
 export type { LuaKey, LuaObject, LuaTable, LuaValue } from "./lua-value";
 export { sampleIconAura } from "./samples";
 export { AddonContractError } from "./addon-vm/contract";

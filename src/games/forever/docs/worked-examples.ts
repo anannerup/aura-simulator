@@ -1,9 +1,9 @@
 /**
- * The agent docs' worked examples: the four v1 acceptance auras and one counter-example, each a complete push body with
+ * The agent docs' worked examples: the four v1 acceptance auras and one counter-example, each shown as wago JSON with
  * the combat status the docs promise. The documents live in `../examples.ts`; tests push every example and
  * check the promised status.
  */
-import type { AuraDocument, CombatStatus } from "@/core";
+import { canonicalize, toWagoJson, type AuraDocument, type CombatStatus } from "@/core";
 import {
   buffMissing,
   buffUnderThreeMinutes,
@@ -14,14 +14,14 @@ import {
 } from "../examples";
 
 export interface WorkedExample {
-  /** Stable key; the docs tag the example's JSON block with it (```json example=<key> combat=<status>). */
+  /** Stable key; the docs tag the example's wago JSON block with it (```json example=<key> combat=<status>). */
   key: string;
   title: string;
   /** What the player asked for, in their words. */
   request: string;
   /** How the aura does it and why it holds in combat. Markdown, one paragraph per entry. */
   explanation: string[];
-  /** The push body for POST /api/workspaces/<id>/aura. */
+  /** The aura (and a group's descendants); the docs show it as wago JSON (`exampleWagoJson`). */
   body: { aura: AuraDocument; children?: AuraDocument[] };
   /** `validation.combat.status` of the push answer. */
   combat: CombatStatus;
@@ -117,3 +117,10 @@ export const COUNTER_EXAMPLE: WorkedExample = {
 };
 
 export const ALL_DOC_EXAMPLES: WorkedExample[] = [...WORKED_EXAMPLES, COUNTER_EXAMPLE];
+
+/** An example as the docs show it: wago JSON (the push body), without a sender or transmission version. */
+export function exampleWagoJson(e: WorkedExample): string {
+  const aura = canonicalize(e.body.aura) as AuraDocument;
+  const children = (e.body.children ?? []).map((c) => canonicalize(c) as AuraDocument);
+  return toWagoJson({ aura, children });
+}

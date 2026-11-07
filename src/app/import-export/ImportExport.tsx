@@ -22,19 +22,23 @@ function download(file: ExportedFile) {
 }
 
 /**
- * Import state: a pasted state code (Load replaces the workspace, Add puts it beside what's there), or files —
- * text files with state codes are added; a workspace file replaces an empty workspace, else it waits in
- * `pendingFile` for the player to choose replace or merge. The UI is `ImportPanel`; the shell's drop handler
- * calls `importFiles` too.
+ * Import state: a pasted state code, wago JSON or wago link (Load replaces the workspace, Add puts it beside what's
+ * there), or files — text files with state codes and wago JSON files are added; a workspace file replaces an empty
+ * workspace, else it waits in `pendingFile` for the player to choose replace or merge. The UI is `ImportPanel`; the
+ * shell's drop handler calls `importFiles` too.
  */
 export function useImporter(session: WorkspaceSession | null) {
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [fileErrors, setFileErrors] = useState<string[]>([]);
   const [pending, setPending] = useState<PendingWorkspaceFile[]>([]);
+  const [busy, setBusy] = useState(false);
 
-  function paste(action: "load" | "add") {
-    const result = !session ? NOT_READY : action === "load" ? session.openCode(text) : session.addCode(text);
+  async function paste(action: "load" | "add") {
+    if (!session) return setError(NOT_READY.error);
+    setBusy(true);
+    const result = await session.importText(text, action);
+    setBusy(false);
     if (result.ok) {
       setText("");
       setError(null);
@@ -66,6 +70,8 @@ export function useImporter(session: WorkspaceSession | null) {
     text,
     setText,
     error,
+    /** A paste is being imported (a wago link is fetched). */
+    busy,
     paste,
     fileErrors,
     /** The next workspace file waiting for a replace/merge choice. */
@@ -77,7 +83,7 @@ export function useImporter(session: WorkspaceSession | null) {
 
 export type Importer = ReturnType<typeof useImporter>;
 
-/** The Import dialog: choose or drop a file, or paste a (small) state code. */
+/** The Import dialog: choose or drop a file, or paste a (small) state code, wago JSON or a wago link. */
 export function ImportPanel({ importer }: { importer: Importer }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const { pendingFile } = importer;
@@ -86,7 +92,7 @@ export function ImportPanel({ importer }: { importer: Importer }) {
     <section className={styles.panel} aria-label="Workspace">
       <h2 className={styles.title}>Import</h2>
       <div className={styles.dropZone}>
-        <p>Drop state code files (.txt) or a workspace file (.json) anywhere on the window, or</p>
+        <p>Drop import string files (.txt), wago JSON (.json) or a workspace file (.aura-workspace.json) anywhere on the window, or</p>
         <Button onClick={() => fileInput.current?.click()}>Choose file…</Button>
         <input
           ref={fileInput}
@@ -125,11 +131,11 @@ export function ImportPanel({ importer }: { importer: Importer }) {
         </Callout>
       ))}
 
-      <h3 className={styles.subTitle}>Or paste a short state code</h3>
+      <h3 className={styles.subTitle}>Or paste an import string, wago JSON or a wago link</h3>
       <TextArea
         mono
         aria-label="Paste a code to load"
-        placeholder="!WA:2!…"
+        placeholder={'!WA:2!…, {"d": …} or https://wago.io/…'}
         rows={3}
         value={importer.text}
         onChange={(e) => importer.setText(e.target.value)}
@@ -138,16 +144,16 @@ export function ImportPanel({ importer }: { importer: Importer }) {
         <p className={styles.hint}>That is a long code; saving it as a file and importing the file is easier.</p>
       )}
       <div className={styles.buttons}>
-        <Button size="sm" onClick={() => importer.paste("load")} title="Open the code as the whole workspace">
+        <Button size="sm" disabled={importer.busy} onClick={() => void importer.paste("load")} title="Open it as the whole workspace">
           Load
         </Button>
-        <Button size="sm" onClick={() => importer.paste("add")} title="Add the code's aura or group to the workspace">
+        <Button size="sm" disabled={importer.busy} onClick={() => void importer.paste("add")} title="Add its aura or group to the workspace">
           Add to workspace
         </Button>
       </div>
       {importer.error && (
         <Callout tone="danger" icon={<WarningIcon size={14} />} role="alert">
-          Could not load that state code: {importer.error}
+          Could not import that: {importer.error}
         </Callout>
       )}
     </section>
