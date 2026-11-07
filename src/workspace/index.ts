@@ -10,3 +10,4 @@ export * from "./history";
 export * from "./restore";
 export * from "./protocol";
 export * from "./wago-link";
+export * from "./render-address";

@@ -2,7 +2,7 @@ import type { OptionReference } from "@/core";
 import { optionReferenceSection } from "../../docs/option-reference";
 import { forever } from "..";
 import { DEFAULT_WORKSPACE_ID } from "@/workspace";
-import { compactJson, pushApiSection, situationSection, spellApiSection, wagoJsonSection, wagoLinksSection } from "../../docs/shared";
+import { compactJson, picturesSection, pushApiSection, situationSection, spellApiSection, wagoJsonSection, wagoLinksSection } from "../../docs/shared";
 import { DOCUMENTED_REGION_TYPES, type AddonFacts, type ModernVariableFact } from "./addon-facts";
 import { COUNTER_EXAMPLE, exampleWagoJson, WORKED_EXAMPLES, type WorkedExample } from "./worked-examples";
 
@@ -28,6 +28,7 @@ export const DOCUMENTED_ENDPOINTS = [
   "GET /api/forever/workspaces/<id>/events",
   "GET /api/forever/workspaces/<id>/situation",
   "PUT /api/forever/workspaces/<id>/situation",
+  "GET /api/forever/workspaces/<id>/screenshot.png",
   "GET /api/forever/wago/<id>",
   "GET /api/forever/spells/search",
   "GET /api/forever/spells/<id>",
@@ -158,6 +159,7 @@ export function agentDocsMarkdown(f: AgentDocsFacts): string {
     combatRules,
     validation,
     situation,
+    pictures,
     spells,
     pushApi,
     wagoLinks,
@@ -179,8 +181,8 @@ This server follows ${version}. Lists marked *generated* below are read from tha
 add \`?ref=<version>\` to this page's address and to your pushes.
 
 Contents: Workflow · wago JSON · The aura document · Field reference · Triggers · Conditions ·
-Option ↔ table reference · Combat rules · Validation · Situation · Spells · Push API · Wago links · Worked examples ·
-Troubleshooting.
+Option ↔ table reference · Combat rules · Validation · Situation · Pictures · Spells · Push API · Wago links ·
+Worked examples · Troubleshooting.
 `;
 }
 
@@ -198,6 +200,8 @@ function workflow({ o, d }: Ctx): string {
    buff missing, under 3 minutes left, in combat, …) and read \`preview\` (see Situation). The open page's game screen
    follows; the player can set the situation there too (frozen auras show a padlock in combat). The window's tabs
    (Display, Trigger, Conditions, …) show the options as in the game; the player may adjust them there.
+   Working from the player's screenshot of an aura: take a picture of yours in each of those situations
+   (\`GET /api/forever/workspaces/<id>/screenshot.png\`) at the screenshot's scale and compare (see Pictures).
 6. **The player exports a file**: select the aura (or the group, to take everything in it) in the window's aura
    list → Export → **Save as file** (a \`.txt\` with the import string) or Copy to clipboard; **Save as .json** saves
    its wago JSON. The whole workspace can be saved as a workspace file.
@@ -532,6 +536,10 @@ ${spellApiSection({ game: "forever", origin: o, whose: "Forever's", example: { n
 Spell IDs go into Aura (Modern) and \`aura2\` triggers as strings (\`"auraspellids": ["1459"]\`) and into the spell
 cooldown trigger as a number (\`"spellName": 2136\`).
 `;
+}
+
+function pictures({ o, d }: Ctx): string {
+  return picturesSection({ game: "forever", origin: o, workspace: d, auraId: "Arcane Intellect" });
 }
 
 function pushApi({ o, d }: Ctx): string {
