@@ -29,6 +29,13 @@ service, data, info, item (for something that isn't a game item). If a concept h
 the user and put it in `GLOSSARY.md` before using it. The test: someone who doesn't code reads the model and the logic
 and says "yes, those words make sense".
 
+## Writing tests
+
+Follow "Writing tests" in the shared agent memory (`~/.config/agents/AGENTS.md`): green means tested, every test
+asserts its outcome, names are promises the test keeps, test what a player or agent can observe, golden fixtures are
+the truth, deterministic or it's a bug. Here the seams are the aura logic in memory (Vitest) and the app from outside
+(HTTP and the browser, Playwright).
+
 ## Layout and conventions
 
 Parallel agents work on this repo; keep to these boundaries so work merges cleanly.
