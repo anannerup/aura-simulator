@@ -98,6 +98,25 @@ end
 -- Registers the aura (and, for a group, its children first) and makes it the edited aura.
 function O.load(input, children)
   setup()
+  -- The same lone aura again (another state of the aura being edited, as every probe of the option reference and
+  -- every undo loads): added over itself, as the options' own set() does, so the addon keeps its display. Deleting
+  -- and adding it would make a new display each time, and the stand-in frames of the old one are never freed (a
+  -- WoW frame never is), so thousands of loads exhausted the Lua heap.
+  local prev = currentData()
+  if prev and #(children or {}) == 0 and not prev.controlledChildren and type(input) == "table"
+    and input.id == prev.id and input.regionType == prev.regionType and input.controlledChildren == nil
+    and (input.uid == nil or input.uid == prev.uid) then
+    local data = X.prepare(input)
+    data.uid = prev.uid
+    local r = B.try(WeakAuras.Add, data)
+    O.optionCache[data.id] = nil
+    session = { uid = data.uid, input = deepcopy(input), children = {} }
+    if not currentData() then
+      session = nil
+      return { ok = false, error = r.error or "The addon did not register the aura" }
+    end
+    return { ok = true }
+  end
   local kept = deleteCurrent()
   local kids = {}
   for _, child in ipairs(children or {}) do

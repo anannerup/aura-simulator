@@ -33,9 +33,18 @@
  * choice writes a whole setting (a condition's If, a property), every choice and the options it reveals; and on an
  * icon, every trigger type and event.
  *
+ * The Conditions tab (`conditions`) is generated apart, since If and Then depend on the trigger and the display:
+ * for every trigger type and event on an icon's trigger 1, a new condition's every If choice of the trigger (and the
+ * global checks once) with the op and value fields it reveals; then the checks other Trigger tab options offer
+ * (each toggle flipped and each choice of each select up to 40 values, one at a time from the new trigger: e.g.
+ * Aura(s) Found once Show On is Always). And per display type, with one sub element of each kind its Add buttons add,
+ * every Then choice and its value fields. Checks aren't probed per display type (the If list doesn't depend on it),
+ * nor properties per trigger type, which keeps it to a third of the generation time.
+ *
  * The reverse index is keyed by path patterns: every number segment replaced by `#` (`triggers.#.trigger.type`), so
  * any trigger's, condition's or sub element's key finds its options.
  */
+import { plainText } from "../wow-text";
 import { isLuaTable, keyFromString, type AuraDocument, type AuraState, type LuaKey, type LuaValue } from "../lua-value";
 import type { NewAuraPage } from "./new-aura";
 import type { OptionAddress, OptionEdit, OptionNode, OptionsTree, OptionTab } from "./options";
@@ -105,8 +114,83 @@ export interface OptionReferenceEntry {
   scopes: OptionScope[];
 }
 
+/** An option a condition's If or Then choice reveals (a check's op and value, a property's value): as an entry. */
+export type ConditionField = Omit<OptionReferenceEntry, "tab" | "scopes" | "choices">;
+
+/** One choice of a condition's If (a check) or Then (a property): what choosing it writes and the options it reveals. */
+export interface ConditionChoice {
+  /** The select's value (an index into the addon's list: write `wrote`, not this). */
+  value: LuaKey;
+  label: string;
+  /** Every table path choosing it changes on condition 1 (and change 1). */
+  writes: TablePath[];
+  /** What choosing it writes (tables leave their value out). */
+  wrote: Record<TablePath, unknown>;
+  /** The options it reveals, each probed once on the chosen condition. */
+  fields: ConditionField[];
+}
+
+/** What a check's value is, read from the options its choice reveals. */
+export type ConditionValueType = "bool" | "number" | "text" | "select" | "none" | "other";
+
+/** One check of a condition's If: a condition variable of a trigger (or a global check, or a combination). */
+export interface ConditionCheck extends ConditionChoice {
+  /** The heading of If it is under ("Trigger 1: Aura", "Global Conditions", "Combinations"). */
+  group?: string;
+  /** `check.trigger` and `check.variable` it writes. */
+  trigger?: number;
+  variable?: string;
+  valueType: ConditionValueType;
+  /** `check.op`'s choices, when it has one. */
+  operators?: [LuaKey, string][];
+  /** `check.value`'s choices, when it is a select (a bool's `0`/`1`). */
+  values?: [LuaKey, string][];
+  /**
+   * Offered only once a Trigger tab option is set (e.g. "Aura(s) Found" once Show is "Always"): that option, the value
+   * set and what setting it wrote. Absent: the trigger type (and event) offers it as New Aura sets it up.
+   */
+  requires?: { option: string[]; name: string; value: unknown; wrote: Record<TablePath, unknown> };
+}
+
+/** The If checks of one trigger type (and event) on trigger 1. */
+export interface ConditionCheckSet {
+  triggerType: string;
+  event?: string;
+  checks: ConditionCheck[];
+}
+
+/** One property of a condition's Then (`changes.N.property`) and the options for its value. */
+export interface ConditionProperty extends ConditionChoice {
+  /** `changes.1.property` it writes (`alpha`, `sub.3.glow`, …). */
+  property?: string;
+}
+
+/** A display type's Then properties, with one sub element of every kind it can add. */
+export interface ConditionPropertySet {
+  regionType: string;
+  /** The Add button of the Conditions tab that added the condition (a Forever group has its own). */
+  added: { option: string[]; name: string };
+  /** The aura's sub elements when probed (`sub.N` is the N-th): its New Aura ones, then one of each Add button's. */
+  subRegions: { index: number; type: string }[];
+  properties: ConditionProperty[];
+}
+
+/**
+ * The Conditions tab per trigger type and display type. Checks are probed per trigger type and event on an icon
+ * (the If list depends only on the triggers); properties per display type with one sub element of each kind added
+ * (the Then list depends only on the display and its elements).
+ */
+export interface ConditionReference {
+  /** The display type the checks were probed on. */
+  regionType: string;
+  /** The checks of every aura: global checks and the combinations (All of, Any of). */
+  global: ConditionCheck[];
+  checks: ConditionCheckSet[];
+  properties: ConditionPropertySet[];
+}
+
 /** The reference's shape and generator version: changes when either does (caches keyed by it regenerate). */
-export const OPTION_REFERENCE_FORMAT = 3;
+export const OPTION_REFERENCE_FORMAT = 4;
 
 export interface OptionReference {
   /** OPTION_REFERENCE_FORMAT of the generator that made it. */
@@ -120,6 +204,8 @@ export interface OptionReference {
   /** Trigger types (and their events) probed on the trigger tab. */
   triggerTypes: { type: string; label: string; events?: [LuaKey, string][] }[];
   entries: OptionReferenceEntry[];
+  /** Every condition check per trigger type and event, and every condition property per display type. */
+  conditions: ConditionReference;
   /** Reverse index: path pattern (number segments as `#`) → indices into `entries` writing it in the aura's table. */
   byPath: Record<string, number[]>;
   /** Same for a group's children's tables. */
@@ -290,6 +376,13 @@ function defaultOf(node: OptionNode): unknown {
   return node.value;
 }
 
+/** `o` without key `k`. */
+const omit = <T extends object, K extends keyof T>(o: T, k: K): Omit<T, K> => {
+  const copy = { ...o };
+  delete copy[k];
+  return copy;
+};
+
 const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
 const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -369,7 +462,11 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
    * Every place is probed on its own: the same option can write more on another aura (a text aura's trigger type also
    * writes its automaticWidth; Add Trigger also normalizes trigger 1 of some trigger types).
    */
-  const probe = (state: AuraState, tab: string, node: OptionNode, scope: OptionScope): OptionReferenceEntry => {
+  const probe = (state: AuraState, tab: string, node: OptionNode, scope: OptionScope): OptionReferenceEntry =>
+    entries[add(measure(state, tab, node), scope)];
+
+  /** One option's entry (not recorded): its facts, and what its probe edit (and each choice) wrote on `state`. */
+  const measure = (state: AuraState, tab: string, node: OptionNode, choices = true): Omit<OptionReferenceEntry, "scopes"> => {
     const entry: Omit<OptionReferenceEntry, "scopes"> = { tab, option: node.path, type: node.type, writes: [] };
     for (const f of ["name", "desc", "control", "min", "max", "softMin", "softMax", "step", "bigStep", "isPercent", "hasAlpha"] as const) {
       if (node[f] !== undefined && node[f] !== "") (entry as Record<string, unknown>)[f] = node[f];
@@ -378,7 +475,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
     if (node.values) entry.values = node.values;
     if (node.type !== "execute" && node.value !== undefined) entry.default = defaultOf(node);
     if (node.hidden) entry.hidden = true;
-    const recorded = () => entries[add(entry, scope)];
+    const recorded = () => entry;
 
     let r: ReturnType<typeof edit> | undefined;
     if (node.type === "execute") r = edit(state, tab, node, undefined);
@@ -413,7 +510,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
     if (e.dialog) entry.dialog = e.dialog.kind;
     // A select whose choice writes something other than its key (e.g. an index into the condition checks): each
     // choice's writes.
-    if (node.type === "select" && changed.length > 0 && node.values && node.values.length <= 300) {
+    if (choices && node.type === "select" && changed.length > 0 && node.values && node.values.length <= 300) {
       const plain = changed.some((p) => {
         const v = valueAt(e.aura, p);
         return sameJson(v, value) || sameJson(v, [value]);
@@ -502,6 +599,195 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
     return here;
   };
 
+  const CONDITIONS = "conditions";
+  const asState = (e: OptionEdit, from: AuraState): AuraState => ({ aura: e.aura, children: e.children ?? from.children });
+
+  /** `state` with a new condition from each Add button of the Conditions tab that adds one to the aura's own table. */
+  const withCondition = (state: AuraState) =>
+    walk(tree(state, CONDITIONS))
+      .filter(isAdd)
+      .flatMap((button) => {
+        const r = edit(state, CONDITIONS, button, undefined, false);
+        if (!r.edit?.changed || !changedPaths(state.aura, r.edit.aura).some((p) => p.split(".")[0] === "conditions")) return [];
+        return [{ state: asState(r.edit, state), added: { option: button.path, name: button.name ?? button.key } }];
+      });
+
+  /** The Conditions tab's select one of whose first choices writes `path` (If: the check's variable; Then: the property). */
+  const selectWriting = (state: AuraState, path: TablePath) =>
+    walk(tree(state, CONDITIONS)).find(
+      (n) =>
+        n.type === "select" &&
+        n.canSet === true &&
+        !n.hidden &&
+        (n.values ?? []).slice(0, 6).some(([v]) => {
+          const r = edit(state, CONDITIONS, n, v);
+          return r.edit !== undefined && changedPaths(state.aura, r.edit.aura).includes(path);
+        }),
+    );
+
+  /**
+   * Every choice of a condition's If or Then select (`node` on `state`) that writes something, with the options it
+   * reveals; a choice that writes nothing is a heading of the list, given to the choices under it. `only`: those values.
+   */
+  const measuredFields = new Map<string, ConditionField>();
+  const conditionChoices = async (state: AuraState, node: OptionNode, only?: Set<LuaKey>) => {
+    const before = new Set(walk(tree(state, CONDITIONS)).map((n) => JSON.stringify(n.path)));
+    const out: (ConditionChoice & { group?: string })[] = [];
+    let group: string | undefined;
+    for (const [value, label] of node.values ?? []) {
+      if (only && !only.has(value)) continue;
+      await breathe();
+      const r = edit(state, CONDITIONS, node, value);
+      if (!r.edit) continue;
+      if (!r.edit.changed) {
+        group = plainText(label).trim();
+        continue;
+      }
+      const chosen = asState(r.edit, state);
+      collectArrays(chosen.aura);
+      const changed = changedPaths(state.aura, chosen.aura).sort();
+      const fields = walk(tree(chosen, CONDITIONS))
+        .filter((n) => isReferenced(n) && n.type !== "execute" && !before.has(JSON.stringify(n.path)))
+        .map((n) => {
+          // The same option (the same op or value field of another check or property) writes the same: probed once.
+          // Not a text field: whether it takes text or only numbers (its validate()) doesn't show.
+          const key = n.type === "input" ? undefined : JSON.stringify(n);
+          let field = key === undefined ? undefined : measuredFields.get(key);
+          if (!field) {
+            field = omit(measure(chosen, CONDITIONS, n, false), "tab");
+            if (key !== undefined) measuredFields.set(key, field);
+          }
+          return field;
+        });
+      out.push({ value, label: plainText(label).trim(), writes: changed, wrote: wroteOf(chosen.aura, changed), fields, ...(group && { group }) });
+    }
+    return out;
+  };
+
+  const lastKey = (wrote: Record<TablePath, unknown>, key: string) => {
+    const k = Object.keys(wrote).find((p) => p.endsWith(`.${key}`));
+    return k === undefined ? undefined : wrote[k];
+  };
+
+  /** A check from an If choice: its trigger and variable, what its value is and its operators. */
+  const checkOf = ({ group, ...choice }: ConditionChoice & { group?: string }): ConditionCheck => {
+    const writing = (key: string) => choice.fields.find((f) => !f.hidden && f.writes.some((p) => p.endsWith(`.check.${key}`)));
+    const op = writing("op");
+    const value = writing("value");
+    let valueType: ConditionValueType = "other";
+    if (!value) valueType = "none";
+    else if (value.type === "select") valueType = sameJson(value.values?.map(([k]) => k), [0, 1]) ? "bool" : "select";
+    else if (value.type === "input" && !value.multiline) valueType = value.probe?.value === "5" ? "number" : "text";
+    const trigger = lastKey(choice.wrote, "check.trigger");
+    const variable = lastKey(choice.wrote, "check.variable");
+    return {
+      ...choice,
+      ...(group && { group }),
+      ...(typeof trigger === "number" && { trigger }),
+      ...(typeof variable === "string" && { variable }),
+      valueType,
+      ...(op?.type === "select" && op.values && { operators: op.values }),
+      ...(value?.type === "select" && value.values && { values: value.values }),
+    };
+  };
+
+  const triggerKey = /^trigger\.1\.[^.]+\.(type|event)$/;
+  const truthy = (v: unknown) => v !== undefined && v !== null && v !== false;
+
+  /**
+   * The Conditions tab, generated: every check of If per trigger type and event (on trigger 1 of an icon, with the
+   * checks further Trigger tab options offer), and every property of Then per display type, with one sub element of
+   * each kind the display can add.
+   */
+  const conditionReference = async (
+    icon: AuraState,
+    typed: { triggerType: string; event?: string; state: AuraState }[],
+    regionTypes: string[],
+  ): Promise<ConditionReference> => {
+    const result: ConditionReference = { regionType: String(icon.aura.regionType), global: [], checks: [], properties: [] };
+    let globalHead: [LuaKey, string][] = [];
+    for (const { triggerType, event, state } of typed) {
+      const [first] = withCondition(state);
+      const ifNode = first && selectWriting(first.state, "conditions.1.check.variable");
+      if (!ifNode) continue;
+      const base = first.state;
+      // The global checks and combinations head the list and are the same for every trigger: probed on the first
+      // only (a trigger's own check can have a global one's label: Unit Characteristics' In Combat).
+      const values = ifNode.values ?? [];
+      const notGlobal = new Set(values.filter((v, i) => !sameJson(v, globalHead[i])).map(([k]) => k));
+      const all = (await conditionChoices(base, ifNode, notGlobal)).map(checkOf);
+      const checks = all.filter((c) => c.trigger === 1);
+      if (globalHead.length === 0) {
+        result.global = all.filter((c) => c.trigger !== 1);
+        // Everything before the first own check's heading.
+        const firstOwn = values.findIndex(([k]) => checks.some((c) => c.value === k));
+        globalHead = values.slice(0, Math.max(0, firstOwn - 1));
+      }
+      const group = checks[0]?.group;
+      const labels = new Set((ifNode.values ?? []).map(([, l]) => l));
+      const variables = new Set(checks.map((c) => c.variable));
+      // Checks other Trigger tab options offer: each toggle flipped, each choice of each select (up to 40), from the
+      // trigger as New Aura sets it up; only edits that keep the trigger type and event.
+      const options = walk(tree(base, "trigger")).filter(
+        (n) =>
+          n.canSet === true &&
+          !n.hidden &&
+          !n.disabled &&
+          !triggerKey.test(n.key) &&
+          (n.type === "toggle" || (n.type === "select" && (n.values?.length ?? 0) <= 40)),
+      );
+      for (const option of options) {
+        const values = option.type === "toggle" ? [!truthy(option.value)] : (option.values ?? []).map(([k]) => k).filter((k) => k !== option.value);
+        for (const v of values) {
+          await breathe();
+          const r = edit(base, "trigger", option, v);
+          if (!r.edit?.changed) continue;
+          const next = asState(r.edit, base);
+          const same = (key: string) => sameJson(valueAt(next.aura, `triggers.1.trigger.${key}`), valueAt(base.aura, `triggers.1.trigger.${key}`));
+          if (!same("type") || !same("event")) continue;
+          const nextIf = nodeAt(tree(next, CONDITIONS), ifNode.path);
+          const fresh = (nextIf?.values ?? []).filter(([, l]) => !labels.has(l)).map(([k]) => k);
+          if (!nextIf || fresh.length === 0) continue;
+          // A label once seen is the same check (or one that isn't the trigger's) wherever it shows up again.
+          for (const [, l] of nextIf.values ?? []) labels.add(l);
+          const changed = changedPaths(base.aura, next.aura);
+          for (const c of (await conditionChoices(next, nextIf, new Set(fresh))).map(checkOf)) {
+            if (c.trigger !== 1 || variables.has(c.variable)) continue;
+            variables.add(c.variable);
+            checks.push({ ...c, ...(group && { group }), requires: { option: option.path, name: plainText(option.name ?? option.key).trim(), value: v, wrote: wroteOf(next.aura, changed) } });
+          }
+        }
+      }
+      result.checks.push({ triggerType, ...(event !== undefined && { event }), checks });
+    }
+
+    for (const regionType of regionTypes) {
+      const fresh = newReferenceState(src, regionType);
+      let state = src.options(fresh).tabs.reduce((s, { key }) => settle(s, key), fresh);
+      // One sub element of each kind the display adds to its own table.
+      for (const { path } of walk(tree(state, "region")).filter(isAdd)) {
+        const button = nodeAt(tree(state, "region"), path);
+        if (!button || !isAdd(button)) continue;
+        const r = edit(state, "region", button, undefined, false);
+        const count = (s: AuraState["aura"]) => (Array.isArray(s.subRegions) ? s.subRegions.length : 0);
+        if (r.edit?.changed && count(r.edit.aura) > count(state.aura)) state = asState(r.edit, state);
+      }
+      for (const { state: withOne, added } of withCondition(state)) {
+        const thenNode = selectWriting(withOne, "conditions.1.changes.1.property");
+        if (!thenNode) continue;
+        const properties = (await conditionChoices(withOne, thenNode)).map((choice) => {
+          const c = omit(choice, "group");
+          const property = lastKey(c.wrote, "changes.1.property");
+          return { ...c, ...(typeof property === "string" && { property }) };
+        });
+        const subs = Array.isArray(withOne.aura.subRegions) ? withOne.aura.subRegions : [];
+        const subRegions = subs.map((s, i) => ({ index: i + 1, type: String(isLuaTable(s) && !Array.isArray(s) ? s.type : "") }));
+        result.properties.push({ regionType, added, subRegions, properties });
+      }
+    }
+    return result;
+  };
+
   const page = src.newAuraPage();
   const regionTypes = page.types.map((t) => t.regionType);
   let tabs: OptionTab[] = [];
@@ -536,6 +822,7 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
 
   // Every trigger type, and every event of a trigger type with sub types, on an icon's trigger 1.
   const triggerTypes: OptionReference["triggerTypes"] = [];
+  const typedStates: { triggerType: string; event?: string; state: AuraState }[] = [];
   const icon = newReferenceState(src, regionTypes.includes("icon") ? "icon" : regionTypes[0]);
   const typeSelect = walk(tree(icon, "trigger")).find((n) => n.type === "select" && /^trigger\.1\.[^.]+\.type$/.test(n.key));
   for (const [type, label] of typeSelect?.values ?? []) {
@@ -546,15 +833,19 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
     triggerTypes.push({ type: String(type), label, ...(sub?.values && { events: sub.values }) });
     const triggerType = String(type);
     if (!sub?.values) {
+      typedStates.push({ triggerType, state: typed });
       await probeTab(typed, "trigger", { regionType: icon.aura.regionType as string, triggerType });
       continue;
     }
     for (const [event] of sub.values) {
       const e = event === sub.value ? undefined : edit(typed, "trigger", sub, event).edit;
       const state = e ? settle({ aura: e.aura, children: [] }, "trigger") : typed;
+      typedStates.push({ triggerType, event: String(event), state });
       await probeTab(state, "trigger", { regionType: icon.aura.regionType as string, triggerType, event: String(event) });
     }
   }
+
+  const conditions = await conditionReference(icon, typedStates, regionTypes);
 
   const byPath: Record<string, number[]> = {};
   const byChildPath: Record<string, number[]> = {};
@@ -565,5 +856,5 @@ export async function buildOptionReference(src: ReferenceSource, options: Option
     index(byPath, e.writes, i);
     index(byChildPath, e.childWrites, i);
   });
-  return { format: OPTION_REFERENCE_FORMAT, ref: src.ref, generatedMs: Math.round(now() - t0), tabs, regionTypes, triggerTypes, entries, byPath, byChildPath, lists: [...asList].filter((p) => !asObject.has(p)).sort() };
+  return { format: OPTION_REFERENCE_FORMAT, ref: src.ref, generatedMs: Math.round(now() - t0), tabs, regionTypes, triggerTypes, entries, conditions, byPath, byChildPath, lists: [...asList].filter((p) => !asObject.has(p)).sort() };
 }

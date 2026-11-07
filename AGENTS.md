@@ -103,7 +103,7 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   there. It takes about a minute per game and version (two in the background), so the server caches it per game and
   version (`server/option-reference.ts`; served at `/<game>/docs/agents/options.json`, and as Markdown from
   `src/games/docs/option-reference.ts`: `options.md` is an index of parts, `options/<part>.md` each part in full: key
-  → options, each tab, the Display tab per display type, the Trigger tab per trigger type), and `option-reference.test.ts` replays every probe for each game. Bump
+  → options, each tab, the Display tab per display type, the Trigger tab per trigger type, the Conditions tab's checks per trigger type and event (`conditions-trigger-<type>`, on an icon, with checks other Trigger options offer) and its properties per display type with one sub element of each kind (`conditions-display-<type>`); the JSON's `conditions`), and `option-reference.test.ts` replays every probe, check and property for each game. Bump
   `OPTION_REFERENCE_FORMAT` when the generator's output changes.
   The tab sweeps (`src/core/options-sweep.test.ts`, `tests/e2e/tab-sweep.spec.ts`) walk every tab of every display
   type generically; keep them green when the editor or the profile changes.

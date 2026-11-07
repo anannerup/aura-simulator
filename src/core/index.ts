@@ -42,7 +42,22 @@ export type {
   OptionsTree,
 } from "./addon-vm/options";
 export { OPTION_REFERENCE_FORMAT, changedPaths, pathPattern } from "./addon-vm/option-reference";
-export type { OptionChoice, OptionReference, OptionReferenceEntry, OptionReferenceOptions, OptionScope, TablePath } from "./addon-vm/option-reference";
+export type {
+  ConditionCheck,
+  ConditionCheckSet,
+  ConditionChoice,
+  ConditionField,
+  ConditionProperty,
+  ConditionPropertySet,
+  ConditionReference,
+  ConditionValueType,
+  OptionChoice,
+  OptionReference,
+  OptionReferenceEntry,
+  OptionReferenceOptions,
+  OptionScope,
+  TablePath,
+} from "./addon-vm/option-reference";
 export type { CombatStatus, ValidationMessage, ValidationResult } from "./addon-vm/validation";
 export { setTriggerSpellId, triggerCount, triggerSpellId } from "./trigger-spell";
 export { WagoJsonError, fromWagoJson, toWagoJson } from "./wago-json";

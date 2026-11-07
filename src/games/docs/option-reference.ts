@@ -3,10 +3,20 @@
  * (what it is, how its paths read as wago JSON keys, a few generated examples, where the whole reference is) and the
  * whole reference in both directions, split into parts an agent fetches one at a time: an index
  * (/<game>/docs/agents/options.md) and one file per part (/<game>/docs/agents/options/<part>.md: key → options; each
- * tab; the Display tab per display type; the Trigger tab per trigger type). Nothing is shortened: every value, choice
+ * tab; the Display tab per display type; the Trigger tab per trigger type; the Conditions tab's checks per trigger
+ * type and its properties per display type). Nothing is shortened: every value, choice
  * and key is listed. Pure; the server loads the reference (`src/server/option-reference.ts`).
  */
-import { pathPattern, plainText, type OptionReference, type OptionReferenceEntry } from "@/core";
+import {
+  pathPattern,
+  plainText,
+  type ConditionCheck,
+  type ConditionCheckSet,
+  type ConditionField,
+  type ConditionProperty,
+  type OptionReference,
+  type OptionReferenceEntry,
+} from "@/core";
 
 const code = (s: string) => `\`${s}\``;
 const json = (v: unknown) => JSON.stringify(v);
@@ -76,7 +86,11 @@ keys it writes, with a value of its type.
 - **The whole reference, both directions, as Markdown:** \`GET ${urls.md}\` is its index; it links one file per
   part, each complete (every value and choice): key → options (\`${urls.part("keys")}\`), each tab
   (\`${urls.part("load")}\`, \`${urls.part("conditions")}\`, …), the Display tab per display type
-  (\`${urls.part("region-icon")}\`) and the Trigger tab per trigger type (\`${urls.part("trigger-aura2")}\`).
+  (\`${urls.part("region-icon")}\`), the Trigger tab per trigger type (\`${urls.part("trigger-aura2")}\`), and the
+  Conditions tab's checks per trigger type (\`${urls.part("conditions-trigger-aura2")}\`) and properties per display
+  type (\`${urls.part("conditions-display-icon")}\`).
+- **As JSON, the conditions:** \`conditions\` in the JSON below (\`checks\` per trigger type and event, \`global\`,
+  \`properties\` per display type).
 - **As JSON:** \`GET ${urls.json}\` (\`entries\`: every option per display type, trigger type, event, added part and
   choice, with its \`writes\`, \`values\`, range, \`default\`, \`desc\` and, for selects whose choice writes a whole
   setting, what each choice writes; \`byPath\`: path pattern → entry indices; \`lists\`: the tables that are JSON arrays).
@@ -201,10 +215,142 @@ export function optionReferenceParts(r: OptionReference): OptionReferencePart[] 
       }
     } else {
       parts.push({ name: slug(key), title: `${label} (${code(key)})`, about: `the ${label} tab` });
+      if (key === "conditions") parts.push(...conditionParts(r, label));
     }
   }
   return parts;
 }
+
+/** The Conditions tab's generated parts: every check per trigger type, every property per display type. */
+function conditionParts(r: OptionReference, label: string): OptionReferencePart[] {
+  const types = r.triggerTypes.filter((t) => r.conditions.checks.some((c) => c.triggerType === t.type));
+  const displays = [...new Set(r.conditions.properties.map((p) => p.regionType))];
+  return [
+    ...types.map((t) => ({
+      name: `conditions-trigger-${slug(t.type)}`,
+      title: `${label}: checks of ${plainText(t.label)} (${code(t.type)})`,
+      about: `every "If" check (condition variable) of trigger type ${code(t.type)}${t.events?.length ? ", per event" : ""}, with its keys, value type, operators and values, and the global checks`,
+    })),
+    ...displays.map((d) => ({
+      name: `conditions-display-${slug(d)}`,
+      title: `${label}: properties of ${code(d)}`,
+      about: `every "Then" property a condition can change on display type ${code(d)} and its sub elements, with its keys and value`,
+    })),
+  ];
+}
+
+/**
+ * Where a condition's checks and properties are, for the agent docs' Conditions section: the parts per trigger type
+ * and per display type, by name (every one when the reference is ready).
+ */
+export function conditionPartsPointer(origin: string, game: string, ref: string, r: OptionReference | null): string {
+  const urls = optionReferenceUrls(origin, game, ref);
+  const list = (prefix: string, names: string[]) => names.map((n) => code(`${prefix}${slug(n)}`)).join(", ");
+  const types = r ? [...new Set(r.conditions.checks.map((c) => c.triggerType))] : [];
+  const displays = r ? [...new Set(r.conditions.properties.map((p) => p.regionType))] : [];
+  return `- **Every check (condition variable) of a trigger type** is in its part of the option ↔ table reference:
+  \`GET ${urls.part("conditions-trigger-<trigger type>")}\` (e.g. \`${urls.part("conditions-trigger-aura2")}\`${
+    types.length ? `; parts: ${list("conditions-trigger-", types)}` : ""
+  }). Per event, each "If" choice with the \`check.variable\` it writes, its value type, \`op\` choices and \`value\`
+  choices, and the Trigger tab option that must be set first when the check is only offered then (e.g. "Aura(s)
+  Found", \`buffed\`, needs Show On "Always"). The global checks are at its end.
+- **Every property (\`changes[].property\`) of a display type and its sub elements:**
+  \`GET ${urls.part("conditions-display-<display type>")}\`${displays.length ? ` (${list("conditions-display-", displays)})` : ""}, with
+  the value each takes.`;
+}
+
+/** A condition field's value in words: its type and what it takes. */
+function fieldValue(f: ConditionField): string {
+  const choices = (values: [unknown, string][]) =>
+    values.map(([k, l]) => (String(k) === plainText(l).trim() ? json(k) : `${json(k)} (${plainText(l).trim()})`)).join(", ");
+  switch (f.type) {
+    case "toggle":
+      return "true or false";
+    case "color":
+      return "a colour `[r, g, b, a]`, 0..1";
+    case "range": {
+      const lo = f.softMin ?? f.min;
+      const hi = f.softMax ?? f.max;
+      return `a number ${lo ?? "…"} to ${hi ?? "…"}${f.step ? ` step ${f.step}` : ""}${f.isPercent ? " (a fraction, shown as %)" : ""}`;
+    }
+    case "select":
+      return `one of ${choices(f.values ?? [])}`;
+    case "multiselect":
+      return `any of ${choices(f.values ?? [])}`;
+    case "input":
+      if (f.multiline) return "text (code)";
+      return f.probe?.value === "5" ? 'a number, written as text (e.g. `"5"`)' : "text";
+  }
+  return f.type;
+}
+
+/** A field's keys and value, e.g. `` `conditions.#.check.range` (Range in yards): a number ``. */
+function fieldLine(f: ConditionField): string {
+  const name = plainText(f.name ?? "").trim();
+  const desc = plainText(f.desc ?? "").trim();
+  return `${patterns(f.writes)}${name ? ` (${name})` : ""}: ${fieldValue(f)}${desc ? ` (${desc})` : ""}`;
+}
+
+const keyLabel = ([k, l]: [unknown, string]) => (String(k) === plainText(l).trim() ? code(String(k)) : `${code(String(k))} (${plainText(l).trim()})`);
+
+/** A check as a Markdown list item: what it writes, its value, other fields, what must be set first. */
+function checkLine(c: ConditionCheck): string {
+  const variable = c.variable !== undefined ? ` → \`check.variable\` ${json(c.variable)}` : "";
+  const parts = [`- **${c.label}**${variable}`];
+  const op = (c.operators ?? []).map(keyLabel).join(", ");
+  const choices = (c.values ?? []).map(([k, l]) => `${json(k)} (${plainText(l).trim()})`).join(", ");
+  switch (c.valueType) {
+    case "bool":
+      parts.push("bool: `value` 1 (true) or 0 (false), no `op`");
+      break;
+    case "number":
+      parts.push(`number: \`op\` ${op || "none"}; \`value\` a number as text (e.g. \`"5"\`)`);
+      break;
+    case "text":
+      parts.push(`text: ${op ? `\`op\` ${op}; ` : "no `op`; "}\`value\` text`);
+      break;
+    case "select":
+      parts.push(`${op ? `\`op\` ${op}; ` : ""}\`value\` one of ${choices}`);
+      break;
+    case "none":
+      parts.push("no `op` or `value` in the window");
+      break;
+  }
+  const isOpOrValue = (f: ConditionField) => f.writes.every((p) => /\.check\.(op|value)$/.test(p));
+  const others = c.fields.filter((f) => c.valueType === "other" || !isOpOrValue(f));
+  if (others.length) parts.push(`fields: ${others.map(fieldLine).join("; ")}`);
+  if (c.requires) {
+    const wrote = Object.entries(c.requires.wrote)
+      .map(([k, v]) => `\`${pathPattern(k)}\`=${json(v)}`)
+      .join(", ");
+    parts.push(`needs a Trigger setting, e.g. **${c.requires.name}** ${json(c.requires.value)}${wrote ? ` (${wrote})` : ""}`);
+  }
+  return parts.join(" · ");
+}
+
+/** A property as a Markdown list item: the property it writes and its value's fields. */
+function propertyLine(p: ConditionProperty): string {
+  const writes = p.property !== undefined ? `\`property\` ${json(p.property)}` : patterns(Object.keys(p.wrote)) || "(removes the change)";
+  const head = `- **${p.label}** → ${writes}`;
+  if (p.fields.length === 0) return head;
+  const plain = p.fields.length === 1 && p.fields[0].writes.length === 1 && /\.changes\.\d+\.value$/.test(p.fields[0].writes[0]);
+  return `${head} · ${plain ? `\`value\`: ${fieldValue(p.fields[0])}` : `value fields: ${p.fields.map(fieldLine).join("; ")}`}`;
+}
+
+/** The checks of a trigger type's events: those every event has, then each event's own. */
+function checkSections(sets: ConditionCheckSet[]): { title?: string; lines: string[] }[] {
+  if (sets.length === 1) return [{ lines: sets[0].checks.map(checkLine) }];
+  const per = sets.map((s) => s.checks.map(checkLine));
+  const common = per[0].filter((line) => per.every((lines) => lines.includes(line)));
+  return [
+    { title: "Every event", lines: common },
+    ...sets.map((s, i) => ({ title: s.event ?? "", lines: per[i].filter((line) => !common.includes(line)) })),
+  ];
+}
+
+const CONDITION_KEYS = `A condition is \`{"check": {…}, "changes": [{"property": …, "value": …}]}\` in the aura's \`conditions\` array.
+The lines show what the window writes on condition 1 (\`conditions.1.check.…\`, \`conditions.1.changes.1.…\`); every
+condition and change takes the same keys.`;
 
 /** The whole reference's index: what it is, how to read paths, and its parts. */
 export function optionReferenceMarkdown(origin: string, game: string, addonName: string, r: OptionReference): string {
@@ -278,6 +424,54 @@ ${children.length ? `\n## Keys a group's options write in each child\n\n${childr
     const these = r.entries.filter((e) => e.tab === "region" && e.scopes.some((s) => s.regionType === regionType && !s.triggerType));
     return `${head}\n${body(optionLines(r, these, false))}\n`;
   }
+  if (name.startsWith("conditions-trigger-")) {
+    const t = r.triggerTypes.find((x) => `conditions-trigger-${slug(x.type)}` === name)!;
+    const sets = r.conditions.checks.filter((c) => c.triggerType === t.type);
+    const custom = (r.byPath["triggers.#.trigger.customVariables"] ?? []).some((i) => r.entries[i].scopes.some((s) => s.triggerType === t.type));
+    const typeLabel = plainText(t.label);
+    return `${head}
+Every check a condition's "If" offers for the ${typeLabel} trigger (\`${t.type}\`), probed on trigger 1 of display type
+\`${r.conditions.regionType}\`: the choice's label → the \`check.variable\` it writes (with \`check.trigger\`: the trigger's
+number), then what \`check.op\` and \`check.value\` take. A check marked "needs a Trigger setting" is offered only when
+the trigger is set up differently from a new one; the line names one Trigger tab option and value that offers it
+(probed one option at a time from a new trigger): write those keys too, or the addon doesn't offer the check.${
+      custom
+        ? `\n\nThe ${typeLabel} trigger also offers the variables its Custom Variables code declares
+(\`triggers.N.trigger.customVariables\`); they depend on that code, so they aren't listed here.`
+        : ""
+    }
+
+${CONDITION_KEYS}
+
+${checkSections(sets)
+  .map((s) => (s.title !== undefined ? `## ${s.title}\n\n${body(s.lines)}` : body(s.lines)))
+  .join("\n\n")}
+
+## Global checks and combinations (any aura)
+
+${body(r.conditions.global.map(checkLine))}
+`;
+  }
+  if (name.startsWith("conditions-display-")) {
+    const sets = r.conditions.properties.filter((p) => `conditions-display-${slug(p.regionType)}` === name);
+    const regionType = sets[0].regionType;
+    const section = (p: (typeof sets)[number]) => {
+      const subs = p.subRegions.map((x) => `\`sub.${x.index}\` ${x.type}`).join(", ");
+      return `${sets.length > 1 ? `## After ${plainText(p.added.name)}\n\n` : ""}Probed with these sub elements: ${subs || "none"}.
+\`sub.N.<key>\` is the aura's N-th \`subRegions\` element: use your aura's own numbers. A sub element's properties exist
+only on an aura that has one.
+
+${body(p.properties.map(propertyLine))}`;
+    };
+    return `${head}
+Every property a condition's "Then" can change on display type \`${regionType}\` (with one sub element of every kind it adds):
+the choice's label → the \`changes[].property\` it writes, and what \`changes[].value\` takes.
+
+${CONDITION_KEYS}
+
+${sets.map(section).join("\n\n")}
+`;
+  }
   const trigger = r.entries.filter((e) => e.tab === "trigger");
   if (name === "trigger") {
     // The Trigger tab as other displays' new auras show it, where it differs from what the trigger types' parts list.
@@ -294,5 +488,9 @@ ${rest.length ? `Where the Trigger tab writes something else on some display typ
     return `${head}\n${sections.map((s) => (s.title ? `## ${s.title}\n\n${body(s.lines)}` : body(s.lines))).join("\n\n")}\n`;
   }
   const tab = r.tabs.find((t) => slug(t.key) === name)!;
-  return `${head}\n${body(optionLines(r, r.entries.filter((e) => e.tab === tab.key && ownScope(e))))}\n`;
+  const note =
+    tab.key === "conditions"
+      ? `\nThe "If" choices here are those of a new aura's trigger. Every trigger type's checks: \`GET ${urls.part("conditions-trigger-<trigger type>")}\`; every display type's properties: \`GET ${urls.part("conditions-display-<display type>")}\` (each listed in the index).\n`
+      : "";
+  return `${head}${note}\n${body(optionLines(r, r.entries.filter((e) => e.tab === tab.key && ownScope(e))))}\n`;
 }

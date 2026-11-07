@@ -7,7 +7,8 @@ import { requestOrigin } from "@/server/request-origin";
 
 /**
  * GET /<game>/docs/agents/options/<part>.md[?ref=<addon version>]: one part of the option ↔ table reference
- * (`optionReferenceParts`: `keys`, a tab, `region-<display type>`, `trigger`, `trigger-<trigger type>`), listed in
+ * (`optionReferenceParts`: `keys`, a tab, `region-<display type>`, `trigger`, `trigger-<trigger type>`,
+ * `conditions-trigger-<trigger type>`, `conditions-display-<display type>`), listed in
  * its index /<game>/docs/agents/options.md. 404 for a part that isn't one.
  */
 export async function GET(request: Request, ctx: RouteContext<"/[game]/docs/agents/options/[part]">) {

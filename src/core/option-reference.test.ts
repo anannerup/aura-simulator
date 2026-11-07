@@ -3,16 +3,19 @@
  * skipped when the zip can't be downloaded): every option of every tab of every display type has an entry, an
  * entry's table paths are exactly what its set() changes when the edit is made again here (on every display type,
  * trigger type, event and added part it lists), diffed independently of the generator, and each path names the same
- * key in the aura's wago JSON.
+ * key in the aura's wago JSON. Every trigger type's (and event's) condition checks are there, and every check,
+ * property and their op/value fields write exactly what choosing them again here writes.
  */
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import {
   isLuaTable,
   loadAddon,
+  plainText,
   toWagoJson,
   type AddonGameId,
   type AuraCore,
   type AuraState,
+  type ConditionField,
   type LuaValue,
   type OptionNode,
   type OptionReference,
@@ -199,7 +202,8 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
     ready(ctx);
     console.log(`option reference (${game}): ${reference.entries.length} entries, ${JSON.stringify(reference).length} bytes, ${Math.round(generationMs)} ms`);
     expect(JSON.parse(JSON.stringify(reference))).toEqual(reference);
-    expect(generationMs).toBeLessThan(180_000);
+    // About a minute and a half per game on an idle machine (the condition checks and properties take a third of it).
+    expect(generationMs).toBeLessThan(300_000);
     expect(reference.regionTypes).toEqual(expect.arrayContaining(["icon", "aurabar", "text", "group", "dynamicgroup"]));
   });
 
@@ -308,4 +312,149 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
       for (const i of indices) expect(reference.entries[i].writes.map((p) => p.replace(/(^|\.)\d+(?=\.|$)/g, "$1#")), path).toContain(path);
     }
   });
+  test("every trigger type's condition checks are there, with the keys replaying each writes", { timeout: 1_200_000 }, async (ctx) => {
+    ready(ctx);
+    const { conditions } = reference;
+    const wrong: string[] = [];
+    let replayed = 0;
+    const sets = reference.triggerTypes.flatMap(({ type, events }) => (events?.map(([e]) => String(e)) ?? [undefined]).map((event) => ({ type, event })));
+    for (const { type, event } of sets) {
+      const where = `${type} ${event ?? ""}`;
+      const set = conditions.checks.find((s) => s.triggerType === type && s.event === event);
+      if (!set) {
+        wrong.push(`${where}: no checks`);
+        continue;
+      }
+      const typed = (await baseFor({ regionType: conditions.regionType, triggerType: type, ...(event !== undefined && { event }) }, "trigger"))!;
+      const base = await withCondition(typed);
+      const ifNode = await selectWithLabels(base, set.checks.filter((c) => !c.requires).map((c) => c.label));
+      if (!ifNode) {
+        wrong.push(`${where}: no If select with the checks' labels`);
+        continue;
+      }
+      // Every If choice of trigger 1 is a check of the set, and writes what the check says.
+      const seen = new Set<string>();
+      for (const [value, label] of ifNode.values ?? []) {
+        const edit = await core!.setOption(base, { tab: "conditions", path: ifNode.path }, value);
+        const writes = diff(base.aura, edit.aura).sort();
+        if (!writes.includes("conditions.1.check.trigger") || (edit.aura.conditions as { check: { trigger: unknown } }[])[0].check.trigger !== 1) continue;
+        replayed++;
+        const check = set.checks.find((c) => c.label === plainText(label).trim() && !c.requires);
+        if (!check) {
+          wrong.push(`${where}: If "${plainText(label).trim()}" is missing`);
+          continue;
+        }
+        seen.add(check.label);
+        if (JSON.stringify(writes) !== JSON.stringify(check.writes)) wrong.push(`${where} ${check.label}: wrote ${JSON.stringify(writes)}, check says ${JSON.stringify(check.writes)}`);
+        wrong.push(...(await replayFields({ aura: edit.aura, children: base.children }, check.fields, `${where} ${check.label}`)));
+      }
+      for (const c of set.checks.filter((x) => !x.requires && !seen.has(x.label))) wrong.push(`${where}: ${c.label} isn't an If choice`);
+      // A check that needs a Trigger setting: offered once it is set, and writes what the check says.
+      for (const c of set.checks.filter((x) => x.requires)) {
+        const set1 = await core!.setOption(base, { tab: "trigger", path: c.requires!.option }, c.requires!.value);
+        const withSetting = { aura: set1.aura, children: base.children };
+        const node = (await selectWithLabels(withSetting, [c.label]))!;
+        const choice = node?.values?.find(([, l]) => plainText(l).trim() === c.label);
+        if (!choice) {
+          wrong.push(`${where}: ${c.label} isn't offered after ${c.requires!.name}`);
+          continue;
+        }
+        replayed++;
+        const edit = await core!.setOption(withSetting, { tab: "conditions", path: node.path }, choice[0]);
+        const writes = diff(withSetting.aura, edit.aura).sort();
+        if (JSON.stringify(writes) !== JSON.stringify(c.writes)) wrong.push(`${where} ${c.label}: wrote ${JSON.stringify(writes)}, check says ${JSON.stringify(c.writes)}`);
+        wrong.push(...(await replayFields({ aura: edit.aura, children: base.children }, c.fields, `${where} ${c.label}`)));
+      }
+    }
+    const variables = (type: string, event?: string) =>
+      conditions.checks.find((s) => s.triggerType === type && s.event === event)?.checks.map((c) => c.variable) ?? [];
+    // The variables an agent found missing: Aura(s) Found (with Show On "Always"), Item Count's stacks, item cooldown
+    // and weapon enchant checks.
+    expect(variables("aura2")).toContain("buffed");
+    expect(conditions.checks.find((s) => s.triggerType === "aura2")!.checks.find((c) => c.variable === "buffed")!.requires!.wrote).toEqual({
+      "triggers.1.trigger.matchesShowOn": "showAlways",
+    });
+    expect(variables("item", "Item Count")).toContain("stacks");
+    expect(variables("item", "Cooldown Progress (Item)")).toContain("onCooldown");
+    expect(variables("item", "Weapon Enchant")).toContain("enchanted");
+    expect(conditions.global.map((c) => c.variable)).toEqual(expect.arrayContaining(["AND", "OR", "incombat", "alwaystrue"]));
+    console.log(`replayed ${replayed} condition checks`);
+    expect(replayed).toBeGreaterThan(300);
+    expect(wrong).toEqual([]);
+  });
+
+  test("every display type's condition properties write what replaying them writes", { timeout: 1_200_000 }, async (ctx) => {
+    ready(ctx);
+    const wrong: string[] = [];
+    let replayed = 0;
+    for (const regionType of reference.regionTypes.filter((t) => !t.endsWith("group"))) {
+      if (!reference.conditions.properties.some((p) => p.regionType === regionType)) wrong.push(`${regionType}: no properties`);
+    }
+    for (const set of reference.conditions.properties) {
+      const where = `${set.regionType} (${set.added.name})`;
+      // The display's new aura, settled, with one sub element of each kind the Display tab's Add buttons add.
+      const fresh = await newState(set.regionType);
+      let state = fresh;
+      for (const { key } of (await core!.options(fresh)).tabs) state = await settle(state, key);
+      const adds = walkOptions(await tree(state, "region")).filter((n) => n.type === "execute" && n.canRun && !n.hidden && !n.disabled && /^Add\b/.test(n.name ?? ""));
+      for (const add of adds) {
+        const e = await core!.setOption(state, { tab: "region", path: add.path });
+        const count = (a: AuraState["aura"]) => (Array.isArray(a.subRegions) ? a.subRegions.length : 0);
+        if (count(e.aura) > count(state.aura)) state = { aura: e.aura, children: e.children ?? state.children };
+      }
+      const types = ((state.aura.subRegions as { type: string }[] | undefined) ?? []).map((s) => s.type);
+      expect(types, where).toEqual(set.subRegions.map((s) => s.type));
+      const added = await core!.setOption(state, { tab: "conditions", path: set.added.option });
+      const base = { aura: added.aura, children: added.children ?? state.children };
+      const thenNode = await selectWithLabels(base, set.properties.map((p) => p.label));
+      if (!thenNode) {
+        wrong.push(`${where}: no Then select with the properties' labels`);
+        continue;
+      }
+      const labels = (thenNode.values ?? []).map(([, l]) => plainText(l).trim());
+      for (const p of set.properties) {
+        const choice = thenNode.values![labels.indexOf(p.label)];
+        const edit = await core!.setOption(base, { tab: "conditions", path: thenNode.path }, choice[0]);
+        replayed++;
+        const writes = diff(base.aura, edit.aura).sort();
+        if (JSON.stringify(writes) !== JSON.stringify(p.writes)) wrong.push(`${where} ${p.label}: wrote ${JSON.stringify(writes)}, property says ${JSON.stringify(p.writes)}`);
+        wrong.push(...(await replayFields({ aura: edit.aura, children: base.children }, p.fields, `${where} ${p.label}`)));
+      }
+    }
+    console.log(`replayed ${replayed} condition properties`);
+    expect(replayed).toBeGreaterThan(300);
+    expect(wrong).toEqual([]);
+  });
 });
+
+/** `state` with a condition from the Conditions tab's first Add button. */
+async function withCondition(state: AuraState): Promise<AuraState> {
+  const add = walkOptions(await tree(state, "conditions")).find((n) => n.type === "execute" && n.canRun && /^Add\b/.test(n.name ?? ""))!;
+  const e = await core!.setOption(state, { tab: "conditions", path: add.path });
+  return { aura: e.aura, children: e.children ?? state.children };
+}
+
+/** The Conditions tab's select offering every one of `labels` (If: the checks; Then: the properties). */
+async function selectWithLabels(state: AuraState, labels: string[]): Promise<OptionNode | undefined> {
+  return walkOptions(await tree(state, "conditions")).find((n) => {
+    if (n.type !== "select" || n.hidden) return false;
+    const offered = new Set((n.values ?? []).map(([, l]) => plainText(l).trim()));
+    return labels.every((l) => offered.has(l));
+  });
+}
+
+/** Replays each field's probe on the chosen condition: what it wrote must be the field's `writes`. */
+async function replayFields(chosen: AuraState, fields: ConditionField[], where: string): Promise<string[]> {
+  const wrong: string[] = [];
+  for (const f of fields) {
+    if (f.error || f.probe === undefined) continue;
+    const edit = await core!.setOption(chosen, { tab: "conditions", path: f.option }, f.probe.value).catch((e: Error) => e);
+    if (edit instanceof Error) {
+      wrong.push(`${where} ${f.option.join("/")}: ${edit.message}`);
+      continue;
+    }
+    const writes = diff(chosen.aura, edit.aura).sort();
+    if (JSON.stringify(writes) !== JSON.stringify(f.writes)) wrong.push(`${where} ${f.option.join("/")}: wrote ${JSON.stringify(writes)}, field says ${JSON.stringify(f.writes)}`);
+  }
+  return wrong;
+}

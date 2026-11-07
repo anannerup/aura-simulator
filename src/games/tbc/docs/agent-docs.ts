@@ -6,7 +6,7 @@
  */
 import type { OptionReference } from "@/core";
 import { DEFAULT_WORKSPACE_ID } from "@/workspace";
-import { optionReferenceSection, optionReferenceUrls } from "../../docs/option-reference";
+import { conditionPartsPointer, optionReferenceSection, optionReferenceUrls } from "../../docs/option-reference";
 import { compactJson, pushApiSection, situationSection, spellApiSection, wagoJsonSection, wagoLinksSection } from "../../docs/shared";
 import { tbc } from "..";
 import { TBC_MINIMAL_WAGO_JSON } from "../examples";
@@ -215,8 +215,12 @@ each one's options (\`trigger-<type>\` parts).
 `;
 }
 
-function conditions({ a }: Ctx): string {
+function conditions({ a, o, ref, r }: Ctx): string {
   return `## Conditions
+
+**Where every check and property is (generated):**
+
+${conditionPartsPointer(o, tbc.id, ref, r)}
 
 \`conditions\` is an array; each entry has a \`check\` and \`changes\`:
 
@@ -231,8 +235,10 @@ function conditions({ a }: Ctx): string {
   \`alwaystrue\`, \`customcheck\`, \`rangecheck\`), e.g. \`{"trigger": -1, "variable": "incombat", "value": 1}\`.
 - \`check.variable\` on an Aura trigger: \`expirationTime\` (Remaining Duration), \`duration\` (Total Duration),
   \`stacks\`, \`name\`, \`spellId\`, \`unitCaster\`, \`show\` (Active), … On the spell cooldown trigger:
-  \`onCooldown\`, \`expirationTime\`, \`duration\`, \`charges\`, … Every variable per trigger type is a choice of the
-  Conditions tab's "If" in the option ↔ table reference (its \`conditions\` part).
+  \`onCooldown\`, \`expirationTime\`, \`duration\`, \`charges\`, … Each trigger type (and event) has its own variables,
+  and some only with a Trigger setting (\`buffed\`, "Aura(s) Found", needs \`matchesShowOn: "showAlways"\`): look them
+  up in the trigger type's \`conditions-trigger-<type>\` part above, not in the \`conditions\` part (a new aura's
+  Aura trigger only).
 - Booleans use \`value: 1\` (true) or \`0\`, no \`op\`. Numbers: \`op\` \`<\`, \`<=\`, \`>\`, \`>=\`, \`==\`, \`~=\`, with
   \`value\` as the options write it (a string such as \`"30"\`). Text: \`==\`, \`~=\`, \`find('%s')\`, \`match('%s')\`.
 - Combining: \`{"trigger": -2, "variable": "AND", "checks": [...]}\` or \`"OR"\`; an entry with \`"linked": true\` is an
@@ -249,7 +255,7 @@ function conditionProperties(a: TbcAddonFacts): string {
     .map(([rt, props]) => `- \`${rt}\`: ${Object.entries(props).map(([k, v]) => `\`${k}\` (${v})`).join(", ")}`);
   return `
 Display properties conditions can change, per display (generated, key: options name); sub-element properties are
-\`sub.N.<key>\` of the element's fields:
+\`sub.N.<key>\`, each element kind's keys and every property's value in the \`conditions-display-<display type>\` parts:
 
 ${lines.join("\n")}
 `;

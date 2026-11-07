@@ -529,12 +529,34 @@ DISABLED_FONT_COLOR = CreateColor(0.5, 0.5, 0.5)
 function CreateVector2D(x, y) return { x = x, y = y, GetXY = function(s) return s.x, s.y end } end
 function CreateTexturePool() return { Acquire = function() return newFrame("Texture") end, ReleaseAll = function() end, Release = function() end } end
 function CreateFramePool(kind) return { Acquire = function() return newFrame(kind or "Frame") end, ReleaseAll = function() end, Release = function() end, EnumerateActive = function() return function() end end } end
+-- FrameXML's ObjectPool: Release resets an object and keeps it for the next Acquire. WeakAuras keeps its sub
+-- elements in these pools; an editor that loads thousands of aura states (the option reference) would otherwise
+-- make new frames for every one.
 function CreateObjectPool(create, reset)
-  local pool = {}
-  function pool:Acquire() return create(self) end
-  function pool:Release() end
-  function pool:ReleaseAll() end
-  function pool:EnumerateActive() return function() end end
+  local pool = { active = {}, inactive = {}, numActive = 0 }
+  function pool:Acquire()
+    local obj = table.remove(self.inactive)
+    local new = obj == nil
+    if new then obj = create(self) end
+    self.active[obj] = true
+    self.numActive = self.numActive + 1
+    return obj, new
+  end
+  function pool:Release(obj)
+    if not self.active[obj] then return false end
+    if reset then reset(self, obj) end
+    self.active[obj] = nil
+    self.numActive = self.numActive - 1
+    table.insert(self.inactive, obj)
+    return true
+  end
+  function pool:ReleaseAll()
+    local list = {}
+    for obj in pairs(self.active) do list[#list + 1] = obj end
+    for _, obj in ipairs(list) do self:Release(obj) end
+  end
+  function pool:EnumerateActive() return pairs(self.active) end
+  function pool:GetNumActive() return self.numActive end
   return pool
 end
 function CreateCallbackRegistry() return {} end

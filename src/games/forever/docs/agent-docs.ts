@@ -1,5 +1,5 @@
 import type { OptionReference } from "@/core";
-import { optionReferenceSection } from "../../docs/option-reference";
+import { conditionPartsPointer, optionReferenceSection } from "../../docs/option-reference";
 import { forever } from "..";
 import { DEFAULT_WORKSPACE_ID } from "@/workspace";
 import { compactJson, pushApiSection, situationSection, spellApiSection, wagoJsonSection, wagoLinksSection } from "../../docs/shared";
@@ -361,8 +361,12 @@ ${a ? generatedTriggerList(a) : "The addon could not be loaded, so the trigger l
 `;
 }
 
-function conditions({ a }: Ctx): string {
+function conditions({ a, o, ref, r }: Ctx): string {
   return `## Conditions
+
+**Where every check and property is (generated):**
+
+${conditionPartsPointer(o, forever.id, ref, r)}
 
 \`conditions\` is an array; each entry has a \`check\` and \`changes\`:
 
@@ -375,7 +379,9 @@ function conditions({ a }: Ctx): string {
 
 - \`check.trigger\`: the trigger number, or \`-1\` for global checks (e.g. \`{"trigger": -1, "variable": "incombat",
   "value": 1}\`).
-- \`check.variable\`: one of the trigger's condition variables. Booleans use \`value: 1\` (true) or \`0\`, no \`op\`.
+- \`check.variable\`: one of the trigger's condition variables: each trigger type (and event) has its own, and some
+  only with a Trigger setting (e.g. "Aura(s) Found", \`buffed\`, needs Show On "Always"), so look them up in the trigger
+  type's \`conditions-trigger-<type>\` part above. Booleans use \`value: 1\` (true) or \`0\`, no \`op\`.
 - \`check.op\`: \`<\`, \`<=\`, \`>\`, \`>=\`, \`==\`, \`~=\` for numbers; \`==\`, \`~=\`, \`find('%s')\`, \`match('%s')\` for text.
 - Combining: \`{"variable": "AND", "checks": [...]}\` or \`"OR"\`; an entry with \`"linked": true\` is an "Else If" of
   the one before. Later conditions win when two change the same property.
@@ -418,7 +424,8 @@ function generatedConditionProperties(a: AddonFacts): string {
     .filter(([, props]) => Object.keys(props).length)
     .map(([rt, props]) => `- \`${rt}\`: ${Object.entries(props).map(([k, v]) => `\`${k}\` (${v})`).join(", ")}`);
   return `
-Properties conditions can change per display (generated, key: options name):
+Properties conditions can change per display (generated, key: options name; sub-element properties \`sub.N.<key>\` and
+every property's value are in the \`conditions-display-<display type>\` parts):
 
 ${lines.join("\n")}
 `;
