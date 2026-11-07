@@ -13,7 +13,7 @@
 
 Lint rules enforce the direction, with a baseline that only shrinks; runtime cycles are checked. Fewer pass-through hops in the main flows.
 
-**Blocked by:** 02
+**Blocked by:** 02, 02b
 
 **Status:** ready-for-agent
 
