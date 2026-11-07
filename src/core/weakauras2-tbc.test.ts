@@ -3,6 +3,7 @@
  * with the TBC client profile. The zip is downloaded once into .cache/weakauras2; without it (offline) these skip.
  * The tab sweep for TBC is in options-sweep.test.ts.
  */
+import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { loadAddon, type AuraCore, type AuraState } from "@/core";
 import { TBC_TEST_VERSION, weakAuras2Available, weakAuras2Fetcher } from "../../tests/support/weakauras2";
@@ -127,6 +128,13 @@ describe("validation", () => {
     expect(result).not.toHaveProperty("combat");
     expect([...result.errors, ...result.warnings].filter((m) => /^(combat|modern)\./.test(m.code))).toEqual([]);
   });
+
+  test("a large real pack with custom code runs without Lua errors (wago 6N_i-H6uI, Clickable Consumables)", async (ctx) => {
+    const c = tbc(ctx);
+    const code = readFileSync("tests/fixtures/wago/6N_i-H6uI.txt", "utf8").trim();
+    const result = await c.validate(c.decode(code));
+    expect([...result.errors, ...result.warnings]).toEqual([]);
+  }, 120_000);
 
   test("a group's validation has no combat verdict either", async (ctx) => {
     const c = tbc(ctx);

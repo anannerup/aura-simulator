@@ -23,6 +23,9 @@ atan2 = function(y, x) return math.deg(math.atan2(y, x)) end
 
 function wipe(t) for k in pairs(t) do t[k] = nil end return t end
 table.wipe = wipe
+-- FrameXML TableUtil.lua; aura environments wrap timers and callbacks with them.
+function SafePack(...) local t = { ... } t.n = select("#", ...) return t end
+function SafeUnpack(t) return unpack(t, 1, t.n) end
 time = os.time
 date = os.date
 
