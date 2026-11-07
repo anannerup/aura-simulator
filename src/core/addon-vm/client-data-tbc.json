@@ -1,0 +1,5629 @@
+{
+ "source": "wago.tools DB2 exports, build 2.5.6.70577 (product wow_anniversary); scripts/client-data.ts",
+ "build": "2.5.6.70577",
+ "classes": [
+  {
+   "id": 1,
+   "file": "WARRIOR",
+   "name": "Warrior"
+  },
+  {
+   "id": 2,
+   "file": "PALADIN",
+   "name": "Paladin"
+  },
+  {
+   "id": 3,
+   "file": "HUNTER",
+   "name": "Hunter"
+  },
+  {
+   "id": 4,
+   "file": "ROGUE",
+   "name": "Rogue"
+  },
+  {
+   "id": 5,
+   "file": "PRIEST",
+   "name": "Priest"
+  },
+  {
+   "id": 7,
+   "file": "SHAMAN",
+   "name": "Shaman"
+  },
+  {
+   "id": 8,
+   "file": "MAGE",
+   "name": "Mage"
+  },
+  {
+   "id": 9,
+   "file": "WARLOCK",
+   "name": "Warlock"
+  },
+  {
+   "id": 11,
+   "file": "DRUID",
+   "name": "Druid"
+  }
+ ],
+ "talentTabs": {
+  "WARRIOR": [
+   {
+    "name": "Arms",
+    "icon": 132292
+   },
+   {
+    "name": "Fury",
+    "icon": 132347
+   },
+   {
+    "name": "Protection",
+    "icon": 134952
+   }
+  ],
+  "PALADIN": [
+   {
+    "name": "Holy",
+    "icon": 135920
+   },
+   {
+    "name": "Protection",
+    "icon": 135893
+   },
+   {
+    "name": "Retribution",
+    "icon": 135873
+   }
+  ],
+  "HUNTER": [
+   {
+    "name": "Beast Mastery",
+    "icon": 132164
+   },
+   {
+    "name": "Marksmanship",
+    "icon": 132222
+   },
+   {
+    "name": "Survival",
+    "icon": 132215
+   }
+  ],
+  "ROGUE": [
+   {
+    "name": "Assassination",
+    "icon": 132292
+   },
+   {
+    "name": "Combat",
+    "icon": 132090
+   },
+   {
+    "name": "Subtlety",
+    "icon": 132320
+   }
+  ],
+  "PRIEST": [
+   {
+    "name": "Discipline",
+    "icon": 135987
+   },
+   {
+    "name": "Holy",
+    "icon": 237542
+   },
+   {
+    "name": "Shadow",
+    "icon": 136207
+   }
+  ],
+  "SHAMAN": [
+   {
+    "name": "Elemental",
+    "icon": 136048
+   },
+   {
+    "name": "Enhancement",
+    "icon": 136051
+   },
+   {
+    "name": "Restoration",
+    "icon": 136052
+   }
+  ],
+  "MAGE": [
+   {
+    "name": "Arcane",
+    "icon": 135932
+   },
+   {
+    "name": "Fire",
+    "icon": 135810
+   },
+   {
+    "name": "Frost",
+    "icon": 135846
+   }
+  ],
+  "WARLOCK": [
+   {
+    "name": "Affliction",
+    "icon": 136145
+   },
+   {
+    "name": "Demonology",
+    "icon": 136172
+   },
+   {
+    "name": "Destruction",
+    "icon": 136186
+   }
+  ],
+  "DRUID": [
+   {
+    "name": "Balance",
+    "icon": 136096
+   },
+   {
+    "name": "Feral Combat",
+    "icon": 132276
+   },
+   {
+    "name": "Restoration",
+    "icon": 136041
+   }
+  ]
+ },
+ "talents": {
+  "WARRIOR": [
+   {
+    "tab": 1,
+    "index": 1,
+    "name": "Improved Heroic Strike",
+    "icon": 132282,
+    "tier": 1,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 2,
+    "name": "Deflection",
+    "icon": 132269,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 3,
+    "name": "Improved Rend",
+    "icon": 132155,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 4,
+    "name": "Improved Charge",
+    "icon": 132337,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 5,
+    "name": "Iron Will",
+    "icon": 135995,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 6,
+    "name": "Improved Thunder Clap",
+    "icon": 132326,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 7,
+    "name": "Improved Overpower",
+    "icon": 135275,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 8,
+    "name": "Anger Management",
+    "icon": 135881,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 9,
+    "name": "Deep Wounds",
+    "icon": 132090,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 10,
+    "name": "Two-Handed Weapon Specialization",
+    "icon": 132400,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 11,
+    "name": "Impale",
+    "icon": 132312,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 12,
+    "name": "Poleaxe Specialization",
+    "icon": 132397,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 13,
+    "name": "Death Wish",
+    "icon": 136146,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 14,
+    "name": "Mace Specialization",
+    "icon": 133476,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 15,
+    "name": "Sword Specialization",
+    "icon": 135328,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 16,
+    "name": "Improved Intercept",
+    "icon": 132307,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 17,
+    "name": "Improved Hamstring",
+    "icon": 132316,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 18,
+    "name": "Improved Disciplines",
+    "icon": 132346,
+    "tier": 6,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 19,
+    "name": "Blood Frenzy",
+    "icon": 132334,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 20,
+    "name": "Mortal Strike",
+    "icon": 132355,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 21,
+    "name": "Second Wind",
+    "icon": 132175,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 22,
+    "name": "Improved Mortal Strike",
+    "icon": 132355,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 23,
+    "name": "Endless Rage",
+    "icon": 132344,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 1,
+    "name": "Booming Voice",
+    "icon": 136075,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 2,
+    "name": "Cruelty",
+    "icon": 132292,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 3,
+    "name": "Improved Demoralizing Shout",
+    "icon": 132366,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 4,
+    "name": "Unbridled Wrath",
+    "icon": 136097,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 5,
+    "name": "Improved Cleave",
+    "icon": 132338,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 6,
+    "name": "Piercing Howl",
+    "icon": 136147,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 7,
+    "name": "Blood Craze",
+    "icon": 136218,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 8,
+    "name": "Commanding Presence",
+    "icon": 136035,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 9,
+    "name": "Dual Wield Specialization",
+    "icon": 132147,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 10,
+    "name": "Improved Execute",
+    "icon": 135358,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 11,
+    "name": "Enrage",
+    "icon": 136224,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 12,
+    "name": "Improved Slam",
+    "icon": 132340,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 13,
+    "name": "Sweeping Strikes",
+    "icon": 132306,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 14,
+    "name": "Weapon Mastery",
+    "icon": 132367,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 15,
+    "name": "Improved Berserker Rage",
+    "icon": 136009,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 16,
+    "name": "Flurry",
+    "icon": 132152,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 17,
+    "name": "Precision",
+    "icon": 132222,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 18,
+    "name": "Bloodthirst",
+    "icon": 136012,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 19,
+    "name": "Improved Whirlwind",
+    "icon": 132369,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 20,
+    "name": "Improved Berserker Stance",
+    "icon": 132275,
+    "tier": 8,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 21,
+    "name": "Rampage",
+    "icon": 132352,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 1,
+    "name": "Improved Bloodrage",
+    "icon": 132277,
+    "tier": 1,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 2,
+    "name": "Tactical Mastery",
+    "icon": 136031,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 3,
+    "name": "Anticipation",
+    "icon": 136056,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 4,
+    "name": "Shield Specialization",
+    "icon": 134952,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 5,
+    "name": "Toughness",
+    "icon": 135892,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 6,
+    "name": "Last Stand",
+    "icon": 135871,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 7,
+    "name": "Improved Shield Block",
+    "icon": 132110,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 8,
+    "name": "Improved Revenge",
+    "icon": 132353,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 9,
+    "name": "Defiance",
+    "icon": 132347,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 10,
+    "name": "Improved Sunder Armor",
+    "icon": 132363,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 11,
+    "name": "Improved Disarm",
+    "icon": 132343,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 12,
+    "name": "Improved Taunt",
+    "icon": 136080,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 13,
+    "name": "Improved Shield Wall",
+    "icon": 132362,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 14,
+    "name": "Concussion Blow",
+    "icon": 132325,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 15,
+    "name": "Improved Shield Bash",
+    "icon": 132357,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 16,
+    "name": "Shield Mastery",
+    "icon": 132360,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 17,
+    "name": "One-Handed Weapon Specialization",
+    "icon": 135321,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 18,
+    "name": "Improved Defensive Stance",
+    "icon": 132341,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 19,
+    "name": "Shield Slam",
+    "icon": 134951,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 20,
+    "name": "Focused Rage",
+    "icon": 132345,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 21,
+    "name": "Vitality",
+    "icon": 133123,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 22,
+    "name": "Devastate",
+    "icon": 135291,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   }
+  ],
+  "PALADIN": [
+   {
+    "tab": 1,
+    "index": 1,
+    "name": "Divine Strength",
+    "icon": 132154,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 2,
+    "name": "Divine Intellect",
+    "icon": 136090,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 3,
+    "name": "Spiritual Focus",
+    "icon": 135736,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 4,
+    "name": "Improved Seal of Righteousness",
+    "icon": 132325,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 5,
+    "name": "Healing Light",
+    "icon": 135920,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 6,
+    "name": "Aura Mastery",
+    "icon": 135872,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 7,
+    "name": "Improved Lay on Hands",
+    "icon": 135928,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 8,
+    "name": "Unyielding Faith",
+    "icon": 135984,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 9,
+    "name": "Illumination",
+    "icon": 135913,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 10,
+    "name": "Improved Blessing of Wisdom",
+    "icon": 135970,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 11,
+    "name": "Pure of Heart",
+    "icon": 135948,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 12,
+    "name": "Divine Favor",
+    "icon": 135915,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 13,
+    "name": "Sanctified Light",
+    "icon": 135917,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 14,
+    "name": "Purifying Power",
+    "icon": 135950,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 15,
+    "name": "Holy Power",
+    "icon": 135938,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 16,
+    "name": "Light's Grace",
+    "icon": 135931,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 17,
+    "name": "Holy Shock",
+    "icon": 135972,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 18,
+    "name": "Blessed Life",
+    "icon": 135876,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 19,
+    "name": "Holy Guidance",
+    "icon": 135921,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 20,
+    "name": "Divine Illumination",
+    "icon": 135895,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 1,
+    "name": "Improved Devotion Aura",
+    "icon": 135893,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 2,
+    "name": "Redoubt",
+    "icon": 132110,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 3,
+    "name": "Precision",
+    "icon": 132282,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 4,
+    "name": "Guardian's Favor",
+    "icon": 135964,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 5,
+    "name": "Toughness",
+    "icon": 135892,
+    "tier": 2,
+    "column": 4,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 6,
+    "name": "Blessing of Kings",
+    "icon": 135995,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 7,
+    "name": "Improved Righteous Fury",
+    "icon": 135962,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 8,
+    "name": "Shield Specialization",
+    "icon": 134952,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 9,
+    "name": "Anticipation",
+    "icon": 135994,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 10,
+    "name": "Stoicism",
+    "icon": 135978,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 11,
+    "name": "Improved Hammer of Justice",
+    "icon": 135963,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 12,
+    "name": "Improved Concentration Aura",
+    "icon": 135933,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 13,
+    "name": "Spell Warding",
+    "icon": 135925,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 14,
+    "name": "Blessing of Sanctuary",
+    "icon": 136051,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 15,
+    "name": "Reckoning",
+    "icon": 135882,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 16,
+    "name": "Sacred Duty",
+    "icon": 135896,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 17,
+    "name": "One-Handed Weapon Specialization",
+    "icon": 135321,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 18,
+    "name": "Improved Holy Shield",
+    "icon": 135880,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 19,
+    "name": "Holy Shield",
+    "icon": 135880,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 20,
+    "name": "Ardent Defender",
+    "icon": 135870,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 21,
+    "name": "Combat Expertise",
+    "icon": 135986,
+    "tier": 8,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 22,
+    "name": "Avenger's Shield",
+    "icon": 135874,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 1,
+    "name": "Improved Blessing of Might",
+    "icon": 135906,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 2,
+    "name": "Benediction",
+    "icon": 135863,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 3,
+    "name": "Improved Judgement",
+    "icon": 135959,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 4,
+    "name": "Improved Seal of the Crusader",
+    "icon": 135924,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 5,
+    "name": "Deflection",
+    "icon": 132269,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 6,
+    "name": "Vindication",
+    "icon": 135985,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 7,
+    "name": "Conviction",
+    "icon": 135957,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 8,
+    "name": "Seal of Command",
+    "icon": 132347,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 9,
+    "name": "Pursuit of Justice",
+    "icon": 135937,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 10,
+    "name": "Eye for an Eye",
+    "icon": 135904,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 11,
+    "name": "Improved Retribution Aura",
+    "icon": 135873,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 12,
+    "name": "Crusade",
+    "icon": 135889,
+    "tier": 4,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 13,
+    "name": "Two-Handed Weapon Specialization",
+    "icon": 133041,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 14,
+    "name": "Sanctity Aura",
+    "icon": 135934,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 15,
+    "name": "Improved Sanctity Aura",
+    "icon": 135934,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 16,
+    "name": "Vengeance",
+    "icon": 132275,
+    "tier": 6,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 17,
+    "name": "Sanctified Judgement",
+    "icon": 135959,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 18,
+    "name": "Sanctified Seals",
+    "icon": 135924,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 19,
+    "name": "Repentance",
+    "icon": 135942,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 20,
+    "name": "Divine Purpose",
+    "icon": 135897,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 21,
+    "name": "Fanaticism",
+    "icon": 135905,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 22,
+    "name": "Crusader Strike",
+    "icon": 135891,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   }
+  ],
+  "HUNTER": [
+   {
+    "tab": 1,
+    "index": 1,
+    "name": "Improved Aspect of the Hawk",
+    "icon": 136076,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 2,
+    "name": "Endurance Training",
+    "icon": 136080,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 3,
+    "name": "Focused Fire",
+    "icon": 132210,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 4,
+    "name": "Improved Aspect of the Monkey",
+    "icon": 132159,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 5,
+    "name": "Thick Hide",
+    "icon": 134355,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 6,
+    "name": "Improved Revive Pet",
+    "icon": 132163,
+    "tier": 2,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 7,
+    "name": "Pathfinding",
+    "icon": 132242,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 8,
+    "name": "Bestial Swiftness",
+    "icon": 132120,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 9,
+    "name": "Unleashed Fury",
+    "icon": 132091,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 10,
+    "name": "Improved Mend Pet",
+    "icon": 132179,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 11,
+    "name": "Ferocity",
+    "icon": 134297,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 12,
+    "name": "Spirit Bond",
+    "icon": 132121,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 13,
+    "name": "Intimidation",
+    "icon": 132111,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 14,
+    "name": "Bestial Discipline",
+    "icon": 136006,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 15,
+    "name": "Animal Handler",
+    "icon": 132158,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 16,
+    "name": "Frenzy",
+    "icon": 134296,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 17,
+    "name": "Ferocious Inspiration",
+    "icon": 132173,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 18,
+    "name": "Bestial Wrath",
+    "icon": 132127,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 19,
+    "name": "Catlike Reflexes",
+    "icon": 132167,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 20,
+    "name": "Serpent's Swiftness",
+    "icon": 132209,
+    "tier": 8,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 21,
+    "name": "The Beast Within",
+    "icon": 132166,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 1,
+    "name": "Improved Concussive Shot",
+    "icon": 135860,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 2,
+    "name": "Lethal Shots",
+    "icon": 132312,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 3,
+    "name": "Improved Hunter's Mark",
+    "icon": 132212,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 4,
+    "name": "Efficiency",
+    "icon": 135865,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 5,
+    "name": "Go for the Throat",
+    "icon": 132174,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 6,
+    "name": "Improved Arcane Shot",
+    "icon": 132218,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 7,
+    "name": "Aimed Shot",
+    "icon": 135130,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 8,
+    "name": "Rapid Killing",
+    "icon": 132205,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 9,
+    "name": "Improved Stings",
+    "icon": 132204,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 10,
+    "name": "Mortal Shots",
+    "icon": 132271,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 11,
+    "name": "Concussive Barrage",
+    "icon": 135753,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 12,
+    "name": "Scatter Shot",
+    "icon": 132153,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 13,
+    "name": "Barrage",
+    "icon": 132330,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 14,
+    "name": "Combat Experience",
+    "icon": 132168,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 15,
+    "name": "Ranged Weapon Specialization",
+    "icon": 135615,
+    "tier": 6,
+    "column": 4,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 16,
+    "name": "Careful Aim",
+    "icon": 132217,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 17,
+    "name": "Trueshot Aura",
+    "icon": 132329,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 18,
+    "name": "Improved Barrage",
+    "icon": 132330,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 19,
+    "name": "Master Marksman",
+    "icon": 132177,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 20,
+    "name": "Silencing Shot",
+    "icon": 132323,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 1,
+    "name": "Monster Slaying",
+    "icon": 134154,
+    "tier": 1,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 2,
+    "name": "Humanoid Slaying",
+    "icon": 135942,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 3,
+    "name": "Hawk Eye",
+    "icon": 132327,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 4,
+    "name": "Savage Strikes",
+    "icon": 132277,
+    "tier": 1,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 5,
+    "name": "Entrapment",
+    "icon": 136100,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 6,
+    "name": "Deflection",
+    "icon": 132269,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 7,
+    "name": "Improved Wing Clip",
+    "icon": 132309,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 8,
+    "name": "Clever Traps",
+    "icon": 136106,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 9,
+    "name": "Survivalist",
+    "icon": 136223,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 10,
+    "name": "Deterrence",
+    "icon": 132369,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 11,
+    "name": "Trap Mastery",
+    "icon": 132149,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 12,
+    "name": "Surefooted",
+    "icon": 132219,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 13,
+    "name": "Improved Feign Death",
+    "icon": 132293,
+    "tier": 4,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 14,
+    "name": "Survival Instincts",
+    "icon": 132214,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 15,
+    "name": "Killer Instinct",
+    "icon": 135881,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 16,
+    "name": "Counterattack",
+    "icon": 132336,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 17,
+    "name": "Resourcefulness",
+    "icon": 132207,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 18,
+    "name": "Lightning Reflexes",
+    "icon": 136047,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 19,
+    "name": "Thrill of the Hunt",
+    "icon": 132216,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 20,
+    "name": "Wyvern Sting",
+    "icon": 135125,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 21,
+    "name": "Expose Weakness",
+    "icon": 132295,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 22,
+    "name": "Master Tactician",
+    "icon": 132178,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 23,
+    "name": "Readiness",
+    "icon": 132206,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   }
+  ],
+  "ROGUE": [
+   {
+    "tab": 1,
+    "index": 1,
+    "name": "Improved Eviscerate",
+    "icon": 132292,
+    "tier": 1,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 2,
+    "name": "Remorseless Attacks",
+    "icon": 132151,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 3,
+    "name": "Malice",
+    "icon": 132277,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 4,
+    "name": "Ruthlessness",
+    "icon": 132122,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 5,
+    "name": "Murder",
+    "icon": 136147,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 6,
+    "name": "Puncturing Wounds",
+    "icon": 132090,
+    "tier": 2,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 7,
+    "name": "Relentless Strikes",
+    "icon": 132340,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 8,
+    "name": "Improved Expose Armor",
+    "icon": 132354,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 9,
+    "name": "Lethality",
+    "icon": 132109,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 10,
+    "name": "Vile Poisons",
+    "icon": 132293,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 11,
+    "name": "Improved Poisons",
+    "icon": 132273,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 12,
+    "name": "Fleet Footed",
+    "icon": 132296,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 13,
+    "name": "Cold Blood",
+    "icon": 135988,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 14,
+    "name": "Improved Kidney Shot",
+    "icon": 132298,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 15,
+    "name": "Quick Recovery",
+    "icon": 132301,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 16,
+    "name": "Seal Fate",
+    "icon": 136130,
+    "tier": 6,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 17,
+    "name": "Master Poisoner",
+    "icon": 132108,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 18,
+    "name": "Vigor",
+    "icon": 136023,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 19,
+    "name": "Deadened Nerves",
+    "icon": 132286,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 20,
+    "name": "Find Weakness",
+    "icon": 132295,
+    "tier": 8,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 21,
+    "name": "Mutilate",
+    "icon": 132304,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 1,
+    "name": "Improved Gouge",
+    "icon": 132155,
+    "tier": 1,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 2,
+    "name": "Improved Sinister Strike",
+    "icon": 136189,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 3,
+    "name": "Lightning Reflexes",
+    "icon": 136047,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 4,
+    "name": "Improved Slice and Dice",
+    "icon": 132306,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 5,
+    "name": "Deflection",
+    "icon": 132269,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 6,
+    "name": "Precision",
+    "icon": 132222,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 7,
+    "name": "Endurance",
+    "icon": 136205,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 8,
+    "name": "Riposte",
+    "icon": 132336,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 9,
+    "name": "Improved Sprint",
+    "icon": 132307,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 10,
+    "name": "Improved Kick",
+    "icon": 132219,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 11,
+    "name": "Dagger Specialization",
+    "icon": 135641,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 12,
+    "name": "Dual Wield Specialization",
+    "icon": 132147,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 13,
+    "name": "Mace Specialization",
+    "icon": 133476,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 14,
+    "name": "Blade Flurry",
+    "icon": 132350,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 15,
+    "name": "Sword Specialization",
+    "icon": 135328,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 16,
+    "name": "Fist Weapon Specialization",
+    "icon": 132938,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 17,
+    "name": "Blade Twisting",
+    "icon": 132283,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 18,
+    "name": "Weapon Expertise",
+    "icon": 135882,
+    "tier": 6,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 19,
+    "name": "Aggression",
+    "icon": 132275,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 20,
+    "name": "Vitality",
+    "icon": 132353,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 21,
+    "name": "Adrenaline Rush",
+    "icon": 136206,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 22,
+    "name": "Nerves of Steel",
+    "icon": 132300,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 23,
+    "name": "Combat Potency",
+    "icon": 135673,
+    "tier": 8,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 24,
+    "name": "Surprise Attacks",
+    "icon": 132308,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 1,
+    "name": "Master of Deception",
+    "icon": 136129,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 2,
+    "name": "Opportunity",
+    "icon": 132366,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 3,
+    "name": "Sleight of Hand",
+    "icon": 132294,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 4,
+    "name": "Dirty Tricks",
+    "icon": 132310,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 5,
+    "name": "Camouflage",
+    "icon": 132320,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 6,
+    "name": "Initiative",
+    "icon": 136159,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 7,
+    "name": "Ghostly Strike",
+    "icon": 136136,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 8,
+    "name": "Improved Ambush",
+    "icon": 132282,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 9,
+    "name": "Setup",
+    "icon": 136056,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 10,
+    "name": "Elusiveness",
+    "icon": 135994,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 11,
+    "name": "Serrated Blades",
+    "icon": 135315,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 12,
+    "name": "Heightened Senses",
+    "icon": 132089,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 13,
+    "name": "Preparation",
+    "icon": 136121,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 14,
+    "name": "Dirty Deeds",
+    "icon": 136220,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 15,
+    "name": "Hemorrhage",
+    "icon": 136168,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 16,
+    "name": "Master of Subtlety",
+    "icon": 132299,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 17,
+    "name": "Deadliness",
+    "icon": 135540,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 18,
+    "name": "Enveloping Shadows",
+    "icon": 132291,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 19,
+    "name": "Premeditation",
+    "icon": 136183,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 20,
+    "name": "Cheat Death",
+    "icon": 132285,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 21,
+    "name": "Sinister Calling",
+    "icon": 132305,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 22,
+    "name": "Shadowstep",
+    "icon": 132303,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   }
+  ],
+  "PRIEST": [
+   {
+    "tab": 1,
+    "index": 1,
+    "name": "Unbreakable Will",
+    "icon": 135995,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 2,
+    "name": "Wand Specialization",
+    "icon": 135463,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 3,
+    "name": "Silent Resolve",
+    "icon": 136053,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 4,
+    "name": "Improved Power Word: Fortitude",
+    "icon": 135987,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 5,
+    "name": "Improved Power Word: Shield",
+    "icon": 135940,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 6,
+    "name": "Martyrdom",
+    "icon": 136107,
+    "tier": 2,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 7,
+    "name": "Absolution",
+    "icon": 135868,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 8,
+    "name": "Inner Focus",
+    "icon": 135863,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 9,
+    "name": "Meditation",
+    "icon": 136090,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 10,
+    "name": "Improved Inner Fire",
+    "icon": 135926,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 11,
+    "name": "Mental Agility",
+    "icon": 132156,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 12,
+    "name": "Improved Mana Burn",
+    "icon": 136170,
+    "tier": 4,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 13,
+    "name": "Mental Strength",
+    "icon": 136031,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 14,
+    "name": "Divine Spirit",
+    "icon": 135898,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 15,
+    "name": "Improved Divine Spirit",
+    "icon": 135898,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 16,
+    "name": "Focused Power",
+    "icon": 136158,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 17,
+    "name": "Force of Will",
+    "icon": 136092,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 18,
+    "name": "Focused Will",
+    "icon": 135737,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 19,
+    "name": "Power Infusion",
+    "icon": 135939,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 20,
+    "name": "Reflective Shield",
+    "icon": 135940,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 21,
+    "name": "Enlightenment",
+    "icon": 135740,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 22,
+    "name": "Pain Suppression",
+    "icon": 135936,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 1,
+    "name": "Healing Focus",
+    "icon": 135918,
+    "tier": 1,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 2,
+    "name": "Improved Renew",
+    "icon": 135953,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 3,
+    "name": "Holy Specialization",
+    "icon": 135967,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 4,
+    "name": "Spell Warding",
+    "icon": 135976,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 5,
+    "name": "Divine Fury",
+    "icon": 135971,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 6,
+    "name": "Holy Nova",
+    "icon": 135922,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 7,
+    "name": "Blessed Recovery",
+    "icon": 135877,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 8,
+    "name": "Inspiration",
+    "icon": 135928,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 9,
+    "name": "Holy Reach",
+    "icon": 135949,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 10,
+    "name": "Improved Healing",
+    "icon": 135916,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 11,
+    "name": "Searing Light",
+    "icon": 135973,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 12,
+    "name": "Healing Prayers",
+    "icon": 135943,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 13,
+    "name": "Spirit of Redemption",
+    "icon": 132864,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 14,
+    "name": "Spiritual Guidance",
+    "icon": 135977,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 15,
+    "name": "Surge of Light",
+    "icon": 135981,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 16,
+    "name": "Spiritual Healing",
+    "icon": 136057,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 17,
+    "name": "Holy Concentration",
+    "icon": 135905,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 18,
+    "name": "Lightwell",
+    "icon": 135980,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 19,
+    "name": "Blessed Resilience",
+    "icon": 135878,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 20,
+    "name": "Empowered Healing",
+    "icon": 135913,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 21,
+    "name": "Circle of Healing",
+    "icon": 135887,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 1,
+    "name": "Spirit Tap",
+    "icon": 136188,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 2,
+    "name": "Blackout",
+    "icon": 136160,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 3,
+    "name": "Shadow Affinity",
+    "icon": 136205,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 4,
+    "name": "Improved Shadow Word: Pain",
+    "icon": 136207,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 5,
+    "name": "Shadow Focus",
+    "icon": 136126,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 6,
+    "name": "Improved Psychic Scream",
+    "icon": 136184,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 7,
+    "name": "Improved Mind Blast",
+    "icon": 136224,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 8,
+    "name": "Mind Flay",
+    "icon": 136208,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 9,
+    "name": "Improved Fade",
+    "icon": 135994,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 10,
+    "name": "Shadow Reach",
+    "icon": 136130,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 11,
+    "name": "Shadow Weaving",
+    "icon": 136123,
+    "tier": 4,
+    "column": 4,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 12,
+    "name": "Silence",
+    "icon": 136164,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 13,
+    "name": "Vampiric Embrace",
+    "icon": 136230,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 14,
+    "name": "Improved Vampiric Embrace",
+    "icon": 136165,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 15,
+    "name": "Focused Mind",
+    "icon": 136035,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 16,
+    "name": "Shadow Resilience",
+    "icon": 136162,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 17,
+    "name": "Darkness",
+    "icon": 136223,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 18,
+    "name": "Shadowform",
+    "icon": 136200,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 19,
+    "name": "Shadow Power",
+    "icon": 136204,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 20,
+    "name": "Misery",
+    "icon": 136176,
+    "tier": 8,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 21,
+    "name": "Vampiric Touch",
+    "icon": 135978,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   }
+  ],
+  "SHAMAN": [
+   {
+    "tab": 1,
+    "index": 1,
+    "name": "Convection",
+    "icon": 136116,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 2,
+    "name": "Concussion",
+    "icon": 135807,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 3,
+    "name": "Earth's Grasp",
+    "icon": 136097,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 4,
+    "name": "Elemental Warding",
+    "icon": 136094,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 5,
+    "name": "Call of Flame",
+    "icon": 135817,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 6,
+    "name": "Elemental Focus",
+    "icon": 136170,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 7,
+    "name": "Reverberation",
+    "icon": 135850,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 8,
+    "name": "Call of Thunder",
+    "icon": 136014,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 9,
+    "name": "Improved Fire Totems",
+    "icon": 135824,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 10,
+    "name": "Eye of the Storm",
+    "icon": 136213,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 11,
+    "name": "Elemental Devastation",
+    "icon": 135791,
+    "tier": 4,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 12,
+    "name": "Storm Reach",
+    "icon": 136099,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 13,
+    "name": "Elemental Fury",
+    "icon": 135830,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 14,
+    "name": "Unrelenting Storm",
+    "icon": 136111,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 15,
+    "name": "Elemental Precision",
+    "icon": 136028,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 16,
+    "name": "Lightning Mastery",
+    "icon": 135990,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 17,
+    "name": "Elemental Mastery",
+    "icon": 136115,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 18,
+    "name": "Elemental Shields",
+    "icon": 136030,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 19,
+    "name": "Lightning Overload",
+    "icon": 136050,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 20,
+    "name": "Totem of Wrath",
+    "icon": 135829,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 1,
+    "name": "Ancestral Knowledge",
+    "icon": 136162,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 2,
+    "name": "Shield Specialization",
+    "icon": 134952,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 3,
+    "name": "Guardian Totems",
+    "icon": 136098,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 4,
+    "name": "Thundering Strikes",
+    "icon": 132325,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 5,
+    "name": "Improved Ghost Wolf",
+    "icon": 136095,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 6,
+    "name": "Improved Lightning Shield",
+    "icon": 136051,
+    "tier": 2,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 7,
+    "name": "Enhancing Totems",
+    "icon": 136023,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 8,
+    "name": "Shamanistic Focus",
+    "icon": 136027,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 9,
+    "name": "Anticipation",
+    "icon": 136056,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 10,
+    "name": "Flurry",
+    "icon": 132152,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 11,
+    "name": "Toughness",
+    "icon": 135892,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 12,
+    "name": "Improved Weapon Totems",
+    "icon": 135792,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 13,
+    "name": "Spirit Weapons",
+    "icon": 132269,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 14,
+    "name": "Elemental Weapons",
+    "icon": 135814,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 15,
+    "name": "Mental Quickness",
+    "icon": 136055,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 16,
+    "name": "Weapon Mastery",
+    "icon": 132215,
+    "tier": 6,
+    "column": 4,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 17,
+    "name": "Dual Wield Specialization",
+    "icon": 132148,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 18,
+    "name": "Dual Wield",
+    "icon": 132147,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 19,
+    "name": "Stormstrike",
+    "icon": 132314,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 20,
+    "name": "Unleashed Rage",
+    "icon": 136110,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 21,
+    "name": "Shamanistic Rage",
+    "icon": 136088,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 1,
+    "name": "Improved Healing Wave",
+    "icon": 136052,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 2,
+    "name": "Tidal Focus",
+    "icon": 135859,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 3,
+    "name": "Improved Reincarnation",
+    "icon": 136080,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 4,
+    "name": "Ancestral Healing",
+    "icon": 136109,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 5,
+    "name": "Totemic Focus",
+    "icon": 136057,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 6,
+    "name": "Nature's Guidance",
+    "icon": 135860,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 7,
+    "name": "Healing Focus",
+    "icon": 136043,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 8,
+    "name": "Totemic Mastery",
+    "icon": 136069,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 9,
+    "name": "Healing Grace",
+    "icon": 136041,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 10,
+    "name": "Restorative Totems",
+    "icon": 136053,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 11,
+    "name": "Tidal Mastery",
+    "icon": 136107,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 12,
+    "name": "Healing Way",
+    "icon": 136044,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 13,
+    "name": "Nature's Swiftness",
+    "icon": 136076,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 14,
+    "name": "Focused Mind",
+    "icon": 136035,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 15,
+    "name": "Purification",
+    "icon": 135865,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 16,
+    "name": "Mana Tide Totem",
+    "icon": 135861,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 17,
+    "name": "Nature's Guardian",
+    "icon": 136060,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 18,
+    "name": "Nature's Blessing",
+    "icon": 136059,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 19,
+    "name": "Improved Chain Heal",
+    "icon": 136042,
+    "tier": 8,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 20,
+    "name": "Earth Shield",
+    "icon": 136089,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   }
+  ],
+  "MAGE": [
+   {
+    "tab": 1,
+    "index": 1,
+    "name": "Arcane Subtlety",
+    "icon": 135894,
+    "tier": 1,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 2,
+    "name": "Arcane Focus",
+    "icon": 135892,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 3,
+    "name": "Improved Arcane Missiles",
+    "icon": 136096,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 4,
+    "name": "Wand Specialization",
+    "icon": 135463,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 5,
+    "name": "Magic Absorption",
+    "icon": 136011,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 6,
+    "name": "Arcane Concentration",
+    "icon": 136170,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 7,
+    "name": "Magic Attunement",
+    "icon": 136006,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 8,
+    "name": "Arcane Impact",
+    "icon": 136116,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 9,
+    "name": "Arcane Fortitude",
+    "icon": 135733,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 10,
+    "name": "Improved Mana Shield",
+    "icon": 136153,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 11,
+    "name": "Improved Counterspell",
+    "icon": 135856,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 12,
+    "name": "Arcane Meditation",
+    "icon": 136208,
+    "tier": 4,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 13,
+    "name": "Improved Blink",
+    "icon": 135736,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 14,
+    "name": "Presence of Mind",
+    "icon": 136031,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 15,
+    "name": "Arcane Mind",
+    "icon": 136129,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 16,
+    "name": "Prismatic Cloak",
+    "icon": 135752,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 17,
+    "name": "Arcane Instability",
+    "icon": 136222,
+    "tier": 6,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 18,
+    "name": "Arcane Potency",
+    "icon": 135732,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 19,
+    "name": "Empowered Arcane Missiles",
+    "icon": 136096,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 20,
+    "name": "Arcane Power",
+    "icon": 136048,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 21,
+    "name": "Spell Power",
+    "icon": 135734,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 22,
+    "name": "Mind Mastery",
+    "icon": 135740,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 23,
+    "name": "Slow",
+    "icon": 136091,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 1,
+    "name": "Improved Fireball",
+    "icon": 135812,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 2,
+    "name": "Impact",
+    "icon": 135821,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 3,
+    "name": "Ignite",
+    "icon": 135818,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 4,
+    "name": "Flame Throwing",
+    "icon": 135815,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 5,
+    "name": "Improved Fire Blast",
+    "icon": 135807,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 6,
+    "name": "Incineration",
+    "icon": 135813,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 7,
+    "name": "Improved Flamestrike",
+    "icon": 135826,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 8,
+    "name": "Pyroblast",
+    "icon": 135808,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 9,
+    "name": "Burning Soul",
+    "icon": 135805,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 10,
+    "name": "Improved Scorch",
+    "icon": 135827,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 11,
+    "name": "Molten Shields",
+    "icon": 135806,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 12,
+    "name": "Master of Elements",
+    "icon": 135820,
+    "tier": 4,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 13,
+    "name": "Playing with Fire",
+    "icon": 135823,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 14,
+    "name": "Critical Mass",
+    "icon": 136115,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 15,
+    "name": "Blast Wave",
+    "icon": 135903,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 16,
+    "name": "Blazing Speed",
+    "icon": 135788,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 17,
+    "name": "Fire Power",
+    "icon": 135817,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 18,
+    "name": "Pyromaniac",
+    "icon": 135789,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 19,
+    "name": "Combustion",
+    "icon": 135824,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 20,
+    "name": "Molten Fury",
+    "icon": 135822,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 21,
+    "name": "Empowered Fireball",
+    "icon": 135812,
+    "tier": 8,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 22,
+    "name": "Dragon's Breath",
+    "icon": 134153,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 1,
+    "name": "Frost Warding",
+    "icon": 135850,
+    "tier": 1,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 2,
+    "name": "Improved Frostbolt",
+    "icon": 135846,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 3,
+    "name": "Elemental Precision",
+    "icon": 135989,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 4,
+    "name": "Ice Shards",
+    "icon": 135855,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 5,
+    "name": "Frostbite",
+    "icon": 135842,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 6,
+    "name": "Improved Frost Nova",
+    "icon": 135840,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 7,
+    "name": "Permafrost",
+    "icon": 135864,
+    "tier": 2,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 8,
+    "name": "Piercing Ice",
+    "icon": 135845,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 9,
+    "name": "Icy Veins",
+    "icon": 135838,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 10,
+    "name": "Improved Blizzard",
+    "icon": 135857,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 11,
+    "name": "Arctic Reach",
+    "icon": 136141,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 12,
+    "name": "Frost Channeling",
+    "icon": 135860,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 13,
+    "name": "Shatter",
+    "icon": 135849,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 14,
+    "name": "Frozen Core",
+    "icon": 135851,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 15,
+    "name": "Cold Snap",
+    "icon": 135865,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 16,
+    "name": "Improved Cone of Cold",
+    "icon": 135852,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 17,
+    "name": "Ice Floes",
+    "icon": 135854,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 18,
+    "name": "Winter's Chill",
+    "icon": 135836,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 19,
+    "name": "Ice Barrier",
+    "icon": 135988,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 20,
+    "name": "Arctic Winds",
+    "icon": 135833,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 21,
+    "name": "Empowered Frostbolt",
+    "icon": 135846,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 22,
+    "name": "Summon Water Elemental",
+    "icon": 135862,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   }
+  ],
+  "WARLOCK": [
+   {
+    "tab": 1,
+    "index": 1,
+    "name": "Suppression",
+    "icon": 136230,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 2,
+    "name": "Improved Corruption",
+    "icon": 136118,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 3,
+    "name": "Improved Curse of Weakness",
+    "icon": 136138,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 4,
+    "name": "Improved Drain Soul",
+    "icon": 136163,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 5,
+    "name": "Improved Life Tap",
+    "icon": 136126,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 6,
+    "name": "Soul Siphon",
+    "icon": 136169,
+    "tier": 2,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 7,
+    "name": "Improved Curse of Agony",
+    "icon": 136139,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 8,
+    "name": "Fel Concentration",
+    "icon": 136157,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 9,
+    "name": "Amplify Curse",
+    "icon": 136132,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 10,
+    "name": "Grim Reach",
+    "icon": 136127,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 11,
+    "name": "Nightfall",
+    "icon": 136223,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 12,
+    "name": "Empowered Corruption",
+    "icon": 136118,
+    "tier": 4,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 13,
+    "name": "Shadow Embrace",
+    "icon": 136198,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 14,
+    "name": "Siphon Life",
+    "icon": 136188,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 15,
+    "name": "Curse of Exhaustion",
+    "icon": 136162,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 16,
+    "name": "Shadow Mastery",
+    "icon": 136195,
+    "tier": 6,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 17,
+    "name": "Contagion",
+    "icon": 136180,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 18,
+    "name": "Dark Pact",
+    "icon": 136141,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 19,
+    "name": "Improved Howl of Terror",
+    "icon": 136147,
+    "tier": 8,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 20,
+    "name": "Malediction",
+    "icon": 136137,
+    "tier": 8,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 21,
+    "name": "Unstable Affliction",
+    "icon": 136228,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 1,
+    "name": "Improved Healthstone",
+    "icon": 135230,
+    "tier": 1,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 2,
+    "name": "Improved Imp",
+    "icon": 136218,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 3,
+    "name": "Demonic Embrace",
+    "icon": 136172,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 4,
+    "name": "Improved Health Funnel",
+    "icon": 136168,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 5,
+    "name": "Improved Voidwalker",
+    "icon": 136221,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 6,
+    "name": "Fel Intellect",
+    "icon": 135932,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 7,
+    "name": "Improved Sayaad",
+    "icon": 4352493,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 8,
+    "name": "Fel Domination",
+    "icon": 136082,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 9,
+    "name": "Fel Stamina",
+    "icon": 136121,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 10,
+    "name": "Demonic Aegis",
+    "icon": 136185,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 11,
+    "name": "Master Summoner",
+    "icon": 136164,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 12,
+    "name": "Unholy Power",
+    "icon": 136206,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 13,
+    "name": "Improved Subjugate Demon",
+    "icon": 136154,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 14,
+    "name": "Demonic Sacrifice",
+    "icon": 136184,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 15,
+    "name": "Master Conjuror",
+    "icon": 132386,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 16,
+    "name": "Mana Feed",
+    "icon": 136171,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 17,
+    "name": "Master Demonologist",
+    "icon": 136203,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 18,
+    "name": "Demonic Resilience",
+    "icon": 136149,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 19,
+    "name": "Soul Link",
+    "icon": 136160,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 20,
+    "name": "Demonic Knowledge",
+    "icon": 136165,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 21,
+    "name": "Demonic Tactics",
+    "icon": 136150,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 22,
+    "name": "Summon Felguard",
+    "icon": 136216,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 1,
+    "name": "Improved Shadow Bolt",
+    "icon": 136197,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 2,
+    "name": "Cataclysm",
+    "icon": 135831,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 3,
+    "name": "Bane",
+    "icon": 136146,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 4,
+    "name": "Aftermath",
+    "icon": 135805,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 5,
+    "name": "Improved Firebolt",
+    "icon": 135809,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 6,
+    "name": "Improved Lash of Pain",
+    "icon": 136136,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 7,
+    "name": "Devastation",
+    "icon": 135813,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 8,
+    "name": "Shadowburn",
+    "icon": 136191,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 9,
+    "name": "Intensity",
+    "icon": 135819,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 10,
+    "name": "Destructive Reach",
+    "icon": 136133,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 11,
+    "name": "Improved Searing Pain",
+    "icon": 135827,
+    "tier": 4,
+    "column": 4,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 12,
+    "name": "Pyroclasm",
+    "icon": 135830,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 13,
+    "name": "Improved Immolate",
+    "icon": 135817,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 14,
+    "name": "Ruin",
+    "icon": 136207,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 15,
+    "name": "Nether Protection",
+    "icon": 136178,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 16,
+    "name": "Emberstorm",
+    "icon": 135826,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 17,
+    "name": "Backlash",
+    "icon": 135823,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 18,
+    "name": "Conflagrate",
+    "icon": 135807,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 19,
+    "name": "Soul Leech",
+    "icon": 136214,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 20,
+    "name": "Shadow and Flame",
+    "icon": 136196,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 21,
+    "name": "Shadowfury",
+    "icon": 136201,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   }
+  ],
+  "DRUID": [
+   {
+    "tab": 1,
+    "index": 1,
+    "name": "Starlight Wrath",
+    "icon": 136006,
+    "tier": 1,
+    "column": 1,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 2,
+    "name": "Nature's Grasp",
+    "icon": 136063,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 3,
+    "name": "Improved Nature's Grasp",
+    "icon": 136063,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 4
+   },
+   {
+    "tab": 1,
+    "index": 4,
+    "name": "Control of Nature",
+    "icon": 136100,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 5,
+    "name": "Focused Starlight",
+    "icon": 135138,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 6,
+    "name": "Improved Moonfire",
+    "icon": 136096,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 7,
+    "name": "Brambles",
+    "icon": 136104,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 8,
+    "name": "Insect Swarm",
+    "icon": 136045,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 9,
+    "name": "Nature's Reach",
+    "icon": 136065,
+    "tier": 3,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 10,
+    "name": "Vengeance",
+    "icon": 136075,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 11,
+    "name": "Celestial Focus",
+    "icon": 135753,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 12,
+    "name": "Lunar Guidance",
+    "icon": 132132,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 13,
+    "name": "Nature's Grace",
+    "icon": 136062,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 14,
+    "name": "Moonglow",
+    "icon": 136087,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 15,
+    "name": "Moonfury",
+    "icon": 136057,
+    "tier": 6,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 16,
+    "name": "Balance of Power",
+    "icon": 132113,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 1,
+    "index": 17,
+    "name": "Dreamstate",
+    "icon": 132123,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 18,
+    "name": "Moonkin Form",
+    "icon": 136036,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 1,
+    "index": 19,
+    "name": "Improved Faerie Fire",
+    "icon": 136033,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 1,
+    "index": 20,
+    "name": "Wrath of Cenarius",
+    "icon": 132146,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 1,
+    "index": 21,
+    "name": "Force of Nature",
+    "icon": 132129,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 1,
+    "name": "Ferocity",
+    "icon": 132190,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 2,
+    "name": "Feral Aggression",
+    "icon": 132121,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 3,
+    "name": "Feral Instinct",
+    "icon": 132089,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 4,
+    "name": "Brutal Impact",
+    "icon": 132114,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 5,
+    "name": "Thick Hide",
+    "icon": 134355,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 6,
+    "name": "Feral Swiftness",
+    "icon": 136095,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 7,
+    "name": "Feral Charge",
+    "icon": 132183,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 8,
+    "name": "Sharpened Claws",
+    "icon": 134297,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 9,
+    "name": "Shredding Attacks",
+    "icon": 136231,
+    "tier": 4,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 10,
+    "name": "Predatory Strikes",
+    "icon": 132185,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 11,
+    "name": "Primal Fury",
+    "icon": 132278,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 12,
+    "name": "Savage Fury",
+    "icon": 132141,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 13,
+    "name": "Faerie Fire (Feral)",
+    "icon": 136033,
+    "tier": 5,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 14,
+    "name": "Nurturing Instinct",
+    "icon": 132130,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 15,
+    "name": "Heart of the Wild",
+    "icon": 135879,
+    "tier": 6,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 16,
+    "name": "Survival of the Fittest",
+    "icon": 132126,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 17,
+    "name": "Primal Tenacity",
+    "icon": 132139,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 2,
+    "index": 18,
+    "name": "Leader of the Pack",
+    "icon": 136112,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 2,
+    "index": 19,
+    "name": "Improved Leader of the Pack",
+    "icon": 136112,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 2
+   },
+   {
+    "tab": 2,
+    "index": 20,
+    "name": "Predatory Instincts",
+    "icon": 132138,
+    "tier": 8,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 2,
+    "index": 21,
+    "name": "Mangle",
+    "icon": 132135,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 1,
+    "name": "Improved Mark of the Wild",
+    "icon": 136078,
+    "tier": 1,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 2,
+    "name": "Furor",
+    "icon": 135881,
+    "tier": 1,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 3,
+    "name": "Naturalist",
+    "icon": 136041,
+    "tier": 2,
+    "column": 1,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 4,
+    "name": "Nature's Focus",
+    "icon": 136042,
+    "tier": 2,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 5,
+    "name": "Natural Shapeshifter",
+    "icon": 136116,
+    "tier": 2,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 6,
+    "name": "Intensity",
+    "icon": 135863,
+    "tier": 3,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 7,
+    "name": "Subtlety",
+    "icon": 132150,
+    "tier": 3,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 8,
+    "name": "Omen of Clarity",
+    "icon": 136017,
+    "tier": 3,
+    "column": 3,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 9,
+    "name": "Tranquil Spirit",
+    "icon": 135900,
+    "tier": 4,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 10,
+    "name": "Improved Rejuvenation",
+    "icon": 136081,
+    "tier": 4,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 11,
+    "name": "Nature's Swiftness",
+    "icon": 136076,
+    "tier": 5,
+    "column": 1,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 12,
+    "name": "Gift of Nature",
+    "icon": 136074,
+    "tier": 5,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 13,
+    "name": "Improved Tranquility",
+    "icon": 136107,
+    "tier": 5,
+    "column": 4,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 14,
+    "name": "Empowered Touch",
+    "icon": 132125,
+    "tier": 6,
+    "column": 1,
+    "maxRank": 2
+   },
+   {
+    "tab": 3,
+    "index": 15,
+    "name": "Improved Regrowth",
+    "icon": 136085,
+    "tier": 6,
+    "column": 3,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 16,
+    "name": "Living Spirit",
+    "icon": 136037,
+    "tier": 7,
+    "column": 1,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 17,
+    "name": "Swiftmend",
+    "icon": 134914,
+    "tier": 7,
+    "column": 2,
+    "maxRank": 1
+   },
+   {
+    "tab": 3,
+    "index": 18,
+    "name": "Natural Perfection",
+    "icon": 132137,
+    "tier": 7,
+    "column": 3,
+    "maxRank": 3
+   },
+   {
+    "tab": 3,
+    "index": 19,
+    "name": "Empowered Rejuvenation",
+    "icon": 132124,
+    "tier": 8,
+    "column": 2,
+    "maxRank": 5
+   },
+   {
+    "tab": 3,
+    "index": 20,
+    "name": "Tree of Life",
+    "icon": 132145,
+    "tier": 9,
+    "column": 2,
+    "maxRank": 1
+   }
+  ]
+ },
+ "difficulties": [
+  {
+   "id": 1,
+   "name": "Normal",
+   "instanceType": 1,
+   "maxPlayers": 5
+  },
+  {
+   "id": 2,
+   "name": "Heroic",
+   "instanceType": 1,
+   "maxPlayers": 5
+  },
+  {
+   "id": 3,
+   "name": "10 Player",
+   "instanceType": 2,
+   "maxPlayers": 10
+  },
+  {
+   "id": 4,
+   "name": "25 Player",
+   "instanceType": 2,
+   "maxPlayers": 25
+  },
+  {
+   "id": 9,
+   "name": "40 Player",
+   "instanceType": 2,
+   "maxPlayers": 40
+  },
+  {
+   "id": 148,
+   "name": "20 Player",
+   "instanceType": 2,
+   "maxPlayers": 20
+  },
+  {
+   "id": 173,
+   "name": "Normal",
+   "instanceType": 1,
+   "maxPlayers": 5
+  },
+  {
+   "id": 174,
+   "name": "Heroic",
+   "instanceType": 1,
+   "maxPlayers": 5
+  },
+  {
+   "id": 175,
+   "name": "10 Player",
+   "instanceType": 2,
+   "maxPlayers": 10
+  },
+  {
+   "id": 176,
+   "name": "25 Player",
+   "instanceType": 2,
+   "maxPlayers": 25
+  }
+ ],
+ "itemSubClasses": [
+  {
+   "classId": 2,
+   "subClassId": 0,
+   "name": "One-Handed Axes"
+  },
+  {
+   "classId": 2,
+   "subClassId": 1,
+   "name": "Two-Handed Axes"
+  },
+  {
+   "classId": 2,
+   "subClassId": 2,
+   "name": "Bows"
+  },
+  {
+   "classId": 2,
+   "subClassId": 3,
+   "name": "Guns"
+  },
+  {
+   "classId": 2,
+   "subClassId": 4,
+   "name": "One-Handed Maces"
+  },
+  {
+   "classId": 2,
+   "subClassId": 5,
+   "name": "Two-Handed Maces"
+  },
+  {
+   "classId": 2,
+   "subClassId": 6,
+   "name": "Polearms"
+  },
+  {
+   "classId": 2,
+   "subClassId": 7,
+   "name": "One-Handed Swords"
+  },
+  {
+   "classId": 2,
+   "subClassId": 8,
+   "name": "Two-Handed Swords"
+  },
+  {
+   "classId": 2,
+   "subClassId": 9,
+   "name": "Obsolete"
+  },
+  {
+   "classId": 2,
+   "subClassId": 10,
+   "name": "Staves"
+  },
+  {
+   "classId": 2,
+   "subClassId": 11,
+   "name": "One-Handed Exotics"
+  },
+  {
+   "classId": 2,
+   "subClassId": 12,
+   "name": "Two-Handed Exotics"
+  },
+  {
+   "classId": 2,
+   "subClassId": 13,
+   "name": "Fist Weapons"
+  },
+  {
+   "classId": 2,
+   "subClassId": 14,
+   "name": "Miscellaneous"
+  },
+  {
+   "classId": 2,
+   "subClassId": 15,
+   "name": "Daggers"
+  },
+  {
+   "classId": 2,
+   "subClassId": 16,
+   "name": "Thrown"
+  },
+  {
+   "classId": 2,
+   "subClassId": 17,
+   "name": "Spears"
+  },
+  {
+   "classId": 2,
+   "subClassId": 18,
+   "name": "Crossbows"
+  },
+  {
+   "classId": 2,
+   "subClassId": 19,
+   "name": "Wands"
+  },
+  {
+   "classId": 2,
+   "subClassId": 20,
+   "name": "Fishing Poles"
+  },
+  {
+   "classId": 4,
+   "subClassId": 0,
+   "name": "Miscellaneous"
+  },
+  {
+   "classId": 4,
+   "subClassId": 1,
+   "name": "Cloth"
+  },
+  {
+   "classId": 4,
+   "subClassId": 2,
+   "name": "Leather"
+  },
+  {
+   "classId": 4,
+   "subClassId": 3,
+   "name": "Mail"
+  },
+  {
+   "classId": 4,
+   "subClassId": 4,
+   "name": "Plate"
+  },
+  {
+   "classId": 4,
+   "subClassId": 5,
+   "name": "Cosmetic"
+  },
+  {
+   "classId": 4,
+   "subClassId": 6,
+   "name": "Shields"
+  },
+  {
+   "classId": 4,
+   "subClassId": 7,
+   "name": "Librams"
+  },
+  {
+   "classId": 4,
+   "subClassId": 8,
+   "name": "Idols"
+  },
+  {
+   "classId": 4,
+   "subClassId": 9,
+   "name": "Totems"
+  }
+ ]
+}

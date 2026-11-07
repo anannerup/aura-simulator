@@ -1,18 +1,27 @@
 import path from "node:path";
 import { createSpellCache, type SpellCache } from "./spell-cache";
+import { FOREVER_SPELLS, type SpellSource } from "./sources";
 
 export * from "./spell-cache";
-export { type FetchFn } from "./sources";
+export { FOREVER_SPELLS, TBC_SPELLS, type FetchFn, type SpellSource } from "./sources";
 
-/** Default database file: `<repo>/data/spells.sqlite`, overridable with SPELL_DB_PATH. */
-function defaultSpellDbPath(): string {
-  return process.env.SPELL_DB_PATH ?? path.join(process.cwd(), "data", "spells.sqlite");
+/** A game's database file: `<repo>/data/<source.dbFile>`, overridable with the source's environment variable. */
+export function spellDbPath(source: SpellSource): string {
+  return process.env[source.dbPathEnv] ?? path.join(process.cwd(), "data", source.dbFile);
 }
 
-const globalForCache = globalThis as typeof globalThis & { __spellCache?: SpellCache };
+const globalForCache = globalThis as typeof globalThis & { __spellCaches?: Map<string, SpellCache> };
 
-/** The app's shared spell cache (kept on globalThis so dev hot reloads reuse the connection). */
-export function getSpellCache(): SpellCache {
-  globalForCache.__spellCache ??= createSpellCache({ dbPath: defaultSpellDbPath() });
-  return globalForCache.__spellCache;
+/**
+ * A game's shared spell cache (Forever's by default), one per game. Kept on globalThis so dev hot reloads
+ * reuse the connection.
+ */
+export function getSpellCache(source: SpellSource = FOREVER_SPELLS): SpellCache {
+  const caches = (globalForCache.__spellCaches ??= new Map());
+  let cache = caches.get(source.game);
+  if (!cache) {
+    cache = createSpellCache({ source, dbPath: spellDbPath(source) });
+    caches.set(source.game, cache);
+  }
+  return cache;
 }

@@ -464,9 +464,9 @@ from Wowhead.
 
 - \`GET /api/spells/search?q=<name or ID>&limit=<1-100>\` → \`{"query", "build", "results": [{"id", "name", "icon",
   "iconUrl"}]}\`.
-- \`GET /api/spells/<id>\` → \`{"id", "found", "name", "icon", "iconUrl", "tooltip", "forever": {"name", "icon",
-  "iconFileId"}, "flags": [...]}\`. \`forever.iconFileId\` is the \`displayIcon\` for an icon or bar. \`flags\` (e.g.
-  \`not-in-forever\`, \`name-mismatch\`, \`not-synced\`) mean "double-check in the game": tell the player. 404 when no
+- \`GET /api/spells/<id>\` → \`{"id", "found", "name", "icon", "iconUrl", "tooltip", "inGame": {"name", "icon",
+  "iconFileId"}, "flags": [...]}\`. \`inGame.iconFileId\` is the \`displayIcon\` for an icon or bar. \`flags\` (e.g.
+  \`not-in-game\`, \`name-mismatch\`, \`not-synced\`) mean "double-check in the game": tell the player. 404 when no
   source knows the ID.
 - \`GET /api/spells/status\` → whether the cache is synced; \`POST /api/spells/sync\` refreshes it (slow, uses the
   internet; only when the player asks or the cache is empty).
@@ -595,7 +595,7 @@ function troubleshooting(): string {
 - **"To light a glow from a time check, compare with < and set the glow to on."**: use \`op: "<"\` and \`value: true\`.
 - **\`sub.N\` changes the wrong element**: N counts every \`subRegions\` entry from 1, backgrounds included.
 - **Padlock on the game screen in combat**: an \`aura2\` trigger freezes; use Aura (Modern).
-- **A spell ID flagged \`not-in-forever\`**: search by name for the Forever ID.
+- **A spell ID flagged \`not-in-game\`**: search by name for the Forever ID.
 - **503**: the addon version is still loading or couldn't be fetched; retry in a moment.
 `;
 }

@@ -255,7 +255,7 @@ const FLAG_TEXT: Partial<Record<SpellFlag, { label: string; tooltip: string }>> 
     label: "Unknown",
     tooltip: "Neither WoW Forever's spell list nor Wowhead knows this spell ID. Check that the ID is right.",
   },
-  "not-in-forever": {
+  "not-in-game": {
     label: "Not in Forever",
     tooltip:
       "Wowhead knows this spell, but WoW Forever's spell list doesn't. The aura may never trigger in the game; check the ID in the game.",

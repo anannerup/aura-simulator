@@ -14,7 +14,7 @@ import {
 } from "@/core";
 import { createSpellPreloader } from "@/core/addon-vm/spells";
 import { clientSpells } from "@/server/addon/client-spells";
-import { createSpellCache, type SpellCache } from "@/server/spells";
+import { createSpellCache, FOREVER_SPELLS, type SpellCache } from "@/server/spells";
 import { cachedAddonFetcher } from "../support/addon-source";
 import { createFixtureFetch } from "../fixtures/spells/fixture-fetch";
 
@@ -68,7 +68,7 @@ describe("spell names in the addon VM", () => {
 
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "vm-spells-"));
-    cache = createSpellCache({ dbPath: path.join(dir, "spells.sqlite"), fetch: createFixtureFetch().fetch });
+    cache = createSpellCache({ source: FOREVER_SPELLS, dbPath: path.join(dir, "spells.sqlite"), fetch: createFixtureFetch().fetch });
     await cache.sync();
     core = await loadAddon(REF, {
       fetchSource: cachedAddonFetcher(REF),

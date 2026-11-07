@@ -1,16 +1,26 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+/** One game's recorded spell fixtures: the folder, the build its CSVs are from, and its Wowhead path. */
+export interface SpellFixtures {
+  dir: string;
+  build: string;
+  wowheadPath: string;
+}
+
+/** WoW Forever: real rows from wago.tools build 1.60.1.70790 (product wowf), Wowhead `/classic/`. */
+export const FOREVER_FIXTURES: SpellFixtures = { dir: __dirname, build: "1.60.1.70790", wowheadPath: "classic" };
+
 /**
- * A fetch replacement serving recorded wago.tools / Wowhead responses from this folder.
- * The CSVs are real rows from wago.tools build 1.60.1.70790 (product wowf), trimmed;
+ * A fetch replacement serving recorded wago.tools / Wowhead responses from a fixture folder
+ * (Forever's, this folder, by default). The CSVs are real wago.tools rows, trimmed;
  * wowhead/<id>.json are real Wowhead tooltip responses (an `error` body is served as 404).
  * Unknown URLs fail like a network error. `calls` records every requested URL.
  */
-export function createFixtureFetch(overrides: Record<string, () => Response> = {}) {
-  const dir = __dirname;
+export function createFixtureFetch(overrides: Record<string, () => Response> = {}, fixtures: SpellFixtures = FOREVER_FIXTURES) {
   const calls: string[] = [];
-  const read = (file: string) => readFileSync(path.join(dir, file), "utf8");
+  const read = (file: string) => readFileSync(path.join(fixtures.dir, file), "utf8");
+  const wowheadPattern = new RegExp(`^/${fixtures.wowheadPath}/tooltip/spell/(\\d+)$`);
 
   async function fixtureFetch(input: string): Promise<Response> {
     calls.push(input);
@@ -21,10 +31,10 @@ export function createFixtureFetch(overrides: Record<string, () => Response> = {
       return new Response(read("builds-latest.json"), { headers: { "content-type": "application/json" } });
     }
     const db2 = url.host === "wago.tools" && url.pathname.match(/^\/db2\/(\w+)\/csv$/);
-    if (db2 && url.searchParams.get("build") === "1.60.1.70790") {
+    if (db2 && url.searchParams.get("build") === fixtures.build) {
       return new Response(read(`${db2[1]}.csv`), { headers: { "content-type": "text/csv" } });
     }
-    const wh = url.host === "nether.wowhead.com" && url.pathname.match(/^\/classic\/tooltip\/spell\/(\d+)$/);
+    const wh = url.host === "nether.wowhead.com" && url.pathname.match(wowheadPattern);
     if (wh) {
       let body: string;
       try {

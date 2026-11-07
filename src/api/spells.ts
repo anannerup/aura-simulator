@@ -7,7 +7,7 @@ export function iconNameUrl(name: string, size: "small" | "medium" | "large" = "
   return `${ICON_BASE}/${size}/${encodeURIComponent(name)}.jpg`;
 }
 
-/** One hit in a name search. Icons come from Forever data (wago); no network on search. */
+/** One hit in a name search. Icons come from the game's client data (wago); no network on search. */
 export interface SpellSearchHit {
   id: number;
   name: string;
@@ -23,35 +23,35 @@ export interface SpellSearchResult {
 }
 
 export type SpellFlag =
-  /** The cache has never been synced, so Forever membership is unknown. */
+  /** The cache has never been synced, so whether the game has the spell is unknown. */
   | "not-synced"
-  /** Wowhead knows the ID but Forever's spell list (current build) does not. */
-  | "not-in-forever"
-  /** Wowhead (Classic data) does not know the ID. */
+  /** Wowhead knows the ID but the game's spell list (synced build) does not. */
+  | "not-in-game"
+  /** Wowhead (the game's environment) does not know the ID. */
   | "not-on-wowhead"
   /** Wowhead could not be reached; tooltip missing for now, retried on next lookup. */
   | "wowhead-unavailable"
-  /** Forever and Wowhead disagree on the spell's name. */
+  /** The game and Wowhead disagree on the spell's name. */
   | "name-mismatch"
-  /** Forever and Wowhead disagree on the spell's icon. */
+  /** The game and Wowhead disagree on the spell's icon. */
   | "icon-mismatch"
   /** No icon known from either source. */
   | "no-icon"
-  /** Neither Forever nor Wowhead knows the ID. */
+  /** Neither the game nor Wowhead knows the ID. */
   | "unknown";
 
 export type WowheadStatus = "found" | "not_found" | "unavailable" | "not_fetched";
 
 export interface Spell {
   id: number;
-  /** True when Forever or Wowhead knows the ID. */
+  /** True when the game or Wowhead knows the ID. */
   found: boolean;
-  /** Best name: Forever's, else Wowhead's. */
+  /** Best name: the game's, else Wowhead's. */
   name: string | null;
-  /** Best icon: Forever's, else Wowhead's. Lower-case file name without extension. */
+  /** Best icon: the game's, else Wowhead's. Lower-case file name without extension. */
   icon: string | null;
   iconUrl: string | null;
-  /** Wowhead tooltip HTML (Classic data), when cached. */
+  /** Wowhead tooltip HTML (the game's Wowhead environment), when cached. */
   tooltip: string | null;
   /** Wowhead buff tooltip HTML, when cached. */
   buff: string | null;
@@ -60,8 +60,8 @@ export interface Spell {
     icon: "wago" | "wowhead" | null;
     tooltip: "wowhead" | null;
   };
-  /** Forever data from wago.tools for the synced build, or null if the ID isn't in it. */
-  forever: { name: string; icon: string | null; iconFileId: number | null } | null;
+  /** The game's own data from wago.tools for the synced build, or null if the ID isn't in it. */
+  inGame: { name: string; icon: string | null; iconFileId: number | null } | null;
   wowhead: { status: WowheadStatus; name: string | null; icon: string | null };
   /** Anything the player should double-check in the game. Empty when everything agrees. */
   flags: SpellFlag[];

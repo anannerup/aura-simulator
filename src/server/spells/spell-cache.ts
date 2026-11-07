@@ -3,18 +3,20 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { parseCsvRecords } from "./csv";
 import {
-  FOREVER_PRODUCT,
-  fetchLatestForeverBuild,
+  fetchLatestBuild,
   fetchWagoCsv,
   fetchWowheadSpell,
   type FetchFn,
+  type SpellSource,
 } from "./sources";
 import { iconNameUrl, type IconLookupResult, type Spell, type SpellCacheStatus, type SpellFlag, type SpellSearchHit, type SpellSearchResult, type SyncResult, type WowheadStatus } from "@/api/spells";
 
 export type { IconLookupResult, Spell, SpellCacheStatus, SpellFlag, SpellSearchHit, SpellSearchResult, SyncResult, WowheadStatus };
 
 export interface SpellCacheOptions {
-  /** SQLite file path, or ":memory:". */
+  /** The game's spell source: wago product and Wowhead environment. */
+  source: SpellSource;
+  /** SQLite file path, or ":memory:". One database per game. */
   dbPath: string;
   /** Injected for tests; defaults to global fetch. */
   fetch?: FetchFn;
@@ -27,7 +29,7 @@ export interface LookupOptions {
 }
 
 export interface SpellCache {
-  /** Pulls the spell list and icon names for a Forever build (latest by default) from wago.tools. */
+  /** Pulls the spell list and icon names for a build of the source's product (latest by default) from wago.tools. */
   sync(options?: { build?: string }): Promise<SyncResult>;
   /** Name search (case-insensitive; every word must occur), best matches first. A numeric query also matches the ID. */
   search(query: string, options?: { limit?: number }): SpellSearchResult;
@@ -35,7 +37,7 @@ export interface SpellCache {
   lookup(id: number, options?: LookupOptions): Promise<Spell>;
   /**
    * Icon names (lower case, no extension) for Interface\\ICONS FileDataIDs and for spell IDs.
-   * Spells use Forever's icon, else a cached Wowhead icon. No network.
+   * Spells use the game's icon, else a cached Wowhead icon. No network.
    */
   icons(request: { files?: number[]; spells?: number[] }): IconLookupResult;
   status(): SpellCacheStatus;
@@ -94,10 +96,18 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
   db.exec("PRAGMA journal_mode = WAL;");
   db.exec(SCHEMA);
 
+  const { source } = options;
+
   const getMeta = (key: string): string | null => {
     const row = db.prepare("SELECT value FROM meta WHERE key = ?").get(key) as { value: string } | undefined;
     return row?.value ?? null;
   };
+  // One database per game: refuse a file another game's sync filled.
+  const storedProduct = getMeta("product");
+  if (storedProduct !== null && storedProduct !== source.product) {
+    db.close();
+    throw new Error(`${options.dbPath} holds ${storedProduct} spells, not ${source.product} (${source.game})`);
+  }
   const setMeta = db.prepare("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
   const getSpellRow = db.prepare("SELECT id, name, icon_file_id, icon FROM spells WHERE id = ?");
   const getWowheadRow = db.prepare("SELECT status, name, icon, tooltip, buff FROM wowhead WHERE id = ?");
@@ -112,7 +122,7 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
 
   async function doSync(build?: string): Promise<SyncResult> {
     const started = Date.now();
-    const version = build ?? (await fetchLatestForeverBuild(fetchFn));
+    const version = build ?? (await fetchLatestBuild(fetchFn, source.product));
     const [spellNameCsv, spellMiscCsv, manifestCsv] = await Promise.all([
       fetchWagoCsv(fetchFn, "SpellName", version),
       fetchWagoCsv(fetchFn, "SpellMisc", version),
@@ -162,7 +172,7 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
         spellCount++;
         if (icon) spellsWithIcon++;
       }
-      setMeta.run("product", FOREVER_PRODUCT);
+      setMeta.run("product", source.product);
       setMeta.run("build", version);
       setMeta.run("synced_at", syncedAt);
       db.exec("COMMIT");
@@ -172,7 +182,7 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
     }
 
     return {
-      product: FOREVER_PRODUCT,
+      product: source.product,
       build: version,
       syncedAt,
       spellCount,
@@ -224,7 +234,7 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
     const pending = wowheadInFlight.get(id);
     if (pending) return pending;
     const job = (async () => {
-      const wh = await fetchWowheadSpell(fetchFn, id);
+      const wh = await fetchWowheadSpell(fetchFn, source, id);
       const at = now().toISOString();
       if (wh.status === "found") putWowheadRow.run(id, "found", wh.name, wh.icon, wh.tooltip, wh.buff, at);
       else putWowheadRow.run(id, "not_found", null, null, null, null, at);
@@ -252,7 +262,7 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
       }
     }
 
-    const forever = spellRow ? { name: spellRow.name, icon: spellRow.icon, iconFileId: spellRow.icon_file_id } : null;
+    const inGame = spellRow ? { name: spellRow.name, icon: spellRow.icon, iconFileId: spellRow.icon_file_id } : null;
     const whFound = whRow?.status === "found" ? whRow : null;
     const wowhead: Spell["wowhead"] = {
       status: whRow ? whRow.status : unavailable ? "unavailable" : "not_fetched",
@@ -260,18 +270,18 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
       icon: whFound?.icon ?? null,
     };
 
-    const name = forever?.name ?? whFound?.name ?? null;
-    const icon = forever?.icon ?? whFound?.icon ?? null;
-    const found = forever !== null || whFound !== null;
+    const name = inGame?.name ?? whFound?.name ?? null;
+    const icon = inGame?.icon ?? whFound?.icon ?? null;
+    const found = inGame !== null || whFound !== null;
 
     const flags: SpellFlag[] = [];
     if (!found && (synced || wowhead.status === "not_found")) flags.push("unknown");
     if (!synced) flags.push("not-synced");
-    else if (!forever && whFound) flags.push("not-in-forever");
-    if (forever && wowhead.status === "not_found") flags.push("not-on-wowhead");
+    else if (!inGame && whFound) flags.push("not-in-game");
+    if (inGame && wowhead.status === "not_found") flags.push("not-on-wowhead");
     if (unavailable) flags.push("wowhead-unavailable");
-    if (forever && whFound?.name && normalizeName(forever.name) !== normalizeName(whFound.name)) flags.push("name-mismatch");
-    if (forever?.icon && whFound?.icon && forever.icon !== whFound.icon.toLowerCase()) flags.push("icon-mismatch");
+    if (inGame && whFound?.name && normalizeName(inGame.name) !== normalizeName(whFound.name)) flags.push("name-mismatch");
+    if (inGame?.icon && whFound?.icon && inGame.icon !== whFound.icon.toLowerCase()) flags.push("icon-mismatch");
     if (found && !icon) flags.push("no-icon");
 
     return {
@@ -283,11 +293,11 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
       tooltip: whFound?.tooltip ?? null,
       buff: whFound?.buff ?? null,
       source: {
-        name: forever ? "wago" : whFound ? "wowhead" : null,
-        icon: forever?.icon ? "wago" : whFound?.icon ? "wowhead" : null,
+        name: inGame ? "wago" : whFound ? "wowhead" : null,
+        icon: inGame?.icon ? "wago" : whFound?.icon ? "wowhead" : null,
         tooltip: whFound?.tooltip ? "wowhead" : null,
       },
-      forever,
+      inGame,
       wowhead,
       flags,
     };
@@ -329,7 +339,7 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
     const build = getMeta("build");
     return {
       synced: build !== null,
-      product: FOREVER_PRODUCT,
+      product: source.product,
       build,
       syncedAt: getMeta("synced_at"),
       spellCount: counts.spells,

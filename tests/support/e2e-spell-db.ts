@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { createSpellCache } from "@/server/spells";
+import { createSpellCache, FOREVER_SPELLS } from "@/server/spells";
 import { createFixtureFetch } from "../fixtures/spells/fixture-fetch";
 
 /** The spell database the e2e dev server uses (passed as SPELL_DB_PATH), one per port. */
@@ -29,7 +29,7 @@ export async function seedE2eSpellDb(dbPath: string): Promise<void> {
       throw err;
     }
   };
-  const cache = createSpellCache({ dbPath, fetch: fetchFn });
+  const cache = createSpellCache({ source: FOREVER_SPELLS, dbPath, fetch: fetchFn });
   try {
     await cache.sync();
     for (const id of FIXTURE_SPELL_IDS) await cache.lookup(id);
