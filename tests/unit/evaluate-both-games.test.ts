@@ -139,3 +139,50 @@ describe.each(GAMES)("%s: what each text draws (SubText.lua ChangeText, WeakAura
     expect(text.displays[0].displayText).toEqual({ text: "5 left" });
   });
 });
+
+describe.each(GAMES)("%s: custom Lua isn't run, and the evaluation says which parts", (game) => {
+  const rules = auraRules(game);
+  const custom = icon(
+    [
+      { type: "aura2", unit: "player", auranames: ["Well Fed"], useName: true },
+      { type: "custom", custom_type: "stateupdate", custom: "function(allstates) return true end" },
+    ],
+    {
+      subRegions: [subtext("%c")],
+      customText: "function() return 'x' end",
+      conditions: [
+        { check: { trigger: -1, variable: "customcheck", value: "function() return true end" }, changes: [{ property: "desaturate", value: true }] },
+        {
+          check: { trigger: -2, variable: "AND", checks: [{ trigger: 1, variable: "show", value: 1 }, { trigger: -1, variable: "customcheck", value: "function() return true end" }] },
+          changes: [{ property: "customcode", value: { custom: "print(1)" } }],
+        },
+      ],
+      actions: {
+        init: { do_custom: true, custom: "aura_env.x = 1" },
+        start: { do_custom: true, custom: "print('shown')" },
+        finish: { do_custom: false, custom: "print('hidden')" },
+      },
+      animation: { start: { type: "custom", use_alpha: true, alphaType: "custom", alphaFunc: "function(p) return p end" }, main: { type: "none" }, finish: { type: "none" } },
+    },
+  );
+  const parts = [
+    "trigger 2: custom (stateupdate)",
+    "condition 1: custom check",
+    "condition 2: custom check",
+    "condition 2: Run Custom Code",
+    "custom text (%c)",
+    "On Init custom code",
+    "On Show custom code",
+    "start animation: custom function",
+  ];
+
+  it("lists every custom code part of the aura the simulator doesn't run", () => {
+    expect(rules.evaluate(custom, situation()).customCode).toEqual(parts);
+    expect(rules.evaluate(icon([itemCount]), situation()).customCode).toEqual([]);
+  });
+
+  it("the preview flags them per display; a display without custom code has no flag", () => {
+    expect(previewSituation({ aura: custom, children: [] }, situation(), game).displays[0].notEvaluated).toEqual(parts);
+    expect(previewSituation({ aura: icon([itemCount]), children: [] }, situation(), game).displays[0]).not.toHaveProperty("notEvaluated");
+  });
+});

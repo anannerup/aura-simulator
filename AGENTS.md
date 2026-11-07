@@ -62,7 +62,9 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   and the trigger/condition evaluation per game (`conditions/`): what an aura shows in a situation
   (`previewSituation`, `conditions/preview.ts`, is that in words for agents: the push answer's `preview`). What texts
   draw (placeholders replaced, custom text `%c` marked as not evaluated) is part of that evaluation
-  (`conditions/text.ts`, `AuraRenderState.texts`), so the game screen and `preview` can't disagree. Each aura
+  (`conditions/text.ts`, `AuraRenderState.texts`), so the game screen and `preview` can't disagree. No custom Lua runs: what
+  of an aura is custom code is listed (`conditions/custom-code.ts`, `customCode`; `preview`'s `notEvaluated`, a "Lua"
+  badge on the game screen). Each aura
   evaluates in its own situation (`situationForAura`: the workspace-wide triggers with its `auras` override). `auraRules(game)` gives a game's rules (trigger kinds, `setInCombat`,
   `evaluate`, `combatRestricted`). Forever (`evaluateAura`, `conditions/forever.ts` + `secret-aura-rules.ts`) adds
   Aura (Modern), freezing and held properties to plain WeakAuras; TBC (`evaluateTbcAura`, `conditions/tbc.ts`) is

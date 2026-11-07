@@ -36,6 +36,7 @@ import {
   secretTrigger,
   textKind,
 } from "./secret-aura-rules";
+import { customCodeParts } from "./custom-code";
 import { auraTexts } from "./text";
 import { aura2State, timer, triggerState, unitExists, type TriggerState } from "./triggers";
 
@@ -200,6 +201,7 @@ export function evaluateAura(aura: AuraDocument, workspaceSituation: Situation, 
     nativeStackText,
     glows: glowStates(aura, properties),
     ...auraTexts(aura, properties, states, dynamic, nativeStackText),
+    customCode: customCodeParts(aura),
   };
 }
 

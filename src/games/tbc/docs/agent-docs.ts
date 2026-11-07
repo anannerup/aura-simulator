@@ -382,6 +382,10 @@ function troubleshooting(): string {
 - **A text draws nothing or the wrong thing**: read \`preview\`'s \`texts\`, what each text draws. A condition that
   only makes an empty text visible draws nothing; change \`sub.N.text_text\` too. \`[%c]\` with
   \`"customText": "not evaluated"\` is custom text the simulator doesn't run: check it in game.
+- **\`notEvaluated\` in \`preview\`, or a "Lua" badge on the game screen**: the aura has custom code, which the
+  simulator never runs: custom triggers follow the situation's "present", custom checks never hold, custom text shows
+  \`[%c]\`, custom actions and animation functions do nothing. Build what you can from the plain options (they are
+  previewed); check the custom parts in game.
 - **A text's X/Y Offset does nothing**: it is \`text_anchorXOffset\`/\`text_anchorYOffset\`, not \`anchorXOffset\`.
 - **Every icon shows the same count or time**: the situation's triggers are workspace-wide; give each aura its own with
   \`auras\` (see Situation).

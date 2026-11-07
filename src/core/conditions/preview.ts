@@ -39,6 +39,12 @@ export interface DisplayPreview {
   texts: (TextPreview & { subRegion: number; visible: boolean })[];
   /** A text display's own text. */
   displayText?: TextPreview;
+  /**
+   * Present when the display has custom Lua, which the preview doesn't run: which parts ("trigger 2: custom
+   * (stateupdate)", "condition 1: custom check", "custom text (%c)", "On Show custom code", …). A custom trigger's state
+   * is the situation's, a custom check never holds; check those parts in game.
+   */
+  notEvaluated?: string[];
   /** Forever only, when true: the display is frozen in combat (the game screen's padlock). */
   frozen?: true;
   /** Forever only, when true: Aura (Modern)'s native "missing" button is what is drawn. */
@@ -97,6 +103,7 @@ export function previewSituation(state: AuraState, situation: Situation, game: A
         }),
       };
       if (r.displayText) preview.displayText = textPreview(r.displayText);
+      if (r.customCode.length) preview.notEvaluated = r.customCode;
       if (r.frozenMarker) preview.frozen = true;
       if (r.missing) preview.missing = true;
       if (r.heldInCombat.length) preview.heldInCombat = r.heldInCombat;

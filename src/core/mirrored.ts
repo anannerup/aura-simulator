@@ -159,6 +159,15 @@ export const SHARED_PORTS: SharedPort[] = [
     },
   },
   {
+    module: "src/core/conditions/custom-code.ts",
+    files: ["WeakAuras/Conditions.lua", "WeakAuras/WeakAuras.lua", "WeakAuras/Animations.lua"],
+    differs: {
+      "WeakAuras/Conditions.lua": "The customcheck and customcode keys are the same; Musca's additions are its Aura (Modern) hooks.",
+      "WeakAuras/WeakAuras.lua": "The custom action keys (do_custom, custom) and the %c placeholders are the same.",
+      "WeakAuras/Animations.lua": "The custom animation keys (type custom, <x>Type custom) are the same; Musca adds secret guards.",
+    },
+  },
+  {
     module: "src/core/conditions/triggers.ts",
     files: ["WeakAuras/BuffTrigger2.lua", "WeakAuras/Prototypes.lua"],
     differs: {

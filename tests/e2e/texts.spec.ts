@@ -53,6 +53,8 @@ for (const game of ["tbc", "forever"]) {
     const texts = region.locator('[data-subregion="subtext"]');
     await expect(texts.nth(2)).toHaveText("[%c] left");
     await expect(texts.nth(2).locator("[data-custom-text]")).toHaveAttribute("title", /isn't evaluated/);
+    // The aura's state comes partly from custom code the simulator doesn't run: the region says so.
+    await expect(region.getByTestId("custom-code-marker")).toHaveAttribute("title", /Custom code not evaluated: custom text \(%c\)/);
 
     const box = (await region.boundingBox())!;
     const unit = box.width / 64;

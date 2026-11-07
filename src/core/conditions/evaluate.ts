@@ -47,6 +47,11 @@ export interface AuraRenderState {
   texts: Record<number, DrawnText>;
   /** A text region's own text. */
   displayText?: DrawnText;
+  /**
+   * The aura's custom code the simulator didn't run (`customCodeParts`): custom triggers, custom checks, custom text,
+   * custom actions and animations. Empty when there is none; the game screen marks the aura otherwise.
+   */
+  customCode: string[];
 }
 
 export function parseSubPath(path: string): { position: number; key: string } | undefined {

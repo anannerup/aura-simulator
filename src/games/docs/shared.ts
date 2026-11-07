@@ -288,6 +288,12 @@ and per display (a group's children each, not the group):
 - Custom text (\`%c\`, \`%c2\`, …) comes from the aura's custom text function, which the simulator doesn't run: such
   a text has \`"customText": "not evaluated"\`, and \`[%c]\` stands in its \`text\` (the game screen draws it marked).
   Check custom text in game.
+- **No custom Lua runs in the preview** (nor on the game screen). \`notEvaluated\`, present only when a display has
+  custom code, lists the parts: \`"trigger 2: custom (stateupdate)"\` (a custom trigger, TSU included, is active while
+  its situation says "present", like any trigger), \`"condition 1: custom check"\` (a custom check never holds here),
+  \`"condition 2: Run Custom Code"\`, \`"custom text (%c)"\`, \`"On Init custom code"\`/On Show/On Hide, and
+  \`"start animation: custom function"\`. The game screen marks such a display with a dashed **Lua** badge (hover
+  lists the parts). Its preview shows only what the plain options do; check those parts in game.
 
 To show that an aura works, push it, then set each situation the request names (the buff missing, under 3 minutes
 left, the target gone, …) and check \`shown\`, \`changed\`, \`glows\` and \`texts\`. The player sees the same on the open

@@ -8,6 +8,7 @@ import type { AuraDocument } from "../aura-core";
 import type { LuaValue } from "../lua-value";
 import { auraTriggers, situationForAura, type Situation } from "../situation";
 import { documentProperties, dynamicTrigger, genericConditions, glowStates, isShown, type AuraRenderState } from "./evaluate";
+import { customCodeParts } from "./custom-code";
 import { auraTexts } from "./text";
 import { triggerState, type TriggerState } from "./triggers";
 
@@ -41,5 +42,6 @@ export function evaluateTbcAura(aura: AuraDocument, workspaceSituation: Situatio
     nativeStackText: {},
     glows: glowStates(aura, properties),
     ...auraTexts(aura, properties, states, dynamic),
+    customCode: customCodeParts(aura),
   };
 }
