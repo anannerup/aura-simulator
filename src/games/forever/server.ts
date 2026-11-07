@@ -3,6 +3,7 @@ import path from "node:path";
 import { createAddonSourceCache, type AddonSourceCache } from "@/server/addon/source-cache";
 import { createUpstreamFixtureFetch } from "@/server/addon/upstream-fixtures";
 import { addonCacheDir, addonUpstreamFixtures, createClientCaches, gameDataDir, type ServerGame } from "@/server/game";
+import { addonTextureFiles } from "@/server/media";
 import { createSpellCache, type SpellCache } from "@/server/spells";
 import { forever } from ".";
 import { loadAgentDocs } from "./docs/load";
@@ -28,13 +29,13 @@ export const foreverServer: ServerGame = {
     return (state.spells ??= createSpellCache({ dbPath: path.join(gameDataDir(forever.id), "spells.sqlite"), source: FOREVER_SPELLS }));
   },
   get files() {
-    return (state.client ??= createClientCaches(forever.id, FOREVER_SPELLS)).files;
+    return (state.client ??= createClientCaches(forever.id, FOREVER_SPELLS, () => addonTextureFiles(foreverServer))).files;
   },
   get items() {
-    return (state.client ??= createClientCaches(forever.id, FOREVER_SPELLS)).items;
+    return (state.client ??= createClientCaches(forever.id, FOREVER_SPELLS, () => addonTextureFiles(foreverServer))).items;
   },
   get iconIndex() {
-    return (state.client ??= createClientCaches(forever.id, FOREVER_SPELLS)).iconIndex;
+    return (state.client ??= createClientCaches(forever.id, FOREVER_SPELLS, () => addonTextureFiles(foreverServer))).iconIndex;
   },
   agentDocs: (origin, requestedRef) => loadAgentDocs(foreverServer, origin, requestedRef),
 };

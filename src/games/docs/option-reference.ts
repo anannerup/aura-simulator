@@ -344,9 +344,24 @@ function checkLine(c: ConditionCheck): string {
 }
 
 /** A property as a Markdown list item: the property it writes and its value's fields. */
-function propertyLine(p: ConditionProperty): string {
+/**
+ * How the conditions-display parts name a probed sub element: its kind and which of that kind it is (the window
+ * lists them so, "Text 2"), e.g. "the 1st `subtext`".
+ */
+function probedElements(subs: { index: number; type: string }[]): (index: number) => string {
+  return (index) => {
+    const x = subs.find((s) => s.index === index);
+    if (!x) return `element ${index}`;
+    const nth = subs.filter((s) => s.type === x.type && s.index <= index).length;
+    const ordinal = nth === 1 ? "1st" : nth === 2 ? "2nd" : nth === 3 ? "3rd" : `${nth}th`;
+    return `the ${ordinal} \`${x.type}\``;
+  };
+}
+
+function propertyLine(p: ConditionProperty, element?: (index: number) => string): string {
   const writes = p.property !== undefined ? `\`property\` ${json(p.property)}` : patterns(Object.keys(p.wrote)) || "(removes the change)";
-  const head = `- **${p.label}** → ${writes}`;
+  const sub = element && p.property !== undefined ? /^sub\.(\d+)\./.exec(p.property) : null;
+  const head = `- **${p.label}** → ${writes}${sub ? ` (on ${element!(Number(sub[1]))}: use its number in your aura)` : ""}`;
   if (p.fields.length === 0) return head;
   const plain = p.fields.length === 1 && p.fields[0].writes.length === 1 && /\.changes\.\d+\.value$/.test(p.fields[0].writes[0]);
   return `${head} · ${plain ? `\`value\`: ${fieldValue(p.fields[0])}` : `value fields: ${p.fields.map(fieldLine).join("; ")}`}`;
@@ -475,12 +490,19 @@ ${body(r.conditions.global.map(checkLine))}
     const sets = r.conditions.properties.filter((p) => `conditions-display-${slug(p.regionType)}` === name);
     const regionType = sets[0].regionType;
     const section = (p: (typeof sets)[number]) => {
-      const subs = p.subRegions.map((x) => `\`sub.${x.index}\` ${x.type}`).join(", ");
-      return `${sets.length > 1 ? `## After ${plainText(p.added.name)}\n\n` : ""}Probed with these sub elements: ${subs || "none"}.
-\`sub.N.<key>\` is the aura's N-th \`subRegions\` element: use your aura's own numbers. A sub element's properties exist
-only on an aura that has one.
+      const element = probedElements(p.subRegions);
+      const subs = p.subRegions.map((x) => `\`sub.${x.index}\` = ${element(x.index)}`).join(", ");
+      const example = p.subRegions.find((x) => x.type === "subtext") ?? p.subRegions[0];
+      return `${sets.length > 1 ? `## After ${plainText(p.added.name)}\n\n` : ""}**The numbers in \`sub.N\` below are this reference's, not your aura's.** It was probed on a ${regionType}
+with these sub elements, in this order: ${subs || "none"}. A condition names an element by its place in **your**
+aura's \`subRegions\` (1-based): find the element there and write its number.${
+        example
+          ? ` E.g. \`sub.${example.index}.…\` here is ${element(example.index)}; if that element is the fourth entry of your
+aura's \`subRegions\`, write \`sub.4.…\`.`
+          : ""
+      } A sub element's properties exist only on an aura that has one.
 
-${body(p.properties.map(propertyLine))}`;
+${body(p.properties.map((x) => propertyLine(x, element)))}`;
     };
     return `${head}
 Every property a condition's "Then" can change on display type \`${regionType}\` (with one sub element of every kind it adds):

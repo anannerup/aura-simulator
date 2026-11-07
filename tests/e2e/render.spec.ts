@@ -155,6 +155,20 @@ test("the compare endpoint finds the scale and offset of a screenshot and measur
   const icon = result.regions.find((r: { auraId: string }) => r.auraId === "Fire Blast cooldown");
   expect(icon.layoutUnits.width).toBeCloseTo(64, 0);
   expect(icon.drawn.screenshot).not.toBeNull();
+  // Each drawn element on its own: a text's box, rows and edge, numbered by its place in the aura's subRegions.
+  const texts = result.regions.flatMap((r: { elements: { kind: string }[] }) => r.elements).filter((e: { kind: string }) => e.kind === "subtext");
+  expect(texts.length).toBeGreaterThan(0);
+  for (const t of texts) {
+    expect(t.index).toBeGreaterThan(0);
+    expect(t.text.font.size).toBeGreaterThan(0);
+    expect(t.layoutUnits.height).toBeGreaterThan(0);
+    expect(["outline", "shadow", "none", "unknown"]).toContain(t.text.edge.screenshot.edge);
+    // The screenshot is the picture itself: both read the same.
+    expect(t.text.edge.screenshot.edge).toBe(t.text.edge.picture.edge);
+  }
+  // How large a score change means something.
+  expect(result.noise.meaningful).toBeGreaterThan(0);
+  expect(result.noise.scale).not.toBeNull();
   expect(result.spacing).not.toBeNull();
   expect(result.comparison.png).toMatch(/^data:image\/png;base64,/);
 

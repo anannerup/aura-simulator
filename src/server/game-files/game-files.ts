@@ -22,6 +22,8 @@ export interface GameFilesOptions {
   dbPath: string;
   fetch?: FetchFn;
   now?: () => Date;
+  /** Called after each download of the file list (the icon index starts building then). */
+  onSynced?: () => void;
 }
 
 export interface GameFilesStatus {
@@ -50,6 +52,11 @@ export interface GameFiles {
    * null. No limit: for code that ranks icons in another way (`IconIndex`).
    */
   listIcons(query: string | null): Promise<IconSearchHit[]>;
+  /**
+   * Every texture file (`.blp`, `.tga`) outside `Interface\Icons\` whose path has every word of the query (any of
+   * `\`, `/`, `_`, `-` and spaces between words), or every one when the query is null; by path.
+   */
+  listTextures(query: string | null): Promise<GameFile[]>;
   /**
    * One icon by FileDataID (digits), `Interface\Icons\…` path or icon name (any case, with or without `.blp`); null
    * when the game has no such icon (a FileDataID of a file outside `Interface\Icons\` is none).
@@ -120,7 +127,12 @@ export function createGameFiles(options: GameFilesOptions): GameFiles {
   }
 
   function sync(opts: { build?: string } = {}): Promise<GameFilesStatus> {
-    syncInFlight ??= doSync(opts.build).finally(() => (syncInFlight = null));
+    syncInFlight ??= doSync(opts.build)
+      .then((done) => {
+        options.onSynced?.();
+        return done;
+      })
+      .finally(() => (syncInFlight = null));
     return syncInFlight;
   }
 
@@ -177,6 +189,14 @@ export function createGameFiles(options: GameFilesOptions): GameFiles {
     return (db.prepare(`SELECT id, path, icon FROM files WHERE ${sql.where} ORDER BY ${sql.order}`).all(sql.params) as { id: number; path: string; icon: string }[]).map(toHit);
   }
 
+  async function listTextures(query: string | null): Promise<GameFile[]> {
+    await ready();
+    const words = query === null ? [] : normalizeName(query.replace(/[\\/_\-.]+/g, " ")).split(" ").filter(Boolean);
+    const params = Object.fromEntries(words.map((w, i) => [`w${i}`, `%${w.replace(/[\\%_]/g, (c) => `\\${c}`)}%`]));
+    const where = ["icon IS NULL", "(path LIKE '%.blp' OR path LIKE '%.tga')", ...words.map((_, i) => `key LIKE :w${i} ESCAPE '\\'`)].join(" AND ");
+    return db.prepare(`SELECT id, path FROM files WHERE ${where} ORDER BY key, id`).all(params) as unknown as GameFile[];
+  }
+
   async function resolveIcon(ref: string): Promise<IconSearchHit | null> {
     await ready();
     const trimmed = ref.trim();
@@ -197,5 +217,5 @@ export function createGameFiles(options: GameFilesOptions): GameFiles {
     return { synced: build !== null, product, build, syncedAt: getMeta("synced_at"), fileCount: counts.files, iconCount: counts.icons };
   }
 
-  return { sync, ready, lookup, searchIcons, listIcons, resolveIcon, status, close: () => db.close() };
+  return { sync, ready, lookup, searchIcons, listIcons, listTextures, resolveIcon, status, close: () => db.close() };
 }

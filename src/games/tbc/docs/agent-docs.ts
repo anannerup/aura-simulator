@@ -12,6 +12,7 @@ import {
   displayMediaNotes,
   gameDataSection,
   itemCountNotes,
+  temporaryEnchantNotes,
   picturesSection,
   pushApiSection,
   situationSection,
@@ -51,7 +52,10 @@ export const TBC_DOCUMENTED_ENDPOINTS = [
   "GET /api/tbc/items/search",
   "GET /api/tbc/items/<id>",
   "GET /api/tbc/icons/search",
+  "GET /api/tbc/icons/similar",
   "POST /api/tbc/icons/similar",
+  "GET /api/tbc/textures/picture.png",
+  "GET /api/tbc/fonts/sample.png",
   "GET /api/tbc/files",
   "GET /api/tbc/media",
 ] as const;
@@ -277,6 +281,7 @@ aura while any trigger is active, \`"all"\` while all are. Conditions refer to t
 \`showAlways\`, \`showOnCooldown\`, \`showOnReady\`. \`track\`: \`auto\`, \`cooldown\`, \`charges\`.
 
 ${itemCountNotes()}
+${temporaryEnchantNotes()}
 ### Other triggers
 
 Every trigger type and event the release has is listed under The addon (generated); the option ↔ table reference has

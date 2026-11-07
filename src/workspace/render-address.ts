@@ -88,3 +88,78 @@ export function buildRenderUrl(origin: string, gameId: string, workspaceId: stri
   params.set("w", workspaceId);
   return `${origin.replace(/\/$/, "")}/${gameId}/render?${params}`;
 }
+
+/**
+ * A font sample picture's options (`/<game>/fonts/sample` and `GET /api/<game>/fonts/sample.png`): one font of the
+ * game's media list drawing `text` at font size `size` (UI units, as `text_fontSize`) with font flags `outline`
+ * (`OUTLINE`, `THICKOUTLINE`, `None`, …), at `scale` game pixels per UI unit, on `background` (null: transparent).
+ */
+export interface FontSampleOptions {
+  font: string;
+  text: string;
+  size: number;
+  outline: string;
+  /** A drop shadow: units right and up (negative: down), as `text_shadowXOffset`/`text_shadowYOffset`; 0, 0 for none. */
+  shadowX: number;
+  shadowY: number;
+  colour: string;
+  scale: number;
+  background: string | null;
+  ref: string | null;
+}
+
+export const DEFAULT_FONT_SAMPLE: Omit<FontSampleOptions, "font"> = {
+  text: "Food 12 0:42 Flask",
+  size: 12,
+  outline: "OUTLINE",
+  shadowX: 0,
+  shadowY: 0,
+  colour: "#ffffff",
+  scale: 1,
+  background: null,
+  ref: null,
+};
+const MAX_SAMPLE_TEXT = 200;
+const MAX_FONT_SIZE = 72;
+
+/** A hex colour option (`#rrggbb[aa]`), or null for "transparent" or nothing. */
+function colourOption(params: URLSearchParams, name: string): string | null {
+  const value = params.get(name)?.trim() || null;
+  if (value === null || value === "transparent") return null;
+  if (!HEX_COLOUR.test(value)) throw new RenderOptionsError(`${name} must be "transparent" or a hex colour like 000000 or #202020cc, not "${value}"`);
+  return `#${value.replace(/^#/, "")}`;
+}
+
+/** The font sample options in a query string; throws `RenderOptionsError` saying what is wrong. */
+export function readFontSampleOptions(params: URLSearchParams): FontSampleOptions {
+  const font = params.get("font")?.trim();
+  if (!font) throw new RenderOptionsError('font is required: a font name of GET /api/<game>/media (e.g. "PT Sans Narrow Bold")');
+  const text = params.get("text") ?? DEFAULT_FONT_SAMPLE.text;
+  if (text.length === 0 || text.length > MAX_SAMPLE_TEXT) throw new RenderOptionsError(`text must be 1 to ${MAX_SAMPLE_TEXT} characters`);
+  return {
+    font,
+    text,
+    size: number(params, "size", DEFAULT_FONT_SAMPLE.size, 0, MAX_FONT_SIZE, true),
+    outline: params.get("outline")?.trim() || DEFAULT_FONT_SAMPLE.outline,
+    shadowX: number(params, "shadowX", 0, -16, 16, false),
+    shadowY: number(params, "shadowY", 0, -16, 16, false),
+    colour: colourOption(params, "colour") ?? DEFAULT_FONT_SAMPLE.colour,
+    scale: number(params, "scale", DEFAULT_FONT_SAMPLE.scale, 0, MAX_RENDER_SCALE, true),
+    background: colourOption(params, "background"),
+    ref: params.get("ref")?.trim() || null,
+  };
+}
+
+/** Absolute address of a font sample page; `origin` like "http://localhost:3000". */
+export function buildFontSampleUrl(origin: string, gameId: string, options: FontSampleOptions): string {
+  const params = new URLSearchParams({ font: options.font, text: options.text, size: String(options.size), outline: options.outline });
+  if (options.shadowX || options.shadowY) {
+    params.set("shadowX", String(options.shadowX));
+    params.set("shadowY", String(options.shadowY));
+  }
+  params.set("colour", options.colour);
+  params.set("scale", String(options.scale));
+  if (options.background) params.set("background", options.background);
+  if (options.ref) params.set("ref", options.ref);
+  return `${origin.replace(/\/$/, "")}/${gameId}/fonts/sample?${params}`;
+}

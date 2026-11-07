@@ -1,24 +1,27 @@
 /**
- * Image features for finding an icon by its look: an icon is kept as a small RGB grid (`GRID`×`GRID`, alpha
- * composited over black), and two images are compared as `COMPARE`×`COMPARE` cell averages of a square part of each,
- * by root-mean-square difference (0 = equal, 1 = black against white everywhere). Pure; no I/O.
+ * Image features for finding an icon or texture by its look: a texture is kept as a small grid (`GRID`×`GRID` cells
+ * of its colour, composited over black, and its opacity), and two images are compared as `COMPARE`×`COMPARE` cell
+ * averages of a square part of each, by root-mean-square difference (0 = equal, 1 = black against white everywhere).
+ * Pure; no I/O.
  *
- * Robustness: a player's crop of an icon may include the icon's own dark edge, a border around it, or show it zoomed
- * (WeakAuras' icon `zoom` cuts `zoom / 4` off each edge of the art: `texWidth = 1 - 0.5 * zoom` in
- * RegionTypes/Icon.lua). So each icon is compared at several insets (`ICON_INSETS`) against the upload at a few
- * insets of its own (`UPLOAD_INSETS`), and the best pair counts.
+ * Robustness: a player's crop may show an icon zoomed (WeakAuras' icon `zoom` cuts `zoom / 4` off each edge of the
+ * art: `texWidth = 1 - 0.5 * zoom` in RegionTypes/Icon.lua), with a border drawn over its edge or background around
+ * it. So the upload is compared at a few insets of its own (`UPLOAD_INSETS`), each against the part of the art that
+ * inset shows at a zoom (`artInset`), and the best zoom and inset count: coarse zoom steps to rank every icon, then
+ * fine steps for the best ones' zoom (`measure`). Textures aren't zoomed; their see-through parts are compared over
+ * the upload's background (the median colour of its edge).
  *
  * Grey mode compares luminance only, for screenshots of desaturated icons. Icons of one family often differ only in
  * colour (e.g. the same potion bottle in red, blue and green), so grey mode scores them nearly alike.
  */
 
-/** Cells per side of a stored icon grid. */
+/** Cells per side of a stored grid. */
 export const GRID = 16;
+/** Channels per stored cell: red, green, blue (composited over black) and opacity. */
+const CELL = 4;
 /** Cells per side of the compared parts. */
 export const COMPARE = 8;
-/** Fractions cut off each edge of an icon before comparing: WeakAuras zoom 0, 0.12, … 1 (`zoom = 4 × inset`). */
-export const ICON_INSETS = [0, 0.03, 0.06, 0.09, 0.12, 0.16, 0.2, 0.25] as const;
-/** Fractions cut off each edge of the upload before comparing (a border or background around the icon). */
+/** Fractions cut off each edge of the upload before comparing (a border over the art, or background around it). */
 export const UPLOAD_INSETS = [0, 0.05, 0.1] as const;
 /** Below this mean saturation (0..1) an upload counts as desaturated: `auto` compares it in grey. */
 export const GREY_SATURATION = 0.06;
@@ -80,8 +83,11 @@ function sampler(width: number, height: number, inset: number, n: number): Sampl
   return { start: Int32Array.from(start), index: Int32Array.from(index), weight: Float32Array.from(weight) };
 }
 
-/** Cell averages (0..1) of RGB pixels (0..255, 3 values each), in `mode`'s channels. */
-function sample(s: Sampler, rgb: Uint8Array, mode: CompareMode): Float32Array {
+/**
+ * Cell averages (0..1) of pixels (0..255, `stride` values each: red, green, blue composited over black, then opacity
+ * when `stride` is 4), drawn over `backdrop` (0..1 RGB) where they are see-through, in `mode`'s channels.
+ */
+function sample(s: Sampler, pixels: Uint8Array, stride: 3 | 4, mode: CompareMode, backdrop: readonly number[] = [0, 0, 0]): Float32Array {
   const cells = s.start.length - 1;
   const out = new Float32Array(cells * (mode === "grey" ? 1 : 3));
   const { start, index, weight } = s;
@@ -89,24 +95,30 @@ function sample(s: Sampler, rgb: Uint8Array, mode: CompareMode): Float32Array {
     let r = 0;
     let g = 0;
     let b = 0;
+    let a = 0;
     for (let k = start[c]; k < start[c + 1]; k++) {
-      const p = index[k] * 3;
+      const p = index[k] * stride;
       const w = weight[k];
-      r += rgb[p] * w;
-      g += rgb[p + 1] * w;
-      b += rgb[p + 2] * w;
+      r += pixels[p] * w;
+      g += pixels[p + 1] * w;
+      b += pixels[p + 2] * w;
+      a += (stride === 4 ? pixels[p + 3] : 255) * w;
     }
-    if (mode === "grey") out[c] = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    const see = 1 - a / 255;
+    r = r / 255 + see * backdrop[0];
+    g = g / 255 + see * backdrop[1];
+    b = b / 255 + see * backdrop[2];
+    if (mode === "grey") out[c] = 0.299 * r + 0.587 * g + 0.114 * b;
     else {
-      out[c * 3] = r / 255;
-      out[c * 3 + 1] = g / 255;
-      out[c * 3 + 2] = b / 255;
+      out[c * 3] = r;
+      out[c * 3 + 1] = g;
+      out[c * 3 + 2] = b;
     }
   }
   return out;
 }
 
-/** RGB of RGBA pixels composited over black (the game draws icons opaque; transparent parts show as dark). */
+/** RGB of RGBA pixels composited over black (an upload is a screenshot: opaque). */
 function opaqueRgb(image: RgbaImage): Uint8Array {
   const n = image.width * image.height;
   const out = new Uint8Array(n * 3);
@@ -119,10 +131,27 @@ function opaqueRgb(image: RgbaImage): Uint8Array {
   return out;
 }
 
-/** An icon's stored features: its whole texture as a `GRID`×`GRID` RGB grid (bytes). */
-export function iconGrid(image: RgbaImage): Uint8Array {
-  const cells = sample(sampler(image.width, image.height, 0, GRID), opaqueRgb(image), "colour");
-  return Uint8Array.from(cells, (v) => Math.round(v * 255));
+/** A texture's stored features: the whole texture as a `GRID`×`GRID` grid of colour (over black) and opacity (bytes). */
+export function textureGrid(image: RgbaImage): Uint8Array {
+  const s = sampler(image.width, image.height, 0, GRID);
+  const out = new Uint8Array(GRID * GRID * CELL);
+  for (let c = 0; c < GRID * GRID; c++) {
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    let a = 0;
+    for (let k = s.start[c]; k < s.start[c + 1]; k++) {
+      const p = s.index[k] * 4;
+      const w = s.weight[k];
+      const alpha = image.data[p + 3] / 255;
+      r += image.data[p] * alpha * w;
+      g += image.data[p + 1] * alpha * w;
+      b += image.data[p + 2] * alpha * w;
+      a += image.data[p + 3] * w;
+    }
+    out.set([Math.round(r), Math.round(g), Math.round(b), Math.round(a)], c * CELL);
+  }
+  return out;
 }
 
 /** Mean saturation (max - min channel, 0..1) of an image's pixels, composited over black. */
@@ -138,43 +167,101 @@ export function autoMode(saturation: number): CompareMode {
   return saturation < GREY_SATURATION ? "grey" : "colour";
 }
 
-/** How well an icon matches: its distance and the insets of the best pair. */
-export interface IconMatch {
+/** The median colour (0..1 RGB) of an image's edge pixels: what is behind a texture's see-through parts. */
+function edgeColour(image: RgbaImage): number[] {
+  const { width: w, height: h, data } = image;
+  const edge: number[] = [];
+  for (let x = 0; x < w; x++) edge.push(x, (h - 1) * w + x);
+  for (let y = 1; y < h - 1; y++) edge.push(y * w, y * w + w - 1);
+  return [0, 1, 2].map((c) => {
+    const v = edge.map((p) => (data[p * 4 + c] * data[p * 4 + 3]) / 255).sort((a, b) => a - b);
+    return (v[v.length >> 1] ?? 0) / 255;
+  });
+}
+
+/** How well a texture matches: its distance, the zoom it is drawn at and how much of the upload's edge was left out. */
+export interface TextureMatch {
   distance: number;
-  /** Inset cut off each edge of the icon (WeakAuras zoom = 4 × this). */
-  iconInset: number;
-  /** Inset cut off each edge of the upload. */
+  /** The WeakAuras icon `zoom` (0-1) the upload shows an icon at; 0 for a texture. */
+  zoom: number;
+  /** Fraction cut off each edge of the upload before comparing (a border over the art, or background around it). */
   uploadInset: number;
 }
 
-/** Compares uploads against icon grids in one mode; build once per request, then `match` each icon. */
-export interface IconMatcher {
-  mode: CompareMode;
-  match(grid: Uint8Array): IconMatch;
+/**
+ * The part of an icon's art the middle of the upload shows: an icon drawn at `zoom` shows its art from `zoom / 4` to
+ * `1 - zoom / 4` (Icon.lua: texture coordinates `(c - 0.5) × (1 - zoom / 2) + 0.5`) over the whole upload, so the
+ * upload without `uploadInset` of each edge shows the art from this inset on.
+ */
+export function artInset(zoom: number, uploadInset: number): number {
+  return zoom / 4 + uploadInset * (1 - zoom / 2);
 }
 
-const GRID_SAMPLERS = ICON_INSETS.map((inset) => sampler(GRID, GRID, inset, COMPARE));
+/** Zooms every icon is ranked at (a coarse step; the best few are then measured finely, `ZOOM_STEP`). */
+const RANKING_ZOOMS = Array.from({ length: 9 }, (_, i) => Math.round(i * 12) / 100);
+/** The step of the fine zoom measurement, and how far around the ranking's zoom it looks. */
+const ZOOM_STEP = 0.01;
+const ZOOM_REACH = 0.12;
+/**
+ * The largest upload inset the fine measurement tries (in the same steps): a border or background around the icon is
+ * left out exactly, which the zoom depends on (`artInset`).
+ */
+const FINE_UPLOAD_INSET = 0.15;
 
-export function iconMatcher(upload: RgbaImage, mode: CompareMode): IconMatcher {
+/** Samplers of a stored grid, by art inset. */
+const gridSamplers = new Map<number, Sampler>();
+function gridSampler(inset: number): Sampler {
+  const key = Math.round(inset * 100000) / 100000;
+  let s = gridSamplers.get(key);
+  if (!s) gridSamplers.set(key, (s = sampler(GRID, GRID, key, COMPARE)));
+  return s;
+}
+
+/** Compares one upload against stored grids in one mode; build once per request, then `match` each candidate. */
+export interface TextureMatcher {
+  mode: CompareMode;
+  /** The distance at coarse zoom steps (icons) or unzoomed (textures): enough to rank every candidate. */
+  match(grid: Uint8Array): TextureMatch;
+  /** An icon's zoom measured in fine steps around a ranking match, with the distance there. */
+  measure(grid: Uint8Array, around: TextureMatch): TextureMatch;
+}
+
+/**
+ * A matcher of `upload` against icons (`zoomed`: the icon region's zoom is searched) or textures (drawn whole, their
+ * see-through parts over the upload's background).
+ */
+export function textureMatcher(upload: RgbaImage, mode: CompareMode, { zoomed }: { zoomed: boolean }): TextureMatcher {
   const rgb = opaqueRgb(upload);
-  const queries = UPLOAD_INSETS.map((inset) => ({
-    inset,
-    cells: sample(sampler(upload.width, upload.height, inset, COMPARE), rgb, mode),
-  }));
+  const backdrop = zoomed ? [0, 0, 0] : edgeColour(upload);
+  const query = (inset: number) => ({ inset, cells: sample(sampler(upload.width, upload.height, inset, COMPARE), rgb, 3, mode) });
+  const queries = UPLOAD_INSETS.map(query);
+  const fineQueries = Array.from({ length: Math.round(FINE_UPLOAD_INSET / ZOOM_STEP) + 1 }, (_, i) => query(Math.round(i * ZOOM_STEP * 100) / 100));
+  const best = (grid: Uint8Array, zooms: readonly number[], insets = queries): TextureMatch => {
+    let found: TextureMatch = { distance: Infinity, zoom: 0, uploadInset: 0 };
+    for (const zoom of zooms) {
+      for (const q of insets) {
+        const cells = sample(gridSampler(artInset(zoom, q.inset)), grid, CELL, mode, backdrop);
+        let sum = 0;
+        for (let k = 0; k < cells.length; k++) sum += (cells[k] - q.cells[k]) ** 2;
+        const distance = Math.sqrt(sum / cells.length);
+        if (distance < found.distance) found = { distance, zoom, uploadInset: q.inset };
+      }
+    }
+    return found;
+  };
   return {
     mode,
-    match(grid) {
-      let best: IconMatch = { distance: Infinity, iconInset: 0, uploadInset: 0 };
-      GRID_SAMPLERS.forEach((s, i) => {
-        const icon = sample(s, grid, mode);
-        for (const q of queries) {
-          let sum = 0;
-          for (let k = 0; k < icon.length; k++) sum += (icon[k] - q.cells[k]) ** 2;
-          const distance = Math.sqrt(sum / icon.length);
-          if (distance < best.distance) best = { distance, iconInset: ICON_INSETS[i], uploadInset: q.inset };
-        }
-      });
-      return best;
+    match: (grid) => best(grid, zoomed ? RANKING_ZOOMS : [0]),
+    measure(grid, around) {
+      if (!zoomed) return around;
+      const steps = Math.round(ZOOM_REACH / ZOOM_STEP);
+      const zooms: number[] = [];
+      for (let i = -steps; i <= steps; i++) {
+        const zoom = Math.round((around.zoom + i * ZOOM_STEP) * 100) / 100;
+        if (zoom >= 0 && zoom <= 1) zooms.push(zoom);
+      }
+      const fine = best(grid, zooms, fineQueries);
+      return fine.distance <= around.distance ? fine : around;
     },
   };
 }

@@ -226,13 +226,74 @@ export async function align(input: AlignInput): Promise<AlignResult> {
 
 export class CompareError extends Error {}
 
+/** A text's font as the picture draws it (the aura's keys, after conditions). */
+export interface DrawnFont {
+  /** The font's name (`text_font`, a text display's `font`). */
+  name: string;
+  /** Font size in UI units: the height of the text's line box. */
+  size: number;
+  /** Font flags (`OUTLINE`, `THICKOUTLINE`, `None`, …). */
+  flags: string;
+  /** Drop shadow offset in units, right and up (0, 0: none). */
+  shadow: { x: number; y: number };
+}
+
+/**
+ * One drawn element of a region: a display element (`subtext`, `subborder`, `subtexture`, …, numbered by its place in
+ * the aura's `subRegions`, the `sub.N` of conditions) or a text display's own text (`text`, no number).
+ */
+export interface PictureElement {
+  kind: string;
+  /** Its place in the aura's `subRegions` (1-based); null for a text display's own text. */
+  index: number | null;
+  box: PixelBox;
+  /** For texts: the font drawn. */
+  font?: DrawnFont;
+}
+
 /** One region of the aura's picture: where the page laid it out (pixels of the picture at its scale). */
 export interface PictureRegion {
   auraId: string;
   regionType: string;
   box: PixelBox;
-  /** Its texts' boxes (text sub elements; a text region's own text). */
-  texts: PixelBox[];
+  /** Its drawn elements (glows left out: they don't count in the picture's bounds either). */
+  elements: PictureElement[];
+}
+
+/** Which way a text's dark rim lies: around every side (outline), to one side (shadow), nowhere, or not readable. */
+export type TextEdge = "outline" | "shadow" | "none" | "unknown";
+
+/** How a text's glyphs are edged: the share of glyph edges with a dark pixel next to them, per side, and what that means. */
+export interface EdgeReading {
+  edge: TextEdge;
+  /** Per side of the glyphs: the share (0-1) of their edge pixels on that side that have a dark pixel beside them. */
+  rim: { left: number; right: number; up: number; down: number } | null;
+}
+
+export interface ElementMetrics {
+  kind: string;
+  index: number | null;
+  /** The element's box as laid out (a text's: its line box, the font size high), on the screenshot (pixels) and in UI units. */
+  layout: PixelBox;
+  layoutUnits: PixelBox;
+  /** What is drawn in and just around the box, in the picture and the screenshot (pixels, and UI units from the picture's top left). */
+  drawn: { picture: PixelBox | null; screenshot: PixelBox | null };
+  drawnUnits: { picture: PixelBox | null; screenshot: PixelBox | null };
+  /** screenshot − picture (pixels): left, top, width, height; null when either draws nothing there. */
+  delta: PixelBox | null;
+  /** Mean colour of what is drawn in the box, in each, and screenshot − picture. */
+  colour: { picture: Rgb | null; screenshot: Rgb | null; delta: Rgb | null };
+  /**
+   * True when other things are drawn under the box (the display's art, another element): what is measured in it
+   * includes them, so its `drawn` box and colour say little; `text.rows` and `text.edge` may still.
+   */
+  overlapsOther: boolean;
+  /** For texts: the font drawn, the heights of its rows of glyphs (pixels) and how its glyphs are edged, in each. */
+  text?: {
+    font: DrawnFont;
+    rows: { picture: number[]; screenshot: number[] };
+    edge: { picture: EdgeReading; screenshot: EdgeReading };
+  };
 }
 
 export interface RegionMetrics {
@@ -247,8 +308,8 @@ export interface RegionMetrics {
   delta: PixelBox | null;
   /** Mean colour of the content inside the frame, in each, and screenshot − picture. */
   colour: { picture: Rgb | null; screenshot: Rgb | null; delta: Rgb | null };
-  /** Rows of text: the heights (pixels) of the runs of rows with content in each text's box, in each. */
-  textRows: { picture: number[]; screenshot: number[] }[];
+  /** Each drawn element (texts, borders, textures, …), measured on its own. */
+  elements: ElementMetrics[];
 }
 
 /** From each box's start to the next one's (pitch) and the empty space between them (gap): pixels and UI units. */
@@ -269,6 +330,19 @@ export interface Run {
   screenshot: Gaps | null;
 }
 
+/**
+ * How much of a score change is noise: the screenshot's own pixel noise (JPEG, dithering: the mean difference of its
+ * background pixels from the background colour), the spread of the score over scales half a percent either side of
+ * the one found (null when the scale was given), what moving the whole picture one pixel costs (a yardstick), and
+ * from these the smallest change of the score between two compares that means the aura changed for better or worse.
+ */
+export interface ScoreNoise {
+  pixel: number;
+  scale: number | null;
+  onePixelShift: number;
+  meaningful: number;
+}
+
 export interface CompareMetrics {
   regions: RegionMetrics[];
   /** The regions' rows and columns, with their pitch and gaps. */
@@ -276,6 +350,8 @@ export interface CompareMetrics {
   /** The mean colour difference where either has content (0-255), and the share of those pixels both draw. */
   score: number;
   overlap: number;
+  /** How large a change of `score` means something (see `ScoreNoise`). */
+  noise: ScoreNoise;
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -381,7 +457,15 @@ function runs(regions: RegionMetrics[], scale: number): Run[] {
  * Per region of the picture (laid on the screenshot at the alignment): its frame, what each draws around it, their
  * mean colours and text rows; and the spacing of the regions, laid out and measured.
  */
-export function measure(shot: RgbaImage, background: Background, picture: RgbaImage, regions: PictureRegion[], at: Alignment): CompareMetrics {
+export function measure(
+  shot: RgbaImage,
+  background: Background,
+  picture: RgbaImage,
+  regions: PictureRegion[],
+  at: Alignment,
+  /** How much the score varies over scales half a percent either side of `at`'s (when the scale was searched). */
+  scaleSpread?: number,
+): CompareMetrics {
   const bg = background.colour;
   const shotMask = contentMask(shot, bg);
   const placed = placeable(picture, bg);
@@ -407,10 +491,7 @@ export function measure(shot: RgbaImage, background: Background, picture: RgbaIm
         : null;
     const cp = meanColour(canvas.image, canvas.mask, layout);
     const cs = meanColour(shot, shotMask, layout);
-    const textRows = r.texts.map((t) => {
-      const box = grow(shift(t, at.dx, at.dy), 2);
-      return { picture: rowRuns(canvas.mask, w, h, box), screenshot: rowRuns(shotMask, w, h, box) };
-    });
+    const elements = r.elements.map((e) => measureElement(e, regions, { shot, shotMask, canvas, bg, at }));
     return {
       auraId: r.auraId,
       regionType: r.regionType,
@@ -419,16 +500,162 @@ export function measure(shot: RgbaImage, background: Background, picture: RgbaIm
       drawn: { picture: drawnPicture, screenshot: drawnShot },
       delta,
       colour: { picture: cp, screenshot: cs, delta: cp && cs ? (cs.map((c, i) => c - cp[i]) as Rgb) : null },
-      textRows,
+      elements,
     };
   });
   const s = scoreAt(shot, shotMask, bg, placed, at.dx, at.dy);
+  const shifted = Math.min(...[[1, 0], [-1, 0], [0, 1], [0, -1]].map(([x, y]) => scoreAt(shot, shotMask, bg, placed, at.dx + x, at.dy + y).score));
+  const pixel = backgroundNoise(shot, bg);
+  const scale = scaleSpread === undefined ? null : round2(scaleSpread);
   return {
     regions: out,
     spacing: runs(out, at.scale),
     score: round2(s.score),
     overlap: round2(s.overlap),
+    noise: {
+      pixel: round2(pixel),
+      scale,
+      onePixelShift: round2(Math.max(0, shifted - s.score)),
+      meaningful: round2(Math.max(MIN_MEANINGFUL, pixel, scale ?? 0)),
+    },
   };
+}
+
+/** The smallest score change counted as meaningful, whatever the noise (rounding of the score and of placement). */
+const MIN_MEANINGFUL = 0.1;
+
+/** The mean difference of the screenshot's background pixels (on its edge, close to the background colour) from it. */
+function backgroundNoise(img: RgbaImage, bg: Rgb): number {
+  const { width: w, height: h, data } = img;
+  let sum = 0;
+  let n = 0;
+  const at = (p: number) => {
+    const d = distance(data, p * 4, ...bg);
+    if (d > CONTENT_THRESHOLD) return;
+    sum += d;
+    n++;
+  };
+  for (let x = 0; x < w; x++) {
+    at(x);
+    at((h - 1) * w + x);
+  }
+  for (let y = 1; y < h - 1; y++) {
+    at(y * w);
+    at(y * w + w - 1);
+  }
+  return n ? sum / n : 0;
+}
+
+interface Canvases {
+  shot: RgbaImage;
+  shotMask: Uint8Array;
+  canvas: { mask: Uint8Array; image: RgbaImage };
+  bg: Rgb;
+  at: Alignment;
+}
+
+const intersects = (a: PixelBox, b: PixelBox) =>
+  a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height;
+
+/** One element measured in the picture and the screenshot (boxes in picture pixels, shifted onto the screenshot). */
+function measureElement(e: PictureElement, regions: PictureRegion[], c: Canvases): ElementMetrics {
+  const { shot, shotMask, canvas, at } = c;
+  const { width: w, height: h } = shot;
+  const layout = shift(e.box, at.dx, at.dy);
+  // A text's outline and shadow reach a few pixels out of its line box; a border drawn outside, its offset.
+  const around = grow(layout, Math.max(2, Math.ceil(2 * at.scale)));
+  const drawnPicture = maskBounds(canvas.mask, w, h, around);
+  const drawnShot = maskBounds(shotMask, w, h, around);
+  const unitsOrNull = (b: PixelBox | null) => (b ? units(b, at.scale, at.dx, at.dy) : null);
+  const cp = meanColour(canvas.image, canvas.mask, layout);
+  const cs = meanColour(shot, shotMask, layout);
+  // Under it: a display's art (every display but a text or an empty one draws in its frame) or another element.
+  const art = regions.filter((r) => r.regionType !== "text" && r.regionType !== "empty").map((r) => r.box);
+  const elements = regions.flatMap((r) => r.elements).filter((o) => o !== e).map((o) => o.box);
+  const overlapsOther = [...art, ...elements].some((b) => intersects(b, e.box));
+  return {
+    kind: e.kind,
+    index: e.index,
+    layout,
+    layoutUnits: units(layout, at.scale, at.dx, at.dy),
+    drawn: { picture: drawnPicture, screenshot: drawnShot },
+    drawnUnits: { picture: unitsOrNull(drawnPicture), screenshot: unitsOrNull(drawnShot) },
+    delta:
+      drawnPicture && drawnShot
+        ? {
+            left: drawnShot.left - drawnPicture.left,
+            top: drawnShot.top - drawnPicture.top,
+            width: drawnShot.width - drawnPicture.width,
+            height: drawnShot.height - drawnPicture.height,
+          }
+        : null,
+    colour: { picture: cp, screenshot: cs, delta: cp && cs ? (cs.map((v, i) => v - cp[i]) as Rgb) : null },
+    overlapsOther,
+    ...(e.font && {
+      text: {
+        font: e.font,
+        rows: { picture: rowRuns(canvas.mask, w, h, around), screenshot: rowRuns(shotMask, w, h, around) },
+        edge: { picture: textEdge(canvas.image, canvas.mask, around, c.bg), screenshot: textEdge(shot, shotMask, around, c.bg) },
+      },
+    }),
+  };
+}
+
+const luminance = (d: Uint8Array, i: number) => 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+/** A pixel darker than this is a rim (an outline's or a shadow's black). */
+const DARK = 60;
+/** A side's share of dark neighbours from which it counts as rimmed, and below which as open. */
+const RIMMED = 0.6;
+const OPEN = 0.35;
+
+/**
+ * How a text's glyphs are edged in `box`: glyph pixels are the bright ones (at least half the brightest there, above
+ * the dark rim); for each glyph pixel whose neighbour one or two pixels to a side isn't glyph, that neighbour is dark
+ * (a rim) or not. Rimmed on every side is an outline, on the right and below only a drop shadow, nowhere none.
+ * Unknown on a dark background (a black rim can't be told from it) or when there are no glyphs.
+ */
+export function textEdge(img: RgbaImage, mask: Uint8Array, box: PixelBox, bg: Rgb): EdgeReading {
+  const unknown: EdgeReading = { edge: "unknown", rim: null };
+  if (0.299 * bg[0] + 0.587 * bg[1] + 0.114 * bg[2] < DARK + 20) return unknown;
+  const { width: w, height: h, data } = img;
+  const x0 = Math.max(0, box.left);
+  const y0 = Math.max(0, box.top);
+  const x1 = Math.min(w, box.left + box.width);
+  const y1 = Math.min(h, box.top + box.height);
+  let brightest = 0;
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (mask[y * w + x]) brightest = Math.max(brightest, luminance(data, (y * w + x) * 4));
+  if (brightest < DARK * 2) return unknown;
+  const glyph = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && mask[y * w + x] === 1 && luminance(data, (y * w + x) * 4) >= brightest / 2;
+  const dark = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && mask[y * w + x] === 1 && luminance(data, (y * w + x) * 4) < DARK;
+  const sides = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] } as const;
+  const rimmed = { left: 0, right: 0, up: 0, down: 0 };
+  const edges = { left: 0, right: 0, up: 0, down: 0 };
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      if (!glyph(x, y)) continue;
+      for (const [side, [dx, dy]] of Object.entries(sides) as [keyof typeof sides, readonly [number, number]][]) {
+        if (glyph(x + dx, y + dy)) continue;
+        edges[side]++;
+        if (dark(x + dx, y + dy) || (!glyph(x + 2 * dx, y + 2 * dy) && dark(x + 2 * dx, y + 2 * dy))) rimmed[side]++;
+      }
+    }
+  }
+  if (Object.values(edges).some((n) => n === 0)) return unknown;
+  const rim = {
+    left: round2(rimmed.left / edges.left),
+    right: round2(rimmed.right / edges.right),
+    up: round2(rimmed.up / edges.up),
+    down: round2(rimmed.down / edges.down),
+  };
+  const all = Object.values(rim);
+  const edge: TextEdge = all.every((v) => v >= RIMMED)
+    ? "outline"
+    : all.every((v) => v <= OPEN)
+      ? "none"
+      : (rim.right >= RIMMED || rim.down >= RIMMED) && rim.left <= OPEN && rim.up <= OPEN
+        ? "shadow"
+        : "unknown";
+  return { edge, rim };
 }
 
 /**

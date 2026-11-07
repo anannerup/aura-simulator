@@ -153,11 +153,17 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   FileDataID, icon search), `data/<game>/items.sqlite` (`server/items/`: ItemSparse + Item, searchable by icon), both
   for the same `SpellSource` and downloaded on first use (`createClientCaches`; `ServerGame.files`/`.items`; both
   searches page through `parseSearchPage` in `server/name-search.ts`), `data/<game>/icon-features.sqlite`
-  (`server/icon-index/`, `ServerGame.iconIndex`: icons by how they look, `POST /api/<game>/icons/similar`; a small RGB
-  grid per icon from its file on wago.tools, filled on demand or in the background; uploads decoded with `sharp`;
-  tests serve synthetic TGAs through an injected fetch, `tests/unit/icon-index.test.ts`), and
+  (`server/icon-index/`, `ServerGame.iconIndex`: icons, and with `kind=texture` every other texture file of the game
+  and the addon's own media (`addonTextureFiles` in `server/media.ts`), by how they look,
+  `POST /api/<game>/icons/similar`, its progress `GET` there; a small colour-and-opacity grid per file from wago.tools
+  (or the addon's files), filled on demand, after each file-list download (icons) or in the background with retries
+  and an ETA; an icon's zoom is measured by Icon.lua's crop model, `artInset` in `features.ts`; uploads decoded with
+  `sharp`; tests serve synthetic TGAs through an injected fetch, `tests/unit/icon-index.test.ts`;
+  `server/texture-picture.ts` draws any texture as a PNG, `GET /api/<game>/textures/picture.png`), and
   `data/<game>/addon/` (or `ADDON_CACHE_DIR/<game>`). `server/media.ts` reads the addon's LibSharedMedia lists from
   the server's aura core (`registries().media`; `/api/<game>/media`, the `/<game>/fonts` sample page);
+  the font sample picture `/<game>/fonts/sample` (`app/fonts/FontSample.tsx`) and `GET /api/<game>/fonts/sample.png`
+  (`captureFontSample`) draw one font as the game screen draws a text;
   `server/media-check.ts` adds `media.texture` infos to push answers for texture paths the game can't draw. The test
   fixtures for all three are the recorded wago rows in `tests/fixtures/<game>/spells/`. The addon source cache (`server/addon/source-cache.ts`: a repo's
   released tags via jsDelivr/GitHub, no branches or commits) is the only place the server reads Forever's addon files;
@@ -213,8 +219,10 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   when missing). It loads the page from the server's own address (`request.nextUrl.origin`).
   `POST /api/<game>/workspaces/<id>/compare` compares the player's screenshot (the body) with the aura's picture
   (`server/compare/`: `compare.ts` is the pure part — background from the edge, scale and offset search, per-region
-  boxes, pitch/gaps, colours, text rows, the comparison picture; `image.ts` decodes/resizes/encodes with `sharp`;
-  `index.ts` draws the picture through `captureRender`, which also returns where each region was drawn).
+  boxes, pitch/gaps, colours, per display element (`elements`: texts with rows and outline/shadow, borders, textures;
+  their kind and `subRegions` place come from the renderers' `data-subregion`/`data-index`/`data-font-*`), the
+  score's noise (`noise.meaningful`), the comparison picture; `image.ts` decodes/resizes/encodes with `sharp`;
+  `index.ts` draws the picture through `captureRender`, which also returns where each region and element was drawn).
 - Agent docs are per game (`src/games/<game>/docs/`, served at `/<game>/docs/agents`, `/<game>/llms.txt`,
   `/<game>/docs/agents.md` through `ServerGame.agentDocs`). Forever's: update it when an API or format changes;
   `agent-docs.ts` has one function per section. Lists of types, triggers, condition variables and defaults are

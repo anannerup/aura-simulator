@@ -1,23 +1,40 @@
 import { connection, type NextRequest } from "next/server";
-import type { IconColourMode } from "@/api/files";
+import { TEXTURE_KINDS, texturePictureUrl, type IconColourMode, type SimilarResult, type TextureKind } from "@/api/files";
 import { routeGame } from "@/games/server";
 import { errorMessage } from "@/lib/errors";
 import { BadUploadError, decodeUpload, MAX_UPLOAD_BYTES, UPLOAD_TYPES } from "@/server/icon-index";
 import { parseSearchPage } from "@/server/name-search";
+import { requestOrigin } from "@/server/request-origin";
 
 const MODES: readonly IconColourMode[] = ["auto", "colour", "grey"];
 
 /**
- * POST /api/<game>/icons/similar?q=<words of an icon name>&colour=auto|colour|grey&offset=<0…>&limit=<1-100>
- * with a picture of an icon (a crop of a screenshot; PNG, JPEG or WebP, up to 8 MB) as the body
+ * GET /api/<game>/icons/similar → `IconIndexStatus`: how far the index of icons and of textures is (indexed, failed,
+ * total), what is being built and how fast. 502 the game's file list couldn't be downloaded.
+ */
+export async function GET(_request: NextRequest, ctx: RouteContext<"/api/[game]/icons/similar">) {
+  await connection();
+  const server = routeGame((await ctx.params).game);
+  if (server instanceof Response) return server;
+  try {
+    return Response.json(await server.iconIndex.status());
+  } catch (err) {
+    return Response.json({ error: `The game's file list couldn't be downloaded: ${errorMessage(err)}` }, { status: 502 });
+  }
+}
+
+/**
+ * POST /api/<game>/icons/similar?kind=icon|texture&q=<words of a name or path>&colour=auto|colour|grey&offset=<0…>&limit=<1-100>
+ * with a picture of an icon or texture (a crop of a screenshot; PNG, JPEG or WebP, up to 8 MB) as the body
  * (`Content-Type: image/png|image/jpeg|image/webp`) or as the form field `image` (`multipart/form-data`).
  *
- * 200 → `IconSimilarResult`: icons ranked by how alike they look, best (lowest `distance`) first, one page of them,
- * each with the WeakAuras `zoom` it matched best at. `q` compares only icons whose names match (as icon search
- * does); without it every icon of the game is compared, which needs the whole icon index: until it is built, 202 →
- * `IconIndexProgress` (`indexed`, `total`, `retryAfter`, `hint`), and building starts in the background. 202 too when
- * `q` matches more not-yet-indexed icons than one search fetches. 400 bad parameters or picture, 413 too large,
- * 415 another body type, 502 the game's file list couldn't be downloaded.
+ * 200 → `SimilarResult`: icons (`kind=icon`, the default) or the game's other textures and the addon's own
+ * (`kind=texture`) ranked by how alike they look, best (lowest `distance`) first, one page of them; an icon with the
+ * WeakAuras `zoom` the crop shows it at; each with a `pictureUrl` to look at. `q` compares only files whose names
+ * (icons) or paths (textures) match; without it every file of the kind is compared, which needs that kind indexed:
+ * until it is, 202 → `IconIndexProgress` (`indexed`, `total`, `etaSeconds`, `retryAfter`, `hint`), and building
+ * starts in the background. 202 too when `q` matches more not-yet-indexed files than one search fetches. 400 bad
+ * parameters or picture, 413 too large, 415 another body type, 502 the game's file list couldn't be downloaded.
  */
 export async function POST(request: NextRequest, ctx: RouteContext<"/api/[game]/icons/similar">) {
   await connection();
@@ -28,6 +45,8 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/[game]/
   if ("error" in page) return Response.json(page, { status: 400 });
   const colour = (params.get("colour") ?? "auto") as IconColourMode;
   if (!MODES.includes(colour)) return Response.json({ error: `colour must be one of ${MODES.join(", ")}` }, { status: 400 });
+  const kind = (params.get("kind") ?? "icon") as TextureKind;
+  if (!TEXTURE_KINDS.includes(kind)) return Response.json({ error: `kind must be one of ${TEXTURE_KINDS.join(", ")}` }, { status: 400 });
 
   const body = await readUpload(request);
   if (body instanceof Response) return body;
@@ -40,11 +59,17 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/[game]/
   }
 
   try {
-    const result = await server.iconIndex.similar(upload, { ...page, q: params.get("q"), colour });
+    const result = await server.iconIndex.similar(upload, { ...page, q: params.get("q"), colour, kind });
     if (result.status === "indexing") {
       return Response.json(result, { status: 202, headers: { "Retry-After": String(result.retryAfter) } });
     }
-    return Response.json(result);
+    const origin = requestOrigin(request.headers);
+    const picture = (path: string) => texturePictureUrl(origin, server.game.id, path);
+    const answer: SimilarResult =
+      result.kind === "icon"
+        ? { ...result, results: result.results.map((r) => ({ ...r, pictureUrl: picture(r.path) })) }
+        : { ...result, results: result.results.map((r) => ({ ...r, pictureUrl: picture(r.path) })) };
+    return Response.json(answer);
   } catch (err) {
     return Response.json({ error: `The game's file list couldn't be downloaded: ${errorMessage(err)}` }, { status: 502 });
   }

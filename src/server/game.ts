@@ -6,7 +6,7 @@ import path from "node:path";
 import type { Game } from "@/games/game";
 import type { AddonSourceCache } from "./addon/source-cache";
 import { createGameFiles, type GameFiles } from "./game-files";
-import { createIconIndex, type IconIndex } from "./icon-index";
+import { createIconIndex, type AddonTexture, type IconIndex } from "./icon-index";
 import { createItemCache, type ItemCache } from "./items";
 import type { SpellCache, SpellSource } from "./spells";
 
@@ -34,12 +34,22 @@ export function gameDataDir(gameId: string): string {
 /**
  * A game client's file list and items from wago.tools (`<data>/<game>/files.sqlite`, `items.sqlite`), for the product
  * and Wowhead environment its spell source names, each downloaded on first use; and its icon index
- * (`icon-features.sqlite`), filled from the icons' files as searches need them.
+ * (`icon-features.sqlite`, with the game's other textures and `addonTextures`), whose icons are built in the background
+ * after each download of the file list and filled further as searches need them.
  */
-export function createClientCaches(gameId: string, source: SpellSource): { files: GameFiles; items: ItemCache; iconIndex: IconIndex } {
-  const files = createGameFiles({ source, dbPath: path.join(gameDataDir(gameId), "files.sqlite") });
+export function createClientCaches(
+  gameId: string,
+  source: SpellSource,
+  addonTextures?: () => Promise<AddonTexture[]>,
+): { files: GameFiles; items: ItemCache; iconIndex: IconIndex } {
+  const files = createGameFiles({
+    source,
+    dbPath: path.join(gameDataDir(gameId), "files.sqlite"),
+    // The icons are indexed in the background after each download of the file list (`iconIndex` exists by then).
+    onSynced: () => void iconIndex.build(["icon"]).catch(() => {}),
+  });
   const items = createItemCache({ source, files, dbPath: path.join(gameDataDir(gameId), "items.sqlite") });
-  const iconIndex = createIconIndex({ files, dbPath: path.join(gameDataDir(gameId), "icon-features.sqlite") });
+  const iconIndex = createIconIndex({ files, addonTextures, dbPath: path.join(gameDataDir(gameId), "icon-features.sqlite") });
   return { files, items, iconIndex };
 }
 

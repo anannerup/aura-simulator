@@ -15,4 +15,4 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/:game/docs/agents", "/:game/fonts", "/:game/render"] };
+export const config = { matcher: ["/:game/docs/agents", "/:game/fonts", "/:game/fonts/sample", "/:game/render"] };

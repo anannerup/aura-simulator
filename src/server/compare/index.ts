@@ -103,7 +103,10 @@ export async function compareScreenshot(server: ServerGame, origin: string, work
     for (const f of [0.995, 1.005]) await drawnAt(best * f);
   }
   const regions = inside(exact.regions, exact.image);
-  const metrics = measure(shot, background, exact.image, regions, at);
+  // How much the score moves over the scales drawn within half a percent of the best (what a re-run's search can land on).
+  const near = tried.filter((t) => t.scale !== round3(at.scale) && Math.abs(t.scale / at.scale - 1) <= 0.006);
+  const scaleSpread = request.scale === undefined ? Math.max(0, ...near.map((t) => Math.abs(t.score - at.score))) : undefined;
+  const metrics = measure(shot, background, exact.image, regions, at, scaleSpread);
   const side = Math.max(shot.width, shot.height);
   const zoom = Math.max(1, Math.min(8, Math.floor(384 / side)));
   const comparison = await encodePng(comparisonImage(shot, background, exact.image, regions, at, zoom));

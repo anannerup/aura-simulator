@@ -372,11 +372,13 @@ export function displayMediaNotes({ game, origin: o, ref }: DisplayMediaNotes): 
 - **Fonts, bar textures, borders** are LibSharedMedia names (\`text_font: "Arial Narrow"\`), only those of
   \`GET /api/${game}/media\`. Any other name (one from SharedMedia or ElvUI) works only for players who have that
   addon; the game draws the default instead, and validation warns (\`media.font\`, …).
-- **Border** (\`subborder\`): the border's frame is the display (on bars the \`anchor_area\`) grown by \`border_offset\`
-  pixels on every side, and its edge (\`border_edge\`, default \`"Square Full White"\`) is drawn \`border_size\` pixels
-  thick **inside** that frame. So \`border_offset: 0\` covers the display's outer \`border_size\` pixels, and
-  \`border_offset\` equal to \`border_size\` puts the whole border just outside the display. In a screenshot: an icon
-  whose art is inset by the border's thickness has it inside (offset 0); art filling the box inside the border, outside.
+- **Border** (\`subborder\`, SubRegionTypes/Border.lua): the border's frame is the display (on bars the
+  \`anchor_area\`) grown by \`border_offset\` units on every side, and its edge (\`border_edge\`, default
+  \`"Square Full White"\`) is drawn \`border_size\` units thick **inside** that frame, over whatever is there. So
+  \`border_offset: 0\` draws the border **over** the display's outer \`border_size\` units: the icon's art still fills
+  the whole display and is not made smaller, its outer ring is just hidden under the border. \`border_offset\` equal to
+  \`border_size\` puts the whole border just outside the display. What a screenshot can and can't tell: see "Reading
+  the layout from pixels" (Pictures).
 - **Dynamic groups** (\`dynamicgroup\`): \`grow\`, \`align\`, \`space\`, \`stagger\`, \`sort\`, \`limit\`, \`radius\` and the grid
   keys are set on the **Group** tab, not Display: the option reference's Group part (${part("group")}) has
   them all with their values and defaults. A group's Display tab (${part("region-dynamicgroup")}) edits its
@@ -401,7 +403,33 @@ export function itemCountNotes(): string {
   string); or keep it shown and dim or desaturate it with a condition on Stacks (\`stacks\` \`==\` 0).
 - **The text at 0**: \`%s\` and \`%2.s\` draw **nothing** at 0 (the addon's \`s\` text is empty for 0 stacks), so a
   stack text vanishes when the bags are empty. \`%2.stacks\` (the trigger's own \`stacks\` value) draws \`"0"\`.
-- In a situation, \`{"triggers": {"2": {"stacks": 0}}}\` shows it at 0.
+- **None in the bags, in a situation**: \`{"triggers": {"2": {"stacks": 0}}}\`. The trigger has no "found" of its
+  own: in game it stays active at 0 (unless its count test says otherwise), so 0 is a count, not a missing item. The
+  simulator reads \`{"present": false}\` the same way (the count is then 0), but write \`stacks: 0\`: it says what you
+  mean.
+- **\`itemName\` as an ID, and \`use_exact_itemName\`** (the option "Exact Item Match"): with it on, an ID counts
+  exactly that item. With it off (the default) the addon first turns the ID into the item's **name**
+  (\`C_Item.GetItemInfo\`) and counts every item of that name, so same-named variants count together; and while the
+  client hasn't loaded that item's data yet (an item not seen this session), the name is unknown and the count reads 0
+  until the next bag update. For a consumable tracked by ID, set \`use_exact_itemName: true\`. A name in \`itemName\`
+  is always counted by name.
+`;
+}
+
+/**
+ * Temporary enchants on items other than weapons, as both addons see them (GenericTrigger.lua's Weapon Enchant
+ * watcher: GetWeaponEnchantInfo, the main hand, off hand and ranged slots only).
+ */
+export function temporaryEnchantNotes(): string {
+  return `### Temporary enchants on armour (not weapons)
+
+The Weapon Enchant trigger reads the client's \`GetWeaponEnchantInfo\`, which reports only the **main hand, off hand
+and ranged** slots (\`weapon\`: \`main\`, \`off\`, \`ranged\`). A temporary enchant on another item, such as a Rune of
+Warding on the chest, is not among them: no built-in trigger reads it as an enchant. Whether it shows as a **player
+aura** is the client's doing, not the addon's: if the game lists it as a buff (the player sees it on the buff bar
+while the enchant is on), an Aura trigger on the player with that buff's name or spell ID tracks it like any buff
+(the buff's spell, not the item's ID). If it isn't listed as a buff, only custom Lua that reads the item's tooltip can see it. This simulator
+can't check either: ask the player which it is before you build on it, and say so.
 `;
 }
 
@@ -445,18 +473,41 @@ the server on first use.
   with \`offset\` up to \`total\` ("potion" has well over 100).
 - **Icons that look like a crop:** \`POST /api/${game}/icons/similar?q=<optional name filter>&colour=auto|colour|grey&offset=&limit=\`
   with the screenshot's icon cropped out as the body (PNG, JPEG or WebP, up to 8 MB; or a multipart form's \`image\`).
-  It compares the crop with the game's icon files and answers \`{"status": "ok", "mode", "saturation", "total",
-  "closeToBest", "unavailable", "results": [{"id", "name", "path", "iconUrl", "distance", "zoom", "uploadInset"}]}\`,
-  best first: \`distance\` 0-1 (lower is closer), \`zoom\` the icon \`zoom\` it matched at (write it to the aura), and
-  \`uploadInset\` how much of the crop's edge it ignored (a border or background around the icon).
+  It compares the crop with the game's icon files and answers \`{"status": "ok", "kind": "icon", "mode",
+  "saturation", "total", "closeToBest", "unavailable", "results": [{"id", "name", "path", "iconUrl", "pictureUrl",
+  "distance", "zoom", "uploadInset"}]}\`, best first: \`distance\` 0-1 (lower is closer), \`zoom\` the icon \`zoom\` the
+  crop shows it at (write it to the aura), \`uploadInset\` how much of the crop's edge it left out (a border over the
+  art), \`pictureUrl\` a PNG of the file.
+  - **Crop at the icon's outer edge**, its border included (the box the aura's \`width\`/\`height\` make) and nothing
+    around it: \`zoom\` is how much art is missing at that edge (WeakAuras cuts \`zoom\` / 4 of the art off each side).
+    Background around the icon in the crop reads as a smaller zoom; the right icon is still found.
   - \`colour=grey\` compares brightness only, for a **desaturated** icon in the screenshot (an icon on cooldown,
     \`desaturate\`); \`auto\` (the default) picks grey when the crop has almost no colour (\`mode\` says which).
+    **Desaturated, or grey art?** An icon's \`desaturate\` greys only its art: its display elements (a texture, a
+    border, texts, glows) keep their colours (they have their own \`textureDesaturate\`). If the screenshot's art is
+    grey but its border or another element is coloured, the icon is desaturated; then search \`colour=grey\` and pick
+    among the colourful icons it finds. If the colour search finds a grey icon (low \`saturation\`) as close as the grey
+    search's best, the art itself is grey: leave \`desaturate\` off.
   - **Icons of one family can differ only in colour** (the same potion in red, blue and green): in grey mode they tie.
     \`closeToBest\` counts the icons about as close as the best; above 1, check those candidates' \`iconUrl\` and pick by
     what the aura is for (the spell or item it tracks).
-  - Without \`q\` it compares every icon, which needs the server's index of icon pictures: the first time it answers
-    202 \`{"status": "indexing", "indexed", "total", "retryAfter"}\` while it builds (a few minutes, once). Retry, or pass
-    \`q\` (a word of the name: \`potion\`) to compare just those now (up to 300 not yet indexed).
+  - Without \`q\` it compares every icon, which needs the server's index of icon pictures. The server starts building
+    it when it first downloads the game's file list; until it is complete a search answers 202 \`{"status":
+    "indexing", "kind", "indexed", "failed", "total", "perSecond", "etaSeconds", "retryAfter", "hint"}\` (\`Retry-After\`
+    too). Wait \`retryAfter\` seconds and ask again, or pass \`q\` (a word of the name: \`potion\`) to compare just those
+    now (up to 300 not yet indexed are fetched on demand). Downloads that fail are tried again; once every file was
+    tried, a search answers without the ones that still fail (\`unavailable\`). \`GET /api/${game}/icons/similar\` shows
+    the index's progress (\`{"icons", "textures": {"indexed", "failed", "total"}, "building", "perSecond",
+    "lastError"}\`) without starting a search.
+- **Other textures that look like a crop** (a cursor, UI art, the addon's own media): the same search with
+  \`kind=texture\` compares every texture file of the game outside \`Interface\\Icons\\\` and the addon's own textures
+  (\`Interface\\AddOns\\…\`). Its results are \`{"id" (null for the addon's), "path", "from": "game" | "addon",
+  "pictureUrl", "distance", "uploadInset"}\`; \`path\` is what a texture option takes. \`q\` filters by words of the path
+  (\`cursor\`, \`weakauras textures\`): use it, since the full texture index (tens of thousands of files) takes a long
+  while to build the first time. A texture drawn whole is compared stretched to the crop, with its see-through parts
+  over the crop's edge colour; part of a texture (a sprite sheet's cell, texture coordinates) matches poorly.
+- \`GET /api/${game}/textures/picture.png?path=<a path or FileDataID>\` → a PNG of any texture (the game's, by path or
+  FileDataID, or the addon's, \`Interface\\AddOns\\…\`), to look at; 404 when there is none.
 
 ### Game files
 
@@ -479,11 +530,22 @@ font of the list draws your text in the game's own font files, side by side. Com
 default) and serifs (Morpheus, Skurri, Nimrod MT). When the screenshot's font isn't in the list (ElvUI's Expressway,
 a SharedMedia font), pick the closest listed font and tell the player which one you used and why.
 
+**Font samples without a browser.** \`GET /api/${game}/fonts/sample.png?font=<name>&text=<text>&size=<font size>&outline=<flags>\`
+→ a PNG of one font drawing your text exactly as the game screen draws a text: \`size\` in UI units (as
+\`text_fontSize\`), \`outline\` the font flags (\`OUTLINE\` by default, \`THICKOUTLINE\`, \`None\`, …), optional
+\`shadowX\`/\`shadowY\` (units, y up), \`colour\` (hex, default white), \`scale\` (pixels per unit, as the screenshot
+endpoint's) and \`background\` (hex; default transparent). Take one per candidate font at the screenshot's scale and
+compare them with the screenshot's text. The same picture is a page, \`${o}/${game}/fonts/sample?font=…\` (same
+parameters); its \`[data-testid="font-sample"]\` element gets \`data-ready="true"\` once the font has loaded, with
+\`data-width\`/\`data-height\`. 400 a bad parameter, 503 no headless browser.
+
 \`\`\`sh
 curl -s '${o}/api/${game}/items/search?q=${encodeURIComponent(item.name)}'
 curl -s ${o}/api/${game}/items/${item.id}
 curl -s '${o}/api/${game}/icons/search?q=${encodeURIComponent(icon)}'
 curl -s -X POST --data-binary @icon.png -H 'Content-Type: image/png' '${o}/api/${game}/icons/similar?q=potion'
+curl -s -X POST --data-binary @cursor.png -H 'Content-Type: image/png' '${o}/api/${game}/icons/similar?kind=texture&q=cursor'
+curl -s -o sample.png '${o}/api/${game}/fonts/sample.png?font=PT%20Sans%20Narrow%20Bold&text=12&size=12&scale=1.40625'
 curl -s '${o}/api/${game}/files?path=Interface%5CCursor%5CCast'
 curl -s ${o}/api/${game}/media
 \`\`\``;
@@ -615,12 +677,17 @@ The compare endpoint below finds the scale that lays your aura over the screensh
 
 ### Reading the layout from pixels
 
-- **Border drawn inside or outside** (a \`subborder\` of \`border_size\` units): with \`border_offset\` 0 the border covers
-  the display's outer \`border_size\` units, so the icon's art is **inset**: the art is smaller than the bordered box by
-  2 × \`border_size\` on each axis, and the bordered box is the display's \`width\`. With \`border_offset\` equal to
-  \`border_size\` the border lies just outside: the art fills the display and the bordered box is 2 × \`border_size\`
-  larger. Measure the art (where the icon's picture starts) against the border's outer edge: an inset of the border's
-  thickness means inside, no inset means outside.
+- **A border over the art or around it** (a \`subborder\` of \`border_size\` units, s below). With \`border_offset\` 0
+  the border is drawn **over** the display's outer s units: the bordered box is the display (\`width\`), and the art
+  you see inside the border is the display's art minus its covered ring (the art isn't shrunk). With \`border_offset\`
+  equal to s the border lies **around** the display: the bordered box is \`width\` + 2s and the art inside it is the
+  whole display. In both cases the art shows only inside the border, so **a screenshot can't tell them apart** by
+  where the art starts: an icon of width W at offset 0 and zoom z looks the same as one of width W − 2s at offset s and
+  zoom z + 4 × (s / W) × (1 − z / 2) (36 units, s = 1, zoom 0.3 ≈ 34 units, offset 1, zoom 0.39). What it does tell:
+  the bordered box's outer size (W at offset 0, W + 2s outside), the border's thickness (s) and colour, and the gap
+  between bordered boxes. Use \`border_offset\` 0 (the addon's default, and the common way: the size you measure is the
+  display's \`width\`) unless the player says otherwise or the aura's other numbers only come out whole the other way,
+  and say which you assumed. The similar-icon search's \`zoom\` is read for offset 0 (crop at the border's outer edge).
 - **A dynamic group's \`space\` is between the regions' edges** (each display's \`width\`/\`height\`), not between their
   borders: borders drawn outside (\`border_offset\` > 0) take \`border_offset\` from each side of the gap you see. So
   \`space\` = pitch − \`width\` (pitch: from one region's left edge to the next one's), and the empty gap between two
@@ -628,15 +695,33 @@ The compare endpoint below finds the scale that lays your aura over the screensh
 - **Icon \`zoom\` crops the art** (0 to 1, a fraction): the icon shows the middle \`1 − zoom / 2\` of the icon's art,
   enlarged to fill the display, so \`zoom\` / 4 of the art is cut from each side (0.3 cuts 7.5 %). Most icon files
   have a thin dark rim and some art up to their edges: when the screenshot's icon has no rim and its picture looks
-  larger than the same icon in \`iconUrl\` (details cut at the edges), the aura is zoomed. Compare the screenshot's icon
-  with the icon file at a few zooms; the similar-icon search (Items, icons and media) reports the zoom it matched at.
+  larger than the same icon in \`iconUrl\` (details cut at the edges), the aura is zoomed. The similar-icon search
+  (Items, icons and media) measures it: crop the icon at its outer edge (a border drawn over it included) and use its
+  \`zoom\`. To check, compare pictures of your aura at a few zooms with the compare endpoint.
+- **Where an element is attached** ("Attach to Point" on an icon; a text's \`anchor_point\`, its "To Frame's"): the
+  icon offers three rings of points (RegionTypes/Icon.lua, the options' "Edge", "Inner" and "Outer"). **Edge**
+  (\`TOPLEFT\`, \`TOP\`, …, \`CENTER\`) are the display's own corners and edges. **Inner** (\`INNER_TOP\`, …) are those of
+  a box 20 % smaller (10 % of \`width\`/\`height\` in from each side: 3.6 units on a 36-unit icon). **Outer**
+  (\`OUTER_TOP\`, …) of a box 10 % larger (5 % out from each side: 1.8 units on a 36-unit icon). With the text's
+  \`text_selfPoint\` \`AUTO\` (the default) a text attached to an Inner point puts the same point of itself there (inside
+  the corner), to an Outer point the opposite point (\`OUTER_TOP\`: the text's \`BOTTOM\` on it, so the text sits above
+  the icon), and to an Edge point its centre. A text's own box is its **line box**: as high as its font size, from the
+  font's ascent to its descent, so the glyphs don't reach its edges: digits sit on the baseline, a fifth or so of the
+  size above the box's bottom (it depends on the font). So with \`OUTER_TOP\` the gap you see between the icon's top
+  and the bottom of the digits is 5 % of the icon's height + the font's descent + \`text_anchorYOffset\`; with
+  \`OUTER_BOTTOM\` the gap to the top of the digits is 5 % + the space above the capitals + the offset (negative y moves
+  it down). Don't guess the font's part: the compare endpoint's \`elements\` give each text's line box (\`layout\`) and
+  its glyphs (\`drawn\`) in your picture, so their difference is the font's own space, and \`delta\` the offset still
+  to change; a font sample picture (Items, icons and media) shows it for a font alone.
 - **Text shadow or outline**: an outline (\`text_fontType\` \`"OUTLINE"\` or \`"THICKOUTLINE"\` on a sub element; a text
   display's \`outline\`) is a dark rim **all around** each glyph, as thick on the top left as on the bottom right. A
   drop shadow is a dark copy of the glyph **offset to one side** (usually down and right), with no rim on the other
   sides. A shadow is \`text_shadowColor\` (\`[r, g, b, a]\`) moved \`text_shadowXOffset\` units right and
   \`text_shadowYOffset\` units up (negative: down) on a sub element; \`shadowColor\`, \`shadowXOffset\`, \`shadowYOffset\` on
   a text display. Offsets 0 (a sub element's default) draw no visible shadow; a shadow with \`text_fontType\` \`"None"\`
-  is the usual shadow-only look (\`1\`, \`-1\`: one unit right and down). Both together are possible.
+  is the usual shadow-only look (\`1\`, \`-1\`: one unit right and down). Both together are possible. The compare
+  endpoint reads it for you: each text's \`text.edge\` says \`outline\`, \`shadow\` or \`none\` for the screenshot
+  and for your picture (\`unknown\` on a dark background, where a black rim can't be seen).
 
 ### Sizes and offsets from the player's screenshot
 
@@ -679,12 +764,32 @@ The answer:
   edge pixels of that colour; below about 0.8 the measurements are less reliable).
 - \`score\`: the mean colour difference (0-255) where either has content; \`overlap\`: the share of those pixels both
   draw. Lower score and higher overlap are closer; a few points of score remain from anti-aliasing and JPEG noise.
+- \`noise\`: how large a change of \`score\` means something. \`pixel\` is the screenshot's own noise (JPEG, dithering:
+  how far its background pixels stray from the background colour), \`scale\` how much the score moves over scales half
+  a percent either side of the one found (null when you gave \`scale\`), \`onePixelShift\` what moving your whole
+  picture one pixel costs (a yardstick for how sharp the fit is), and \`meaningful\` the larger of the first two (at
+  least 0.1): **a score that changed by less than \`meaningful\` between two compares hasn't really changed**. Give
+  \`scale\` once you trust it, and the scale's part drops out.
 - \`regions\`: per display of your aura (\`auraId\`, \`regionType\`): \`layout\` (its frame on the screenshot, px) and
   \`layoutUnits\` (the same in UI units from your picture's top left), \`drawn.picture\` and \`drawn.screenshot\` (the box
   of what each draws in and just around the frame, px: borders drawn outside and overhanging text count), \`delta\`
   (screenshot − picture: left, top, width, height in px; positive width means the screenshot's is wider), \`colour\`
-  (the mean colour of each inside the frame, and \`delta\`), \`textRows\` (per text: the heights of its rows of
-  glyphs in each, px).
+  (the mean colour of each inside the frame, and \`delta\`), and \`elements\`: each thing the display draws, measured
+  on its own (glows left out):
+  - \`kind\` (the sub element's type, \`subtext\`, \`subborder\`, \`subtexture\`, …, or \`text\` for a text display's own
+    text) and \`index\` (its place in your aura's \`subRegions\`, 1-based: the \`N\` of \`sub.N\` in conditions; null
+    for a text display's own text);
+  - \`layout\`/\`layoutUnits\`: its box as laid out (a text's: its line box, its font size high; px on the screenshot
+    and units from your picture's top left), \`drawn\`/\`drawnUnits\` (\`picture\`, \`screenshot\`: what each draws in
+    and just around that box, so a text's glyphs with their outline and shadow), \`delta\` (screenshot − picture, px:
+    the x/y, width and height still to change), \`colour\` (mean colour in the box, each, and \`delta\`);
+  - for texts, \`text\`: \`font\` (the \`name\`, \`size\`, \`flags\` and \`shadow\` your picture drew), \`rows\`
+    (\`picture\`, \`screenshot\`: the heights in px of its rows of glyphs: taller rows are a larger size, a row more or
+    less a line or a shadow) and \`edge\` (\`picture\`, \`screenshot\`: \`outline\`, \`shadow\`, \`none\` or \`unknown\`,
+    with \`rim\`, the share of glyph edges on each side with a dark pixel beside them);
+  - \`overlapsOther\`: true when the box lies on other drawn things (the icon's art, another element). Its \`drawn\`
+    and \`colour\` then include them and say little; \`text.rows\` and \`text.edge\` still help. A count text inside
+    an icon is such a case; a text beside or below the icon is not.
 - \`spacing\`: the rows (\`axis\` x) and columns (\`axis\` y) of displays, with \`pitch\` and \`gap\` (px and \`…Units\`) of
   their frames (\`layout\`), of what your picture draws (\`picture\`) and of what the screenshot shows (\`screenshot\`).
   Compare \`picture\` with \`screenshot\`; \`layout\` is what your aura's keys say.
@@ -700,10 +805,12 @@ screenshot is all background, or your aura draws nothing in the situation), 503 
 1. Build the aura from what you read off the screenshot and push it.
 2. Compare: \`curl -s -X POST --data-binary @shot.png -H 'Content-Type: image/png' '${o}/api/${game}/workspaces/${d}/compare' > result.json\`,
    and save the picture: \`curl -s -X POST --data-binary @shot.png -H 'Content-Type: image/png' -o comparison.png '${o}/api/${game}/workspaces/${d}/compare?image=comparison'\`.
-3. Read \`regions[].delta\`, \`spacing\`, \`colour\` and \`textRows\` and look at \`comparison.png\`: a width delta on every
-   icon is a size (or a border inside/outside); a pitch difference is \`space\`; a colour delta is a colour, alpha or
-   desaturation; taller text rows are a larger font size.
+3. Read \`regions[].delta\`, \`spacing\`, \`colour\` and each \`elements[]\` entry, and look at \`comparison.png\`: a
+   width delta on every icon is a size (or a border over or around the art); a pitch difference is \`space\`; a
+   colour delta is a colour, alpha or desaturation; a text's \`delta\` left/top is its offset, taller \`rows\` a larger
+   font size, a different \`edge\` another \`text_fontType\` or shadow.
 4. Change the keys, push, compare again (with \`scale\` fixed once you trust it, so only your changes move the numbers).
-   Stop when the deltas are within a pixel and the difference picture shows only edges.
+   Keep a change when \`score\` fell by at least \`noise.meaningful\`. Stop when the deltas are within a pixel and the
+   difference picture shows only edges.
 `;
 }

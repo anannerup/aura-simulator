@@ -28,6 +28,8 @@
 }
 
 .label {
+  /* A grid item: without this its long file path sets its minimum width and runs over the sample beside it. */
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -44,6 +46,7 @@
 
 .file {
   width: 100%;
+  overflow-wrap: anywhere;
   font-size: 11px;
   color: #999;
 }
@@ -55,6 +58,7 @@
 }
 
 .sample {
+  min-width: 0;
   color: #fff;
   white-space: pre;
   overflow: hidden;

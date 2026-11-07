@@ -2,6 +2,7 @@
 import { MEDIA_TYPES, mediaFrom, type MediaLists, type MediaType } from "@/api/media";
 import { getServerAuraCore, resolveServerRef } from "@/server/addon/core";
 import type { ServerGame } from "@/server/game";
+import type { AddonTexture } from "@/server/icon-index";
 
 type RawMedia = Partial<Record<MediaType, { list?: { name: string; file?: string | number }[] | Record<string, never>; default?: string }>>;
 
@@ -23,4 +24,20 @@ export async function loadGameMedia(server: ServerGame, origin: string, requeste
   ) as MediaLists["types"];
   const fontSamples = `${origin}/${server.game.id}/fonts?ref=${encodeURIComponent(ref)}`;
   return { ref, types, fontSamples };
+}
+
+/**
+ * The addon's own textures (every `.tga`/`.blp` file of its folders) at the default release, as the paths an aura
+ * writes for them (`Interface\AddOns\WeakAuras\Media\Textures\Square_White`): the icon index's `kind=texture` searches
+ * them with the game's textures.
+ */
+export async function addonTextureFiles(server: ServerGame): Promise<AddonTexture[]> {
+  const { ref } = await resolveServerRef(server);
+  const { listing } = await server.addon.listFiles(ref);
+  return listing.files
+    .filter((f) => /\.(tga|blp)$/i.test(f.path))
+    .map((f) => ({
+      path: `Interface\\AddOns\\${f.path.replace(/\.(tga|blp)$/i, "").replace(/\//g, "\\")}`,
+      read: async () => (await server.addon.readFile(ref, f.path)).bytes,
+    }));
 }

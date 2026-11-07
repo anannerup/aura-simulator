@@ -76,6 +76,51 @@ test("the font sample page draws every font with the given text", async ({ page 
   const row = page.locator('[data-font="PT Sans Narrow Regular"]');
   await expect(row).toContainText("Food 12", { timeout: 90_000 });
   await expect(page.locator('[data-font="Friz Quadrata TT"]')).toContainText("default");
+  // Long file paths wrap inside their column instead of running over the sample beside them.
+  for (const row of await page.locator("li[data-font]").all()) {
+    const [label, sample] = await Promise.all([row.locator("div").first().boundingBox(), row.locator("div").nth(1).boundingBox()]);
+    const file = await row.locator("code").boundingBox();
+    expect(file!.x + file!.width).toBeLessThanOrEqual(sample!.x);
+    expect(label!.x + label!.width).toBeLessThanOrEqual(sample!.x);
+  }
+});
+
+test("a font sample picture: one font drawing a text, as a PNG, without a browser", async ({ page, request }) => {
+  const sample = (query: string) => request.get(`/api/tbc/fonts/sample.png?${query}`, { timeout: 120_000 });
+  const res = await sample("font=PT+Sans+Narrow+Bold&text=12&size=12&scale=2&background=404040");
+  expect(res.status(), res.status() === 200 ? "" : await res.text()).toBe(200);
+  expect(res.headers()["content-type"]).toBe("image/png");
+  const png = await res.body();
+  const { width, height } = { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+  // About a 12-unit line at 2 px per unit, with room for the outline.
+  expect(height).toBeGreaterThanOrEqual(24);
+  expect(height).toBeLessThan(48);
+  expect(width).toBeGreaterThan(16);
+  // The outline is drawn: another picture without it differs.
+  const plain = await (await sample("font=PT+Sans+Narrow+Bold&text=12&size=12&scale=2&background=404040&outline=None")).body();
+  expect(plain.equals(png)).toBe(false);
+  expect((await sample("font=PT+Sans+Narrow+Bold&size=0")).status()).toBe(400);
+  expect((await sample("text=12")).status()).toBe(400);
+
+  // The page it is taken from marks itself ready once the addon's font is in.
+  await page.goto("/tbc/fonts/sample?font=PT+Sans+Narrow+Bold&text=12&size=12");
+  const picture = page.getByTestId("font-sample");
+  await expect(picture).toHaveAttribute("data-ready", "true", { timeout: 60_000 });
+  await expect(picture).toHaveAttribute("data-font", "loaded");
+});
+
+test("a picture of any texture by path, and the icon index's progress", async ({ request }) => {
+  const square = await request.get(`/api/tbc/textures/picture.png?path=${encodeURIComponent("Interface\\AddOns\\WeakAuras\\Media\\Textures\\Square_White")}`);
+  expect(square.status(), square.status() === 200 ? "" : await square.text()).toBe(200);
+  expect(square.headers()["content-type"]).toBe("image/png");
+  expect((await request.get(`/api/tbc/textures/picture.png?path=${encodeURIComponent("Interface\\Nope\\Nothing")}`)).status()).toBe(404);
+  expect((await request.get("/api/tbc/textures/picture.png")).status()).toBe(400);
+
+  const status = await (await request.get("/api/tbc/icons/similar")).json();
+  expect(status.icons.total).toBeGreaterThan(0);
+  // The game's other textures and the addon's own (its Media\Textures among them).
+  expect(status.textures.total).toBeGreaterThan(50);
+  expect(status).toHaveProperty("building");
 });
 
 test("a game texture path draws by its FileDataID; a missing one shows a placeholder and a validation info", async ({ page }) => {

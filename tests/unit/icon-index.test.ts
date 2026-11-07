@@ -7,10 +7,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import type { IconSimilarResult } from "@/api/files";
 import { TBC_SPELLS } from "@/games/tbc/sources";
 import { createGameFiles } from "@/server/game-files";
-import { BadUploadError, createIconIndex, decodeUpload, type RgbaImage } from "@/server/icon-index";
+import { BadUploadError, createIconIndex, decodeUpload, type IndexSimilarResult, type RgbaImage } from "@/server/icon-index";
 import { createTbcFixtureFetch } from "../fixtures/tbc/spells/fixture-fetch";
 
 const SIZE = 64;
@@ -63,12 +62,15 @@ const BASILISK = 134042;
 const MISSING = 136235; // temp: wago.tools answers 404
 const BROKEN = 134016; // inv_misc_food_60: not a texture
 
-function fakeCasc(options: { failing?: Set<number>; delay?: number } = {}) {
+/** A fake wago.tools: `failing` downloads fail that many times (Infinity: always), then answer. */
+function fakeCasc(options: { failing?: Map<number, number>; delay?: number; pixels?: [number, RgbaImage][] } = {}) {
   const pixels = new Map<number, RgbaImage>([
     [RED, potion([200, 60, 60])],
     [GREEN, potion([60, 130, 60])],
     [PURPLE, potion([161, 60, 161])],
+    ...(options.pixels ?? []),
   ]);
+  const failures = new Map(options.failing);
   const calls: number[] = [];
   let active = 0;
   let maxActive = 0;
@@ -81,7 +83,11 @@ function fakeCasc(options: { failing?: Set<number>; delay?: number } = {}) {
     maxActive = Math.max(maxActive, active);
     try {
       await new Promise((r) => setTimeout(r, options.delay ?? 0));
-      if (options.failing?.has(id)) throw new TypeError("fetch failed: offline");
+      const fails = failures.get(id) ?? 0;
+      if (fails > 0) {
+        failures.set(id, fails - 1);
+        throw new TypeError("fetch failed: offline");
+      }
       if (id === MISSING) return new Response("", { status: 404 });
       if (id === BROKEN) return new Response("not a texture");
       return new Response(tga(pixels.get(id) ?? randomIcon(id)));
@@ -92,7 +98,19 @@ function fakeCasc(options: { failing?: Set<number>; delay?: number } = {}) {
   return { fetch, calls, pixels, maxActive: () => maxActive };
 }
 
-function setup(options: { dbPath?: string; failing?: Set<number>; concurrency?: number; onDemandLimit?: number; delay?: number } = {}) {
+function setup(
+  options: {
+    dbPath?: string;
+    failing?: Map<number, number>;
+    concurrency?: number;
+    onDemandLimit?: number;
+    delay?: number;
+    now?: () => number;
+    pixels?: [number, RgbaImage][];
+    addonTextures?: { path: string; image: RgbaImage }[];
+    addonRead?: string[];
+  } = {},
+) {
   const files = createGameFiles({ source: TBC_SPELLS, dbPath: ":memory:", fetch: createTbcFixtureFetch().fetch });
   const casc = fakeCasc(options);
   const index = createIconIndex({
@@ -101,31 +119,57 @@ function setup(options: { dbPath?: string; failing?: Set<number>; concurrency?: 
     fetch: casc.fetch,
     concurrency: options.concurrency,
     onDemandLimit: options.onDemandLimit,
+    retryDelayMs: 0,
+    now: options.now,
+    addonTextures: async () =>
+      (options.addonTextures ?? []).map((t) => ({
+        path: t.path,
+        read: async () => {
+          options.addonRead?.push(t.path);
+          return tga(t.image);
+        },
+      })),
   });
   return { files, index, casc };
 }
 
-/** A player's crop of an icon: zoomed (`inset` cut off each edge), scaled to `size` pixels, a `border` around it. */
-async function screenshotCrop(image: RgbaImage, { inset = 0, size = 36, border = 0, grey = false, format = "png" as "png" | "jpeg" } = {}) {
-  const cut = Math.round(SIZE * inset);
-  let pipeline = sharp(Buffer.from(image.data), { raw: { width: SIZE, height: SIZE, channels: 4 } })
-    .extract({ left: cut, top: cut, width: SIZE - 2 * cut, height: SIZE - 2 * cut })
-    .resize(size, size);
+/**
+ * A player's crop of an icon as the game draws it (RegionTypes/Icon.lua): the art's texture coordinates
+ * `0.5 ± (1 - zoom / 2) / 2` (zoom / 4 cut off each edge) stretched over `size` pixels; a black border `border` pixels
+ * thick drawn over the art's outer edge (a `subborder` at `border_offset` 0); `margin` pixels of background around it.
+ */
+async function screenshotCrop(
+  image: RgbaImage,
+  { zoom = 0, size = 36, border = 0, margin = 0, grey = false, format = "png" as "png" | "jpeg" } = {},
+) {
+  // Cut at a tenth of a texel: the icon enlarged 10× first.
+  const big = SIZE * 10;
+  const cut = Math.round((big * zoom) / 4);
+  const enlarged = await sharp(Buffer.from(image.data), { raw: { width: SIZE, height: SIZE, channels: 4 } }).resize(big, big, { kernel: "nearest" }).png().toBuffer();
+  let art = await sharp(await sharp(enlarged).extract({ left: cut, top: cut, width: big - 2 * cut, height: big - 2 * cut }).png().toBuffer())
+    .resize(size, size)
+    .png()
+    .toBuffer();
+  if (border) {
+    const inner = await sharp(art).extract({ left: border, top: border, width: size - 2 * border, height: size - 2 * border }).png().toBuffer();
+    art = await sharp({ create: { width: size, height: size, channels: 4, background: "#000" } }).composite([{ input: inner, left: border, top: border }]).png().toBuffer();
+  }
+  let pipeline = sharp(art);
   if (grey) pipeline = pipeline.greyscale();
-  if (border) pipeline = pipeline.extend({ top: border, bottom: border, left: border, right: border, background: "#000" });
+  if (margin) pipeline = pipeline.extend({ top: margin, bottom: margin, left: margin, right: margin, background: "#303030" });
   const bytes = format === "png" ? await pipeline.png().toBuffer() : await pipeline.jpeg({ quality: 85 }).toBuffer();
   return decodeUpload(new Uint8Array(bytes));
 }
 
-const ok = (r: Awaited<ReturnType<ReturnType<typeof createIconIndex>["similar"]>>): IconSimilarResult => {
-  if (r.status !== "ok") throw new Error(`expected an answer, got ${JSON.stringify(r)}`);
+const ok = (r: Awaited<ReturnType<ReturnType<typeof createIconIndex>["similar"]>>): Extract<IndexSimilarResult, { kind: "icon" }> => {
+  if (r.status !== "ok" || r.kind !== "icon") throw new Error(`expected icons, got ${JSON.stringify(r)}`);
   return r;
 };
 
 describe("icon index", () => {
   it("with a name filter, indexes just the matching icons and finds a zoomed, bordered crop", async () => {
     const { index, casc, files } = setup();
-    const upload = await screenshotCrop(randomIcon(BASILISK), { inset: 0.12, border: 2, format: "jpeg" });
+    const upload = await screenshotCrop(randomIcon(BASILISK), { zoom: 0.48, border: 2, format: "jpeg" });
     const result = ok(await index.similar(upload, { q: "food" }));
     const foods = await files.listIcons("food");
     expect(new Set(casc.calls)).toEqual(new Set(foods.map((i) => i.id)));
@@ -143,6 +187,30 @@ describe("icon index", () => {
     const before = casc.calls.length;
     ok(await index.similar(upload, { q: "food" }));
     expect(casc.calls.length).toBe(before);
+  });
+
+  it("reports the zoom the icon is drawn at, cropped at its edge, also under a border drawn over the edge", async () => {
+    const { index } = setup();
+    for (const zoom of [0, 0.1, 0.3, 0.5, 0.8]) {
+      for (const crop of [{}, { border: 2 }, { border: 1, format: "jpeg" as const }]) {
+        for (const id of [BASILISK, RED]) {
+          const art = id === RED ? potion([200, 60, 60]) : randomIcon(id);
+          const upload = await screenshotCrop(art, { zoom, size: 51, ...crop });
+          const best = ok(await index.similar(upload, { q: id === RED ? "potion 72" : "food basilisk" })).results[0];
+          const what = `zoom ${zoom} ${JSON.stringify(crop)}: found ${best.zoom}`;
+          expect(best.id, what).toBe(id);
+          expect(Math.abs(best.zoom - zoom), what).toBeLessThanOrEqual(0.05);
+        }
+      }
+    }
+  });
+
+  it("still finds an icon cropped with background around it (its zoom then reads low: the crop isn't the icon's edge)", async () => {
+    const { index } = setup();
+    const upload = await screenshotCrop(randomIcon(BASILISK), { zoom: 0.3, size: 51, border: 1, margin: 3 });
+    const best = ok(await index.similar(upload, { q: "food" })).results[0];
+    expect(best.id).toBe(BASILISK);
+    expect(best.zoom).toBeLessThan(0.3);
   });
 
   it("compares a desaturated crop in grey, where a family that differs only in colour ties", async () => {
@@ -172,21 +240,44 @@ describe("icon index", () => {
     expect(page.results).toEqual(all.results.slice(1, 3));
   });
 
-  it("without a filter, builds the whole index in the background first, a few downloads at a time", async () => {
-    const { index, casc, files } = setup({ concurrency: 3, delay: 2 });
+  it("without a filter, builds the whole index in the background first and says how long it will take", async () => {
+    let clock = 0;
+    const { index, casc, files } = setup({ concurrency: 3, delay: 2, now: () => clock });
     const icons = await files.listIcons(null);
-    const upload = await screenshotCrop(randomIcon(BASILISK), { inset: 0.06 });
+    const upload = await screenshotCrop(randomIcon(BASILISK), { zoom: 0.24 });
     const first = await index.similar(upload);
-    expect(first).toMatchObject({ status: "indexing", total: icons.length, retryAfter: 30, hint: expect.stringMatching(/q=/) });
-    expect((await index.status()).building).toBe(true);
+    expect(first).toMatchObject({ status: "indexing", kind: "icon", total: icons.length, etaSeconds: null, retryAfter: 30, hint: expect.stringMatching(/q=/) });
+    expect((await index.status()).building).toBe("icon");
+    // Halfway, a second later: the speed and the time left are known.
+    while ((await index.status()).icons.indexed < icons.length / 2) await new Promise((r) => setTimeout(r, 1));
+    clock = 1000;
+    const half = await index.similar(upload);
+    if (half.status !== "indexing") throw new Error("expected progress");
+    expect(half.perSecond).toBeGreaterThan(0);
+    expect(half.etaSeconds).toBeGreaterThanOrEqual(1);
+    expect(half.hint).toMatch(/left at/);
     await index.build();
     expect(casc.maxActive()).toBeLessThanOrEqual(3);
-    expect(await index.status()).toEqual({ indexed: icons.length, total: icons.length, building: false });
+    expect(await index.status()).toMatchObject({ icons: { indexed: icons.length, failed: 0, total: icons.length }, building: null });
     const result = ok(await index.similar(upload));
     expect(result.query).toBeNull();
     expect(result.results[0].id).toBe(BASILISK);
     expect(result.total).toBe(icons.length - 2); // MISSING and BROKEN
     expect(new Set(casc.calls).size).toBe(casc.calls.length); // each icon downloaded once
+  });
+
+  it("tries failed downloads again, and once every icon was tried answers without the ones that still fail", async () => {
+    const { index, casc, files } = setup({ failing: new Map([[RED, 1], [GREEN, Infinity]]) });
+    const icons = await files.listIcons(null);
+    await index.build();
+    expect(casc.calls.filter((id) => id === RED)).toHaveLength(2); // failed once, then indexed
+    expect(casc.calls.filter((id) => id === GREEN)).toHaveLength(3); // tried, and retried twice
+    const status = await index.status();
+    expect(status.icons).toEqual({ indexed: icons.length - 1, failed: 1, total: icons.length });
+    expect(status.lastError).toMatch(/134853/);
+    const result = ok(await index.similar(await screenshotCrop(randomIcon(BASILISK))));
+    expect(result.results[0].id).toBe(BASILISK);
+    expect(result.unavailable).toBe(3); // MISSING, BROKEN and GREEN
   });
 
   it("answers progress when a filter matches more unindexed icons than a search fetches", async () => {
@@ -200,16 +291,71 @@ describe("icon index", () => {
 
   it("keeps what it indexed and resumes, fetching again only icons whose download failed", async () => {
     const dbPath = path.join(mkdtempSync(path.join(tmpdir(), "aurasim-icons-")), "icon-features.sqlite");
-    const first = setup({ dbPath, failing: new Set([BASILISK]) });
+    const first = setup({ dbPath, failing: new Map([[BASILISK, Infinity]]) });
     await first.index.build();
     const status = await first.index.status();
-    expect(status.indexed).toBe(status.total - 1);
+    expect(status.icons.indexed).toBe(status.icons.total - 1);
     first.index.close();
 
     const second = setup({ dbPath });
     await second.index.build();
     expect(second.casc.calls).toEqual([BASILISK]);
-    expect((await second.index.status()).indexed).toBe(status.total);
+    expect((await second.index.status()).icons.indexed).toBe(status.icons.total);
+  });
+});
+
+describe("texture index", () => {
+  /** A cursor-like texture: a white arrow on a see-through square. */
+  const ARROW = (() => {
+    const data = new Uint8Array(SIZE * SIZE * 4);
+    for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) if (x < y && x + y < 90) data.set([255, 240, 200, 255], (y * SIZE + x) * 4);
+    return { width: SIZE, height: SIZE, data };
+  })();
+  const CAST = 131015; // Interface\CURSOR\Cast.blp
+
+  /** The texture as the game shows it: drawn over a plain background colour. */
+  async function onScreen(image: RgbaImage, background: string) {
+    const png = await sharp(Buffer.from(image.data), { raw: { width: image.width, height: image.height, channels: 4 } }).resize(40, 40).png().toBuffer();
+    const bytes = await sharp({ create: { width: 40, height: 40, channels: 4, background } }).composite([{ input: png }]).png().toBuffer();
+    return decodeUpload(new Uint8Array(bytes));
+  }
+
+  it("finds the game's other textures and the addon's own (kind=texture), their see-through parts over the screenshot's background", async () => {
+    const addonRead: string[] = [];
+    const { index, casc } = setup({
+      pixels: [[CAST, ARROW]],
+      addonTextures: [
+        { path: "Interface\\AddOns\\WeakAuras\\Media\\Textures\\Square_White", image: { width: SIZE, height: SIZE, data: new Uint8Array(SIZE * SIZE * 4).fill(255) } },
+        { path: "Interface\\AddOns\\WeakAuras\\Media\\Textures\\Circle_Smooth", image: randomIcon(7) },
+      ],
+      addonRead,
+    });
+    const icons = ok(await index.similar(await onScreen(ARROW, "#204060"), { q: "cast" }));
+    expect(icons.kind).toBe("icon");
+    expect(icons.total).toBe(0); // no icon is called "cast"
+
+    const arrow = await index.similar(await onScreen(ARROW, "#204060"), { kind: "texture", q: "cursor" });
+    if (arrow.status !== "ok" || arrow.kind !== "texture") throw new Error(JSON.stringify(arrow));
+    expect(arrow.results[0]).toMatchObject({ id: CAST, path: "Interface\\CURSOR\\Cast", from: "game" });
+    expect(casc.calls).toEqual([CAST]);
+
+    // Without q, every texture is compared once the texture index is built.
+    const first = await index.similar(await onScreen(ARROW, "#000000"), { kind: "texture" });
+    expect(first).toMatchObject({ status: "indexing", kind: "texture" });
+    await index.build(["texture"]);
+    const all = await index.similar(await onScreen(ARROW, "#000000"), { kind: "texture" });
+    if (all.status !== "ok" || all.kind !== "texture") throw new Error(JSON.stringify(all));
+    expect(all.results[0]).toMatchObject({ id: CAST, from: "game" });
+    expect(all.results.map((r) => r.path)).toContain("Interface\\AddOns\\WeakAuras\\Media\\Textures\\Square_White");
+    expect(addonRead).toHaveLength(2);
+    expect((await index.status()).textures).toEqual({ indexed: 6, failed: 0, total: 6 }); // 4 game textures, 2 of the addon's
+
+    const white = await index.similar(await onScreen({ width: SIZE, height: SIZE, data: new Uint8Array(SIZE * SIZE * 4).fill(255) }, "#000000"), {
+      kind: "texture",
+      q: "square",
+    });
+    if (white.status !== "ok" || white.kind !== "texture") throw new Error(JSON.stringify(white));
+    expect(white.results).toEqual([expect.objectContaining({ id: null, path: "Interface\\AddOns\\WeakAuras\\Media\\Textures\\Square_White", from: "addon" })]);
   });
 });
 

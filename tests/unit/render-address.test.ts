@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { PendingWork } from "@/lib/pending";
-import { buildRenderUrl, DEFAULT_RENDER_OPTIONS, readRenderOptions, readRenderWorkspace, RenderOptionsError } from "@/workspace";
+import {
+  buildFontSampleUrl,
+  buildRenderUrl,
+  DEFAULT_FONT_SAMPLE,
+  DEFAULT_RENDER_OPTIONS,
+  readFontSampleOptions,
+  readRenderOptions,
+  readRenderWorkspace,
+  RenderOptionsError,
+} from "@/workspace";
 
 const read = (query: string) => readRenderOptions(new URLSearchParams(query));
 
@@ -42,6 +51,41 @@ describe("render options", () => {
     expect(url.pathname).toBe("/tbc/render");
     expect(Object.fromEntries(url.searchParams)).toEqual({ aura: "A B", scale: "2", background: "#000000", w: "ws" });
     expect(readRenderOptions(url.searchParams)).toEqual({ ...DEFAULT_RENDER_OPTIONS, aura: "A B", scale: 2, background: "#000000" });
+  });
+});
+
+describe("font sample options", () => {
+  const sample = (query: string) => readFontSampleOptions(new URLSearchParams(query));
+
+  it("needs a font, defaults the rest, and reads every option", () => {
+    expect(() => sample("")).toThrow(/font is required/);
+    expect(sample("font=Arial+Narrow")).toEqual({ font: "Arial Narrow", ...DEFAULT_FONT_SAMPLE });
+    expect(sample("font=PT+Sans+Narrow+Bold&text=12&size=12&outline=None&shadowX=1&shadowY=-1&colour=ffd100&scale=1.40625&background=000&ref=5.22.1")).toEqual({
+      font: "PT Sans Narrow Bold",
+      text: "12",
+      size: 12,
+      outline: "None",
+      shadowX: 1,
+      shadowY: -1,
+      colour: "#ffd100",
+      scale: 1.40625,
+      background: "#000",
+      ref: "5.22.1",
+    });
+  });
+
+  it("says what is wrong", () => {
+    expect(() => sample("font=a&size=0")).toThrow(RenderOptionsError);
+    expect(() => sample("font=a&size=100")).toThrow(/size must be a number above 0 up to 72/);
+    expect(() => sample("font=a&colour=red")).toThrow(/colour must be/);
+    expect(() => sample(`font=a&text=${"x".repeat(201)}`)).toThrow(/text must be 1 to 200/);
+  });
+
+  it("builds the page address back from the options", () => {
+    const options = sample("font=Friz+Quadrata+TT&text=0:42&size=14&shadowX=1&shadowY=-1&background=202020");
+    const url = buildFontSampleUrl("http://localhost:3000/", "tbc", options);
+    expect(url.startsWith("http://localhost:3000/tbc/fonts/sample?")).toBe(true);
+    expect(readFontSampleOptions(new URL(url).searchParams)).toEqual(options);
   });
 });
 

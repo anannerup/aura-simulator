@@ -119,6 +119,18 @@ describe.each(GAMES)("$game", ({ source, fixtures: makeFixtures, build, wowhead 
     await expect(items.search("", { icon: "no_such_icon" })).rejects.toThrow(UnknownIconError);
     await expect(items.search("", { icon: "131015" })).rejects.toThrow(/no icon "131015"/); // Interface\Cursor\Cast
   });
+
+  it("lists the texture files outside Interface\\Icons by the words of their path, and says when it downloaded the list", async () => {
+    let synced = 0;
+    const files = createGameFiles({ source, dbPath: ":memory:", fetch: makeFixtures().fetch, onSynced: () => synced++ });
+    const all = await files.listTextures(null);
+    expect(synced).toBe(1);
+    expect(all.map((f) => f.path)).toContain("Interface\\CURSOR\\Cast.blp");
+    expect(all.every((f) => !/\\icons\\/i.test(f.path) && /\.(blp|tga)$/i.test(f.path))).toBe(true);
+    expect((await files.listTextures("cursor cast")).map((f) => f.id)).toEqual([131015]);
+    expect((await files.listTextures("Interface\\Cursor\\Cast")).map((f) => f.id)).toEqual([131015]);
+    expect(await files.listTextures("basilisk")).toEqual([]);
+  });
 });
 
 describe("search pages", () => {

@@ -72,20 +72,46 @@ export interface IconSearchResult {
 /** How `POST /api/<game>/icons/similar` compares: `colour` (RGB), `grey` (luminance only), `auto` (grey for a nearly unsaturated upload). */
 export type IconColourMode = "auto" | "colour" | "grey";
 
-/** One hit of an icon similarity search: an icon and how close it looks to the upload. */
-export interface IconSimilarHit extends IconSearchHit {
-  /** Root-mean-square difference of 8×8 cell averages, 0..1 (0 = alike). Lower is better. */
-  distance: number;
-  /** The WeakAuras icon `zoom` (0-1) at which the icon matched best: how much of its edge the upload doesn't show. */
-  zoom: number;
-  /** The fraction cut off each edge of the upload at the best match (a border or background around the icon). */
-  uploadInset: number;
+/**
+ * What `POST /api/<game>/icons/similar` compares the upload with: the game's icons (`Interface\Icons\`, the default),
+ * or every other texture: the game's other texture files and the addon's own (`Interface\AddOns\…`).
+ */
+export type TextureKind = "icon" | "texture";
+export const TEXTURE_KINDS: readonly TextureKind[] = ["icon", "texture"];
+
+/** `GET /api/<game>/textures/picture.png?path=`: a PNG of any texture (a game path, a FileDataID or an addon path). */
+export function texturePictureUrl(origin: string, game: string, path: string | number): string {
+  return `${origin}/api/${game}/textures/picture.png?${new URLSearchParams({ path: String(path) })}`;
 }
 
-/** `POST /api/<game>/icons/similar`: icons ranked by how alike they look to the upload, best first. */
-export interface IconSimilarResult {
+/** How a texture matched the upload. */
+export interface TextureFit {
+  /** Root-mean-square difference of 8×8 cell averages, 0..1 (0 = alike). Lower is better. */
+  distance: number;
+  /** The fraction cut off each edge of the upload at the best match (a border over the art, or background around it). */
+  uploadInset: number;
+  /** A PNG of the texture (`texturePictureUrl`), to look at. */
+  pictureUrl: string;
+}
+
+/** One hit of an icon similarity search: an icon and how close it looks to the upload. */
+export interface IconSimilarHit extends IconSearchHit, TextureFit {
+  /** The WeakAuras icon `zoom` (0-1) the upload shows the icon at (Icon.lua cuts `zoom / 4` off each edge of the art). */
+  zoom: number;
+}
+
+/** One hit of a texture similarity search (`kind=texture`). */
+export interface TextureSimilarHit extends TextureFit {
+  /** FileDataID of a game file; null for the addon's own. */
+  id: number | null;
+  /** The path to write in an aura, no extension (`Interface\Cursor\Cast`, `Interface\AddOns\WeakAuras\Media\Textures\Square_White`). */
+  path: string;
+  from: "game" | "addon";
+}
+
+interface SimilarResultBase {
   status: "ok";
-  /** The name filter (`q`), or null when every icon of the game was compared. */
+  /** The name filter (`q`), or null when every icon (or texture) of the game was compared. */
   query: string | null;
   build: string | null;
   /** The mode asked for and the one used (`auto` becomes `colour` or `grey`). */
@@ -104,15 +130,48 @@ export interface IconSimilarResult {
    * icons of one family can differ only in colour, so in grey mode especially, check these by `iconUrl`.
    */
   closeToBest: number;
+}
+
+/** `POST /api/<game>/icons/similar`: icons ranked by how alike they look to the upload, best first. */
+export interface IconSimilarResult extends SimilarResultBase {
+  kind: "icon";
   results: IconSimilarHit[];
 }
 
-/** `POST /api/<game>/icons/similar` (202): the icon index is still being built; retry later or pass `q`. */
-export interface IconIndexProgress {
-  status: "indexing";
-  /** Icons whose pixels are in the index (or known to be unreadable), and all icons of the game. */
+/** `POST /api/<game>/icons/similar?kind=texture`: the other textures, ranked the same way. */
+export interface TextureSimilarResult extends SimilarResultBase {
+  kind: "texture";
+  results: TextureSimilarHit[];
+}
+
+export type SimilarResult = IconSimilarResult | TextureSimilarResult;
+
+/** How far the index of one kind is: files read (or known unreadable), files whose download failed (retried), all. */
+export interface IndexCount {
   indexed: number;
+  failed: number;
   total: number;
+}
+
+/** The icon index's state: `GET /api/<game>/icons/similar`. */
+export interface IconIndexStatus {
+  icons: IndexCount;
+  textures: IndexCount;
+  /** The kind being indexed now, or null when idle. */
+  building: TextureKind | null;
+  /** Files indexed per second in the current build (null before the first). */
+  perSecond: number | null;
+  /** The last download or build problem, if any (failed downloads are tried again). */
+  lastError: string | null;
+}
+
+/** `POST /api/<game>/icons/similar` (202): the index is still being built; retry later or pass `q`. */
+export interface IconIndexProgress extends IndexCount {
+  status: "indexing";
+  kind: TextureKind;
+  perSecond: number | null;
+  /** Estimated seconds until every file of `kind` is indexed (null until the speed is known). */
+  etaSeconds: number | null;
   /** Seconds to wait before asking again. */
   retryAfter: number;
   hint: string;

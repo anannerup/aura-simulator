@@ -102,6 +102,21 @@ export function textWidthStyle(width: number | undefined, wordWrap: LuaValue | u
 }
 
 /**
+ * What a drawn text's element says about its font, for pictures' measurements (the compare endpoint reads them):
+ * `data-font-name` (the font drawn: the game's default for a name it doesn't know), `data-font-size` (units),
+ * `data-font-flags`, `data-font-shadow` ("x,y" units, y up).
+ */
+export function drawnFontData(value: LuaValue | undefined, size: number, flags: LuaValue | undefined, shadow: { x: number; y: number }): Record<string, string> {
+  const name = fontName(value);
+  return {
+    "data-font-name": name in FONTS ? name : DEFAULT_FONT,
+    "data-font-size": String(size),
+    "data-font-flags": typeof flags === "string" ? flags : "None",
+    "data-font-shadow": `${shadow.x},${shadow.y}`,
+  };
+}
+
+/**
  * Font flags as CSS (Types.lua:1510 font_flags, TextStyle.lua:21-44): OUTLINE draws a 1 px black outline,
  * THICKOUTLINE a 2 px one (eight offset copies, which is close to the game's rasterised outline); MONOCHROME
  * turns anti-aliasing off. The font's drop shadow (shadowColor, x/y offset, y up) is drawn in every mode except

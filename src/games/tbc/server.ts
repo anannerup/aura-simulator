@@ -7,6 +7,7 @@ import {
   weakAuras2AddonSource,
 } from "@/server/addon/weakauras2-releases";
 import { addonCacheDir, addonUpstreamFixtures, createClientCaches, gameDataDir, type ServerGame } from "@/server/game";
+import { addonTextureFiles } from "@/server/media";
 import { createSpellCache, type SpellCache } from "@/server/spells";
 import { tbc } from ".";
 import { loadTbcAgentDocs } from "./docs/load";
@@ -33,13 +34,13 @@ export const tbcServer: ServerGame = {
     return (state.spells ??= createSpellCache({ dbPath: path.join(gameDataDir(tbc.id), "spells.sqlite"), source: TBC_SPELLS }));
   },
   get files() {
-    return (state.client ??= createClientCaches(tbc.id, TBC_SPELLS)).files;
+    return (state.client ??= createClientCaches(tbc.id, TBC_SPELLS, () => addonTextureFiles(tbcServer))).files;
   },
   get items() {
-    return (state.client ??= createClientCaches(tbc.id, TBC_SPELLS)).items;
+    return (state.client ??= createClientCaches(tbc.id, TBC_SPELLS, () => addonTextureFiles(tbcServer))).items;
   },
   get iconIndex() {
-    return (state.client ??= createClientCaches(tbc.id, TBC_SPELLS)).iconIndex;
+    return (state.client ??= createClientCaches(tbc.id, TBC_SPELLS, () => addonTextureFiles(tbcServer))).iconIndex;
   },
   agentDocs: (origin, requestedRef) => loadTbcAgentDocs(tbcServer, origin, requestedRef),
 };

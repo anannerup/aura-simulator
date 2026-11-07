@@ -31,8 +31,10 @@ Terms the project uses. Use them in code, tickets, docs and messages to the user
   number of game pixels per UI unit (the screenshot endpoint, from the render page). What an agent compares with a
   player's screenshot (the player's own image of the game).
 - **Comparison**: a picture laid over the player's screenshot at the scale and offset that fit best (the compare
-  endpoint), with what differs per region (boxes, spacing, colours, text rows) and a comparison picture
-  (screenshot | picture | difference).
+  endpoint), with what differs per region and per display element (boxes, spacing, colours, text rows, outline or
+  shadow) and a comparison picture (screenshot | picture | difference).
+- **Font sample**: a picture of one font drawing a text as the game screen draws a text (the font sample endpoint),
+  for telling a screenshot's font.
 - **UI unit**: the unit of every size and offset of an aura: the UI is 768 units high at UI scale 1, so one unit is
   window height / 768 × UI scale game pixels.
 - **Preview**: what each display of an aura shows in a situation (shown, active conditions, what they changed,
@@ -45,6 +47,9 @@ Terms the project uses. Use them in code, tickets, docs and messages to the user
 - **Top-level aura**: an aura that is in no group. Pushes, files and the server work per top-level aura (a group
   with everything in it).
 - **Aura document**: an aura as a Lua table in canonical JSON.
+- **Display element**: one of an aura's `subRegions` (a text, border, texture, glow, …: the window's "sub
+  elements"), numbered by its place in that list (the `N` of a condition's `sub.N`).
+  _Avoid_: sub-region (except for the addon's own type names).
 - **State code**: an aura's `!WA:2!` import string, the encoded aura document. Moved as files, not links.
   _Avoid_: import string (except when talking to the player about the game's import dialog).
 - **wago JSON**: an aura as the JSON wago.io shows for it (the transmit table: the aura in `d`, a group's descendants

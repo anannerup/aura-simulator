@@ -7,6 +7,7 @@ import {
   displayMediaNotes,
   gameDataSection,
   itemCountNotes,
+  temporaryEnchantNotes,
   picturesSection,
   pushApiSection,
   situationSection,
@@ -50,7 +51,10 @@ export const DOCUMENTED_ENDPOINTS = [
   "GET /api/forever/items/search",
   "GET /api/forever/items/<id>",
   "GET /api/forever/icons/search",
+  "GET /api/forever/icons/similar",
   "POST /api/forever/icons/similar",
+  "GET /api/forever/textures/picture.png",
+  "GET /api/forever/fonts/sample.png",
   "GET /api/forever/files",
   "GET /api/forever/media",
 ] as const;
@@ -425,6 +429,7 @@ checks) keeps working. For a known buff or debuff, use Aura (Modern) instead.
 icon while on cooldown. It keeps working in combat: the addon reads readiness even when the game hides the timing.
 ${a ? cooldownVerdicts(a) : ""}
 ${itemCountNotes()}
+${temporaryEnchantNotes()}
 ### Other triggers
 
 ${a ? generatedTriggerList(a) : "The addon could not be loaded, so the trigger list is missing."}
