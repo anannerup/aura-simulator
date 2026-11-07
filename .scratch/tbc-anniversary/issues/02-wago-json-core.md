@@ -17,9 +17,9 @@ Then the window's Export offers the `.json` next to the `.txt` (both for the sel
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Golden test: https://wago.io/LEPRolmHn's import string → JSON equal byte for byte to wago's stored JSON (recorded fixtures, pretty and compact)
-- [ ] Unit tests for every rule, including the sparse tables, keys above 1000, `-0`, inf, the 1e14 tie and the boolean-key refusal
-- [ ] e2e: Export downloads a `.json` equal to the converter's pretty output
-- [ ] JSON → aura → import string equals what wago would rebuild for that JSON (wago's paths)
+- [x] Golden test: https://wago.io/LEPRolmHn's import string → JSON equal byte for byte to wago's stored JSON (recorded fixtures, pretty and compact)
+- [x] Unit tests for every rule, including the sparse tables, keys above 1000, `-0`, inf, the 1e14 tie and the boolean-key refusal
+- [x] e2e: Export downloads a `.json` equal to the converter's pretty output
+- [x] JSON → aura → import string equals what wago would rebuild for that JSON (wago's paths)

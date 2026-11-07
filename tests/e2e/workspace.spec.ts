@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { toWagoJson } from "../../src/core/wago-json";
 import { stateCode } from "../support/state-code";
 
 /** A variant of the sample icon aura (see src/core/samples.ts). */
@@ -242,6 +243,16 @@ test("export an aura as a .txt file holding exactly its code, and import it into
   expect(file.suggestedFilename()).toBe("Arcane Intellect.txt");
   const path = await file.path();
   expect(await readFile(path, "utf8")).toBe(code);
+
+  // Beside it, the same aura as wago JSON in wago's Editor form.
+  const jsonDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Save as .json" }).click();
+  const json = await jsonDownload;
+  expect(json.suggestedFilename()).toBe("Arcane Intellect.json");
+  // What the code holds: the aura, sent by the default addon version (Musca 1.15.0 is WeakAuras 5.22.0) as 1421.
+  const state = (await page.evaluate(() => window.auraSimulator!.state()))!;
+  const expected = toWagoJson({ ...state, senderVersion: "5.22.0", transmissionVersion: 1421 }, { format: "pretty" });
+  expect(await readFile(await json.path(), "utf8")).toBe(expected);
 
   const other = await browser.newContext();
   const fresh = await other.newPage();

@@ -33,6 +33,8 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   Import it via `@/core` only. The aura document (a Lua table as JSON: arrays for sequences, `"[1]"`-style keys
   for number/boolean keys) is defined in `src/core/lua-value.ts`, with its readers (`getField`, `field`, `list`,
   `num`); core tests cache addon files in `.cache/addon` (gitignored).
+  wago JSON (`wago-json.ts`, `toWagoJson`/`fromWagoJson`) is the third form of an aura: byte-identical to wago.io's
+  JSON, with wago's own rules both ways (`.scratch/tbc-anniversary/wago-json.md`); pure and shared by every game.
   `fillDefaults`/`validate`/`registries` run the whole addon in a lazily loaded second VM (`src/core/addon-vm/`,
   a Web Worker in the browser). To add a full-VM call, add the method to `AddonVM` (`vm.ts`) and `AuraCore`
   (`aura-core.ts`); the worker and its host (`host.ts`) forward any `AddonVM` method by name. Both VMs share `lua-stdlib.ts`; answers to the page
