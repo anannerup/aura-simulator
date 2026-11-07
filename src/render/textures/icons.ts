@@ -182,3 +182,15 @@ export function iconUrl(fileDataId: number | string | undefined): string {
   const name = ref ? iconStore.lookup(ref) : null;
   return iconNameUrl(name || QUESTION_MARK_ICON);
 }
+
+/** Image URL of one icon value (FileDataID, `spell:` ref or icon name), or null while it's being looked up or unknown. */
+export function useIconUrl(value: LuaValue | undefined, store: IconStore = iconStore): string | null {
+  const version = useSyncExternalStore(store.subscribe, store.getVersion, () => 0);
+  const ref = displayIconRef(value);
+  const key = ref ? JSON.stringify(ref) : "";
+  useEffect(() => {
+    if (key) store.request([JSON.parse(key) as IconRef]);
+  }, [key, store, version]);
+  const name = ref ? store.lookup(ref) : null;
+  return name ? iconNameUrl(name, "medium") : null;
+}

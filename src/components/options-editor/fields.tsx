@@ -7,6 +7,8 @@
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
 import type { LuaKey, OptionNode } from "@/core";
 import { searchSpells, type SpellSearchHit } from "@/components/spell-picker/spell-api";
+import { GameTexture } from "@/components/ui";
+import { displayIconRef, useIconUrl } from "@/render/textures";
 import { imageName, plainText, splitInputValue } from "./wow-text";
 import { WowText } from "./WowText";
 import { ColorPicker, toRgba } from "./ColorPicker";
@@ -321,6 +323,22 @@ const ICON_GLYPHS: Record<string, string> = {
   browse: "…",
 };
 
+/** An icon beside an input: game icons (FileDataID, `Interface\\Icons`) from the icon store, other textures directly. */
+function GameIcon({ image, name }: { image: string; name: string }) {
+  const icon = useIconUrl(image);
+  const isIcon = displayIconRef(image) !== null;
+  return (
+    <span className={styles.gameIcon} title={name || undefined} aria-label={name || undefined} role="img">
+      {isIcon ? (
+        // eslint-disable-next-line @next/next/no-img-element -- a Wowhead icon URL; next/image adds nothing here.
+        icon ? <img src={icon} alt="" width={24} height={24} /> : <span className={styles.gameIconEmpty} />
+      ) : (
+        <GameTexture source={image} size={24} />
+      )}
+    </span>
+  );
+}
+
 export function ExecuteField({ node, disabled, onEdit }: Omit<FieldProps, "value">) {
   const name = plainText(node.name);
   const image = imageName(node.image);
@@ -345,8 +363,12 @@ export function ExecuteField({ node, disabled, onEdit }: Omit<FieldProps, "value
   }
   if (node.control === "WeakAurasIcon") {
     const glyph = ICON_GLYPHS[image];
-    // Spell/item icons next to inputs (the image is a game icon): nothing to click here.
-    if (!glyph && !name) return null;
+    // Spell/item icons next to inputs: the image is a game icon (FileDataID or path), drawn as the game draws it,
+    // with the name (the spell's) as its tooltip.
+    if (!glyph) {
+      if (!node.image) return name ? <span className={styles.iconLabel}>{name}</span> : null;
+      return <GameIcon image={node.image} name={name} />;
+    }
     return (
       <button
         type="button"
@@ -356,7 +378,7 @@ export function ExecuteField({ node, disabled, onEdit }: Omit<FieldProps, "value
         disabled={disabled || !node.canRun}
         onClick={() => onEdit(undefined)}
       >
-        {glyph ?? name}
+        {glyph}
       </button>
     );
   }

@@ -474,3 +474,25 @@
 .suggestions li:hover {
   background: var(--surface-3);
 }
+
+/* A spell or item icon beside an input (WeakAurasIcon with a game texture): picture only, name as tooltip. */
+.gameIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.iconLabel {
+  overflow: hidden;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameIconEmpty {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border);
+}
