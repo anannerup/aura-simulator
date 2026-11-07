@@ -124,6 +124,12 @@ iterate on an aura, and use a new \`id\` for another aura. Ids are unique across
 \`id\` is taken elsewhere is renamed (\`Name 2\`), so push either the separate auras or a group holding them, not both
 (or give the group's children their own ids). Items can't be deleted over the API; the player removes them.
 
+### Deleting a workspace
+
+\`DELETE /api/${game}/workspaces/<id>\` → \`{"workspace", "deleted"}\`: the server forgets the workspace (its pushes and
+its situation; \`deleted: false\` when it kept nothing for it). Delete scratch workspaces you made to try things.
+Pages that have it open keep their own copy in the browser, and a later push starts it again.
+
 ### Reading the workspace
 
 - \`GET /api/${game}/workspaces/<id>\` → \`{"id", "code", "updatedAt", "revision", "source", "url"}\`: the top-level aura
@@ -224,8 +230,11 @@ has left, plus a target and combat. The page's **Situation** panel (under the au
 aura:
 
 - **Target exists** and **In combat** switches.
-- Per trigger ("Trigger 1: Aura", …): **Aura present** (for a cooldown trigger: On cooldown), **Time left** (a
-  slider), **Duration** (seconds) and **Stacks** (a cooldown's charges).
+- Per trigger ("Trigger 1: Aura", …): **Aura present** (for a cooldown trigger: On cooldown; Item Count: In bags;
+  other triggers: Present), **Time left** (a slider), **Duration** (seconds) and **Stacks** (a cooldown's charges,
+  an Item Count's Count).
+- **Only this aura**: the triggers it edits are the selected aura's own (its override, below), not the
+  workspace-wide ones every other aura sees.
 
 ${kinds}
 
@@ -249,6 +258,11 @@ answer is \`GET /api/${game}/workspaces/<id>/situation\`'s: \`{"workspace", "sit
 - \`triggers\` is keyed by the trigger number (\`"1"\`, \`"2"\`, as in the aura). \`remaining\` and \`duration\` are
   seconds (\`remaining\` is kept within \`duration\`; \`duration: 0\` means no timer, e.g. a permanent buff);
   \`stacks\` is a whole number. 400 with a message for anything else.
+- **Per aura**: trigger numbers are per aura, so the workspace-wide \`triggers\` are what every aura sees. \`auras\`
+  overrides them for single auras, by aura \`id\`: \`{"<aura id>": {"triggers": {"1": {...}}}}\`. An override's
+  left-out fields come from the workspace-wide trigger; target and combat stay workspace-wide. Four item count icons
+  showing 8, 5, 1 and 12 side by side:
+  \`{"triggers": {"1": {"stacks": 12}}, "auras": {"Food": {"triggers": {"1": {"stacks": 8}}}, "Flask": {"triggers": {"1": {"stacks": 5}}}, "Stone": {"triggers": {"1": {"stacks": 1}}}}}\`.
 
 \`\`\`sh
 curl -s -X PUT ${o}/api/${game}/workspaces/${d}/situation \\
@@ -268,9 +282,17 @@ and per display (a group's children each, not the group):
 - \`activeConditions\`: numbers (from 1) of the conditions whose check holds (conditions only run while shown).
 - \`changed\`: what those conditions changed, \`{"desaturate": true, "sub.3.glow": true, ...}\`.
 - \`glows\`: \`[{"subRegion", "lit"}]\`: each glow sub-element by its place in \`subRegions\`, lit or not.
+- \`texts\`: \`[{"subRegion", "text", "visible"}]\`: what each text sub-element draws, its format codes replaced
+  (\`"%2.s"\` → \`"8"\`, an empty text → \`""\`), after conditions (a condition's \`sub.N.text_text\` is drawn). The game
+  screen draws exactly this. A text display has \`displayText\` (\`{"text"}\`) too.
+- Custom text (\`%c\`, \`%c2\`, …) comes from the aura's custom text function, which the simulator doesn't run: such
+  a text has \`"customText": "not evaluated"\`, and \`[%c]\` stands in its \`text\` (the game screen draws it marked).
+  Check custom text in game.
 
 To show that an aura works, push it, then set each situation the request names (the buff missing, under 3 minutes
-left, the target gone, …) and check \`shown\`, \`changed\` and \`glows\`. The player sees the same on the open page.
+left, the target gone, …) and check \`shown\`, \`changed\`, \`glows\` and \`texts\`. The player sees the same on the open
+page. The answer's \`preview\` is for the latest pushed aura, each display in its own situation (with its \`auras\`
+override).
 `;
 }
 

@@ -58,7 +58,10 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   reads them), fills defaults, validates. No React, no DOM. Runs in browser and Node.
   It also holds the situation model (`situation/`, with `readSituation`/`situationJson`: the JSON form agents send)
   and the trigger/condition evaluation per game (`conditions/`): what an aura shows in a situation
-  (`previewSituation`, `conditions/preview.ts`, is that in words for agents: the push answer's `preview`). `auraRules(game)` gives a game's rules (trigger kinds, `setInCombat`,
+  (`previewSituation`, `conditions/preview.ts`, is that in words for agents: the push answer's `preview`). What texts
+  draw (placeholders replaced, custom text `%c` marked as not evaluated) is part of that evaluation
+  (`conditions/text.ts`, `AuraRenderState.texts`), so the game screen and `preview` can't disagree. Each aura
+  evaluates in its own situation (`situationForAura`: the workspace-wide triggers with its `auras` override). `auraRules(game)` gives a game's rules (trigger kinds, `setInCombat`,
   `evaluate`, `combatRestricted`). Forever (`evaluateAura`, `conditions/forever.ts` + `secret-aura-rules.ts`) adds
   Aura (Modern), freezing and held properties to plain WeakAuras; TBC (`evaluateTbcAura`, `conditions/tbc.ts`) is
   plain WeakAuras2, nothing changes in combat. Only what both addons do the same is shared (`conditions/evaluate.ts`,
@@ -156,6 +159,7 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   `GET /api/<game>/workspaces/<id>`; it holds the latest few pushes, not workspaces (those live in the browser).
   It also holds the situation an agent set per workspace (`situation.ts`, `PUT/GET /api/<game>/workspaces/<id>/situation`,
   sent to pages as `event: situation`); push answers carry `preview`, what the aura shows in it.
+  `DELETE /api/<game>/workspaces/<id>` forgets a workspace's pushes and situation (`WorkspaceHub.delete`).
   Every push form becomes a state code first (wago JSON by `fromWagoJson`, a wago link by fetching it), so answers and
   validation are the same for all. Wago links: `server/wago.ts` fetches `https://data.wago.io/api/raw/encoded?id=`
   (`GET /api/<game>/wago/<id>` for the page's Import box); tests and the e2e server answer from recorded import

@@ -25,7 +25,8 @@ Terms the project uses. Use them in code, tickets, docs and messages to the user
   _Avoid_: stage, mock screen, canvas.
 - **Situation**: the simulated game state the game screen shows (time left, present/missing, stacks,
   target, in combat). The player sets it in the window's Situation panel; an agent sets a workspace's over HTTP or
-  with `auraSimulator.situation`.
+  with `auraSimulator.situation`. It is workspace-wide, with optional overrides per aura (by aura id): trigger numbers
+  are per aura, so auras whose triggers share a number can still show different things.
 - **Preview**: what each display of an aura shows in a situation (shown, active conditions, what they changed,
   glows), in words: the push answer's `preview`, so an agent can show an aura works without a browser.
 

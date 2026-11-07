@@ -25,6 +25,7 @@ export interface AgentDocsFacts {
 export const DOCUMENTED_ENDPOINTS = [
   "POST /api/forever/workspaces/<id>/aura",
   "GET /api/forever/workspaces/<id>",
+  "DELETE /api/forever/workspaces/<id>",
   "GET /api/forever/workspaces/<id>/events",
   "GET /api/forever/workspaces/<id>/situation",
   "PUT /api/forever/workspaces/<id>/situation",
@@ -505,8 +506,13 @@ function situation({ o, d }: Ctx): string {
     workspace: d,
     kinds: `What a trigger's situation means depends on the trigger: for Aura (Modern) and Aura (\`aura2\`) it is the buff
 or debuff (present, time left, duration, stacks); for the spell cooldown trigger it is the cooldown (on cooldown, time
-left, the cooldown, charges); any other trigger is active while "present". Only the target can be missing (Target
-exists); every other unit exists.`,
+left, the cooldown, charges); for Item Count, \`stacks\` is the item count (\`"present": false\`: none in the bags) and
+the trigger is active whatever the count unless its own Item Count filter (\`use_count\`, \`count\`,
+\`count_operator\`) fails. Any other trigger's \`present\` is whether what it watches is there (found, on cooldown,
+enchanted, …); its own show option decides whether that makes it active: \`genericShowOn\` \`showOnReady\`/
+\`showAlways\` (cooldowns), Weapon Enchant's \`showOn\` \`showOnMissing\`/\`showAlways\`, or Inverse (\`use_inverse\`).
+The "Active" condition (\`show\`) is whether a trigger is active. Only the target can be missing (Target exists); every
+other unit exists.`,
     combat: `**In combat** is Forever's combat restriction: auras that freeze keep what they showed when combat started
 (the game screen shows a padlock) and held properties keep their pre-combat value. Over HTTP, \`"inCombat": true\`
 alone means nothing changed since combat started; to test freezing, add \`"beforeCombat"\` (the same fields:
@@ -569,6 +575,12 @@ function troubleshooting(): string {
 - **"Aura Missing needs the trigger's Show On set to Aura(s) Missing or Always."**: set \`secretShowOn\`.
 - **"To light a glow from a time check, compare with < and set the glow to on."**: use \`op: "<"\` and \`value: true\`.
 - **\`sub.N\` changes the wrong element**: N counts every \`subRegions\` entry from 1, backgrounds included.
+- **A text draws nothing or the wrong thing**: read \`preview\`'s \`texts\`, what each text draws. A condition that
+  only makes an empty text visible draws nothing; change \`sub.N.text_text\` too. \`[%c]\` with
+  \`"customText": "not evaluated"\` is custom text the simulator doesn't run: check it in game.
+- **A text's X/Y Offset does nothing**: it is \`text_anchorXOffset\`/\`text_anchorYOffset\`, not \`anchorXOffset\`.
+- **Every icon shows the same count or time**: the situation's triggers are workspace-wide; give each aura its own with
+  \`auras\` (see Situation).
 - **Padlock on the game screen in combat**: an \`aura2\` trigger freezes; use Aura (Modern).
 - **A spell ID flagged \`not-in-game\`**: search by name for the Forever ID.
 - **503**: the addon version is still loading or couldn't be fetched; retry in a moment.

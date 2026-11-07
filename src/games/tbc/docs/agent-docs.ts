@@ -28,6 +28,7 @@ export interface TbcAgentDocsFacts {
 export const TBC_DOCUMENTED_ENDPOINTS = [
   "POST /api/tbc/workspaces/<id>/aura",
   "GET /api/tbc/workspaces/<id>",
+  "DELETE /api/tbc/workspaces/<id>",
   "GET /api/tbc/workspaces/<id>/events",
   "GET /api/tbc/workspaces/<id>/situation",
   "PUT /api/tbc/workspaces/<id>/situation",
@@ -285,8 +286,12 @@ function situation({ o, d }: Ctx): string {
     workspace: d,
     kinds: `What a trigger's situation means depends on the trigger: for an Aura trigger (\`aura2\`) it is the buff or debuff
 (present, time left, duration, stacks); for the spell cooldown trigger it is the cooldown (on cooldown, time left,
-the cooldown, charges); any other trigger is active while "present". Only the target can be missing (Target exists);
-every other unit exists.`,
+the cooldown, charges); for Item Count, \`stacks\` is the item count (\`"present": false\`: none in the bags) and the
+trigger is active whatever the count unless its own Item Count filter (\`use_count\`, \`count\`, \`count_operator\`)
+fails. Any other trigger's \`present\` is whether what it watches is there (found, on cooldown, enchanted, …); its own
+show option decides whether that makes it active: \`genericShowOn\` \`showOnReady\`/\`showAlways\` (cooldowns),
+Weapon Enchant's \`showOn\` \`showOnMissing\`/\`showAlways\`, or Inverse (\`use_inverse\`). The "Active" condition
+(\`show\`) is whether a trigger is active. Only the target can be missing (Target exists); every other unit exists.`,
     combat: `**In combat** changes nothing on TBC but what the global "In Combat" condition (\`incombat\`) reads: there are no
 combat restrictions.`,
     example: {
@@ -371,9 +376,17 @@ function troubleshooting(): string {
   outside \`triggers\` are arrays, and that trigger keys are \`"1"\`, \`"2"\`, ….
 - **\`preview\` says \`"shown": false\`**: check the situation (aura present or missing, time left inside a Remaining
   Time window, target exists); Show On \`showOnMissing\` shows only while missing; \`load\` options may unload it (leave
-  \`load\` out to always load).
+  \`load\` out to always load). With an override in \`auras\`, that aura sees its own triggers.
 - **\`sub.N\` changes the wrong element**: N counts every \`subRegions\` entry from 1, backgrounds included; the addon
   adds a missing \`subbackground\` first.
+- **A text draws nothing or the wrong thing**: read \`preview\`'s \`texts\`, what each text draws. A condition that
+  only makes an empty text visible draws nothing; change \`sub.N.text_text\` too. \`[%c]\` with
+  \`"customText": "not evaluated"\` is custom text the simulator doesn't run: check it in game.
+- **A text's X/Y Offset does nothing**: it is \`text_anchorXOffset\`/\`text_anchorYOffset\`, not \`anchorXOffset\`.
+- **Every icon shows the same count or time**: the situation's triggers are workspace-wide; give each aura its own with
+  \`auras\` (see Situation).
+- **A trigger with Show Always never hides, or Item Count is always shown**: that is the game's behaviour; Item
+  Count hides only through its Item Count filter or a condition (e.g. \`stacks\` \`==\` \`0\`).
 - **A name match doesn't find the aura in game**: names are the client's language; use exact spell IDs for other
   languages.
 - **503**: the addon release is still loading or couldn't be fetched; retry in a moment.
