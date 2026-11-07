@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useContext, useEffect, useRef, type CSSProperties } from "react";
+import { FixedTimeContext } from "../clock";
 import { rgbaCss, type Rgba } from "../color";
 import { texCoordBackground, useTextureUrl, type TexCoord } from "../textures";
 import {
@@ -51,7 +52,8 @@ export interface GlowProps {
   height: number;
   /** The sub-region's `glow` flag. Turning it off plays the button glow's fade-out. Default true. */
   visible?: boolean;
-  /** Freeze at this many seconds after the glow started (instead of animating). */
+  /** Freeze at this many seconds after the glow started (instead of animating). Default: the screen's
+   * `FixedTimeContext` moment, if any. */
   time?: number;
   className?: string;
   style?: CSSProperties;
@@ -72,7 +74,9 @@ function tintOf(color: Rgba | null): readonly [number, number, number] | undefin
  * Put it in a `position: relative` container on top of the icon/bar. It deliberately creates no
  * stacking context so additive (ADD) parts blend with what is underneath.
  */
-export function Glow({ type, options = {}, width, height, visible = true, time, className, style }: GlowProps) {
+export function Glow({ type, options = {}, width, height, visible = true, time: ownTime, className, style }: GlowProps) {
+  const screenTime = useContext(FixedTimeContext);
+  const time = ownTime ?? screenTime;
   const params = glowParams(type, options, width, height);
   if (!glowDrawable(width, height)) return null;
   const props = { width, height, visible, time };

@@ -114,6 +114,8 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   (`regions.tsx`); both are keyed by the addon's `regionType`. The game screen is `screen/GameScreen.tsx` (the
   surface) and `screen/GameScreenAuras.tsx` (every aura of the workspace on it, laid out by `group/layout.ts`);
   positions are `Box`es (`screen/geometry.ts`: CSS left/top/width/height). Colours: `color.ts`.
+  `GameScreenAuras`' `still` draws a still picture (every animation at one moment, `FixedTimeContext` in `clock.ts`)
+  and `standIns={false}` leaves out the anchor stand-ins; `evaluateScreen` is its evaluation and layout, pure.
 - `src/server/`: server-only code (SQLite via built-in `node:sqlite`, wago/Wowhead sync, addon source cache).
   Server data is per game under `DATA_DIR` (default `data/`, gitignored): `data/<game>/spells.sqlite` (a
   `SpellSource` names the wago product and Wowhead environment: `FOREVER_SPELLS`, `TBC_SPELLS`) and
@@ -128,15 +130,15 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   use a recorded release list (`tests/fixtures/tbc/addon`) and download the 5.22.1 zip once into
   `.cache/weakauras2` (`tests/support/weakauras2.ts`), skipping when offline.
 - `src/api/`: wire types and limits of the HTTP API shared by server and page (`addon.ts`, `spells.ts`, with
-  `iconNameUrl`). No server code: client code imports these, never `@/server/*`.
+  `iconNameUrl`; `render.ts`: the `RenderScene` the server hands the render page). No server code: client code imports these, never `@/server/*`.
 - `src/workspace/`: the workspace model (`tree.ts`: top-level auras as nodes, groups nest their `items`; pure operations keep ids unique and
   `controlledChildren`/`parent` in step), its storage/file format (`workspace.ts`, v3 JSON recording its game; older
   versions and other games' files are refused), import/export files (`files.ts`: aura `.txt` = exactly one state code;
   text with several codes; wago JSON `.json`; workspace `.aura-workspace.json`), undo/redo (`history.ts`), the restore
   decision (`restore.ts`), the push/SSE wire protocol (`protocol.ts`: header, event names, notice/snapshot types, URLs
   per game and workspace, push input: a state code, wago JSON, a wago link or an aura document; used by page and
-  server), wago links (`wago-link.ts`: `https://wago.io/<id>` and ids, wago's data API URL) and the page address
-  (`address.ts`: `/<game>?w=`).
+  server), wago links (`wago-link.ts`: `https://wago.io/<id>` and ids, wago's data API URL), the page address
+  (`address.ts`: `/<game>?w=`) and the render page's and screenshot endpoint's options (`render-address.ts`).
   **Auras never go in the address**: they can be megabytes, so they travel as files, over the push API, or by
   clipboard (every other parameter is dropped). New auras come only from the
   addon's New Aura (`placeNewAura` places them). Pure, shared by page and server.
@@ -150,7 +152,8 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   loads through, client spells, diff). The page's game reaches components by context: the spell picker's
   `SpellApiContext` (`components/spell-picker/spell-api.ts`, with the game's words) and the renderers'
   `IconStoreContext` (`render/textures/icons.ts`) and `TextureLoaderContext` (addon media), all provided by
-  `AuraSimulator`.
+  `AuraSimulator`. `client/render/`: the render page's crop (`crop.ts`: measured from what was drawn) and readiness
+  (`settled.ts`: every texture, icon and font in, counted with `src/lib/pending.ts`).
 - `src/server/workspaces/`: push API (bodies up to 32 MB) and a hub of recent pushes per game and workspace, in
   memory. Every top-level aura a page changes is pushed there too, so agents read the player's current aura with
   `GET /api/<game>/workspaces/<id>`; it holds the latest few pushes, not workspaces (those live in the browser).
@@ -160,6 +163,12 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   validation are the same for all. Wago links: `server/wago.ts` fetches `https://data.wago.io/api/raw/encoded?id=`
   (`GET /api/<game>/wago/<id>` for the page's Import box); tests and the e2e server answer from recorded import
   strings (`WAGO_FIXTURES=tests/fixtures/wago`, `<id>.txt`).
+  Pictures of an aura (working from a player's screenshot): `/<game>/render?w=&aura=` (`app/[game]/render`,
+  `app/render/AuraRender.tsx`) draws one aura of the workspace's recent pushes (`renderScene`, `render.ts`) still,
+  cropped to its bounds, at `scale` game pixels per UI unit, then marks itself `data-ready`;
+  `GET /api/<game>/workspaces/<id>/screenshot.png` takes its picture in a headless Chromium (`server/screenshot.ts`:
+  `playwright-core`, a dev dependency; one browser per process, two pictures at a time; 503 saying how to install it
+  when missing). It loads the page from the server's own address (`request.nextUrl.origin`).
 - Agent docs are per game (`src/games/<game>/docs/`, served at `/<game>/docs/agents`, `/<game>/llms.txt`,
   `/<game>/docs/agents.md` through `ServerGame.agentDocs`). Forever's: update it when an API or format changes;
   `agent-docs.ts` has one function per section. Lists of types, triggers, condition variables and defaults are
