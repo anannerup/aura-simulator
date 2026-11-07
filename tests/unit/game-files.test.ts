@@ -6,7 +6,8 @@ import { describe, expect, it } from "vitest";
 import { FOREVER_SPELLS } from "@/games/forever/sources";
 import { TBC_SPELLS } from "@/games/tbc/sources";
 import { createGameFiles } from "@/server/game-files";
-import { createItemCache } from "@/server/items";
+import { createItemCache, UnknownIconError } from "@/server/items";
+import { parseSearchPage } from "@/server/name-search";
 import type { SpellSource } from "@/server/spells";
 import { createFixtureFetch } from "../fixtures/forever/spells/fixture-fetch";
 import { createTbcFixtureFetch } from "../fixtures/tbc/spells/fixture-fetch";
@@ -83,6 +84,52 @@ describe.each(GAMES)("$game", ({ source, fixtures: makeFixtures, build, wowhead 
     expect((await items.search("6948")).results[0]).toMatchObject({ id: 6948, name: "Hearthstone", icon: "inv_misc_rune_01" });
     expect(await items.lookup(6948)).toMatchObject({ name: "Hearthstone", iconFileId: 134414, iconPath: expect.stringMatching(/^Interface\\Icons\\INV_Misc_Rune_01$/i) });
     expect(await items.lookup(999999999)).toBeNull();
+  });
+
+  it("pages icon and item searches alike with offset and limit", async () => {
+    const { files, items } = caches(source, makeFixtures());
+    const all = await files.searchIcons("potion", { limit: 100 });
+    expect(all).toMatchObject({ offset: 0, limit: 100 });
+    expect(all.results).toHaveLength(all.total);
+    const pages = [];
+    for (let offset = 0; offset < all.total; offset += 2) {
+      const page = await files.searchIcons("potion", { offset, limit: 2 });
+      expect(page).toMatchObject({ offset, limit: 2, total: all.total });
+      pages.push(...page.results);
+    }
+    expect(pages).toEqual(all.results);
+    expect((await files.searchIcons("potion", { offset: all.total })).results).toEqual([]);
+
+    const potions = await items.search("potion", { limit: 100 });
+    const second = await items.search("potion", { offset: 1, limit: 1 });
+    expect(second).toMatchObject({ offset: 1, limit: 1, total: potions.total, icon: null });
+    expect(second.results).toEqual([potions.results[1]]);
+  });
+
+  it("finds the items that use an icon, by FileDataID, path or name, with or without a name query", async () => {
+    const { items } = caches(source, makeFixtures());
+    for (const icon of ["134852", "Interface\\Icons\\INV_Potion_72.blp", "interface/icons/inv_potion_72", "INV_Potion_72"]) {
+      const found = await items.search("", { icon });
+      expect(found.icon).toEqual({ id: 134852, name: "inv_potion_72", path: "Interface\\Icons\\INV_Potion_72", iconUrl: expect.any(String) });
+      expect(found.results.map((r) => r.id)).toEqual([3827]);
+      expect(found.total).toBe(1);
+    }
+    expect((await items.search("mana", { icon: "inv_potion_72" })).results.map((r) => r.name)).toEqual(["Mana Potion"]);
+    expect((await items.search("hearthstone", { icon: "inv_potion_72" })).total).toBe(0);
+    await expect(items.search("", { icon: "no_such_icon" })).rejects.toThrow(UnknownIconError);
+    await expect(items.search("", { icon: "131015" })).rejects.toThrow(/no icon "131015"/); // Interface\Cursor\Cast
+  });
+});
+
+describe("search pages", () => {
+  it("reads offset and limit from a query, clamping the limit and refusing what isn't a number", () => {
+    const parse = (q: string) => parseSearchPage(new URLSearchParams(q));
+    expect(parse("")).toEqual({ offset: 0, limit: 20 });
+    expect(parse("offset=40&limit=500")).toEqual({ offset: 40, limit: 100 });
+    expect(parse("limit=0")).toEqual({ offset: 0, limit: 1 });
+    expect(parse("limit=x")).toEqual({ error: expect.stringMatching(/limit/) });
+    expect(parse("offset=-1")).toEqual({ error: expect.stringMatching(/offset/) });
+    expect(parse("offset=1.5")).toEqual({ error: expect.stringMatching(/offset/) });
   });
 });
 

@@ -1,5 +1,7 @@
 /** Wire types of the item API (`/api/<game>/items/*`), shared by the server and the page. No server code here. */
 
+import type { IconSearchHit } from "./files";
+
 /** The item quality names of the game client (`ITEM_QUALITY<n>_DESC`), by `OverallQualityID`. */
 export const ITEM_QUALITIES = ["Poor", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Artifact", "Heirloom"] as const;
 
@@ -25,10 +27,14 @@ export interface Item {
 
 export interface ItemSearchResult {
   query: string;
+  /** The icon the request's `icon` named (the items are those with it); null without `icon`. */
+  icon: IconSearchHit | null;
   build: string | null;
+  /** The results skipped (the request's `offset`, 0 by default): page with `offset` += `limit` while it is below `total`. */
+  offset: number;
   /** The most results answered (the request's `limit`, 1-100; 20 by default). */
   limit: number;
-  /** How many items match; more than `results.length` when the limit cut the list. */
+  /** How many items match in all; more than `results.length` when the page cut the list. */
   total: number;
   results: Item[];
 }

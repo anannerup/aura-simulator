@@ -60,8 +60,11 @@ export interface IconSearchHit {
 export interface IconSearchResult {
   query: string;
   build: string | null;
+  /** The results skipped (the request's `offset`, 0 by default): page with `offset` += `limit` while it is below `total`. */
+  offset: number;
+  /** The most results answered (the request's `limit`, 1-100; 20 by default). */
   limit: number;
-  /** How many icons match; more than `results.length` when the limit cut the list. */
+  /** How many icons match in all; more than `results.length` when the page cut the list. */
   total: number;
   results: IconSearchHit[];
 }
