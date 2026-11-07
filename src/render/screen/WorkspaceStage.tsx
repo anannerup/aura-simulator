@@ -1,11 +1,8 @@
 import { useMemo, type CSSProperties } from "react";
-import type { AuraDocument, LuaValue } from "@/core";
+import { evaluateAura, type AuraDocument, type AuraRenderState, type ConditionProblem, type LuaValue, type Situation } from "@/core";
 import { AnimatedAuraRegion } from "../AnimatedAuraRegion";
-import { uiParent, type Rect, type UiParent } from "../screen/geometry";
-import { evaluateAura } from "../conditions";
-import type { Situation } from "../situation";
-import { layoutStage, type LayoutNode } from "./layout";
-import previewStyles from "../AuraPreview.module.css";
+import { layoutStage, type LayoutNode } from "../group/layout";
+import { uiParent, type Rect, type UiParent } from "./geometry";
 import styles from "./WorkspaceStage.module.css";
 
 export interface WorkspaceStageProps {
@@ -17,6 +14,8 @@ export interface WorkspaceStageProps {
   selectedId?: string | null;
   /** Ids of auras hidden in the preview (as if their trigger were inactive). */
   hiddenIds?: ReadonlySet<string>;
+  /** The core's verdict on each aura's Aura (Modern) conditions, by aura id (`conditionProblem`). */
+  problems?: ReadonlyMap<string, ConditionProblem>;
   onSelect?: (id: string) => void;
 }
 
@@ -45,25 +44,26 @@ function borderStyle(aura: AuraDocument, rect: Rect, scale: number): CSSProperti
 }
 
 /** Draws every aura of the workspace on the screen, groups laid out like the game does. Pure: props in, markup out. */
-export function WorkspaceStage({ items, situation, screen = DEFAULT_SCREEN, selectedId, hiddenIds, onSelect }: WorkspaceStageProps) {
-  const layout = useMemo(
-    () =>
-      layoutStage(
-        items,
-        screen,
-        (aura) => !(typeof aura.id === "string" && hiddenIds?.has(aura.id)) && evaluateAura(aura, situation).shown,
-      ),
-    [items, screen, situation, hiddenIds],
-  );
+export function WorkspaceStage({ items, situation, screen = DEFAULT_SCREEN, selectedId, hiddenIds, problems, onSelect }: WorkspaceStageProps) {
+  const { layout, states } = useMemo(() => {
+    const states = new Map<AuraDocument, AuraRenderState>();
+    const layout = layoutStage(items, screen, (aura) => {
+      const id = typeof aura.id === "string" ? aura.id : undefined;
+      const state = evaluateAura(aura, situation, id === undefined ? undefined : problems?.get(id));
+      states.set(aura, state);
+      return state.shown && !(id !== undefined && hiddenIds?.has(id));
+    });
+    return { layout, states };
+  }, [items, screen, situation, hiddenIds, problems]);
   const selectedGroup = layout.groups.find((g) => g.id === selectedId);
   const selectedAura = layout.auras.find((a) => a.id === selectedId && a.visible);
   const selection = selectedGroup ? (selectedGroup.bounds ?? selectedGroup.frame) : selectedAura?.rect;
 
   return (
-    <div className={previewStyles.screen} style={{ width: screen.width, height: screen.height }} data-testid="aura-preview">
+    <div className={styles.screen} style={{ width: screen.width, height: screen.height }} data-testid="aura-preview">
       {layout.standIns.map((frame) => (
-        <div key={frame.label} className={previewStyles.standIn} style={box(frame.rect)} data-testid="anchor-stand-in">
-          <span className={previewStyles.standInLabel}>{frame.label} (stand-in)</span>
+        <div key={frame.label} className={styles.standIn} style={box(frame.rect)} data-testid="anchor-stand-in">
+          <span className={styles.standInLabel}>{frame.label} (stand-in)</span>
         </div>
       ))}
       {layout.groups.map(
@@ -78,7 +78,7 @@ export function WorkspaceStage({ items, situation, screen = DEFAULT_SCREEN, sele
           key={a.id}
           aura={a.aura}
           rect={a.rect}
-          state={evaluateAura(a.aura, situation)}
+          state={states.get(a.aura)!}
           shown={a.visible}
           selected={a.id === selectedId}
           onSelect={onSelect ? () => onSelect(a.id) : undefined}

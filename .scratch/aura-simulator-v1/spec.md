@@ -167,7 +167,7 @@ address only names the workspace, never holds auras.
 ## Further Notes
 
 - **v1 is done when** the player has imported each of these into the game and confirmed it works:
-  1. The buff reminder as two auras that work in combat: one shows the icon permanently desaturated and glowing as it runs low when under 3 minutes are left; the other shows it desaturated and glowing when the buff is missing.
+  1. The buff reminder as two auras that work in combat: one shows the icon desaturated only while under 3 minutes are left, glowing in its last 30 seconds (1a: the trigger's Remaining Time window, `desaturate`, a seconds-left glow); the other shows it desaturated and glowing when the buff is missing (1b).
   2. A cooldown icon that desaturates while on cooldown.
   3. A bar showing a debuff's time left on the target.
   4. A group holding these.

@@ -18,7 +18,7 @@ export interface TextureLoaderOptions {
 }
 
 export interface TextureLoader {
-  /** Raw file bytes (memory → Cache Storage → network). */
+  /** Raw file bytes (memory → Cache Storage → network): textures, and other game files such as fonts. */
   loadBytes(source: TextureSource): Promise<Uint8Array>;
   /** Decoded RGBA. */
   load(source: TextureSource): Promise<DecodedTexture>;

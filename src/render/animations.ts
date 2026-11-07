@@ -7,6 +7,7 @@
  * function and are listed in `customCode`.
  */
 import { getField, isLuaTable, type LuaValue } from "@/core";
+import { regionInfo, type RegionTypeInfo } from "./region-types";
 
 export type Rgba = [number, number, number, number];
 export type AnimKind = "start" | "main" | "finish";
@@ -28,7 +29,7 @@ type Fn2 = (p: number, sx: number, sy: number, dx: number, dy: number) => [numbe
 type Fn1 = (p: number, start: number, delta: number) => number;
 type FnColor = (p: number, from: Rgba, to: Rgba) => Rgba;
 
-export const TRANSLATE_FUNCTIONS: Record<string, Fn2> = {
+const TRANSLATE_FUNCTIONS: Record<string, Fn2> = {
   straightTranslate: (p, sx, sy, dx, dy) => [sx + p * dx, sy + p * dy],
   circle: (p, sx, sy, dx, dy) => {
     const a = p * 2 * Math.PI;
@@ -80,7 +81,7 @@ export const TRANSLATE_FUNCTIONS: Record<string, Fn2> = {
   },
 };
 
-export const SCALE_FUNCTIONS: Record<string, Fn2> = {
+const SCALE_FUNCTIONS: Record<string, Fn2> = {
   straightScale: (p, sx, sy, x, y) => [sx + p * (x - sx), sy + p * (y - sy)],
   pulse: (p, sx, sy, x, y) => {
     const a = p * 2 * Math.PI - Math.PI / 2;
@@ -93,14 +94,14 @@ export const SCALE_FUNCTIONS: Record<string, Fn2> = {
 
 const backandforth: Fn1 = (p, start, delta) => start + (p < 0.25 ? p * 4 : p < 0.75 ? 2 - p * 4 : (p - 1) * 4) * delta;
 
-export const ALPHA_FUNCTIONS: Record<string, Fn1> = {
+const ALPHA_FUNCTIONS: Record<string, Fn1> = {
   straight: (p, start, delta) => start + p * delta,
   alphaPulse: (p, start, delta) => start + ((Math.sin(p * 2 * Math.PI - Math.PI / 2) + 1) / 2) * delta,
   flash: (p, start, delta) => start + (p < 0.5 ? p * 2 : (p - 1) * 2) * delta,
   hide: () => 0,
 };
 
-export const ROTATE_FUNCTIONS: Record<string, Fn1> = {
+const ROTATE_FUNCTIONS: Record<string, Fn1> = {
   straight: (p, start, delta) => start + p * delta,
   backandforth,
   wobble: (p, start, delta) => start + Math.sin(p * 2 * Math.PI) * delta,
@@ -145,7 +146,7 @@ export function hsvTransition(perc: number, from: Rgba, to: Rgba): Rgba {
   return [r, g, b, from[3] - (from[3] - to[3]) * perc];
 }
 
-export const COLOR_FUNCTIONS: Record<string, FnColor> = {
+const COLOR_FUNCTIONS: Record<string, FnColor> = {
   straightColor: (p, a, b) => lerpColor(p, a, b),
   straightHSV: (p, a, b) => hsvTransition(p, a, b),
   pulseColor: (p, a, b) => lerpColor(pulseK(p), a, b),
@@ -157,7 +158,7 @@ export const COLOR_FUNCTIONS: Record<string, FnColor> = {
 
 type Raw = Record<string, LuaValue>;
 
-export const ANIM_PRESETS: Record<string, Raw> = {
+const ANIM_PRESETS: Record<string, Raw> = {
   slidetop: { type: "custom", duration: 0.25, use_translate: true, x: 0, y: 50, use_alpha: true, alpha: 0 },
   slideleft: { type: "custom", duration: 0.25, use_translate: true, x: -50, y: 0, use_alpha: true, alpha: 0 },
   slideright: { type: "custom", duration: 0.25, use_translate: true, x: 50, y: 0, use_alpha: true, alpha: 0 },
@@ -186,20 +187,7 @@ export const ANIM_PRESETS: Record<string, Raw> = {
 // Resolution (Animations.lua:211-415 Animate)
 
 /** What a region type can do (RegionTypes/*.lua: Scale, SetAnimRotation, ColorAnim). */
-export interface RegionCaps {
-  scale: boolean;
-  rotate: boolean;
-  color: boolean;
-}
-
-export function regionCaps(regionType: unknown): RegionCaps {
-  const t = String(regionType);
-  return {
-    scale: ["icon", "aurabar", "texture", "progresstexture", "stopmotion", "model"].includes(t),
-    rotate: ["texture", "progresstexture", "model"].includes(t),
-    color: ["icon", "aurabar", "text", "texture", "progresstexture", "stopmotion"].includes(t),
-  };
-}
+export type RegionCaps = RegionTypeInfo["caps"];
 
 export interface AnimSpec {
   kind: AnimKind;
@@ -281,7 +269,7 @@ export interface AuraAnimations {
 }
 
 export function auraAnimations(animation: LuaValue | undefined, regionType: unknown): AuraAnimations {
-  const caps = regionCaps(regionType);
+  const caps = regionInfo(regionType).caps;
   const entry = (k: AnimKind) => (isLuaTable(animation) ? getField(animation, k) : undefined);
   return { start: resolveAnimation(entry("start"), "start", caps), main: resolveAnimation(entry("main"), "main", caps), finish: resolveAnimation(entry("finish"), "finish", caps) };
 }
@@ -333,7 +321,7 @@ export interface AnimPose {
   color?: Rgba;
 }
 
-export const REST_POSE: AnimPose = { dx: 0, dy: 0, scaleX: 1, scaleY: 1 };
+const REST_POSE: AnimPose = { dx: 0, dy: 0, scaleX: 1, scaleY: 1 };
 
 /**
  * One frame of an animation (Animations.lua:58-124): progress inverted for start animations (Animate is called with
@@ -387,7 +375,7 @@ export function stampLife(life: Life, now: number): Life {
   return { ...life, since: life.since ?? now, shownAt: life.shownAt ?? now };
 }
 
-export function phaseSpec(life: Life, anims: AuraAnimations): AnimSpec | null {
+function phaseSpec(life: Life, anims: AuraAnimations): AnimSpec | null {
   return life.phase === "start" ? anims.start : life.phase === "main" ? anims.main : life.phase === "finish" ? anims.finish : null;
 }
 

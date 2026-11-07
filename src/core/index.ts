@@ -5,7 +5,11 @@ export { ADDON_REPO, DEFAULT_ADDON_REF, jsDelivrFetcher, jsDelivrUrl } from "./a
 export type { AddonSourceFetcher } from "./addon-source";
 export { ADDON_BUNDLE_SETS, bundleFetcher, collectAddonBundle } from "./addon-bundle";
 export type { AddonBundle, AddonBundleSet } from "./addon-bundle";
-export { canonicalize, entries, getField, isLuaTable } from "./lua-value";
+export { canonicalize, entries, field, finite, getField, isLuaTable, list } from "./lua-value";
+export { DEFAULT_SITUATION, auraTriggers, setInCombat, triggerSituation, withTrigger } from "./situation";
+export type { Situation, TriggerKind, TriggerSituation } from "./situation";
+export { conditionProblem, evaluateAura } from "./conditions";
+export type { AuraRenderState, ConditionProblem, GlowState, TriggerState } from "./conditions";
 export { LuaLiteralError, parseLuaLiteral, printLuaLiteral } from "./lua-literal";
 export { parseCanonicalJson, printCanonicalJson } from "./canonical-json";
 export type { LuaKey, LuaObject, LuaTable, LuaValue } from "./lua-value";

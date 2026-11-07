@@ -2,14 +2,13 @@
 
 import type { CSSProperties } from "react";
 import { isLuaTable, type AuraDocument, type LuaValue } from "@/core";
-import type { AuraRenderState } from "./conditions";
-import { frozenMarkerSize } from "./conditions/forever-rules";
 import { useWowFont } from "./fonts";
 import { iconHost } from "./subregions/host";
 import { SubRegions } from "./subregions/SubRegions";
-import { formatTime, type TextValues } from "./text-format";
+import { formatTime } from "./text-format";
 import { useAuraIconUrl } from "./textures";
-import styles from "./AuraPreview.module.css";
+import styles from "./regions.module.css";
+import type { RegionProps } from "./region-types";
 
 export function rgba(value: LuaValue | undefined, fallback: [number, number, number, number] = [1, 1, 1, 1]): [number, number, number, number] {
   const c = isLuaTable(value) && Array.isArray(value) ? value : [];
@@ -26,38 +25,15 @@ export const css = ([r, g, b, a]: [number, number, number, number]) =>
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
-/** %-replacement inputs: each trigger's state, and the dynamic (activeTriggerMode) one as trigger 0. */
-export function textValues(state: AuraRenderState, name: string): TextValues {
-  const states = new Map<number, (typeof state.triggers)[number] | undefined>(state.triggers.map((t) => [t.index, t]));
-  states.set(0, state.dynamic);
-  return { states, name };
-}
-
 /**
  * The icon region (RegionTypes/Icon.lua): the texture with zoom, desaturation and colour, the cooldown
  * swipe, its sub-regions in draw order (texts, border, glow) and the frozen marker.
  */
-export function IconRegion({ aura, state, name, width, height }: { aura: AuraDocument; state: AuraRenderState; name: string; width: number; height: number }) {
+export function IconRegion({ aura, state, name, width, height }: RegionProps) {
   const p = state.properties;
   const desaturate = p.desaturate === true;
-  const color = rgba(p.color);
-  const zoom = Math.min(1, Math.max(0, num(p.zoom, 0)));
-  // Icon.lua:347-378 UpdateTexCoords: visible texture share = 1 - zoom/2, cropped to the aspect ratio when
-  // keepAspectRatio is on.
-  const texWidth = 1 - 0.5 * zoom;
+  // Icon.lua:347-378 UpdateTexCoords: cropped to the aspect ratio when keepAspectRatio is on.
   const aspect = aura.keepAspectRatio === true && height > 0 ? width / height : 1;
-  const fx = texWidth * (aspect < 1 ? aspect : 1);
-  const fy = texWidth * (aspect > 1 ? 1 / aspect : 1);
-  const imgStyle: CSSProperties = {
-    width: `${100 / fx}%`,
-    height: `${100 / fy}%`,
-    left: `${(-(1 - fx) / 2 / fx) * 100}%`,
-    top: `${(-(1 - fy) / 2 / fy) * 100}%`,
-    filter: desaturate ? "grayscale(1)" : undefined,
-    opacity: color[3],
-  };
-  const iconSrc = useAuraIconUrl(aura) ?? undefined;
-  const tinted = color[0] < 1 || color[1] < 1 || color[2] < 1;
   const dynamic = state.dynamic;
   const showCooldown =
     p.cooldown !== false && !state.missing && dynamic?.remaining !== undefined && dynamic.duration > 0;
@@ -66,13 +42,7 @@ export function IconRegion({ aura, state, name, width, height }: { aura: AuraDoc
   const background = (
     <>
       <div className={styles.iconClip}>
-        {/* Blizzard art comes from Wowhead's image server at runtime; next/image would proxy it. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className={styles.icon} src={iconSrc} alt={name} style={imgStyle} draggable={false} />
-        {tinted && (
-          // SetVertexColor multiplies the texture colour.
-          <div className={styles.tint} style={{ background: css([color[0], color[1], color[2], 1]), opacity: color[3] }} data-testid="icon-tint" />
-        )}
+        <IconTexture aura={aura} name={name} zoom={num(p.zoom, 0)} aspect={aspect} desaturate={desaturate} tint={rgba(p.color)} />
       </div>
       {showCooldown && (
         <CooldownSwipe
@@ -94,8 +64,7 @@ export function IconRegion({ aura, state, name, width, height }: { aura: AuraDoc
       data-desaturated={desaturate ? "true" : "false"}
       data-missing={state.missing ? "true" : "false"}
     >
-      <SubRegions aura={aura} state={state} host={iconHost(width, height)} values={textValues(state, name)} background={background} />
-      {state.frozenMarker && <FrozenMarker size={frozenMarkerSize(width, height)} />}
+      <SubRegions aura={aura} state={state} host={iconHost(width, height)} name={name} background={background} />
     </div>
   );
 }
@@ -107,7 +76,7 @@ export function IconRegion({ aura, state, name, width, height }: { aura: AuraDoc
  * unless "Hide Timer Text" (cooldownTextDisabled) is on (Icon.lua:461-490), assuming the game's
  * "Show numbers for cooldowns" option is on.
  */
-export function CooldownSwipe({ remaining, duration, reverse, swipe, edge, numbers, size }: {
+function CooldownSwipe({ remaining, duration, reverse, swipe, edge, numbers, size }: {
   remaining: number;
   duration: number;
   reverse: boolean;
@@ -138,13 +107,39 @@ export function CooldownSwipe({ remaining, duration, reverse, swipe, edge, numbe
   );
 }
 
-/** FrozenMarker.lua:30-38: a padlock at the region's top right, offset (2, 2). */
-export function FrozenMarker({ size }: { size: number }) {
+/**
+ * An aura's icon texture inside a clipping box: zoomed in by texWidth = 1 - zoom/2 (Icon.lua:347-378,
+ * AuraBar.lua:1388-1404), cropped to `aspect`, desaturated and tinted (SetVertexColor multiplies the colour).
+ */
+export function IconTexture({ aura, name, zoom, aspect = 1, desaturate, tint }: {
+  aura: AuraDocument;
+  name: string;
+  zoom: number;
+  aspect?: number;
+  desaturate: boolean;
+  tint: readonly number[];
+}) {
+  const src = useAuraIconUrl(aura) ?? undefined;
+  const visible = 1 - 0.5 * Math.min(1, Math.max(0, zoom));
+  const fx = visible * (aspect < 1 ? aspect : 1);
+  const fy = visible * (aspect > 1 ? 1 / aspect : 1);
+  const style: CSSProperties = {
+    position: "absolute",
+    maxWidth: "none",
+    width: `${100 / fx}%`,
+    height: `${100 / fy}%`,
+    left: `${(-(1 - fx) / 2 / fx) * 100}%`,
+    top: `${(-(1 - fy) / 2 / fy) * 100}%`,
+    filter: desaturate ? "grayscale(1)" : undefined,
+    opacity: tint[3],
+  };
+  const tinted = tint[0] < 1 || tint[1] < 1 || tint[2] < 1;
   return (
-    <svg className={styles.frozen} width={size} height={size} viewBox="0 0 16 16" style={{ right: -2, top: -2 }} data-testid="frozen-marker" aria-label="Frozen value">
-      <path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2" fill="none" stroke="#d9b45a" strokeWidth="1.8" />
-      <rect x="2.5" y="7" width="11" height="8" rx="1.5" fill="#d9b45a" stroke="#4a3510" strokeWidth="0.8" />
-      <circle cx="8" cy="10.6" r="1.2" fill="#4a3510" />
-    </svg>
+    <>
+      {/* Blizzard art comes from Wowhead's image server at runtime; next/image would proxy it. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className={styles.icon} src={src} alt={name} style={style} draggable={false} />
+      {tinted && <div className={styles.tint} style={{ background: css([tint[0], tint[1], tint[2], 1]), opacity: tint[3] }} data-testid="icon-tint" />}
+    </>
   );
 }

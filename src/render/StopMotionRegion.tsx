@@ -1,27 +1,24 @@
 "use client";
 
 import { useId, type ReactNode } from "react";
-import type { AuraDocument, LuaValue } from "@/core";
+import type { LuaValue } from "@/core";
 import type { Box } from "./bar-geometry";
 import { useRegionClock } from "./clock";
-import type { AuraRenderState } from "./conditions";
-import { frozenMarkerSize } from "./conditions/forever-rules";
-import { FrozenMarker, textValues } from "./IconRegion";
 import { blendCss, needsShade, ShadeFilter, type Rgba } from "./MappedTexture";
 import {
   DEFAULT_STOP_MOTION_TEXTURE,
   numberedFrameFile,
-  progressFrame,
+  stopMotionFrame,
   stopMotionSheet,
   tileTexCoord,
-  timedFrame,
   type StopMotionSheet,
 } from "./stop-motion";
 import { regionHost } from "./subregions/host";
 import { SubRegions } from "./subregions/SubRegions";
-import { color } from "./subregions/SubText";
-import { useTextureUrl } from "./textures/useTexture";
-import styles from "./AuraPreview.module.css";
+import { color } from "./color";
+import { useTextureUrl } from "./textures";
+import styles from "./regions.module.css";
+import type { RegionProps } from "./region-types";
 
 const num = (v: LuaValue | undefined, fallback?: number) => (typeof v === "number" ? v : fallback);
 
@@ -87,16 +84,12 @@ export function StopMotionFrame({
   );
 }
 
-/** Timed types step with the clock (StopMotion.lua:141-167, region FrameTick). */
-export const isTimedStopMotion = (animationType: LuaValue | undefined) =>
-  animationType === undefined || animationType === "loop" || animationType === "bounce" || animationType === "once";
-
 /**
  * The stop motion region (RegionTypes/StopMotion.lua): a foreground sheet that loops, bounces or plays once at
  * `frameRate` from when the aura shows, or follows the dynamic trigger's elapsed share in "progress" mode; and an
  * optional background showing one fixed frame (`backgroundPercent`).
  */
-export function StopMotionRegion({ aura, state, name, width, height }: { aura: AuraDocument; state: AuraRenderState; name: string; width: number; height: number }) {
+export function StopMotionRegion({ aura, state, name, width, height }: RegionProps) {
   const p = state.properties;
   const seconds = useRegionClock();
   const fgTexture = typeof aura.foregroundTexture === "string" ? aura.foregroundTexture : DEFAULT_STOP_MOTION_TEXTURE;
@@ -111,16 +104,7 @@ export function StopMotionRegion({ aura, state, name, width, height }: { aura: A
   });
   const fgSheet = stopMotionSheet({ texture: fgTexture, startPercent: num(aura.startPercent, 0), endPercent: num(aura.endPercent, 1), ...custom("Foreground") });
   const animationType = aura.animationType ?? "loop";
-  const inverse = aura.inverse === true;
-  const dynamic = state.dynamic;
-  let frame: number;
-  if (isTimedStopMotion(animationType)) {
-    frame = timedFrame(fgSheet, { seconds, frameRate: num(aura.frameRate, 15), animationType: String(animationType), inverse });
-  } else {
-    // "progress": 1 - remaining / duration (StopMotion.lua:143-154, 337-354); a static 0 without a timer.
-    const progress = dynamic?.remaining !== undefined && dynamic.duration > 0 ? 1 - dynamic.remaining / dynamic.duration : 0;
-    frame = progressFrame(fgSheet, progress, inverse);
-  }
+  const frame = stopMotionFrame(fgSheet, { animationType, frameRate: num(aura.frameRate, 15)!, inverse: aura.inverse === true, seconds, timer: state.dynamic });
   const same = aura.sameTexture !== false;
   const bgTexture = same ? fgTexture : typeof aura.backgroundTexture === "string" ? aura.backgroundTexture : DEFAULT_STOP_MOTION_TEXTURE;
   const bgPercent = num(aura.backgroundPercent, 1);
@@ -153,9 +137,8 @@ export function StopMotionRegion({ aura, state, name, width, height }: { aura: A
     </>
   );
   return (
-    <div className={styles.barFrame} data-animation-type={String(animationType)}>
-      <SubRegions aura={aura} state={state} host={regionHost("stopmotion", width, height)} values={textValues(state, name)} background={background} />
-      {state.frozenMarker && <FrozenMarker size={frozenMarkerSize(width, height)} />}
+    <div className={styles.regionFrame} data-animation-type={String(animationType)}>
+      <SubRegions aura={aura} state={state} host={regionHost("stopmotion", width, height)} name={name} background={background} />
     </div>
   );
 }

@@ -29,8 +29,8 @@ export function normalizeTexturePath(path: string): string {
 }
 
 /**
- * Candidate URLs for a texture source, tried in order. Addon paths without an extension
- * try `.tga` then `.blp` (WoW resolves extension-less paths the same way).
+ * Candidate URLs for a texture (or another game file, such as a font), tried in order. Addon paths without an
+ * extension try `.tga` then `.blp` (WoW resolves extension-less texture paths the same way).
  */
 export function textureUrls(source: TextureSource, addonRef: string): string[] {
   if (typeof source === "number") return [WAGO_CASC_URL + source];
@@ -41,7 +41,7 @@ export function textureUrls(source: TextureSource, addonRef: string): string[] {
   if (addonMatch) {
     const rel = addonMatch[1];
     const base = jsDelivrUrl(addonRef, rel);
-    return /\.(tga|blp)$/i.test(rel) ? [base] : [base + ".tga", base + ".blp"];
+    return /\.[a-z0-9]{3}$/i.test(rel) ? [base] : [base + ".tga", base + ".blp"];
   }
   throw new Error(`Unknown texture path (no FileDataID mapping): ${source}`);
 }

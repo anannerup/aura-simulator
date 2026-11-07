@@ -18,8 +18,8 @@
   `src/render/subregions/SubTextures.tsx`. Shared texcoord maths in `src/render/texture-geometry.ts`, drawing in
   `MappedTexture.tsx`.
 - Animations: `src/render/animations.ts` (presets, functions, easing, show/hide lifecycle), played by
-  `src/render/AnimatedAuraRegion.tsx` in `AuraPreview` and `WorkspaceStage`. `AuraPreview`'s `replay` prop replays the
-  start animation; the lab has a Replay button (the workbench can wire the same prop).
+  `src/render/AnimatedAuraRegion.tsx` on the game screen (`WorkspaceStage`). (`AuraPreview`, the `/lab` page and its
+  Replay button were removed on 2026-11-07.)
 - Limits: custom Lua animation functions fall back to the type's normal function; "relative" start/finish animations
   end at once (the preview's timer stands still); atlas textures are labelled, not drawn; wrap modes other than
   CLAMPTOBLACKADDITIVE draw clamped to transparent; the native (Blizzard radial) progress ring is drawn with the

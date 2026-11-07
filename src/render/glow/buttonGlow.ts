@@ -39,7 +39,7 @@ export const BUTTON_GLOW_TEXCOORDS: Record<Exclude<ButtonGlowPart, "ants">, TexC
 /** Seconds animIn runs (innerGlow fade and ants appear end at 0.3 + 0.2). */
 export const ANIM_IN_DURATION = 0.5;
 /** Seconds animOut runs (two orders of 0.2). */
-export const ANIM_OUT_DURATION = 0.4;
+const ANIM_OUT_DURATION = 0.4;
 
 interface AlphaAnim {
   target: ButtonGlowPart;
@@ -170,7 +170,7 @@ export function buttonGlowOutState(t: number, colorAlpha: number | null): Button
 
 // --- Ants flipbook: Blizzard's AnimateTexCoords(ants, 256, 256, 48, 48, 22, elapsed, throttle)
 
-export const ANTS_FRAMES = 22;
+const ANTS_FRAMES = 22;
 const ANTS_COLUMNS = Math.floor(256 / 48);
 const ANTS_CELL = 48 / 256;
 

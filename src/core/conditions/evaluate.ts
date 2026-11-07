@@ -2,16 +2,17 @@
  * The condition evaluator: from an aura document and a situation to what the region shows, with every
  * condition-driven property resolved. Pure; no React.
  */
-import { getField, isLuaTable, type AuraDocument, type LuaTable, type LuaValue } from "@/core";
+import type { AuraDocument } from "../aura-core";
+import type { ValidationResult } from "../addon-vm/validation";
+import { entries, field, finite, getField, isLuaTable, list, type LuaTable, type LuaValue } from "../lua-value";
 import { auraTriggers, frozenFacts, type Situation, type SituationFacts } from "../situation";
 import {
+  compare,
   containsNativeCondition,
-  field,
-  finite,
   frozenMarkerShown,
+  HIGHLIGHT_PROPERTIES,
   isGlowProperty,
   isNativeConditionProperty,
-  list,
   nativeAllowsProperty,
   nativeVariable,
   NATIVE_VARIABLES,
@@ -20,12 +21,26 @@ import {
   secretTrigger,
   subRegion,
   textKind,
-  validateSecretConditions,
-  HIGHLIGHT_PROPERTIES,
-  compare,
-} from "./forever-rules";
+} from "./secret-aura-rules";
 import { regionDefaults, subRegionDefaults } from "./region-defaults";
 import { triggerState, type TriggerState } from "./triggers";
+
+/** An Aura (Modern) condition the addon rejects: while there is one, the aura's generic conditions don't run. */
+export interface ConditionProblem {
+  /** 1-based condition number, when the addon's check could pin it to one. */
+  condition?: number;
+  message: string;
+}
+
+/**
+ * The condition problem in the core's validation of an aura (`AuraCore.validate`), if any: what the addon's own
+ * ValidateConditions said (Conditions.lua:761). The preview takes it from here, so it and the combat check agree.
+ */
+export function conditionProblem(validation: ValidationResult | undefined): ConditionProblem | undefined {
+  const error = validation?.errors.find((e) => e.code === "modern.invalid" && e.pointer?.tab === "conditions");
+  if (!error) return undefined;
+  return { condition: error.pointer?.tab === "conditions" ? error.pointer.condition : undefined, message: error.message };
+}
 
 export interface GlowState {
   /** 1-based position in `subRegions`. */
@@ -47,23 +62,22 @@ export interface AuraRenderState {
   dynamic?: TriggerState;
   /**
    * Effective property values by condition path (`desaturate`, `color`, `alpha`, `zoom`, `sub.2.text_color`,
-   * `sub.3.glow`, ...): the document's value (or the region default) with active condition changes applied.
+   * `sub.3.glow`, ...): every plain value and colour of the document and its sub-elements (or the region default
+   * where unset), with active condition changes applied. Renderers read these, not the document.
    */
   properties: Record<string, LuaValue>;
   /** 1-based numbers of the generic conditions that are active. */
   activeConditions: number[];
   /** Properties that keep their pre-combat value because the combat restriction blocks the change. */
   heldInCombat: string[];
-  /** Aura (Modern) condition problem; while there is one, generic conditions don't run. */
-  problem?: { condition: number; message: string };
   /** Stack text from the native display, per sub-region index (Aura (Modern) only). */
   nativeStackText: Record<number, string>;
-  /** Glow sub-regions with their computed state: the hook ticket 08's glow renderer plugs into. */
+  /** Glow sub-regions with their computed state. */
   glows: GlowState[];
 }
 
 /** Conditions.lua:504-522 GetBaseProperty, with the region defaults for unset values. */
-export function baseProperty(aura: AuraDocument, path: string): LuaValue | undefined {
+function baseProperty(aura: AuraDocument, path: string): LuaValue | undefined {
   const sub = parseSubPath(path);
   if (sub) {
     const element = subRegion(aura, sub.position);
@@ -84,7 +98,7 @@ interface CheckContext {
 const TIMER_VARIABLES = new Set(["expirationTime"]);
 
 /** Conditions.lua:228-470 CreateTestForCondition, for the condition types the simulator models. */
-export function evaluateCheck(check: LuaValue | undefined, ctx: CheckContext): boolean {
+function evaluateCheck(check: LuaValue | undefined, ctx: CheckContext): boolean {
   if (!isLuaTable(check)) return false;
   // Native Aura (Modern) checks are never evaluated by the generic code (Conditions.lua:229).
   if (containsNativeCondition(ctx.aura, check)) return false;
@@ -201,7 +215,14 @@ function durationPoint(variable: string, state: TriggerState): number | undefine
   }
 }
 
-export function evaluateAura(aura: AuraDocument, situation: Situation): AuraRenderState {
+/** A plain value or a colour: what `properties` holds (tables such as triggers or tick lists are left out). */
+const isPropertyValue = (v: LuaValue) => !isLuaTable(v) || (Array.isArray(v) && v.every((x) => typeof x === "number"));
+
+/**
+ * What the aura shows in the situation. `problem` is the core's verdict on its Aura (Modern) conditions
+ * (`conditionProblem`); while there is one, the generic conditions don't run.
+ */
+export function evaluateAura(aura: AuraDocument, situation: Situation, problem?: ConditionProblem): AuraRenderState {
   const before = frozenFacts(situation);
   const statesMap = triggerStates(aura, situation, before, situation.inCombat);
   const states = [...statesMap.values()];
@@ -210,18 +231,18 @@ export function evaluateAura(aura: AuraDocument, situation: Situation): AuraRend
   const secret = secretTrigger(aura);
   const secretState = secret ? statesMap.get(secret.index) : undefined;
   const missing = shown && secretState !== undefined && secretState.missing && dynamic === secretState;
-  const problem = secret ? validateSecretConditions(aura) : undefined;
 
   const properties: Record<string, LuaValue> = {};
   const set = (path: string, value: LuaValue) => {
     properties[path] = value;
   };
-  for (const key of Object.keys(regionDefaults(aura.regionType))) set(key, baseProperty(aura, key)!);
+  for (const [key, value] of Object.entries(regionDefaults(aura.regionType))) set(key, value);
+  for (const [key, value] of Object.entries(aura)) if (isPropertyValue(value)) set(key, value);
   list(aura.subRegions).forEach((element, i) => {
-    for (const key of Object.keys(subRegionDefaults(field(element, "type")))) {
-      const value = baseProperty(aura, `sub.${i + 1}.${key}`);
-      if (value !== undefined) set(`sub.${i + 1}.${key}`, value);
-    }
+    if (!isLuaTable(element)) return;
+    const prefix = `sub.${i + 1}.`;
+    for (const [key, value] of Object.entries(subRegionDefaults(getField(element, "type")))) set(prefix + key, value);
+    for (const [key, value] of entries(element)) if (typeof key === "string" && isPropertyValue(value)) set(prefix + key, value);
   });
 
   // Generic conditions (Conditions.lua:755-860). Skipped entirely while an Aura (Modern) rule is broken (:760),
@@ -233,7 +254,7 @@ export function evaluateAura(aura: AuraDocument, situation: Situation): AuraRend
     activeConditions = now.active;
     let held: Map<string, LuaValue> | undefined;
     if (secret && situation.inCombat) {
-      // Properties of the native display hold their pre-combat value (forever-rules isNativeConditionProperty).
+      // Properties of the native display hold their pre-combat value (isNativeConditionProperty).
       const beforeStates = triggerStates(aura, before, before, false);
       held = genericConditions(aura, { aura, states: beforeStates, facts: before }).values;
     }
@@ -275,7 +296,6 @@ export function evaluateAura(aura: AuraDocument, situation: Situation): AuraRend
     properties,
     activeConditions,
     heldInCombat,
-    problem,
     nativeStackText,
     glows,
   };

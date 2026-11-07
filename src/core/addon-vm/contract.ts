@@ -68,6 +68,7 @@ export const ADDON_CONTRACT: AddonContract = {
     table("Private.BlizzardAuraDisplay.totalOperators"),
     table("Private.BlizzardAuraDisplay.stackOperators"),
     { name: "Private.BlizzardAuraDisplay.STACK_LIMIT", kind: "value" },
+    table("Private.BlizzardAuraDisplay.missingRootProperties"),
     table("OptionsPrivate.TriggerSecretWarnings"),
     fn("OptionsPrivate.TriggerSecretWarnings.HasSecretAuraSpell"),
     fn("OptionsPrivate.TriggerSecretWarnings.GetScope"),

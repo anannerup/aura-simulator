@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type CSSProperties } from "react";
-import { texCoordBackground, type TexCoord } from "@/render/textures";
-import { useTextureUrl } from "@/render/textures/useTexture";
+import { texCoordBackground, useTextureUrl, type TexCoord } from "../textures";
 import {
   ANIM_IN_DURATION,
   BUTTON_GLOW_PARTS,

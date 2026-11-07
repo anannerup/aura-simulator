@@ -72,6 +72,26 @@ export function getField(table: LuaTable, key: LuaKey): LuaValue | undefined {
   return Object.prototype.hasOwnProperty.call(table, k) ? table[k] : undefined;
 }
 
+/** `t[key]` of a value that may not be a table. */
+export function field(table: LuaValue | undefined, key: LuaKey): LuaValue | undefined {
+  return isLuaTable(table) ? getField(table, key) : undefined;
+}
+
+/** The sequence part of a table (`ipairs`), in order; [] for anything else. */
+export function list(value: LuaValue | undefined): LuaValue[] {
+  if (!isLuaTable(value)) return [];
+  return entries(value)
+    .filter(([k]) => typeof k === "number")
+    .sort(([a], [b]) => (a as number) - (b as number))
+    .map(([, v]) => v);
+}
+
+/** A number, or a numeric string, as Lua's `tonumber` reads it; undefined otherwise. */
+export function finite(value: LuaValue | undefined): number | undefined {
+  const n = typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : NaN;
+  return Number.isFinite(n) ? n : undefined;
+}
+
 /**
  * Returns the canonical form of a value: sequences become arrays, everything else objects,
  * the empty table `{}`, number keys in shortest form. Object values that are `undefined`/`null`

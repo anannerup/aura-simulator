@@ -23,14 +23,15 @@
   exports a file → imports in game), document rules, field reference, triggers, conditions, combat rules,
   validation and how to act on it, spells, push API with merge rules, worked examples, troubleshooting. It
   documents the file-based model only (no `?code=`/`?s=`/short links).
-- Worked examples (`src/docs/worked-examples.ts`) use the documents in `src/render/examples.ts`, which the `/lab`
-  page shows too: 1a buff running low, 1b buff missing, 2 cooldown icon, 3 target debuff bar, 4 a group of them,
+- Worked examples (`src/docs/worked-examples.ts`) use the documents in `src/render/examples.ts`, which the browser
+  tests push to the window too: 1a buff running low, 1b buff missing, 2 cooldown icon, 3 target debuff bar, 4 a group of them,
   plus a counter-example (time check driving desaturate → `broken`). Each JSON block is tagged
   `json example=<key> combat=<status>`.
 - Tests: `tests/unit/agent-docs.test.ts` (examples in the docs equal the shared documents and validate to the
   promised status; generated lists present; every API endpoint the docs mention has a route with that method; no
   address codes or short links), `tests/e2e/agent-docs.spec.ts` (fetches `/docs/agents.md`, pushes each example
   block as written and checks `validation.combat.status`).
-- The v1 aura 1a keeps the icon visible at all times and glows under 3 minutes (`faAuraRemaining < 180`). The
-  trigger's Remaining Time window (show only under 3 minutes) is documented as an option; in the simulated
-  client it raises "Blizzard could not create the Remaining Time display: no slot", so it isn't the example.
+- The v1 aura 1a (2026-11-07, after the code review) does what the player asked: shown only under 3 minutes (the
+  trigger's Remaining Time window, `secretUseRem`/`secretRem: 180`), desaturated (`desaturate: true`), glowing in its last
+  30 seconds (`faAuraRemaining < 30` → `sub.2.glow`), `%p` red under 10 s. The core validates it "ok" (the earlier "no
+  slot" error from the simulated client is gone), so the always-shown alternative was dropped.

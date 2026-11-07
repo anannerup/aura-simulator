@@ -1,22 +1,3 @@
-.screen {
-  position: relative;
-}
-
-/* A frame the simulator does not draw (unit frame, nameplate, mouse...), shown where it usually is. */
-.standIn {
-  position: absolute;
-  outline: calc(1px / var(--css-per-unit, 1)) dashed rgb(255 255 255 / 0.5);
-}
-
-.standInLabel {
-  position: absolute;
-  left: 0;
-  bottom: 100%;
-  white-space: nowrap;
-  color: rgb(255 255 255 / 0.7);
-  font-size: calc(11px / var(--css-per-unit, 1));
-}
-
 .region {
   position: absolute;
 }
@@ -88,7 +69,7 @@
   text-shadow: -1px 0 0 #000, 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000;
 }
 
-.barFrame {
+.regionFrame {
   position: relative;
   width: 100%;
   height: 100%;
@@ -110,16 +91,6 @@
 .frozen {
   position: absolute;
   pointer-events: none;
-}
-
-.problem {
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  right: 8px;
-  margin: 0;
-  color: #f5a524;
-  font-size: 12px;
 }
 
 .unsupported {

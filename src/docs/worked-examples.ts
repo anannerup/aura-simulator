@@ -1,11 +1,11 @@
 /**
- * The agent docs' worked examples: the four v1 acceptance auras (1a with an alternative) and one counter-example,
- * each a complete push body with the combat status the docs promise.
+ * The agent docs' worked examples: the four v1 acceptance auras and one counter-example, each a complete push body with
+ * the combat status the docs promise. The documents live in `src/render/examples.ts`; tests push every example and
+ * check the promised status.
  */
 import type { AuraDocument, CombatStatus } from "@/core";
 import {
   buffMissing,
-  buffRunningLow,
   buffUnderThreeMinutes,
   cooldownIcon,
   remainingDesaturates,
@@ -31,30 +31,18 @@ export const WORKED_EXAMPLES: WorkedExample[] = [
   {
     key: "buff-under-3-min",
     title: "1a. Buff running low (Aura (Modern) icon, Remaining Time)",
-    request: "Show my Arcane Intellect buff when less than 3 minutes are left.",
+    request: "My Arcane Intellect is about to expire: show it desaturated when less than 3 minutes are left, and make it glow as it expires.",
     explanation: [
       "Trigger 1 is Aura (Modern) (`secretAura`) on the player, Buff (`HELPFUL`), exact spell ID 1459, own casts only " +
-        "(`nativeFilters.PLAYER`), Show On left at Aura(s) Found. The trigger's own Remaining Time option does the rest: " +
-        '`secretUseRem: true`, `secretRemOperator: "<"`, `secretRem: 180`. The game itself hides the icon until under ' +
-        "3 minutes are left, so it holds in combat. Remaining Time is for Icon displays.",
-      "Condition 1 colours the `%p` time text (sub-element 1) red under 10 seconds (`faAuraRemaining < 10`); with " +
-        "Remaining Time, countdown conditions must compare seconds left like this.",
+        "(`nativeFilters.PLAYER`), Show On left at Aura(s) Found. The trigger's own Remaining Time option shows the icon " +
+        'only under 3 minutes: `secretUseRem: true`, `secretRemOperator: "<"`, `secretRem: 180`. The game itself does the ' +
+        "hiding, so it holds in combat. Remaining Time is for Icon displays.",
+      "`desaturate: true` is a plain display setting: grey whenever shown, no condition needed (a time check may not " +
+        "desaturate). Condition 1 (`faAuraRemaining < 30`) lights the glow, sub-element 2 (`sub.2.glow`), in the last 30 " +
+        "seconds; condition 2 colours the `%p` time text (sub-element 1) red under 10 seconds. Both are changes Aura (Modern) " +
+        "allows for a time check, and with Remaining Time, time conditions must compare seconds left like this.",
     ],
     body: { aura: buffUnderThreeMinutes },
-    combat: "ok",
-  },
-  {
-    key: "buff-running-low",
-    title: "1a, alternative. Always shown, glowing under 3 minutes",
-    request:
-      "Remind me when Arcane Intellect has under 3 minutes left: show the icon desaturated all the time, and make it glow under 3 minutes.",
-    explanation: [
-      "Same trigger without Remaining Time, so the icon shows while the buff is up.",
-      "`desaturate: true` is a plain display setting: always grey, no condition needed (a condition on seconds left may not " +
-        "desaturate). Condition 1 (`faAuraRemaining < 180`) turns on the glow, sub-element 2 (`sub.2.glow`); condition 2 colours " +
-        "the `%p` time text (sub-element 1) red under 10 seconds. Both are changes Aura (Modern) allows for a time check.",
-    ],
-    body: { aura: buffRunningLow },
     combat: "ok",
   },
   {
@@ -104,7 +92,7 @@ export const WORKED_EXAMPLES: WorkedExample[] = [
     title: "4. A group holding these",
     request: "Put them together so I can import them in one go.",
     explanation: [
-      'A `group` ("v1 auras") with 1a (the Remaining Time variant), 1b, 2 and 3 as children. The children keep their documents; each gets ' +
+      'A `group` ("v1 auras") with 1a, 1b, 2 and 3 as children. The children keep their documents; each gets ' +
         '`parent: "v1 auras"` and an offset relative to the group\'s centre, and the group lists their ids in ' +
         "`controlledChildren`. Push it as one body: `aura` is the group, `children` its descendants. The combat status is " +
         "the worst of all members.",

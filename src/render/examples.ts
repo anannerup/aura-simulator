@@ -1,8 +1,8 @@
 /**
- * Example auras for the situation lab page (`/lab`), the renderer tests and the agent docs' worked examples
- * (`src/docs/worked-examples.ts`): one per trigger kind and combat behaviour, including the four v1 acceptance
- * auras. Plain aura documents, as the addon stores them. The docs push these exact documents in their tests,
- * so what the lab shows, what the docs teach and what is tested can't drift apart.
+ * Example auras for the agent docs' worked examples (`src/docs/worked-examples.ts`) and the tests: one per trigger
+ * kind, region type and combat behaviour, including the four v1 acceptance auras. Plain aura documents, as the addon
+ * stores them. The docs and the browser tests push these exact documents to the window, so what the docs teach and
+ * what is tested can't drift apart.
  */
 import type { AuraDocument, AuraState, LuaObject } from "@/core";
 
@@ -53,31 +53,23 @@ const secretTrigger = (extra: LuaObject = {}): LuaObject => ({
 });
 
 /**
- * v1 acceptance aura 1a: the buff's icon, shown only while under 3 minutes are left. The trigger's own Remaining Time
- * window (`secretUseRem`, icons only) does the hiding; the `%p` text turns red under 10 seconds.
+ * v1 acceptance aura 1a ("my buff is about to expire: desaturate it, show it when less than 3 minutes are left, make it
+ * glow as it expires"): the buff's icon, desaturated, shown only while under 3 minutes are left, glowing in its last 30
+ * seconds. The trigger's own Remaining Time window (`secretUseRem`, icons only) does the hiding, `desaturate` is a plain
+ * display setting, and the glow and the `%p` text turning red under 10 seconds are time rules Aura (Modern) allows, so
+ * all of it keeps working in combat. 1b covers the buff once it is gone.
  */
 export const buffUnderThreeMinutes: AuraDocument = {
   ...ICON_BASE,
   id: "Arcane Intellect under 3 min",
-  subRegions: [durationText()],
+  desaturate: true,
+  subRegions: [durationText(), glow()],
   triggers: {
     "[1]": { trigger: secretTrigger({ secretUseRem: true, secretRemOperator: "<", secretRem: 180 }), untrigger: {} },
     activeTriggerMode: -10,
   },
   conditions: [
-    { check: { trigger: 1, variable: "faAuraRemaining", op: "<", value: 10 }, changes: [{ property: "sub.1.text_color", value: [1, 0, 0, 1] }] },
-  ],
-};
-
-/** v1 acceptance aura 1a, alternative: desaturated buff icon shown all the time, glowing when under 3 minutes are left. */
-export const buffRunningLow: AuraDocument = {
-  ...ICON_BASE,
-  id: "Arcane Intellect low",
-  desaturate: true,
-  subRegions: [durationText(), glow()],
-  triggers: { "[1]": { trigger: secretTrigger(), untrigger: {} }, activeTriggerMode: -10 },
-  conditions: [
-    { check: { trigger: 1, variable: "faAuraRemaining", op: "<", value: 180 }, changes: [{ property: "sub.2.glow", value: true }] },
+    { check: { trigger: 1, variable: "faAuraRemaining", op: "<", value: 30 }, changes: [{ property: "sub.2.glow", value: true }] },
     { check: { trigger: 1, variable: "faAuraRemaining", op: "<", value: 10 }, changes: [{ property: "sub.1.text_color", value: [1, 0, 0, 1] }] },
   ],
 };
@@ -544,7 +536,6 @@ export const spinningTexture: AuraDocument = {
 
 export const EXAMPLES: Record<string, AuraDocument> = {
   "buff-under-3-min": buffUnderThreeMinutes,
-  "buff-running-low": buffRunningLow,
   "buff-missing": buffMissing,
   "remaining-desaturates": remainingDesaturates,
   "secret-combat-condition": secretWithCombatCondition,

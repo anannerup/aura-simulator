@@ -15,7 +15,7 @@
 
 Renderers: `src/render/AuraBarRegion.tsx`, `TextRegion.tsx`, `subregions/` (SubText, Border, Ticks, SubGlow, draw
 order in `SubRegions.tsx`), pure maths in `bar-geometry.ts`, LSM names in `media.ts`, game fonts in `fonts.ts`.
-`regions.tsx` is the region registry AuraPreview uses; new region types add an entry. Lab examples:
+`region-types.ts` (facts) and `regions.tsx` (components) are the region registry; new region types add an entry there. Examples (pushed to the window by the browser tests):
 `target-debuff-bar` (v1 aura 3), `ticked-bar`, `vertical-bar`, `cooldown-text`.
 
 - Draw order follows ApplyFrameLevel (WeakAuras.lua:4775): sub-regions by list position; `subbackground` carries

@@ -21,15 +21,15 @@ const LOOP_RECT = [845, 1178, 1, 401] as const;
 export const PROC_START_TEXCOORD: TexCoord = [START_RECT[0] / ATLAS_W, START_RECT[1] / ATLAS_W, START_RECT[2] / ATLAS_H, START_RECT[3] / ATLAS_H];
 export const PROC_LOOP_TEXCOORD: TexCoord = [LOOP_RECT[0] / ATLAS_W, LOOP_RECT[1] / ATLAS_W, LOOP_RECT[2] / ATLAS_H, LOOP_RECT[3] / ATLAS_H];
 
-export const FLIPBOOK_ROWS = 6;
-export const FLIPBOOK_COLUMNS = 5;
-export const FLIPBOOK_FRAMES = 30;
+const FLIPBOOK_ROWS = 6;
+const FLIPBOOK_COLUMNS = 5;
+const FLIPBOOK_FRAMES = 30;
 
 /** Start animation: alpha in (0.001 s), flipbook (0.7 s), alpha out (0.001 s). */
-export const PROC_START_DURATION = 0.001 + 0.7 + 0.001;
+const PROC_START_DURATION = 0.001 + 0.7 + 0.001;
 
 /** FlipBook animation frame (0-based) at `progress` 0..1. */
-export function flipbookFrame(progress: number, frames = FLIPBOOK_FRAMES): number {
+function flipbookFrame(progress: number, frames = FLIPBOOK_FRAMES): number {
   return Math.min(frames - 1, Math.max(0, Math.floor(progress * frames)));
 }
 

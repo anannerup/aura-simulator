@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import type { AuraCore, AuraDocument, AuraPacks, LuaObject, NewAuraPage } from "@/core";
-import { AuraRegion } from "@/render/AuraPreview";
-import { evaluateAura } from "@/render/conditions";
-import { DEFAULT_SITUATION } from "@/render/situation";
+import { DEFAULT_SITUATION, evaluateAura, type AuraCore, type AuraDocument, type AuraPacks, type LuaObject, type NewAuraPage } from "@/core";
+import { AuraRegion } from "@/render/AuraRegion";
 import { displayIconRef, iconNameUrl } from "@/render/textures";
 import type { EditResult } from "@/client/workspace/session";
 import { findNode, isDynamicGroupDoc, type WorkspaceNode } from "@/workspace";

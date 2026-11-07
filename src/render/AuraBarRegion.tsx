@@ -1,6 +1,5 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import type { AuraDocument, LuaValue } from "@/core";
 import {
   barLayout,
@@ -13,16 +12,14 @@ import {
   sparkVisible,
   type Box,
 } from "./bar-geometry";
-import type { AuraRenderState } from "./conditions";
-import { frozenMarkerSize } from "./conditions/forever-rules";
-import { FrozenMarker, textValues } from "./IconRegion";
+import { IconTexture } from "./IconRegion";
 import { CASTING_BAR_SPARK, statusBarTexture, textureSourceOf } from "./media";
 import { fullBox, type SubRegionHost } from "./subregions/host";
 import { SubRegions } from "./subregions/SubRegions";
-import { color } from "./subregions/SubText";
-import { useAuraIconUrl } from "./textures";
+import { color } from "./color";
 import { TurnedTexture, rgbaCss } from "./TurnedTexture";
-import styles from "./AuraPreview.module.css";
+import styles from "./regions.module.css";
+import type { RegionProps } from "./region-types";
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
@@ -31,13 +28,13 @@ const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number
  * filled from the dynamic trigger's timer in one of four orientations, with optional spark, icon, gradient and
  * its sub-regions (texts, border, ticks, glow) in the game's draw order.
  */
-export function AuraBarRegion({ aura, state, name, width, height }: { aura: AuraDocument; state: AuraRenderState; name: string; width: number; height: number }) {
+export function AuraBarRegion({ aura, state, name, width, height }: RegionProps) {
   const p = state.properties;
-  const orientation = orientationOf(p.orientation ?? aura.orientation);
-  const showIcon = (p.icon ?? aura.icon) === true;
+  const orientation = orientationOf(p.orientation);
+  const showIcon = p.icon === true;
   const layout = barLayout({ width, height, orientation, icon: showIcon, iconSide: aura.icon_side === "LEFT" ? "LEFT" : "RIGHT" });
   const bar = layout.bar;
-  const inverse = (p.inverse ?? aura.inverse) === true;
+  const inverse = p.inverse === true;
   const dynamic = state.dynamic;
   const progress = barProgress({
     remaining: dynamic?.remaining,
@@ -95,7 +92,7 @@ export function AuraBarRegion({ aura, state, name, width, height }: { aura: Aura
     <TurnedTexture source={texture} box={bar} turn={turn} color={bgColor} fallback={bgColor} testId="bar-background" />
   );
 
-  const gradient = (p.enableGradient ?? aura.enableGradient) === true;
+  const gradient = p.enableGradient === true;
   const foreground = (
     <>
       <div
@@ -131,9 +128,8 @@ export function AuraBarRegion({ aura, state, name, width, height }: { aura: Aura
   );
 
   return (
-    <div className={styles.barFrame} data-orientation={orientation} data-missing={state.missing ? "true" : "false"}>
-      <SubRegions aura={aura} state={state} host={host} values={textValues(state, name)} background={background} foreground={foreground} />
-      {state.frozenMarker && <FrozenMarker size={frozenMarkerSize(width, height)} />}
+    <div className={styles.regionFrame} data-orientation={orientation} data-missing={state.missing ? "true" : "false"}>
+      <SubRegions aura={aura} state={state} host={host} name={name} background={background} foreground={foreground} />
     </div>
   );
 }
@@ -152,26 +148,11 @@ function GradientTint({ orientation, from, to }: { orientation: LuaValue | undef
   );
 }
 
-/** The bar's icon (AuraBar.lua:1388-1404): square, zoomed by texWidth = 0.25 * zoom on each side, desaturated, tinted. */
+/** The bar's icon (AuraBar.lua:1388-1404): square, zoomed, desaturated, tinted. */
 function BarIcon({ aura, name, box, zoom, desaturate, tint }: { aura: AuraDocument; name: string; box: Box; zoom: number; desaturate: boolean; tint: readonly number[] }) {
-  const src = useAuraIconUrl(aura) ?? undefined;
-  const visible = 1 - 0.5 * Math.min(1, Math.max(0, zoom));
-  const img: CSSProperties = {
-    position: "absolute",
-    width: `${100 / visible}%`,
-    height: `${100 / visible}%`,
-    left: `${(-(1 - visible) / 2 / visible) * 100}%`,
-    top: `${(-(1 - visible) / 2 / visible) * 100}%`,
-    maxWidth: "none",
-    filter: desaturate ? "grayscale(1)" : undefined,
-    opacity: tint[3],
-  };
-  const tinted = tint[0] < 1 || tint[1] < 1 || tint[2] < 1;
   return (
     <div className={styles.barIcon} style={{ left: box.left, top: box.top, width: box.width, height: box.height }} data-testid="bar-icon" data-desaturated={desaturate ? "true" : "false"}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={name} style={img} draggable={false} />
-      {tinted && <div className={styles.tint} style={{ background: rgbaCss([tint[0], tint[1], tint[2], 1]), opacity: tint[3] }} />}
+      <IconTexture aura={aura} name={name} zoom={zoom} desaturate={desaturate} tint={tint} />
     </div>
   );
 }

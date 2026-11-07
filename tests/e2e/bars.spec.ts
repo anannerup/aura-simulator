@@ -1,8 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 import { Blp, BlpImage, BLP_COLOR_FORMAT, BLP_IMAGE_FORMAT } from "@wowserhq/format";
+import { buffMissing, buffUnderThreeMinutes, cooldownText, targetDebuffBar, tickedBar, verticalBar } from "../../src/render/examples";
+import { openPushed } from "../support/e2e-workspace";
+
+test.describe.configure({ timeout: 150_000 });
 
 // No Blizzard art in tests: wago.tools answers textures with a small synthetic BLP and fonts with 404 (the text
-// falls back to a web font), the addon CDN with 404, Wowhead icons with a 1×1 GIF. Requests are recorded.
+// falls back to a web font), the addon CDN with 404, Wowhead icons with a 1×1 GIF. Requests are recorded. Each test
+// pushes its aura to the window and checks the game screen.
 function syntheticBlp(width: number, height: number): Buffer {
   const data = new Uint8Array(width * height * 4);
   for (let i = 0; i < width * height; i++) data.set([200, 200, 200, 255], i * 4);
@@ -32,7 +37,7 @@ const width = async (page: Page, testId: string) => (await region(page).getByTes
 
 test("v1 aura 3: the target debuff bar follows the time slider, with name and time texts", async ({ page }) => {
   await stubNetwork(page);
-  await page.goto("/lab?example=target-debuff-bar");
+  await openPushed(page, targetDebuffBar);
   await expect(region(page)).toHaveAttribute("data-region-type", "aurabar");
   const fg = region(page).getByTestId("bar-foreground");
   const bg = region(page).getByTestId("bar-background");
@@ -64,7 +69,7 @@ test("v1 aura 3: the target debuff bar follows the time slider, with name and ti
 
 test("a vertical bar grows from the bottom; its spark sits on the edge", async ({ page }) => {
   await stubNetwork(page);
-  await page.goto("/lab?example=vertical-bar");
+  await openPushed(page, verticalBar);
   await expect(region(page).locator("[data-orientation]")).toHaveAttribute("data-orientation", "VERTICAL_INVERSE");
   // Textures load after hydration: wait for it before using the controls.
   await expect(region(page).getByTestId("bar-background")).toHaveAttribute("data-texture", "loaded");
@@ -83,7 +88,7 @@ test("a vertical bar grows from the bottom; its spark sits on the edge", async (
 
 test("ticks, border and a Pixel glow switched on by a condition", async ({ page }) => {
   await stubNetwork(page);
-  await page.goto("/lab?example=ticked-bar");
+  await openPushed(page, tickedBar);
   const ticks = region(page).locator('[data-subregion="subtick"] [data-tick]');
   await expect(region(page).getByTestId("bar-background")).toHaveAttribute("data-texture", "loaded");
   await expect(ticks).toHaveCount(2);
@@ -106,15 +111,16 @@ test("ticks, border and a Pixel glow switched on by a condition", async ({ page 
   expect(area.width).toBeCloseTo(whole.width, 0);
 });
 
-test("v1 auras 1a and 1b glow in the preview when their condition holds", async ({ page }) => {
+test("v1 auras 1a and 1b glow on the game screen when their condition holds", async ({ page }) => {
   await stubNetwork(page);
-  await page.goto("/lab?example=buff-running-low");
+  await openPushed(page, buffUnderThreeMinutes);
+  await trigger(page).getByLabel("Time left").fill("20");
   const glow = region(page).locator('[data-subregion="subglow"]');
   await expect(glow).toHaveAttribute("data-glow", "on");
   await expect(glow.locator('[data-glow-type="buttonOverlay"] [data-glow-part="frame"]')).toHaveAttribute("data-ready", "true");
   await expect(glow.locator('[data-glow-part="ants"]')).toHaveCSS("opacity", "1", { timeout: 5000 });
 
-  await page.goto("/lab?example=buff-missing");
+  await openPushed(page, buffMissing);
   await trigger(page).getByLabel("Aura present").uncheck();
   const missingGlow = region(page).locator('[data-subregion="subglow"]');
   await expect(missingGlow).toHaveAttribute("data-glow", "on");
@@ -123,9 +129,14 @@ test("v1 auras 1a and 1b glow in the preview when their condition holds", async 
 
 test("a text region renders its format codes in the game font", async ({ page }) => {
   const requested = await stubNetwork(page);
-  await page.goto("/lab?example=cooldown-text");
+  await openPushed(page, cooldownText);
   const text = page.getByTestId("text-region");
   await expect(text).toHaveText("Fire Blast: 45.0");
+  // Auto-sized: its selfPoint (BOTTOM) sits on the screen's centre (anchorPoint CENTER, no offset).
+  const screen = (await page.getByTestId("aura-preview").boundingBox())!;
+  const box = (await region(page).boundingBox())!;
+  expect(box.x + box.width / 2).toBeCloseTo(screen.x + screen.width / 2, 0);
+  expect(box.y + box.height).toBeCloseTo(screen.y + screen.height / 2, 0);
   await expect(text).toHaveCSS("color", "rgb(153, 153, 153)");
   await expect(text).toHaveCSS("font-size", "24px");
   await expect(text).toHaveCSS("font-family", /^"WoW Friz Quadrata TT"/);

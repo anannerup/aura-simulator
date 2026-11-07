@@ -4,6 +4,7 @@
  */
 import type { LuaValue } from "@/core";
 import type { Box, Orientation } from "../bar-geometry";
+import { anchorFraction } from "../screen/geometry";
 
 export interface PointAnchor {
   /** The frame the text is pinned to. */
@@ -37,6 +38,12 @@ export interface SubRegionHost {
   point(anchorPoint: string): PointAnchor;
   /** Aura bars only: what ticks are placed on. */
   bar?: BarInfo;
+}
+
+/** Where a point anchor puts a sub-element's own point, moved by (x, y) (WoW units, y up). */
+export function anchorPosition(anchor: PointAnchor, x: number, y: number): { left: number; top: number } {
+  const [ax, ay] = anchorFraction(anchor.point);
+  return { left: anchor.box.left + anchor.box.width * ax + x + anchor.dx, top: anchor.box.top + anchor.box.height * ay - y - anchor.dy };
 }
 
 export const fullBox = (width: number, height: number): Box => ({ left: 0, top: 0, width, height });

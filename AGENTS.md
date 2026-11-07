@@ -25,6 +25,10 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
 
 - `src/core/`: the **aura core** (spec seam A). Loads an addon version's Lua in wasmoon-lua5.1,
   encodes/decodes state codes, fills defaults, validates. No React, no DOM. Runs in browser and Node.
+  It also holds the situation model (`situation/`) and the trigger/condition evaluation with Forever's combat rules
+  (`conditions/`, `evaluateAura`): what an aura shows in a situation. Those restate addon rules; the files they mirror
+  are pinned by hash in `conditions/mirrored.ts` (a test fails when they change or the default addon version moves).
+  Whether Aura (Modern) conditions are valid is never restated: the preview takes `conditionProblem(validate(...))`.
   Import it via `@/core` only. The aura document (a Lua table as JSON: arrays for sequences, `"[1]"`-style keys
   for number/boolean keys) is defined in `src/core/lua-value.ts`; core tests cache addon files in `.cache/addon` (gitignored).
   `fillDefaults`/`validate`/`registries` run the whole addon in a lazily loaded second VM (`src/core/addon-vm/`,
@@ -42,7 +46,9 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   The tab sweeps (`src/core/options-sweep.test.ts`, `tests/e2e/tab-sweep.spec.ts`) walk every tab of every display
   type generically; keep them green when the editor or the profile changes.
 - `src/render/`: hand-written renderers (React components + CSS) per region and sub-region type.
-  Pure props in (aura document + situation), nothing fetched inside except textures via `src/render/textures`.
+  Pure props in (aura document + evaluated state), nothing fetched inside except game files (textures, fonts) via the
+  loader in `src/render/textures`. Per-region-type facts live in one registry (`region-types.ts`; `regions.tsx` maps
+  each type to its component). The game screen's aura layer is `screen/WorkspaceStage.tsx`.
 - `src/server/`: server-only code (SQLite via built-in `node:sqlite`, wago/Wowhead sync, addon source cache).
   Database file lives in `/data/` (gitignored). The addon source cache (`server/addon/source-cache.ts`) is the only
   place the server reads addon files; the server's aura core (`server/addon/core.ts`, one per resolved ref) and the
@@ -57,7 +63,8 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   **Auras never go in the address**: they can be megabytes, so they travel as files, over the push API, or by
   clipboard (an old `?code=` link is imported once; every other parameter is dropped). New auras come only from the
   addon's New Aura (`placeNewItem` places them). Pure, shared by page and server. Group layout maths
-  (Group.lua/DynamicGroup.lua ports) and the all-items stage are in `src/render/group/`.
+  (Group.lua/DynamicGroup.lua ports, pure) are in `src/render/group/`; the game screen's aura layer is
+  `src/render/screen/WorkspaceStage.tsx`.
 - `src/client/`: page-side libraries (browser only, no routes). `client/workspace/`: `WorkspaceSession` (one page's
   workspace per aura core) over `StateCodes` (`codes.ts`), `ServerLink` (`server-link.ts`: the push/SSE protocol) and
   the write-behind `WorkspaceStore` (`storage.ts`, IndexedDB via `src/lib/idb.ts`, migrating old localStorage
@@ -70,7 +77,7 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
 - `src/docs/`: the agent docs (one Markdown source, served at `/docs/agents`, `/llms.txt`, `/docs/agents.md`).
   Update it when an API or format changes; `agent-docs.ts` has one function per section. Lists of types, triggers, condition variables and defaults are generated
   from the addon version (`addon-facts.ts`); the worked examples (`worked-examples.ts`) are the documents in
-  `src/render/examples.ts` (also shown on `/lab`) and tests push every example block of the served docs.
+  `src/render/examples.ts` (the browser tests push them to the window) and tests push every example block of the served docs.
 - `src/app/`: Next.js routes and pages. Thin; delegates to the modules above (page logic goes in `src/client/`). `/lua/liblua5.1.wasm` serves wasmoon's
   Lua binary from `node_modules`, so the browser's aura core loads no CDN. Links the server writes into answers use
   `requestOrigin` (`src/server/request-origin.ts`: honours `X-Forwarded-*`), not `request.nextUrl.origin`.

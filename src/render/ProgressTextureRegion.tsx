@@ -1,24 +1,21 @@
 "use client";
 
-import type { AuraDocument, LuaValue } from "@/core";
+import type { LuaValue, AuraRenderState } from "@/core";
 import { barProgress } from "./bar-geometry";
-import type { AuraRenderState } from "./conditions";
-import { frozenMarkerSize } from "./conditions/forever-rules";
-import { FrozenMarker, textValues } from "./IconRegion";
 import { MappedTexture } from "./MappedTexture";
 import { textureSourceOf } from "./media";
 import { isCircular, progressTextureLayers, progressTextureProgress, progressTextureSettings } from "./progress-texture";
 import { regionHost } from "./subregions/host";
 import { SubRegions } from "./subregions/SubRegions";
-import { color } from "./subregions/SubText";
-import type { RegionAnim } from "./TextureRegion";
+import { color } from "./color";
 import { circularProgressAngles, regionAngles } from "./texture-geometry";
-import styles from "./AuraPreview.module.css";
+import styles from "./regions.module.css";
+import type { RegionProps } from "./region-types";
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /** A duration object reaches the region from Aura and Aura (Modern) triggers (BuffTrigger2.lua:937, RegionPrototype.lua:473). */
-export function drawsNatively(state: AuraRenderState): boolean {
+function drawsNatively(state: AuraRenderState): boolean {
   const d = state.dynamic;
   return d !== undefined && (d.kind === "aura2" || d.kind === "secretAura") && d.remaining !== undefined && d.duration > 0;
 }
@@ -29,10 +26,10 @@ export function drawsNatively(state: AuraRenderState): boolean {
  * between start and end angle), with crop, texture rotation, mirror, user offset and the whole-quad rotation
  * (`auraRotation`). Geometry in `progress-texture.ts`.
  */
-export function ProgressTextureRegion({ aura, state, name, width, height, anim }: { aura: AuraDocument; state: AuraRenderState; name: string; width: number; height: number; anim?: RegionAnim }) {
+export function ProgressTextureRegion({ aura, state, name, width, height, anim }: RegionProps) {
   const p = state.properties;
   const dynamic = state.dynamic;
-  const inverse = (p.inverse ?? aura.inverse) === true;
+  const inverse = p.inverse === true;
   const range = barProgress({ remaining: dynamic?.remaining, duration: dynamic?.duration ?? 0, inverse: false, adjustedMin: aura.adjustedMin, adjustedMax: aura.adjustedMax });
   const progress = state.missing
     ? 0.0001
@@ -40,9 +37,9 @@ export function ProgressTextureRegion({ aura, state, name, width, height, anim }
   const native = drawsNatively(state);
   const settings = progressTextureSettings(aura, p, { width, height, progress, native, texRotation: anim?.rotation, mirrorH: anim?.mirrorH, mirrorV: anim?.mirrorV });
   const layers = progressTextureLayers(settings);
-  const foregroundTexture = textureSourceOf(p.foregroundTexture ?? aura.foregroundTexture ?? "Interface\\Addons\\WeakAuras\\PowerAurasMedia\\Auras\\Aura3");
+  const foregroundTexture = textureSourceOf(p.foregroundTexture ?? "Interface\\Addons\\WeakAuras\\PowerAurasMedia\\Auras\\Aura3");
   const backgroundTexture = aura.sameTexture === false ? textureSourceOf(aura.backgroundTexture) : foregroundTexture;
-  const spin = num(p.auraRotation ?? aura.auraRotation, 0);
+  const spin = num(p.auraRotation, 0);
   const orientation = String(settings.orientation);
   const angles = isCircular(settings.orientation)
     ? circularProgressAngles(orientation === "CLOCKWISE", ...regionAngles(settings.startAngle, settings.endAngle), progress).map((a) => a.toFixed(1)).join(",")
@@ -70,9 +67,8 @@ export function ProgressTextureRegion({ aura, state, name, width, height, anim }
     </>
   );
   return (
-    <div className={styles.barFrame} data-orientation={orientation} data-native={native ? "true" : "false"}>
-      <SubRegions aura={aura} state={state} host={regionHost("progresstexture", width, height)} values={textValues(state, name)} background={background} />
-      {state.frozenMarker && <FrozenMarker size={frozenMarkerSize(width, height)} />}
+    <div className={styles.regionFrame} data-orientation={orientation} data-native={native ? "true" : "false"}>
+      <SubRegions aura={aura} state={state} host={regionHost("progresstexture", width, height)} name={name} background={background} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 /** Text replacements for sub-region texts (%p, %t, %s, %n), following WeakAuras' formatters. */
 import { getField, type LuaTable } from "@/core";
-import type { TriggerState } from "./conditions";
+import type { AuraRenderState, TriggerState } from "@/core";
 
 /**
  * The "timed" formatter (Types.lua:355-470): format 0 becomes the fixed formatter 99 (:362-367), which
@@ -33,6 +33,13 @@ export interface TextValues {
   name: string;
   /** Native stack text (Aura (Modern)), replacing %s when given. */
   stackText?: string;
+}
+
+/** %-replacement inputs: each trigger's state, and the dynamic (activeTriggerMode) one as trigger 0. */
+export function textValues(state: AuraRenderState, name: string): TextValues {
+  const states = new Map<number, TriggerState | undefined>(state.triggers.map((t) => [t.index, t]));
+  states.set(0, state.dynamic);
+  return { states, name };
 }
 
 /** Replaces %p, %t, %s, %n (optionally %N.p / %{p}) and %% in a sub-region text. Unknown symbols give "". */

@@ -204,7 +204,7 @@ function X.registries()
     processingOptions = D.processingOptions, showOnValues = D.showOnValues,
     singleUnits = D.singleUnits, approximateUnits = D.approximateUnits, missingTypes = D.missingTypes,
     remOperators = D.remOperators, totalOperators = D.totalOperators, stackOperators = D.stackOperators,
-    STACK_LIMIT = D.STACK_LIMIT,
+    STACK_LIMIT = D.STACK_LIMIT, missingRootProperties = D.missingRootProperties,
     supportedRegionTypes = {},
     supportsDurationColorCondition = D.SupportsDurationColorCondition(),
   }
@@ -212,7 +212,7 @@ function X.registries()
     if D.SupportsRegionType(rn) then table.insert(R.secretAura.supportedRegionTypes, rn) end
   end
   for _, localName in ipairs({ "VARIABLES", "ROOT_PROPERTIES", "ELEMENT_PROPERTIES", "HIGHLIGHT_SET",
-    "MISSING_ROOT_NAMES", "TIME_OPERATORS" }) do
+    "TIME_OPERATORS" }) do
     R.secretAura[localName] = X.findUpvalue(localName, upvalueRoots())
   end
   return R

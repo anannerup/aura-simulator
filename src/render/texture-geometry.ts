@@ -32,7 +32,7 @@ export interface Affine {
 
 const rad = (deg: number) => (deg * Math.PI) / 180;
 /** Lua's `%`: the result has the divisor's sign. */
-export const luaMod = (a: number, b: number) => a - Math.floor(a / b) * b;
+const luaMod = (a: number, b: number) => a - Math.floor(a / b) * b;
 
 export function apply(m: Affine, [x, y]: Pt): Pt {
   return [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f];
@@ -44,7 +44,7 @@ export function affineFromCorners(c: Corners): Affine {
 }
 
 /** The affine map that agrees with `f` (assumed affine) at (0,0), (1,0), (0,1). */
-export function affineOf(f: (p: Pt) => Pt): Affine {
+function affineOf(f: (p: Pt) => Pt): Affine {
   const o = f([0, 0]);
   const x = f([1, 0]);
   const y = f([0, 1]);

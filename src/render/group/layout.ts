@@ -18,9 +18,8 @@
  *   shown and no child is a dynamic group (Group.lua:177-235); a dynamic group's surrounds its shown children
  *   (:1630-1636), not with anchor-per-unit (:1099).
  */
-import type { AuraDocument, LuaValue } from "@/core";
-import { anchorFraction } from "../anchor";
-import { anchorFrameFor, type AnchorFrame, type Rect, type UiParent } from "../screen/geometry";
+import { field, type AuraDocument, type LuaValue } from "@/core";
+import { anchorFraction, anchorFrameFor, type AnchorFrame, type Rect, type UiParent } from "../screen/geometry";
 import { dynamicSelfPoint, growPositions, type Size } from "./grow";
 
 export interface LayoutNode {
@@ -129,9 +128,7 @@ export function layoutStage(items: LayoutNode[], ui: UiParent, isShown: (aura: A
     if (aura.regionType === "dynamicgroup") return placeDynamic(node, pos, scale);
 
     const flowFramed = aura.blizzardFlow === true && typeof aura.blizzardFlowFrames === "string" && aura.blizzardFlowFrames !== "";
-    const information = aura.information;
-    const groupOffset =
-      typeof information === "object" && information !== null && !Array.isArray(information) && information.groupOffset === true;
+    const groupOffset = field(aura.information, "groupOffset") === true;
     const selfPoint = flowFramed ? (aura.selfPoint ?? "CENTER") : groupOffset ? "BOTTOMLEFT" : "CENTER";
     const frame = rectAt(selfPoint, pos, 2 * scale, 2 * scale);
     const me: Parent = { center: pointOf(frame, "CENTER"), scale };

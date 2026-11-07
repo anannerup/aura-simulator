@@ -13,9 +13,9 @@ export {
   cropTexture,
   texCoordBackground,
   texCoordPixelRect,
-  texCoordWithin,
   type Rgb,
   type TexCoord,
   type TextureVariant,
 } from "./pixels";
 export * from "./icons";
+export { useTextureUrl } from "./useTexture";

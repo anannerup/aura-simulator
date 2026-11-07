@@ -1,29 +1,19 @@
 "use client";
 
-import type { AuraDocument, LuaValue } from "@/core";
-import type { AuraRenderState } from "./conditions";
-import { frozenMarkerSize } from "./conditions/forever-rules";
-import { FrozenMarker, textValues } from "./IconRegion";
+import type { LuaValue } from "@/core";
 import { MappedTexture } from "./MappedTexture";
 import { textureSourceOf } from "./media";
 import { fullBox, regionHost } from "./subregions/host";
 import { SubRegions } from "./subregions/SubRegions";
-import { color } from "./subregions/SubText";
+import { color } from "./color";
 import { affineFromCorners, textureCorners } from "./texture-geometry";
-import styles from "./AuraPreview.module.css";
-
-/** Animation state a region draws with (Animations.lua: SetAnimRotation, negative Scale = mirroring). */
-export interface RegionAnim {
-  /** Absolute rotation in degrees while a rotate animation runs (replaces the base rotation). */
-  rotation?: number;
-  mirrorH?: boolean;
-  mirrorV?: boolean;
-}
+import styles from "./regions.module.css";
+import type { RegionProps } from "./region-types";
 
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /** A texture setting that names something the preview can't load (an atlas name). */
-export function unsupportedTexture(value: LuaValue | undefined): string | undefined {
+function unsupportedTexture(value: LuaValue | undefined): string | undefined {
   return typeof value === "string" && value !== "" && textureSourceOf(value) === null ? value : undefined;
 }
 
@@ -32,13 +22,13 @@ export function unsupportedTexture(value: LuaValue | undefined): string | undefi
  * texcoords (`rotation`, counter-clockwise; "Allow full rotation" shrinks it by √2 so the corners stay inside),
  * mirrored, desaturated, coloured and blended. Atlas names aren't drawn (labelled instead).
  */
-export function TextureRegion({ aura, state, name, width, height, anim }: { aura: AuraDocument; state: AuraRenderState; name: string; width: number; height: number; anim?: RegionAnim }) {
+export function TextureRegion({ aura, state, name, width, height, anim }: RegionProps) {
   const p = state.properties;
-  const textureValue = p.texture ?? aura.texture;
+  const textureValue = p.texture;
   const corners = textureCorners({
-    rotation: anim?.rotation ?? num(p.rotation ?? aura.rotation, 0),
+    rotation: anim?.rotation ?? num(p.rotation, 0),
     canRotate: aura.rotate === true,
-    mirror: (p.mirror ?? aura.mirror) === true,
+    mirror: p.mirror === true,
     mirrorH: anim?.mirrorH,
     mirrorV: anim?.mirrorV,
   });
@@ -52,15 +42,14 @@ export function TextureRegion({ aura, state, name, width, height, anim }: { aura
       desaturate={p.desaturate === true}
       blendMode={aura.blendMode ?? "BLEND"}
       testId="texture-main"
-      data={{ rotation: String(anim?.rotation ?? num(p.rotation ?? aura.rotation, 0)) }}
+      data={{ rotation: String(anim?.rotation ?? num(p.rotation, 0)) }}
     >
       {atlas && <span className={styles.placeholderLabel}>Atlas {atlas} (not drawn)</span>}
     </MappedTexture>
   );
   return (
-    <div className={styles.barFrame}>
-      <SubRegions aura={aura} state={state} host={regionHost("texture", width, height)} values={textValues(state, name)} background={background} />
-      {state.frozenMarker && <FrozenMarker size={frozenMarkerSize(width, height)} />}
+    <div className={styles.regionFrame}>
+      <SubRegions aura={aura} state={state} host={regionHost("texture", width, height)} name={name} background={background} />
     </div>
   );
 }

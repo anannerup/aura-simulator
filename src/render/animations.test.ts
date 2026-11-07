@@ -8,15 +8,15 @@ import {
   hideLife,
   hsvTransition,
   lifePose,
-  regionCaps,
   resolveAnimation,
   showLife,
   stampLife,
   type AnimBase,
 } from "./animations";
+import { regionInfo } from "./region-types";
 
 const base: AnimBase = { alpha: 1, rotation: 0, color: [1, 1, 1, 1] };
-const icon = regionCaps("icon");
+const icon = regionInfo("icon").caps;
 
 describe("easing (Types.lua:2740-2754)", () => {
   it("matches the addon's formulas", () => {
@@ -54,7 +54,7 @@ describe("presets and functions (Prototypes.lua)", () => {
   });
 
   it("Rotate Left turns +360° in 4 s on regions that rotate; icons can't", () => {
-    const tex = resolveAnimation({ type: "preset", preset: "rotateCounterClockwise" }, "main", regionCaps("texture"))!;
+    const tex = resolveAnimation({ type: "preset", preset: "rotateCounterClockwise" }, "main", regionInfo("texture").caps)!;
     expect(animationPose(tex, 0.25, { ...base, rotation: 10 }).rotation).toBeCloseTo(100);
     expect(resolveAnimation({ type: "preset", preset: "rotateCounterClockwise" }, "main", icon)!.rotate).toBeUndefined();
     // A custom animation with only an unusable effect isn't one (Animations.lua:214).

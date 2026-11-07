@@ -5,7 +5,8 @@
  * trigger kind (see `triggerKind`): for aura triggers it is the buff or debuff, for the spell cooldown
  * trigger it is the spell's cooldown. Plus two world facts (target exists, in combat).
  */
-import { entries, getField, isLuaTable, type AuraDocument, type LuaTable, type LuaValue } from "@/core";
+import type { AuraDocument } from "../aura-core";
+import { entries, getField, isLuaTable, type LuaTable, type LuaValue } from "../lua-value";
 
 export interface TriggerSituation {
   /** Aura triggers: the aura is on the unit. Spell cooldown trigger: the spell is on cooldown. */
