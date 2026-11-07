@@ -2,10 +2,12 @@
  * Agent-doc sections that are the same concept in every game, so each game's docs (`src/games/<game>/docs/`) use them
  * with its own id: wago JSON (wago.io's rules don't depend on the game), the push API, the workspace file and the page
  * command (the app's own, per game only by URL), the situation (the same model in every game; the game says what its
- * triggers and combat mean), the spell API (the app's own) and wago links. Everything about an addon (its triggers,
- * rules, defaults, examples) stays in the game's own docs.
+ * triggers and combat mean), the spell API (the app's own), wago links and pictures of an aura (the app's own; UI units
+ * are every WoW client's). Everything about an addon (its triggers, rules, defaults, examples) stays in the game's own
+ * docs.
  */
 import type { AddonGameId } from "@/core";
+import { MAX_RENDER_PADDING, MAX_RENDER_PIXELS, MAX_RENDER_SCALE } from "@/workspace";
 
 /** JSON with 2-space indents, but anything that fits on one line (up to `width` columns) stays on one line. */
 export function compactJson(value: unknown, width = 110, indent = ""): string {
@@ -433,5 +435,103 @@ curl -s -X POST ${o}/api/${game}/workspaces/${d}/aura --data-binary 'https://wag
 
 Whether the addon takes it is the addon's call, as in the game: an aura made for another game or a newer version
 may be refused (422) or changed on import.
+`;
+}
+
+export interface PicturesSection {
+  game: AddonGameId;
+  origin: string;
+  /** The default workspace id. */
+  workspace: string;
+  /** The id of an aura of the game's examples, to name in the examples. */
+  auraId: string;
+}
+
+/**
+ * Pictures of an aura as the game draws it (the render page and the screenshot endpoint, the app's own), and how game
+ * pixels relate to UI units (the same in every WoW client), for working from a player's screenshot.
+ */
+export function picturesSection({ game, origin: o, workspace: d, auraId }: PicturesSection): string {
+  const shot = `${o}/api/${game}/workspaces/${d}/screenshot.png?aura=${encodeURIComponent(auraId)}`;
+  const low = encodeURIComponent(JSON.stringify({ triggers: { "1": { remaining: 5 } } }));
+  return `## Pictures: working from a screenshot
+
+When the player shows a screenshot of an aura ("make a WA that does this"), build it, then take a **picture** of
+yours as the game draws it and compare the two. No browser is needed: the server takes the picture.
+
+### The screenshot endpoint
+
+\`GET /api/${game}/workspaces/<id>/screenshot.png\` → a PNG of an aura of the workspace's recent pushes, drawn as the
+game screen draws it and nothing else: cropped to the aura's bounds, no selection outline, no window, transparent
+around it. Query parameters (all optional):
+
+- \`aura\`: the aura or group to draw, by \`id\` (a group's child too). Default: the latest push's top-level aura. The
+  server keeps each workspace's last 8 pushes (each a top-level aura with everything in it) and draws the newest one
+  that has the aura, so push before you take a picture. A child is drawn where its group puts it, with the rest of
+  the group around it, and the picture is cropped to the child.
+- \`scale\`: **game pixels per UI unit** (see below), above 0 up to ${MAX_RENDER_SCALE}. Default 1: a 64-unit icon is 64 px.
+- \`padding\`: UI units of space around the bounds, 0 to ${MAX_RENDER_PADDING} (default 0). The bounds are the aura's
+  regions (a group's: its shown children and its border); glows, outlines and shadows reaching outside them need
+  padding (a button glow reaches about a fifth of the icon's size out).
+- \`background\`: a hex colour (\`000000\`, \`#202020\`, \`00000080\`) to draw on; default transparent. Pick the colour
+  behind the aura in the player's screenshot to compare like with like.
+- \`situation\`: a situation as JSON (the body of \`PUT .../situation\`, see Situation), URL-encoded, e.g.
+  \`{"triggers":{"1":{"remaining":5}}}\`. Default: the workspace's situation. Take one picture per state the
+  screenshot shows (the buff up, running low, missing, …).
+- \`ref\`: the addon version, as for pushes.
+
+The picture is \`round((bounds + 2 × padding) × scale)\` pixels on each side, at most ${MAX_RENDER_PIXELS}. It is a still:
+each aura as it looks one second after it appeared (start animations done, glows lit, animations stopped there). An
+aura not shown in the situation draws nothing: the picture is transparent, the size of where it would be. The
+\`X-Aura-Revision\` header names the push drawn. Errors are JSON \`{"error"}\`: 400 a bad parameter, 404 nothing pushed
+to the workspace or no recent push has that aura, 503 the server can't run a headless browser (the message says how
+to install one, e.g. \`npx playwright install chromium\`).
+
+\`\`\`sh
+curl -s -o aura.png '${shot}&scale=1.125&padding=12'
+curl -s -o low.png '${shot}&situation=${low}'
+\`\`\`
+
+The same picture is a page: \`${o}/${game}/render?w=<id>\` with the same parameters shows only the aura on a
+transparent page. Its \`[data-testid="aura-render"]\` element gets \`data-ready="true"\` once every texture, icon and
+font has loaded, and \`data-width\`/\`data-height\` give its size in pixels. Open it to look at the picture, or to take
+a screenshot of it yourself.
+
+### Game pixels and UI units
+
+Every size and offset of an aura (\`width\`, \`height\`, \`xOffset\`, \`yOffset\`, font sizes, border sizes) is in **UI
+units**. WoW's UI is **768 units high** at UI scale 1, whatever the resolution; its width follows the window's aspect
+ratio. The UI scale (the game's "UI Scale" option; 1 while "Use UI Scale" is off) scales every unit, so:
+
+    game pixels per UI unit = window height in pixels / 768 × UI scale
+
+- 1920 × 1080, UI scale off: 1080 / 768 = 1.40625 px per unit; a 64-unit icon is 90 px.
+- 2560 × 1440, UI scale 0.60: 1440 / 768 × 0.6 = 1.125 px per unit; a 64-unit icon is 72 px.
+- 1920 × 1080, UI scale 0.7111 (768 / 1080, "pixel perfect", as ElvUI sets it): 1 px per unit.
+
+A group's \`scale\` multiplies everything in it. In game, \`/dump UIParent:GetEffectiveScale()\` prints the UI scale and
+\`/dump GetScreenHeight()\` the UI's height in units (the window height in pixels divided by it is the pixels per
+unit). The page's game screen uses the same model (its screen settings: resolution and UI scale); its "1:1" zoom is
+one browser pixel per game pixel.
+
+### Sizes and offsets from the player's screenshot
+
+1. **Find the screenshot's pixels per unit.** A screenshot the game saved (Print Screen, in its Screenshots folder) is
+   at the window's resolution: its height is the window height. Ask the player for their UI scale (or the two
+   \`/dump\`s above). A cropped screenshot doesn't show the resolution: ask for it, or measure something of known size
+   in it (a default action button is 36 units square). A screenshot the operating system took may be scaled by its
+   display scaling (e.g. 2× on a Retina Mac): compare the image's size with the window's.
+2. **Measure in pixels and divide by the pixels per unit**: a 72 px icon at 1.125 px per unit is 64 units. Round to
+   whole units. Text: a font's size is its height in units, roughly the line's height; its capitals are about
+   0.7 × that.
+3. **Offsets**: \`xOffset\`/\`yOffset\` go from the anchor frame's \`anchorPoint\` (the screen's centre for \`CENTER\` on
+   the screen) to the aura's \`selfPoint\`, in units, **y up** (an image's y grows down: flip it). The screen's centre
+   is the middle of a full-window screenshot. A group's children are offset from the group.
+4. **Take the picture at the screenshot's scale** (\`scale\` = its pixels per unit) on a \`background\` like the
+   screenshot's, so both are the same size, and compare: size, spacing, colours, borders, text size and placement,
+   glows. Adjust the aura, push, take the picture again; repeat for each situation the screenshot shows.
+
+What a picture leaves out: the frames an aura is anchored to (unit frames, nameplates, the cursor; the game screen
+draws only stand-ins for them), and anything outside the aura's bounds unless padded.
 `;
 }

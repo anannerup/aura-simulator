@@ -306,3 +306,7 @@ Notes for the decision:
 - **Raid packs** (Tems, Merfin) mostly use combat log and unit triggers during encounters. Neither B nor C helps them
   without scripted encounters (timelines of combat log events), which is a further 1–2 weeks on top.
 - **None of the options can click secure buttons.**
+
+## Decision (2026-11-07)
+
+The user chose **option A** for now: the preview does not run custom Lua (custom triggers/TSU, custom text, custom conditions, init/on-show code), and says so clearly per aura in `preview` and on the game screen. B or C may be revisited later.
