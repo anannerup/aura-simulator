@@ -5,9 +5,9 @@
  * way the game's dropdown shows it: fonts in their own font, bar textures, borders and backgrounds as a strip,
  * sounds with a play button. Media is loaded at runtime (fonts and textures via src/render), never committed.
  */
+import { GameTexture } from "@/render/textures";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { plainText, type LuaKey, type OptionNode } from "@/core";
-import { GameTexture } from "@/components/ui";
 import { ensureFont, fontFamily, fontUrl } from "@/render/fonts";
 import { BORDER_EDGES, FONTS, STATUSBAR_TEXTURES } from "@/render/media";
 import styles from "./Widgets.module.css";

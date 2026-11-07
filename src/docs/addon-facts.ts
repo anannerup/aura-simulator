@@ -71,7 +71,7 @@ export interface AddonFacts {
 }
 
 export const DOCUMENTED_REGION_TYPES = ["icon", "aurabar", "text", "group", "dynamicgroup"] as const;
-export const DOCUMENTED_SUB_TYPES = ["subtext", "subglow", "subborder", "subtick", "subbackground", "subforeground"] as const;
+const DOCUMENTED_SUB_TYPES = ["subtext", "subglow", "subborder", "subtick", "subbackground", "subforeground"] as const;
 
 /** Fields `fillDefaults` adds that an agent never sets by hand. */
 const BOOKKEEPING = new Set(["id", "uid", "internalVersion", "regionType", "blizzardAuraDisplay", "progressSource", "subRegions", "controlledChildren"]);

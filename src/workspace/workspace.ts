@@ -28,10 +28,10 @@ export interface Workspace {
 export type DecodeState = (code: string) => AuraState;
 
 export const WORKSPACE_FORMAT = "aura-simulator/workspace";
-export const WORKSPACE_VERSION = 2;
+const WORKSPACE_VERSION = 2;
 
 /** A workspace from state codes (one top-level aura each); clashing ids get the addon's "name 2". */
-export function workspaceFromStates(states: AuraState[], updatedAt: string = new Date().toISOString()): Workspace {
+function workspaceFromStates(states: AuraState[], updatedAt: string = new Date().toISOString()): Workspace {
   let items: WorkspaceNode[] = [];
   let selected: string | null = null;
   for (const state of states) {

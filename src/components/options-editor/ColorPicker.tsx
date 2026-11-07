@@ -11,10 +11,10 @@ import styles from "./Widgets.module.css";
 const clamp01 = (v: number) => Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0));
 
 const hex2 = (v: number) => Math.round(clamp01(v) * 255).toString(16).padStart(2, "0");
-export const rgbHex = ([r, g, b]: readonly number[]) => `#${hex2(r)}${hex2(g)}${hex2(b)}`;
+const rgbHex = ([r, g, b]: readonly number[]) => `#${hex2(r)}${hex2(g)}${hex2(b)}`;
 
 /** Parses #rgb, #rrggbb or #rrggbbaa; null when it isn't one. */
-export function parseHex(text: string): number[] | null {
+function parseHex(text: string): number[] | null {
   const m = /^#?([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(text.trim());
   if (!m) return null;
   let h = m[1];

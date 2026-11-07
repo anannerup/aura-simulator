@@ -69,11 +69,6 @@
   overflow: hidden;
 }
 
-.thumbImg {
-  width: 40px;
-  height: 40px;
-}
-
 /* The game draws group thumbnails from coloured squares; so do we. */
 .thumbGroup {
   position: relative;
@@ -138,18 +133,6 @@
 .thumbDynamic i:nth-child(2) {
   top: 17px;
   background: #23c;
-}
-
-.thumbBar {
-  width: 34px;
-  height: 12px;
-  background: linear-gradient(to right, #c00 60%, #222 60%);
-}
-
-.thumbText {
-  font-family: var(--font-title);
-  font-size: 12px;
-  color: #ff0;
 }
 
 .thumbEmpty {

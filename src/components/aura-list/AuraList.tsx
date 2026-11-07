@@ -2,7 +2,9 @@
 
 import { useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import type { AuraDocument } from "@/core";
-import { ADDON_MEDIA, GameTexture, SearchIcon } from "@/components/ui";
+import { SearchIcon } from "@/components/ui";
+import { ADDON_MEDIA } from "@/render/media";
+import { GameTexture } from "@/render/textures";
 import { useAuraIconUrl } from "@/render/textures";
 import {
   allIds,

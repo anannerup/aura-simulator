@@ -1,10 +1,11 @@
-/** A failed HTTP answer; `message` is the server's `{error}` when it sent one. */
+/** A non-2xx HTTP answer. */
 export class HttpError extends Error {
   constructor(
     readonly status: number,
     message: string,
   ) {
     super(message);
+    this.name = "HttpError";
   }
 }
 
@@ -17,7 +18,7 @@ export async function fetchJson<T>(input: string, init: RequestInit & { answers?
   const res = await fetch(input, request);
   const body = (await res.json().catch(() => undefined)) as (T & { error?: unknown }) | undefined;
   if (res.ok || answers.includes(res.status)) {
-    if (body === undefined) throw new HttpError(res.status, `HTTP ${res.status}: not JSON`);
+    if (body === undefined) throw new Error(`HTTP ${res.status}: the answer is not JSON`);
     return body;
   }
   throw new HttpError(res.status, typeof body?.error === "string" && body.error ? body.error : `HTTP ${res.status}`);

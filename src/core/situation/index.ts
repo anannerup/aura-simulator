@@ -35,14 +35,14 @@ export interface Situation extends SituationFacts {
   beforeCombat?: SituationFacts;
 }
 
-export const defaultTriggerSituation: TriggerSituation = { present: true, remaining: 45, duration: 60, stacks: 0 };
+const defaultTriggerSituation: TriggerSituation = { present: true, remaining: 45, duration: 60, stacks: 0 };
 
 export const DEFAULT_SITUATION: Situation = { triggers: {}, targetExists: true, inCombat: false };
 
 /** What the situation controls offer for a trigger. */
 export type TriggerKind = "secretAura" | "aura2" | "spellCooldown" | "other";
 
-export function triggerKind(trigger: LuaValue | undefined): TriggerKind {
+function triggerKind(trigger: LuaValue | undefined): TriggerKind {
   if (!isLuaTable(trigger)) return "other";
   const type = getField(trigger, "type");
   if (type === "secretAura") return "secretAura";

@@ -15,11 +15,11 @@ export type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 export const FOREVER_PRODUCT = "wowf";
 const WAGO = "https://wago.tools";
 const WOWHEAD_TOOLTIP = "https://nether.wowhead.com/classic/tooltip/spell";
-export function wagoCsvUrl(table: string, build: string): string {
+function wagoCsvUrl(table: string, build: string): string {
   return `${WAGO}/db2/${table}/csv?build=${encodeURIComponent(build)}`;
 }
 
-export function wowheadTooltipUrl(id: number): string {
+function wowheadTooltipUrl(id: number): string {
   return `${WOWHEAD_TOOLTIP}/${id}?dataEnv=4&locale=0`;
 }
 

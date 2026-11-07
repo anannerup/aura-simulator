@@ -9,7 +9,7 @@ import { jsDelivrUrl } from "@/core";
 export type TextureSource = number | string;
 
 /** Blizzard texture paths used by the renderers, by FileDataID (lower case, `/`, no extension). */
-export const KNOWN_FILE_DATA_IDS: Readonly<Record<string, number>> = {
+const KNOWN_FILE_DATA_IDS: Readonly<Record<string, number>> = {
   "interface/spellactivationoverlay/iconalert": 457293,
   "interface/spellactivationoverlay/iconalertants": 457294,
   "interface/buttons/white8x8": 130871,
@@ -17,7 +17,7 @@ export const KNOWN_FILE_DATA_IDS: Readonly<Record<string, number>> = {
   "interface/adventuremap/brokenisles/am_29": 1251797,
 };
 
-export const WAGO_CASC_URL = "https://wago.tools/api/casc/";
+const WAGO_CASC_URL = "https://wago.tools/api/casc/";
 
 export function normalizeTexturePath(path: string): string {
   return path

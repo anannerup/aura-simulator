@@ -94,7 +94,7 @@ const COMBAT_EFFECT_OF_ADDON_WARNING: Record<string, CombatStatus> = {
 };
 
 const RANK: Record<CombatStatus, number> = { ok: 0, limited: 1, broken: 2 };
-export const worseStatus = (a: CombatStatus, b: CombatStatus): CombatStatus => (RANK[b] > RANK[a] ? b : a);
+const worseStatus = (a: CombatStatus, b: CombatStatus): CombatStatus => (RANK[b] > RANK[a] ? b : a);
 
 function triggerPointer(trigger: number | undefined): OptionPointer | undefined {
   if (!trigger) return undefined;

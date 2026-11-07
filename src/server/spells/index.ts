@@ -5,7 +5,7 @@ export * from "./spell-cache";
 export { type FetchFn } from "./sources";
 
 /** Default database file: `<repo>/data/spells.sqlite`, overridable with SPELL_DB_PATH. */
-export function defaultSpellDbPath(): string {
+function defaultSpellDbPath(): string {
   return process.env.SPELL_DB_PATH ?? path.join(process.cwd(), "data", "spells.sqlite");
 }
 

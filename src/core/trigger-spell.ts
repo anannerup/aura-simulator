@@ -25,7 +25,7 @@ function firstId(list: LuaValue | undefined): number | null {
 }
 
 /** The trigger table (`triggers[n].trigger`), or null. `n` is 1-based. */
-export function getTrigger(aura: AuraDocument, n: number): LuaObject | null {
+function getTrigger(aura: AuraDocument, n: number): LuaObject | null {
   const triggers = aura.triggers;
   if (!isLuaTable(triggers)) return null;
   const entry = getField(triggers, n);

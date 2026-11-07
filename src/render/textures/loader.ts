@@ -32,7 +32,7 @@ export interface TextureUrl {
   height: number;
 }
 
-export const TEXTURE_CACHE_NAME = "aura-sim-textures-v1";
+const TEXTURE_CACHE_NAME = "aura-sim-textures-v1";
 
 async function defaultEncode(tex: DecodedTexture): Promise<string> {
   const pixels = new Uint8ClampedArray(tex.data);

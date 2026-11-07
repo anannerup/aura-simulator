@@ -45,7 +45,7 @@ function perFileFetcher(ref: string): AddonSourceFetcher {
 
 const BUNDLE_CACHE = "aura-simulator:addon-bundles";
 
-export function addonBundleUrl(ref: string, set: AddonBundleSet): string {
+function addonBundleUrl(ref: string, set: AddonBundleSet): string {
   return `/api/addon/${encodeURIComponent(ref)}/bundle?set=${set}&format=gzip`;
 }
 

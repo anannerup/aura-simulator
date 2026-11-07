@@ -15,8 +15,6 @@ export {
   type SliderProps,
   type SwitchProps,
 } from "./Form";
-export { GameTexture, ADDON_MEDIA, type GameTextureProps } from "./GameTexture";
-export { Tooltip, type TooltipSide } from "./Tooltip";
 export { ToastProvider, useToast } from "./Toast";
 export { Popover, type PopoverProps } from "./Popover";
 export * from "./icons";

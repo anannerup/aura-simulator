@@ -7,9 +7,8 @@
 import { useId, useState, type KeyboardEvent } from "react";
 import { plainText, type LuaKey, type LuaValue, type OptionNode } from "@/core";
 import { useSpellSearch } from "@/components/spell-picker/useSpellSearch";
-import { GameTexture } from "@/components/ui";
 import { color } from "@/render/color";
-import { displayIconRef, useIconUrl } from "@/render/textures";
+import { displayIconRef, GameTexture, useIconUrl } from "@/render/textures";
 import { imageName, splitInputValue } from "./wow-text";
 import { WowText } from "./WowText";
 import { ColorPicker } from "./ColorPicker";

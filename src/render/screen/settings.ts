@@ -16,7 +16,7 @@ export interface ScreenSettings {
 }
 
 export type ScreenZoom = "fit" | "fill" | "actual";
-export const SCREEN_ZOOMS: readonly ScreenZoom[] = ["fit", "fill", "actual"];
+const SCREEN_ZOOMS: readonly ScreenZoom[] = ["fit", "fill", "actual"];
 
 /**
  * Defaults from the user's own game: Config.wtf has `GxMaximize "1"` (a maximised window) and no resolution, and

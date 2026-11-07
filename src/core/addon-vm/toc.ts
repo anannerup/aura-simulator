@@ -10,7 +10,7 @@ export interface Toc {
   files: string[];
 }
 
-export function parseToc(text: string): Toc {
+function parseToc(text: string): Toc {
   const meta: Record<string, string> = {};
   const files: string[] = [];
   for (const raw of text.split(/\r?\n/)) {
@@ -43,7 +43,7 @@ function dirname(path: string): string {
 }
 
 /** Locale files other than enUS return immediately in an English client; they are skipped (1.8 MB). */
-export function isForeignLocale(relPath: string): boolean {
+function isForeignLocale(relPath: string): boolean {
   const m = /(?:^|\/)Locales\/([a-z]{2}[A-Z]{2})\.lua$/.exec(relPath);
   return m !== null && m[1] !== "enUS";
 }

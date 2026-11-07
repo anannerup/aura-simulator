@@ -6,4 +6,3 @@
 export { conditionProblem, evaluateAura } from "./evaluate";
 export type { AuraRenderState, ConditionProblem, GlowState } from "./evaluate";
 export type { TriggerState } from "./triggers";
-export { MIRRORED } from "./mirrored";

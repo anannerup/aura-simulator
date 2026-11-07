@@ -6,7 +6,7 @@ import type { AddonCoreState } from "./useAddonCore";
 import styles from "./AddonVersionPicker.module.css";
 
 /** Picks the Musca Auras version the app follows: a release from the list, or any branch or commit. */
-export function AddonVersionPicker({ addon }: { addon: AddonCoreState }) {
+function AddonVersionPicker({ addon }: { addon: AddonCoreState }) {
   const { core, resolution, loadingRef, error, versions, diff, load } = addon;
   const [custom, setCustom] = useState("");
   const releases = versions?.releases ?? [];

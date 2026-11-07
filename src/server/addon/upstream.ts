@@ -5,6 +5,7 @@
  */
 import { ADDON_REPO, jsDelivrUrl } from "@/core";
 import type { FileListing } from "@/api/addon";
+import { HttpError } from "@/lib/fetch-json";
 import { AddonRefError, type GitHubTag } from "./refs";
 
 export type { FileListing };
@@ -14,7 +15,7 @@ export type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 const JSDELIVR_DATA = `https://data.jsdelivr.com/v1/packages/gh/${ADDON_REPO}`;
 const GITHUB_API = `https://api.github.com/repos/${ADDON_REPO}`;
 
-export const urls = {
+const urls = {
   versions: JSDELIVR_DATA,
   flatListing: (ref: string) => `${JSDELIVR_DATA}@${encodeURIComponent(ref)}?structure=flat`,
   tags: (page: number) => `${GITHUB_API}/tags?per_page=100&page=${page}`,
@@ -36,18 +37,8 @@ function githubInit(): RequestInit {
 
 async function getJson<T>(fetchFn: FetchFn, url: string, init?: RequestInit): Promise<T> {
   const res = await fetchFn(url, init);
-  if (!res.ok) throw new HttpError(`GET ${url} failed: HTTP ${res.status}`, res.status);
+  if (!res.ok) throw new HttpError(res.status, `GET ${url} failed: HTTP ${res.status}`);
   return (await res.json()) as T;
-}
-
-export class HttpError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-  ) {
-    super(message);
-    this.name = "HttpError";
-  }
 }
 
 /** jsDelivr's normalized version list. */

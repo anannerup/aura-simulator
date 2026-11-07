@@ -1,13 +1,10 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useTextureUrl } from "@/render/textures/useTexture";
+import { useTextureUrl } from "./useTexture";
 import styles from "./GameTexture.module.css";
 
-/** Musca Auras' own UI media (logo, toolbar and footer icons), fetched at runtime and never committed. */
-export const ADDON_MEDIA = (name: string) => `Interface\\AddOns\\WeakAuras\\Media\\Textures\\${name}`;
-
-export interface GameTextureProps {
+interface GameTextureProps {
   /** A game texture path (`Interface\\AddOns\\...`) or a Blizzard FileDataID. */
   source: string | number;
   size: number;

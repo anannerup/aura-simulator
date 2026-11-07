@@ -2,7 +2,7 @@
  * Minimal RFC 4180 CSV parser for wago.tools DB2 exports: quoted fields, doubled quotes,
  * commas and newlines inside quotes, LF or CRLF line ends.
  */
-export function parseCsv(text: string): string[][] {
+function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";

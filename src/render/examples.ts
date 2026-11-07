@@ -334,7 +334,7 @@ const cooldownTrigger = () => ({
 });
 
 /** A texture region: the PowerAuras ring, turned 30° (texcoord rotation, full rotation allowed) and tinted. */
-export const textureRegion: AuraDocument = {
+const textureRegion: AuraDocument = {
   ...REGION_BASE,
   regionType: "texture",
   id: "Texture",
@@ -353,7 +353,7 @@ export const textureRegion: AuraDocument = {
 };
 
 /** A linear progress texture on a spell cooldown (drawn by the addon's own quads): slanted, horizontal. */
-export const progressLinear: AuraDocument = {
+const progressLinear: AuraDocument = {
   ...REGION_BASE,
   regionType: "progresstexture",
   id: "Linear progress",
@@ -378,7 +378,7 @@ export const progressLinear: AuraDocument = {
 };
 
 /** A circular progress texture (a ring) on a buff: drawn natively from the duration object (ProgressTextureSecret.lua). */
-export const progressCircular: AuraDocument = {
+const progressCircular: AuraDocument = {
   ...REGION_BASE,
   regionType: "progresstexture",
   id: "Circular progress",
@@ -403,7 +403,7 @@ export const progressCircular: AuraDocument = {
 };
 
 /** The addon's example stop motion sheet (Media/Textures/stopmotion, 8×8 frames), looping at 15 frames a second. */
-export const stopMotionLoop: AuraDocument = {
+const stopMotionLoop: AuraDocument = {
   ...REGION_BASE,
   regionType: "stopmotion",
   id: "Stop motion",
@@ -426,7 +426,7 @@ export const stopMotionLoop: AuraDocument = {
 };
 
 /** Stop motion in "progress" mode: the frame follows the buff's elapsed time. */
-export const stopMotionProgress: AuraDocument = {
+const stopMotionProgress: AuraDocument = {
   ...stopMotionLoop,
   id: "Stop motion progress",
   animationType: "progress",
@@ -435,7 +435,7 @@ export const stopMotionProgress: AuraDocument = {
 };
 
 /** A model region: drawn as a labelled placeholder. */
-export const modelRegion: AuraDocument = {
+const modelRegion: AuraDocument = {
   ...REGION_BASE,
   regionType: "model",
   id: "Model",
@@ -449,7 +449,7 @@ export const modelRegion: AuraDocument = {
 };
 
 /** An empty region carrying the texture-like sub-elements: texture, linear/circular progress, stop motion, model, text. */
-export const emptyWithElements: AuraDocument = {
+const emptyWithElements: AuraDocument = {
   ...REGION_BASE,
   regionType: "empty",
   id: "Empty with elements",
@@ -508,7 +508,7 @@ export const emptyWithElements: AuraDocument = {
  * An animated icon: slides in from below and fades in (start, 1 s, ease out), pulses (main preset), and shrinks and
  * fades out (finish, 1 s) when the buff goes. Toggle "Aura present" to see start and finish.
  */
-export const animatedIcon: AuraDocument = {
+const animatedIcon: AuraDocument = {
   ...ICON_BASE,
   id: "Animated",
   displayIcon: 135932,
@@ -523,7 +523,7 @@ export const animatedIcon: AuraDocument = {
 };
 
 /** A texture turning left forever (main preset "Rotate Left": texcoord rotation, 4 s a turn) and fading in. */
-export const spinningTexture: AuraDocument = {
+const spinningTexture: AuraDocument = {
   ...textureRegion,
   id: "Spinning texture",
   rotation: 0,

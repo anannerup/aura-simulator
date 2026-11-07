@@ -10,6 +10,9 @@ import type { TextureSource } from "./textures/paths";
 
 const ADDON = "Interface\\AddOns\\WeakAuras\\Media\\";
 
+/** Musca Auras' own UI media (logo, toolbar and footer icons), fetched at runtime and never committed. */
+export const ADDON_MEDIA = (name: string): string => `${ADDON}Textures\\${name}`;
+
 /** LSM "statusbar" (LibSharedMedia-3.0.lua:194-197, Types.lua:3262-3265). */
 export const STATUSBAR_TEXTURES: Readonly<Record<string, TextureSource>> = {
   Blizzard: 137012, // Interface\TargetingFrame\UI-StatusBar

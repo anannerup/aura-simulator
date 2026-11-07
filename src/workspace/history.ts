@@ -18,7 +18,7 @@ export interface History<T> {
 export const EMPTY_HISTORY: History<never> = { entries: [], index: -1 };
 
 /** Steps kept; the oldest fall off. */
-export const HISTORY_LIMIT = 200;
+const HISTORY_LIMIT = 200;
 
 /** Records the entry now shown. Returns the same history when it is the current entry (by `same`). */
 export function record<T>(

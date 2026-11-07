@@ -9,7 +9,7 @@ import type { RegionProps } from "./region-types";
 
 
 /** The text a text region shows (Text.lua:330-345): format codes replaced; an empty result shows as " "; `\n` breaks lines. */
-export function displayText(aura: AuraDocument, state: AuraRenderState, name: string): string {
+function displayText(aura: AuraDocument, state: AuraRenderState, name: string): string {
   const raw = state.properties.displayText ?? "%p";
   const source = typeof raw === "string" ? raw : String(raw);
   const text = formatText(

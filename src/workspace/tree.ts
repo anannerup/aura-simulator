@@ -130,7 +130,7 @@ function allUids(items: WorkspaceNode[]): Set<string> {
 // Ids and uids
 
 /** Private.FindUnusedId (WeakAuras.lua): `prefix`, else "prefix 2", "prefix 3", ... */
-export function uniqueId(taken: ReadonlySet<string>, prefix: string): string {
+function uniqueId(taken: ReadonlySet<string>, prefix: string): string {
   const base = prefix.trim() || "New";
   if (!taken.has(base)) return base;
   for (let n = 2; ; n++) {
@@ -376,7 +376,7 @@ export function mergeTopLevel(items: WorkspaceNode[], node: WorkspaceNode): { it
 // New items
 
 /** Where a new aura goes when `selectedId` is selected: into a selected group, else right after the selected aura. */
-export function insertionTarget(items: WorkspaceNode[], selectedId: string | null, isGroup: boolean): Target {
+function insertionTarget(items: WorkspaceNode[], selectedId: string | null, isGroup: boolean): Target {
   const found = selectedId ? findNode(items, selectedId) : null;
   if (!found) return { parentId: null };
   if (found.node.items && !(isGroup && isDynamicGroupDoc(found.node.aura))) return { parentId: selectedId };

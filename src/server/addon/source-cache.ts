@@ -214,7 +214,7 @@ export function createAddonSourceCache(options: AddonSourceCacheOptions): AddonS
 }
 
 /** Default cache directory: `<repo>/data/addon`, overridable with ADDON_CACHE_DIR. */
-export function defaultAddonCacheDir(): string {
+function defaultAddonCacheDir(): string {
   return process.env.ADDON_CACHE_DIR ?? path.join(process.cwd(), "data", "addon");
 }
 

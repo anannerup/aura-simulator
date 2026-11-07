@@ -199,11 +199,9 @@ function X.registries()
 
   local D = P.BlizzardAuraDisplay
   R.secretAura = {
-    units = D.units, booleanFilters = D.booleanFilters, nativeFilters = D.nativeFilters,
-    dispelTypes = D.dispelTypes, sortMethods = D.sortMethods, processedTypes = D.processedTypes,
-    processingOptions = D.processingOptions, showOnValues = D.showOnValues,
-    singleUnits = D.singleUnits, approximateUnits = D.approximateUnits, missingTypes = D.missingTypes,
-    remOperators = D.remOperators, totalOperators = D.totalOperators, stackOperators = D.stackOperators,
+    units = D.units, nativeFilters = D.nativeFilters, showOnValues = D.showOnValues,
+    singleUnits = D.singleUnits, missingTypes = D.missingTypes,
+    remOperators = D.remOperators, stackOperators = D.stackOperators,
     STACK_LIMIT = D.STACK_LIMIT, missingRootProperties = D.missingRootProperties,
     supportedRegionTypes = {},
     supportsDurationColorCondition = D.SupportsDurationColorCondition(),
@@ -211,8 +209,7 @@ function X.registries()
   for _, rn in ipairs(regionNames) do
     if D.SupportsRegionType(rn) then table.insert(R.secretAura.supportedRegionTypes, rn) end
   end
-  for _, localName in ipairs({ "VARIABLES", "ROOT_PROPERTIES", "ELEMENT_PROPERTIES", "HIGHLIGHT_SET",
-    "TIME_OPERATORS" }) do
+  for _, localName in ipairs({ "VARIABLES", "ROOT_PROPERTIES", "ELEMENT_PROPERTIES", "HIGHLIGHT_SET" }) do
     R.secretAura[localName] = X.findUpvalue(localName, upvalueRoots())
   end
   return R
