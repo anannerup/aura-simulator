@@ -50,6 +50,22 @@ describe("group layout", () => {
     expect(layoutScreen(items, ui, () => false).groups[0].border).toBeNull();
   });
 
+  it("per game: a sub group's offset moves the border box in Forever (groupRect), not on TBC (GetBoundingRect)", () => {
+    const items = [group("G", [icon("A"), group("Inner", [icon("B")], { xOffset: 100 })], { border: true, borderOffset: 0 })];
+    // B is drawn 100 to the right in both games; only the border box differs.
+    expect(rectOf(items, "B")).toEqual({ left: 512 + 100 - 32, top: 352, width: 64, height: 64 });
+    expect(layoutScreen(items, ui, shown, "forever").groups[0].border).toEqual({ left: 480, top: 352, width: 164, height: 64 });
+    expect(layoutScreen(items, ui, shown, "tbc").groups[0].border).toEqual({ left: 480, top: 352, width: 64, height: 64 });
+    expect(layoutScreen(items, ui, shown, "tbc").auras.map((a) => a.rect)).toEqual(layoutScreen(items, ui, shown, "forever").auras.map((a) => a.rect));
+  });
+
+  it("Musca's modern aura groups (blizzardFlow) chain their icons in Forever only", () => {
+    const items = [group("G", [icon("A"), icon("B")], { blizzardFlow: true, blizzardFlowGrowth: "RIGHT", blizzardFlowSpacing: 2 })];
+    const xs = (game: "forever" | "tbc") => layoutScreen(items, ui, shown, game).auras.map((a) => a.rect.left);
+    expect(xs("forever")).toEqual([480, 546]);
+    expect(xs("tbc")).toEqual([480, 480]);
+  });
+
   it("is positioned on a top-level anchor (selfPoint CENTER)", () => {
     const items = [group("G", [icon("A")], { anchorPoint: "TOPLEFT", xOffset: 100, yOffset: -100 })];
     expect(rectOf(items, "A")).toEqual({ left: 100 - 32, top: 100 - 32, width: 64, height: 64 });

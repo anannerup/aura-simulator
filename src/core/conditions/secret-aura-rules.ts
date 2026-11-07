@@ -1,33 +1,14 @@
 /**
  * Forever's combat restrictions and the fork's "Aura (Modern)" (`secretAura`) condition rules, restated
  * from the addon. This is the one place these rules live; each cites the Lua it mirrors (paths relative to the
- * addon's `WeakAuras/` folder), and `mirrored.ts` pins those files so a change to them fails a test.
+ * addon's `WeakAuras/` folder), and `src/core/mirrored.ts` pins those files so a change to them fails a test.
+ * Forever only: WeakAuras2 (TBC) has none of this.
  */
 import { entries, field, finite, getField, isLuaTable, list, type LuaTable, type LuaValue } from "../lua-value";
 import type { AuraDocument } from "../aura-core";
 import { auraTriggers, type TriggerInfo } from "../situation";
-
-export type Comparison = "<" | "<=" | ">" | ">=" | "==" | "~=";
-
-export function compare(a: number, op: string, b: number): boolean {
-  switch (op) {
-    case "<":
-      return a < b;
-    case "<=":
-      return a <= b;
-    case ">":
-      return a > b;
-    case ">=":
-      return a >= b;
-    case "==":
-    case "=":
-      return a === b;
-    case "~=":
-      return a !== b;
-    default:
-      return false;
-  }
-}
+import { compare } from "./compare";
+import { parseSubPath, subRegion } from "./evaluate";
 
 // ---------------------------------------------------------------------------------------------
 // Aura (Modern): show on, remaining window, stack filter
@@ -183,16 +164,6 @@ export const HIGHLIGHT_PROPERTIES = new Set([
   "faAuraHighlightSize",
   "faAuraHighlightTexture",
 ]);
-
-export function parseSubPath(path: string): { position: number; key: string } | undefined {
-  const m = /^sub\.(\d+)\.(.+)$/.exec(path);
-  return m ? { position: Number(m[1]), key: m[2] } : undefined;
-}
-
-export function subRegion(aura: AuraDocument, position: number): LuaTable | undefined {
-  const element = field(aura.subRegions, position);
-  return isLuaTable(element) ? element : undefined;
-}
 
 /** Detached elements (SecretAuraAppearance.lua IsDetachedElement) are not modelled: everything is attached. */
 const detached = () => false;

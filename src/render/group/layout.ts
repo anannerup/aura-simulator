@@ -17,8 +17,11 @@
  * - Borders: a group's border surrounds its children's rects plus `borderOffset`, and only while one of them is
  *   shown and no child is a dynamic group (Group.lua:177-235); a dynamic group's surrounds its shown children
  *   (:1630-1636), not with anchor-per-unit (:1099).
+ * - Per game (`src/core/mirrored.ts` lists why): WeakAuras2's (TBC) group border box takes every leaf, however deep,
+ *   at its own offsets from this group (GetBoundingRect over TraverseLeafs, its Group.lua:104-123), so a sub group's
+ *   offset and scale don't move it. Musca's modern aura groups (`blizzardFlow`) exist only in Forever.
  */
-import { field, num, type AuraDocument } from "@/core";
+import { field, num, type AddonGameId, type AuraDocument } from "@/core";
 import { anchorFraction, anchorFrameFor, type AnchorFrame, type Box, type UiParent } from "../screen/geometry";
 import { dynamicSelfPoint, growPositions, type Size } from "./grow";
 
@@ -103,14 +106,31 @@ function anchorFor(aura: AuraDocument, parent: Parent | null, ui: UiParent, stan
   return { at: pointOf(frame.rect, frame.anchorPoint), scale: 1 };
 }
 
-/** Lays out every item. `isShown(aura)` says whether a leaf aura is shown in the current situation. */
-export function layoutScreen(items: LayoutNode[], ui: UiParent, isShown: (aura: AuraDocument) => boolean): ScreenLayout {
+/** The leaf auras under a node, at any depth, in order. */
+function leafAuras(node: LayoutNode): AuraDocument[] {
+  return node.items ? node.items.flatMap(leafAuras) : [node.aura];
+}
+
+/**
+ * Lays out every item. `isShown(aura)` says whether a leaf aura is shown in the current situation. `game` picks the
+ * game's group rules where the addons differ: a group's border box, and Musca's modern aura groups (Forever only).
+ */
+export function layoutScreen(
+  items: LayoutNode[],
+  ui: UiParent,
+  isShown: (aura: AuraDocument) => boolean,
+  game: AddonGameId = "forever",
+): ScreenLayout {
   const out: ScreenLayout = { auras: [], groups: [], standIns: [] };
 
-  const placeLeaf = (aura: AuraDocument, parent: Parent | null): PlacedAura => {
+  const leafRect = (aura: AuraDocument, parent: Parent | null): { rect: Box; scale: number } => {
     const { at, scale } = anchorFor(aura, parent, ui, out.standIns);
     const pos: [number, number] = [at[0] + num(aura.xOffset, 0) * scale, at[1] - num(aura.yOffset, 0) * scale];
-    const rect = rectAt(aura.selfPoint, pos, num(aura.width, 64) * scale, num(aura.height, 64) * scale);
+    return { rect: rectAt(aura.selfPoint, pos, num(aura.width, 64) * scale, num(aura.height, 64) * scale), scale };
+  };
+
+  const placeLeaf = (aura: AuraDocument, parent: Parent | null): PlacedAura => {
+    const { rect, scale } = leafRect(aura, parent);
     const placed = { id: idOf(aura), aura, rect, scale, visible: isShown(aura) };
     out.auras.push(placed);
     return placed;
@@ -126,7 +146,8 @@ export function layoutScreen(items: LayoutNode[], ui: UiParent, isShown: (aura: 
 
     if (aura.regionType === "dynamicgroup") return placeDynamic(node, pos, scale);
 
-    const flowFramed = aura.blizzardFlow === true && typeof aura.blizzardFlowFrames === "string" && aura.blizzardFlowFrames !== "";
+    const flow = game === "forever" && aura.blizzardFlow === true;
+    const flowFramed = flow && typeof aura.blizzardFlowFrames === "string" && aura.blizzardFlowFrames !== "";
     const groupOffset = field(aura.information, "groupOffset") === true;
     const selfPoint = flowFramed ? (aura.selfPoint ?? "CENTER") : groupOffset ? "BOTTOMLEFT" : "CENTER";
     const frame = rectAt(selfPoint, pos, 2 * scale, 2 * scale);
@@ -135,11 +156,14 @@ export function layoutScreen(items: LayoutNode[], ui: UiParent, isShown: (aura: 
     const entry: PlacedGroup = { id: idOf(aura), aura, kind: "group", bounds: null, frame, border: null, scale };
     out.groups.push(entry);
     for (const child of node.items) leaves.push(...place(child, me));
-    if (aura.blizzardFlow === true && !flowFramed) chainFlow(aura, node.items, leaves);
+    if (flow && !flowFramed) chainFlow(aura, node.items, leaves);
     const shown = leaves.filter((l) => l.visible);
     entry.bounds = union(shown.map((l) => l.rect));
     const hasDynamicChild = node.items.some((c) => c.aura.regionType === "dynamicgroup");
-    const all = union(leaves.map((l) => l.rect));
+    // The border box (Group.lua GetBoundingRect). Musca's groupRect places sub groups with their offsets and scale,
+    // as the placed leaves are; WeakAuras2's takes every leaf at its own offsets as if it sat directly in this group.
+    const all =
+      game === "forever" ? union(leaves.map((l) => l.rect)) : union(node.items.flatMap(leafAuras).map((a) => leafRect(a, me).rect));
     if (aura.border === true && !hasDynamicChild && shown.length > 0 && all) {
       entry.border = grow(all, num(aura.borderOffset, 4) * scale);
     }

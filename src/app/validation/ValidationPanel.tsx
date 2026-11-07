@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { AddonVMReport, AuraCore, AuraDocument, ValidationMessage, ValidationResult } from "@/core";
+import type { AddonVMReport, AuraCore, AuraDocument, CombatStatus, ValidationMessage, ValidationResult } from "@/core";
 import styles from "./ValidationPanel.module.css";
 import { errorMessage } from "@/lib/errors";
 
@@ -10,7 +10,7 @@ type Check =
   | { state: "done"; result: ValidationResult; timings: AddonVMReport["timings"] }
   | { state: "failed"; error: string };
 
-const HEADLINE: Record<ValidationResult["combat"]["status"], string> = {
+const HEADLINE: Record<CombatStatus, string> = {
   ok: "Works in combat",
   limited: "Partly works in combat",
   broken: "Won't work",
@@ -58,7 +58,7 @@ export function ValidationPanel({
       className={styles.panel}
       data-testid="validation-panel"
       data-state={current.state}
-      data-combat-status={current.state === "done" ? current.result.combat.status : undefined}
+      data-combat-status={current.state === "done" ? current.result.combat?.status : undefined}
       data-vm-timings={current.state === "done" ? JSON.stringify(current.timings) : undefined}
       aria-live="polite"
     >
@@ -70,15 +70,18 @@ export function ValidationPanel({
 }
 
 function Result({ result }: { result: ValidationResult }) {
+  // No combat verdict in a game without combat restrictions (TBC): only the addon's own messages.
   const { combat } = result;
   return (
     <>
-      <div className={`${styles.combat} ${styles[combat.status]}`} data-testid="combat-status">
-        <strong>{HEADLINE[combat.status]}</strong>
-        {combat.messages.map((m, i) => (
-          <span key={i}>{m}</span>
-        ))}
-      </div>
+      {combat && (
+        <div className={`${styles.combat} ${styles[combat.status]}`} data-testid="combat-status">
+          <strong>{HEADLINE[combat.status]}</strong>
+          {combat.messages.map((m, i) => (
+            <span key={i}>{m}</span>
+          ))}
+        </div>
+      )}
       {(result.errors.length > 0 || result.warnings.length > 0) && (
         <ul className={styles.list}>
           {result.errors.map((m, i) => (

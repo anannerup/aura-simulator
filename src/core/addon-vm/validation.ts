@@ -46,10 +46,16 @@ export interface CombatReport {
   messages: string[];
 }
 
+/**
+ * The addon's own validation of an aura. `errors` and `warnings` are the addon's messages in every game.
+ * `combat` is the combat verdict, only in a game whose client restricts addons in combat (Forever: Musca Auras'
+ * combat checks); on TBC there are no combat restrictions, so it is absent (never "ok" by default), and the
+ * Forever-only codes (`modern.*`, `combat.*`) don't occur.
+ */
 export interface ValidationResult {
   errors: ValidationMessage[];
   warnings: ValidationMessage[];
-  combat: CombatReport;
+  combat?: CombatReport;
 }
 
 /** What lua/extract.ts X.validate returns (JSON). */
@@ -141,8 +147,16 @@ function addonSeverity(severity: string): ValidationMessage["severity"] {
 const WONT_WORK = /^Won't work:\s*/;
 const OK_MESSAGE = "Fully usable in combat: no combat restrictions found.";
 
-/** Turns the VM's raw validation of one aura into plain messages with pointers and a combat status. */
-export function interpretValidation(raw: RawValidation, auraId?: string): ValidationResult {
+/**
+ * Turns the VM's raw validation of one aura into plain messages with pointers and, with `combatCheck` (the game
+ * restricts addons in combat), a combat status.
+ */
+export function interpretValidation(raw: RawValidation, options: { auraId?: string; combatCheck: boolean }): ValidationResult {
+  const result = interpretOne(raw, options.auraId);
+  return options.combatCheck ? result : { errors: result.errors, warnings: result.warnings };
+}
+
+function interpretOne(raw: RawValidation, auraId: string | undefined): Required<ValidationResult> {
   const errors: ValidationMessage[] = [];
   const warnings: ValidationMessage[] = [];
   const combatMessages: string[] = [];
@@ -242,17 +256,20 @@ export function interpretValidation(raw: RawValidation, auraId?: string): Valida
   return { errors, warnings, combat: { status, messages: combatMessages.filter(Boolean) } };
 }
 
-/** Combines per-aura results (a group and its children; `ids` names each aura) into one. */
+/**
+ * Combines per-aura results (a group and its children; `ids` names each aura) into one. They come from one game, so
+ * either all have a combat verdict or none has.
+ */
 export function mergeValidation(results: ValidationResult[], ids: (string | undefined)[] = []): ValidationResult {
   if (results.length === 1) return results[0];
-  let status: CombatStatus = "ok";
-  for (const r of results) status = worseStatus(status, r.combat.status);
-  const messages = results.flatMap((r, i) =>
-    r.combat.status === "ok" ? [] : r.combat.messages.map((m) => (ids[i] ? `${ids[i]}: ${m}` : m)),
-  );
-  return {
+  const merged: ValidationResult = {
     errors: results.flatMap((r) => r.errors),
     warnings: results.flatMap((r) => r.warnings),
-    combat: { status, messages: messages.length ? messages : [OK_MESSAGE] },
   };
+  const combats = results.map((r) => r.combat);
+  if (!combats.every((c) => c !== undefined)) return merged;
+  let status: CombatStatus = "ok";
+  for (const c of combats) status = worseStatus(status, c.status);
+  const messages = combats.flatMap((c, i) => (c.status === "ok" ? [] : c.messages.map((m) => (ids[i] ? `${ids[i]}: ${m}` : m))));
+  return { ...merged, combat: { status, messages: messages.length ? messages : [OK_MESSAGE] } };
 }

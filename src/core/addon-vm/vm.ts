@@ -215,7 +215,9 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
       const auras = [state.aura, ...state.children];
       const ids = auras.map((aura) => (typeof aura.id === "string" ? aura.id : undefined));
       const isGroup = state.children.length > 0;
-      const results = auras.map((aura, i) => interpretValidation(validateOne(aura), isGroup ? ids[i] : undefined));
+      const results = auras.map((aura, i) =>
+        interpretValidation(validateOne(aura), { auraId: isGroup ? ids[i] : undefined, combatCheck: game.combatCheck }),
+      );
       return mergeValidation(results, ids);
     },
     options(state, request) {

@@ -18,6 +18,11 @@ export interface AddonVMGame {
   contract: AddonContract;
   /** The game's own entry points, run after lua/extract.ts (and before options.ts). */
   extractLua: string[];
+  /**
+   * The client restricts addons in combat, so validation gives a combat verdict (`ValidationResult.combat`) from the
+   * addon's combat checks. Forever only; TBC Anniversary has no combat restrictions.
+   */
+  combatCheck: boolean;
 }
 
 export const ADDON_VM_GAMES: Record<AddonGameId, AddonVMGame> = {
@@ -27,6 +32,7 @@ export const ADDON_VM_GAMES: Record<AddonGameId, AddonVMGame> = {
     profileLua: [CLIENT_DATA_LUA, PROFILE_LUA],
     contract: joinContracts(COMMON_CONTRACT, FOREVER_CONTRACT),
     extractLua: [FOREVER_EXTRACT_LUA],
+    combatCheck: true,
   },
   tbc: {
     id: "tbc",
@@ -34,5 +40,6 @@ export const ADDON_VM_GAMES: Record<AddonGameId, AddonVMGame> = {
     profileLua: [TBC_CLIENT_DATA_LUA, TBC_PROFILE_LUA],
     contract: COMMON_CONTRACT,
     extractLua: [],
+    combatCheck: false,
   },
 };

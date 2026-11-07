@@ -26,9 +26,18 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
 - `src/core/`: the **aura core** (spec seam A). Loads an addon version's Lua in wasmoon-lua5.1,
   encodes/decodes state codes (`state-code.ts` is the one pattern: `!WA:<n>!`, n ≥ 2, as the addon's decoder
   reads them), fills defaults, validates. No React, no DOM. Runs in browser and Node.
-  It also holds the situation model (`situation/`) and the trigger/condition evaluation with Forever's combat rules
-  (`conditions/`, `evaluateAura`): what an aura shows in a situation. Those restate addon rules; the files they mirror
-  are pinned by hash in `conditions/mirrored.ts` (a test fails when they change or the default addon version moves).
+  It also holds the situation model (`situation/`) and the trigger/condition evaluation per game (`conditions/`):
+  what an aura shows in a situation. `auraRules(game)` gives a game's rules (trigger kinds, `setInCombat`,
+  `evaluate`, `combatRestricted`). Forever (`evaluateAura`, `conditions/forever.ts` + `secret-aura-rules.ts`) adds
+  Aura (Modern), freezing and held properties to plain WeakAuras; TBC (`evaluateTbcAura`, `conditions/tbc.ts`) is
+  plain WeakAuras2, nothing changes in combat. Only what both addons do the same is shared (`conditions/evaluate.ts`,
+  `triggers.ts`, `region-defaults.ts`). Validation's `combat` verdict exists only for Forever (`AddonVMGame.combatCheck`);
+  on TBC `ValidationResult` has just the addon's errors and warnings.
+  Rules and renderers restate addon files; `src/core/mirrored.ts` pins them per game by hash at the game's default
+  version (Forever: Musca tag; TBC: WeakAuras2 5.22.1 from the release zip) and lists every module both games share
+  with the files it ports (`SHARED_PORTS`): a test fails when a pinned file changes, when a game's version moves, or
+  when a ported file's sameness between the addons changes. A module stays shared while the Lua it ports does the
+  same in both; each differing file says why (or which part is per game, e.g. `layoutScreen(…, game)`'s group border).
   Whether Aura (Modern) conditions are valid is never restated: the preview takes `conditionProblem(validate(...))`.
   Import it via `@/core` only. The aura document (a Lua table as JSON: arrays for sequences, `"[1]"`-style keys
   for number/boolean keys) is defined in `src/core/lua-value.ts`, with its readers (`getField`, `field`, `list`,

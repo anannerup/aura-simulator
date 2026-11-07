@@ -42,7 +42,7 @@ describe("worked examples", () => {
   test("the addon's validation gives each example the combat status the docs promise", async () => {
     for (const e of ALL_DOC_EXAMPLES) {
       const result = await core.validate({ aura: e.body.aura, children: e.body.children ?? [] });
-      expect({ key: e.key, status: result.combat.status }).toEqual({ key: e.key, status: e.combat });
+      expect({ key: e.key, status: result.combat?.status }).toEqual({ key: e.key, status: e.combat });
       if (e.combat === "ok") expect(result.errors).toEqual([]);
     }
   });

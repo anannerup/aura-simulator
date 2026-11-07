@@ -1,5 +1,13 @@
 import { useMemo, type CSSProperties } from "react";
-import { evaluateAura, type AuraDocument, type AuraRenderState, type ConditionProblem, type LuaValue, type Situation } from "@/core";
+import {
+  auraRules,
+  type AddonGameId,
+  type AuraDocument,
+  type AuraRenderState,
+  type ConditionProblem,
+  type LuaValue,
+  type Situation,
+} from "@/core";
 import { AnimatedAuraRegion } from "../AnimatedAuraRegion";
 import { rgbaCss } from "../color";
 import { layoutScreen, type LayoutNode } from "../group/layout";
@@ -10,6 +18,8 @@ export interface GameScreenAurasProps {
   /** Every top-level aura of the workspace (groups with their `items`), all drawn at once as in the game. */
   items: LayoutNode[];
   situation: Situation;
+  /** Whose rules evaluate the auras and lay out groups (`auraRules`, `layoutScreen`). Default "forever". */
+  game?: AddonGameId;
   screen?: UiParent;
   /** The selected aura's id: outlined (a group by the box around its shown children). */
   selectedId?: string | null;
@@ -40,17 +50,32 @@ function borderStyle(aura: AuraDocument, rect: Box, scale: number): CSSPropertie
 }
 
 /** Draws every aura of the workspace on the screen, groups laid out like the game does. Pure: props in, markup out. */
-export function GameScreenAuras({ items, situation, screen = DEFAULT_SCREEN, selectedId, hiddenIds, problems, onSelect }: GameScreenAurasProps) {
+export function GameScreenAuras({
+  items,
+  situation,
+  game = "forever",
+  screen = DEFAULT_SCREEN,
+  selectedId,
+  hiddenIds,
+  problems,
+  onSelect,
+}: GameScreenAurasProps) {
   const { layout, states } = useMemo(() => {
+    const rules = auraRules(game);
     const states = new Map<AuraDocument, AuraRenderState>();
-    const layout = layoutScreen(items, screen, (aura) => {
-      const id = typeof aura.id === "string" ? aura.id : undefined;
-      const state = evaluateAura(aura, situation, id === undefined ? undefined : problems?.get(id));
-      states.set(aura, state);
-      return state.shown && !(id !== undefined && hiddenIds?.has(id));
-    });
+    const layout = layoutScreen(
+      items,
+      screen,
+      (aura) => {
+        const id = typeof aura.id === "string" ? aura.id : undefined;
+        const state = rules.evaluate(aura, situation, id === undefined ? undefined : problems?.get(id));
+        states.set(aura, state);
+        return state.shown && !(id !== undefined && hiddenIds?.has(id));
+      },
+      game,
+    );
     return { layout, states };
-  }, [items, screen, situation, hiddenIds, problems]);
+  }, [items, screen, situation, hiddenIds, problems, game]);
   const selectedGroup = layout.groups.find((g) => g.id === selectedId);
   const selectedAura = layout.auras.find((a) => a.id === selectedId && a.visible);
   const selection = selectedGroup ? (selectedGroup.bounds ?? selectedGroup.frame) : selectedAura?.rect;

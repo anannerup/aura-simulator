@@ -129,6 +129,8 @@ export async function collectAddonFacts(core: AuraCore): Promise<AddonFacts> {
 
   const verdict = async (state: { aura: AuraDocument; children: AuraDocument[] }) => {
     const v = await core.validate(state);
+    // No combat verdict: the game has no combat restrictions (TBC), so everything keeps working in combat.
+    if (!v.combat) return { combat: "ok" as const, message: "" };
     return { combat: v.combat.status, message: v.combat.messages.join(" ") };
   };
 

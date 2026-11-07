@@ -4,8 +4,13 @@
  * Kept deliberately simple. Each trigger gets one `TriggerSituation` whose meaning depends on the
  * trigger kind (see `triggerKind`): for aura triggers it is the buff or debuff, for the spell cooldown
  * trigger it is the spell's cooldown. Plus two world facts (target exists, in combat).
+ *
+ * The model is the same in every game. What differs per game is which trigger kinds exist (only Forever's Musca
+ * Auras has Aura (Modern)) and whether entering combat records the facts frozen auras keep (only Forever has a
+ * combat restriction); the functions for those take the game, "forever" when left out.
  */
 import type { AuraDocument } from "../aura-core";
+import type { AddonGameId } from "../addon-vm/toc";
 import { entries, getField, isLuaTable, type LuaTable, type LuaValue } from "../lua-value";
 
 export interface TriggerSituation {
@@ -28,9 +33,10 @@ export interface SituationFacts {
 
 export interface Situation extends SituationFacts {
   /**
-   * The situation the moment combat started. Under Forever's combat restriction some triggers and
+   * Forever only: the situation the moment combat started. Under Forever's combat restriction some triggers and
    * condition properties keep their last out-of-combat value; they read it from here. Set by
-   * `setInCombat`; when missing while in combat, the current facts stand in for it.
+   * `setInCombat`; when missing while in combat, the current facts stand in for it. TBC has no combat
+   * restriction: its situations never carry it, and its rules never read it.
    */
   beforeCombat?: SituationFacts;
 }
@@ -39,13 +45,20 @@ const defaultTriggerSituation: TriggerSituation = { present: true, remaining: 45
 
 export const DEFAULT_SITUATION: Situation = { triggers: {}, targetExists: true, inCombat: false };
 
-/** What the situation controls offer for a trigger. */
+/** What the situation controls offer for a trigger. `secretAura` (Aura (Modern)) exists only in Forever. */
 export type TriggerKind = "secretAura" | "aura2" | "spellCooldown" | "other";
 
-function triggerKind(trigger: LuaValue | undefined): TriggerKind {
+/** The trigger kinds each game has. */
+export const TRIGGER_KINDS: Record<AddonGameId, readonly TriggerKind[]> = {
+  forever: ["secretAura", "aura2", "spellCooldown", "other"],
+  tbc: ["aura2", "spellCooldown", "other"],
+};
+
+function triggerKind(trigger: LuaValue | undefined, game: AddonGameId): TriggerKind {
   if (!isLuaTable(trigger)) return "other";
   const type = getField(trigger, "type");
-  if (type === "secretAura") return "secretAura";
+  // WeakAuras2 has no Aura (Modern) trigger type: on TBC such a trigger is just an unknown one.
+  if (type === "secretAura") return game === "forever" ? "secretAura" : "other";
   if (type === "aura2") return "aura2";
   if (type === "spell" && getField(trigger, "event") === "Cooldown Progress (Spell)") return "spellCooldown";
   return "other";
@@ -58,8 +71,8 @@ export interface TriggerInfo {
   trigger: LuaTable;
 }
 
-/** The aura's triggers in order (`triggers[1..n].trigger`). */
-export function auraTriggers(aura: AuraDocument): TriggerInfo[] {
+/** The aura's triggers in order (`triggers[1..n].trigger`), each with its kind in `game`. */
+export function auraTriggers(aura: AuraDocument, game: AddonGameId = "forever"): TriggerInfo[] {
   const triggers = aura.triggers;
   if (!isLuaTable(triggers)) return [];
   const result: TriggerInfo[] = [];
@@ -67,7 +80,7 @@ export function auraTriggers(aura: AuraDocument): TriggerInfo[] {
     if (typeof key !== "number" || !isLuaTable(value)) continue;
     const trigger = getField(value, "trigger");
     if (!isLuaTable(trigger)) continue;
-    result.push({ index: key, kind: triggerKind(trigger), trigger });
+    result.push({ index: key, kind: triggerKind(trigger, game), trigger });
   }
   return result.sort((a, b) => a.index - b.index);
 }
@@ -86,15 +99,18 @@ export function withTrigger(situation: Situation, index: number, patch: Partial<
   return { ...situation, triggers: { ...situation.triggers, [index]: next } };
 }
 
-/** Switches combat on or off. Entering combat records the facts frozen auras keep. */
-export function setInCombat(situation: Situation, inCombat: boolean): Situation {
+/**
+ * Switches combat on or off. In Forever, entering combat records the facts frozen auras keep (`beforeCombat`); on
+ * TBC combat is only a world fact (the "In Combat" condition reads it).
+ */
+export function setInCombat(situation: Situation, inCombat: boolean, game: AddonGameId = "forever"): Situation {
   if (inCombat === situation.inCombat) return situation;
-  if (!inCombat) return { triggers: situation.triggers, targetExists: situation.targetExists, inCombat: false };
   const { triggers, targetExists } = situation;
+  if (!inCombat || game !== "forever") return { triggers, targetExists, inCombat };
   return { triggers, targetExists, inCombat: true, beforeCombat: { triggers, targetExists, inCombat: false } };
 }
 
-/** The facts frozen state reads: the pre-combat snapshot while in combat, else the current facts. */
+/** Forever: the facts frozen state reads: the pre-combat snapshot while in combat, else the current facts. */
 export function frozenFacts(situation: Situation): SituationFacts {
   return situation.inCombat ? (situation.beforeCombat ?? { ...situation, inCombat: false }) : situation;
 }

@@ -8,7 +8,7 @@ test("a push answers with the addon's machine-readable combat warnings", async (
   const result = await pushToWorkspace("server-core-test", { aura: modernDesaturateBad, children: [] }, "http://x", {
     ref: "v1.15.0",
   });
-  expect(result.validation?.combat.status).toBe("broken");
+  expect(result.validation?.combat?.status).toBe("broken");
   expect(result.validation?.errors[0]).toMatchObject({
     code: "modern.invalid",
     severity: "error",

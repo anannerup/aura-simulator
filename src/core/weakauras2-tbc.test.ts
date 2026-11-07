@@ -99,13 +99,36 @@ describe("full VM", () => {
 });
 
 describe("validation", () => {
-  test("a new aura of every display type validates clean", async (ctx) => {
+  test("a new aura of every display type validates clean, with no combat verdict (TBC has no combat restrictions)", async (ctx) => {
     const c = tbc(ctx);
     for (const type of TYPES) {
       const result = await c.validate(await newState(c, type));
       expect(result.errors, type).toEqual([]);
-      expect(result.combat.status, type).toBe("ok");
+      expect(result, type).not.toHaveProperty("combat");
     }
+  });
+
+  test("an aura2 trigger by exact spell ID gets no combat warning (Forever's would: combat.hiddenValues)", async (ctx) => {
+    const c = tbc(ctx);
+    const state = await newState(c, "icon");
+    const aura = {
+      ...state.aura,
+      triggers: {
+        "[1]": { trigger: { type: "aura2", unit: "target", debuffType: "HARMFUL", useExactSpellId: true, auraspellids: ["33763"] }, untrigger: [] },
+        activeTriggerMode: -10,
+      },
+    };
+    const result = await c.validate({ aura, children: [] });
+    expect(result).not.toHaveProperty("combat");
+    expect([...result.errors, ...result.warnings].filter((m) => /^(combat|modern)\./.test(m.code))).toEqual([]);
+  });
+
+  test("a group's validation has no combat verdict either", async (ctx) => {
+    const c = tbc(ctx);
+    const group = { ...(await c.newAura("group")), id: "G", controlledChildren: ["A"] };
+    const child = { ...(await c.newAura("icon")), id: "A", parent: "G" };
+    const result = await c.validate({ aura: group, children: [child] });
+    expect(result).not.toHaveProperty("combat");
   });
 
   test("the addon's own messages come through (an unknown display type: its sub elements are refused)", async (ctx) => {

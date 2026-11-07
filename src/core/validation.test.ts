@@ -62,21 +62,21 @@ describe("validate", () => {
   test("a known-good Aura (Modern) is fully usable in combat", async () => {
     const result = await core.validate(single(modernGlowOk));
     expect(result.errors).toEqual([]);
-    expect(result.combat.status).toBe("ok");
-    expect(result.combat.messages[0]).toBe("Fully usable in combat.");
+    expect(result.combat?.status).toBe("ok");
+    expect(result.combat?.messages[0]).toBe("Fully usable in combat.");
     expect(result.warnings.map((w) => w.message)).toContain("Glow starts once the aura's duration is known.");
   });
 
   test("a remaining-time condition driving desaturate is broken, pointing at the change", async () => {
     const result = await core.validate(single(modernDesaturateBad));
-    expect(result.combat.status).toBe("broken");
+    expect(result.combat?.status).toBe("broken");
     expect(result.errors).toHaveLength(1);
     const [error] = result.errors;
     expect(error.code).toBe("modern.invalid");
     expect(error.message).toBe("Choose a supported property for this Aura (Modern) condition.");
     expect(error.pointer).toMatchObject({ tab: "conditions", condition: 1, change: 1, property: "desaturate" });
     expect(error.pointer?.path).toEqual(["conditions", 1, "changes", 1, "property"]);
-    expect(result.combat.messages[0]).toMatch(/^Won't work: Choose a supported property/);
+    expect(result.combat?.messages[0]).toMatch(/^Won't work: Choose a supported property/);
   });
 
   test("every bad change is reported, each with its own pointer", async () => {
@@ -95,7 +95,7 @@ describe("validate", () => {
   test("a classic aura trigger with exact spell IDs warns that combat hides those values", async () => {
     const result = await core.validate(single(aura2SpellIds));
     expect(result.errors).toEqual([]);
-    expect(result.combat.status).toBe("limited");
+    expect(result.combat?.status).toBe("limited");
     const warning = result.warnings.find((w) => w.code === "combat.hiddenValues");
     expect(warning?.message).toMatch(/^In combat, the game hides some values of this trigger/);
     expect(warning?.pointer).toMatchObject({ tab: "trigger", trigger: 1 });
@@ -124,7 +124,7 @@ describe("validate", () => {
 
   test("never throws on a broken document", async () => {
     const result = await core.validate(single({ id: "x", regionType: "icon", triggers: { nonsense: true } }));
-    expect(result.combat.status).toBeDefined();
+    expect(result.combat?.status).toBeDefined();
   });
 });
 
@@ -156,16 +156,16 @@ describe("Aura (Modern) Remaining Time (the trigger's own window, secretUseRem)"
     const edit = await core.setOption(sample, { tab: "trigger", path: ["trigger.1.secretAura.useRem"] }, true);
     const result = await core.validate(single(edit.aura));
     expect(messages(result)).toEqual([]);
-    expect(result.combat.status).toBe("ok");
+    expect(result.combat?.status).toBe("ok");
   });
 
   test("cases the addon doesn't support still fail with its own messages", async () => {
     const anchored = await core.validate(single({ ...modernRemainingWindowOk, regionType: "aurabar", anchorFrameType: "UNITFRAME" }));
-    expect(anchored.combat.status).toBe("broken");
+    expect(anchored.combat?.status).toBe("broken");
     expect(messages(anchored)).toEqual(["Remaining Time can't anchor to unit frames or nameplates."]);
 
     const noWindow = await core.validate(single(withTrigger(modernRemainingWindowOk, { secretRem: -1 })));
-    expect(noWindow.combat.status).toBe("broken");
+    expect(noWindow.combat?.status).toBe("broken");
     expect(messages(noWindow)).toEqual(["Remaining Time: pick a comparison and a seconds value of 0 or more."]);
   });
 });
