@@ -4,9 +4,9 @@
  * Field widgets for the options editor, one per AceConfig option type. Each is a small, plain
  * component (props in, `onEdit` out) so it can be swapped for the UI kit's Input/Select/Slider/Switch.
  */
-import { useEffect, useId, useState, type KeyboardEvent } from "react";
+import { useId, useState, type KeyboardEvent } from "react";
 import type { LuaKey, OptionNode } from "@/core";
-import { searchSpells, type SpellSearchHit } from "@/components/spell-picker/spell-api";
+import { useSpellSearch } from "@/components/spell-picker/useSpellSearch";
 import { GameTexture } from "@/components/ui";
 import { displayIconRef, useIconUrl } from "@/render/textures";
 import { imageName, plainText, splitInputValue } from "./wow-text";
@@ -121,23 +121,8 @@ function SpellInput(props: {
 }) {
   const { id, text, disabled, onDraft, onApply, onChoose, onKeyDown } = props;
   const [open, setOpen] = useState(false);
-  const [hits, setHits] = useState<{ q: string; list: SpellSearchHit[] }>({ q: "", list: [] });
   const q = text.trim();
-  const searchable = open && q.length >= 2 && !/^\d+$/.test(q);
-  useEffect(() => {
-    if (!searchable) return;
-    const ac = new AbortController();
-    const t = setTimeout(() => {
-      searchSpells(q, ac.signal)
-        .then((r) => setHits({ q, list: r.results.slice(0, 8) }))
-        .catch(() => {});
-    }, 150);
-    return () => {
-      clearTimeout(t);
-      ac.abort();
-    };
-  }, [q, searchable]);
-  const list = searchable && hits.q === q ? hits.list : [];
+  const list = useSpellSearch(q, { enabled: open && q.length >= 2 && !/^\d+$/.test(q) }).hits?.slice(0, 8) ?? [];
   return (
     <div className={styles.spellInput}>
       <input

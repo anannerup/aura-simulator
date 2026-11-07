@@ -9,9 +9,10 @@
  * non-blocking warning.
  */
 
+import { IdbUnavailable, idbStore } from "@/lib/idb";
+
 // Its own database: "aura-simulator" belongs to the screenshot store (src/app/screen/screenshot-store.ts).
 const DB_NAME = "aura-simulator-workspaces";
-const DB_VERSION = 1;
 const STORE = "workspaces";
 
 export type StorageProblemKind = "unavailable" | "quota" | "failed";
@@ -67,58 +68,9 @@ function problemOf(e: unknown): StorageProblem {
   return new StorageProblem("failed", `Browser storage failed: ${message}`);
 }
 
-function openDb(factory: IDBFactory): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    let request: IDBOpenDBRequest;
-    try {
-      request = factory.open(DB_NAME, DB_VERSION);
-    } catch (e) {
-      reject(e);
-      return;
-    }
-    request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(STORE)) request.result.createObjectStore(STORE);
-    };
-    request.onsuccess = () => {
-      const db = request.result;
-      // Another tab upgrading the database: let it, and reopen next time.
-      db.onversionchange = () => db.close();
-      resolve(db);
-    };
-    request.onerror = () => reject(request.error ?? new Error("IndexedDB could not be opened"));
-    request.onblocked = () => reject(new Error("IndexedDB is blocked by another tab"));
-  });
-}
-
-/** Runs one request in its own transaction; resolves when the transaction has committed. */
-function run<T>(db: IDBDatabase, mode: IDBTransactionMode, body: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    let request: IDBRequest<T>;
-    let tx: IDBTransaction;
-    try {
-      tx = db.transaction(STORE, mode);
-      request = body(tx.objectStore(STORE));
-    } catch (e) {
-      reject(e);
-      return;
-    }
-    tx.oncomplete = () => resolve(request.result);
-    tx.onerror = () => reject(tx.error ?? request.error ?? new Error("IndexedDB transaction failed"));
-    tx.onabort = () => reject(tx.error ?? new Error("IndexedDB transaction aborted"));
-  });
-}
-
 export function createWorkspaceStorage(env: StorageEnv = browserEnv()): WorkspaceStorage {
   const local = env.localStorage ?? null;
-  let db: Promise<IDBDatabase | null> | null = null;
-  const database = (): Promise<IDBDatabase | null> => {
-    if (!env.indexedDB) return Promise.resolve(null);
-    db ??= openDb(env.indexedDB).catch(() => {
-      db = null; // retry on the next call
-      return null;
-    });
-    return db;
-  };
+  const idb = idbStore(() => env.indexedDB, DB_NAME, STORE);
 
   const readLocal = (key: string): string | null => {
     try {
@@ -130,11 +82,9 @@ export function createWorkspaceStorage(env: StorageEnv = browserEnv()): Workspac
 
   return {
     async read(key) {
-      const idb = await database();
-      if (!idb) return readLocal(key);
       let stored: unknown;
       try {
-        stored = await run(idb, "readonly", (s) => s.get(key));
+        stored = await idb.run("readonly", (s) => s.get(key));
       } catch {
         return readLocal(key);
       }
@@ -143,7 +93,7 @@ export function createWorkspaceStorage(env: StorageEnv = browserEnv()): Workspac
       const legacy = readLocal(key);
       if (legacy === null) return null;
       try {
-        await run(idb, "readwrite", (s) => s.put(legacy, key));
+        await idb.run("readwrite", (s) => s.put(legacy, key));
         local?.removeItem(key);
       } catch {
         // Keep the localStorage copy; the next write retries IndexedDB.
@@ -152,14 +102,11 @@ export function createWorkspaceStorage(env: StorageEnv = browserEnv()): Workspac
     },
 
     async write(key, text) {
-      const idb = await database();
-      if (idb) {
-        try {
-          await run(idb, "readwrite", (s) => s.put(text, key));
-          return;
-        } catch (e) {
-          throw problemOf(e);
-        }
+      try {
+        await idb.run("readwrite", (s) => s.put(text, key));
+        return;
+      } catch (e) {
+        if (!(e instanceof IdbUnavailable)) throw problemOf(e);
       }
       if (!local) throw new StorageProblem("unavailable", "Browser storage is unavailable (private mode or blocked site data)");
       try {

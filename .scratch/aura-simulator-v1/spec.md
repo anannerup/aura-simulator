@@ -70,7 +70,7 @@ address only names the workspace, never holds auras.
 
 ### Adjusting the aura
 
-23. As a player, I want an editor with the same tabs and option names as the in-game options window (Display, Trigger, Conditions, Actions, Animations, Load), so that what I learn transfers to the game.
+23. As a player, I want an editor with the same tabs and option names as the in-game options window (Display, Trigger, Conditions, Actions, Animations, Load, Custom Options, Information; a group gets Group first), so that what I learn transfers to the game.
 24. As a player, I want every option the addon supports to be editable, so that I'm never forced back into the game to finish an aura.
 25. As a player, I want an editable view of the aura's raw table, so that I can make precise changes or paste one in.
 26. As a player, I want edits in the forms, the raw table and agent pushes to stay in sync, so that there's one truth.

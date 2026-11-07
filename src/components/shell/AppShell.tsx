@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useId, useMemo, useState, type DragEvent, type ReactNode } from "react";
+import { useId, useState, type DragEvent, type ReactNode } from "react";
 import { ChevronDownIcon, IconButton } from "@/components/ui";
 import styles from "./AppShell.module.css";
 
@@ -34,21 +34,6 @@ export interface AppShellProps {
   onDropFiles?: (files: File[]) => void;
 }
 
-export interface ShellState {
-  /** The open drawer tab's id, or null when the drawer is closed. */
-  drawerTab: string | null;
-  setDrawerTab: (tab: string | null) => void;
-}
-
-const ShellContext = createContext<ShellState | null>(null);
-
-/** The shell's panel state, for slot content that opens the drawer. */
-export function useShell(): ShellState {
-  const ctx = useContext(ShellContext);
-  if (!ctx) throw new Error("useShell must be used inside <AppShell>");
-  return ctx;
-}
-
 /**
  * The app frame: Musca Auras' options window (title bar, toolbar, aura list, option tabs, footer) docked on the left,
  * the game screen filling the rest, and an optional drawer under the screen. It fills the viewport and never scrolls
@@ -60,7 +45,6 @@ export function AppShell(props: AppShellProps) {
   // Minimised, the window is only its title bar and the game screen takes the whole browser window (as in game).
   const [minimized, setMinimized] = useState(false);
   const drawerId = useId();
-  const state = useMemo<ShellState>(() => ({ drawerTab, setDrawerTab }), [drawerTab]);
   const tabs = props.drawerTabs ?? [];
   const onDropFiles = props.onDropFiles;
 
@@ -84,93 +68,91 @@ export function AppShell(props: AppShellProps) {
     : {};
 
   return (
-    <ShellContext.Provider value={state}>
-      <div className={styles.shell} data-minimized={minimized} {...dropHandlers}>
-        <section className={styles.window} aria-label="Musca Auras options" data-dragging={dragging}>
-          {props.portrait && <div className={styles.portrait}>{props.portrait}</div>}
-          <header className={styles.titleBar}>
-            <div className={styles.title}>{props.title}</div>
-            <div className={styles.titleActions}>
-              {props.titleActions}
-              <button
-                type="button"
-                className={styles.frameButton}
-                aria-label={minimized ? "Restore window" : "Minimize window"}
-                title={minimized ? "Restore window" : "Minimize window"}
-                aria-expanded={!minimized}
-                onClick={() => setMinimized(!minimized)}
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden focusable={false}>
-                  {minimized ? <path d="M3 11 11 3M5 3h6v6" /> : <path d="M11 3 3 11M3 5v6h6" />}
-                </svg>
-              </button>
-            </div>
-          </header>
-          <div className={styles.windowBody} hidden={minimized}>
-            <div className={styles.toolbar}>{props.toolbar}</div>
-            <div className={styles.body}>
-              <aside className={styles.list} aria-label="Auras">
-                {props.list}
-              </aside>
-              <div className={styles.options}>{props.options}</div>
-            </div>
-            {props.footer && <footer className={styles.footer}>{props.footer}</footer>}
+    <div className={styles.shell} data-minimized={minimized} {...dropHandlers}>
+      <section className={styles.window} aria-label="Musca Auras options" data-dragging={dragging}>
+        {props.portrait && <div className={styles.portrait}>{props.portrait}</div>}
+        <header className={styles.titleBar}>
+          <div className={styles.title}>{props.title}</div>
+          <div className={styles.titleActions}>
+            {props.titleActions}
+            <button
+              type="button"
+              className={styles.frameButton}
+              aria-label={minimized ? "Restore window" : "Minimize window"}
+              title={minimized ? "Restore window" : "Minimize window"}
+              aria-expanded={!minimized}
+              onClick={() => setMinimized(!minimized)}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden focusable={false}>
+                {minimized ? <path d="M3 11 11 3M5 3h6v6" /> : <path d="M11 3 3 11M3 5v6h6" />}
+              </svg>
+            </button>
           </div>
-        </section>
+        </header>
+        <div className={styles.windowBody} hidden={minimized}>
+          <div className={styles.toolbar}>{props.toolbar}</div>
+          <div className={styles.body}>
+            <aside className={styles.list} aria-label="Auras">
+              {props.list}
+            </aside>
+            <div className={styles.options}>{props.options}</div>
+          </div>
+          {props.footer && <footer className={styles.footer}>{props.footer}</footer>}
+        </div>
+      </section>
 
-        <main className={styles.main}>
-          <div className={styles.stage}>{props.stage}</div>
-          {tabs.length > 0 && (
-            <section className={styles.drawer} data-open={drawerTab !== null}>
-              <div className={styles.drawerBar}>
-                <div role="tablist" aria-label="Drawer" className={styles.drawerTabs}>
-                  {tabs.map((tab) => {
-                    const active = drawerTab === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={active}
-                        aria-controls={`${drawerId}-panel-${tab.id}`}
-                        className={styles.drawerTab}
-                        onClick={() => setDrawerTab(active ? null : tab.id)}
-                      >
-                        {tab.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className={styles.drawerMeta}>{props.drawerMeta}</div>
-                <IconButton
-                  label={drawerTab === null ? "Open drawer" : "Close drawer"}
-                  icon={<ChevronDownIcon className={styles.drawerChevron} />}
-                  size="sm"
-                  tooltipSide="left"
-                  onClick={() => setDrawerTab(drawerTab === null ? tabs[0].id : null)}
-                />
+      <main className={styles.main}>
+        <div className={styles.stage}>{props.stage}</div>
+        {tabs.length > 0 && (
+          <section className={styles.drawer} data-open={drawerTab !== null}>
+            <div className={styles.drawerBar}>
+              <div role="tablist" aria-label="Drawer" className={styles.drawerTabs}>
+                {tabs.map((tab) => {
+                  const active = drawerTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      aria-controls={`${drawerId}-panel-${tab.id}`}
+                      className={styles.drawerTab}
+                      onClick={() => setDrawerTab(active ? null : tab.id)}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
-              {tabs.map((tab) => (
-                <div
-                  key={tab.id}
-                  id={`${drawerId}-panel-${tab.id}`}
-                  role="tabpanel"
-                  className={styles.drawerBody}
-                  hidden={drawerTab !== tab.id}
-                >
-                  {tab.content}
-                </div>
-              ))}
-            </section>
-          )}
-        </main>
-        {/* The whole page takes dropped files, the game screen included. */}
-        {dragging && (
-          <div className={styles.dropHint} aria-hidden>
-            Drop a workspace file or a state code file to import it
-          </div>
+              <div className={styles.drawerMeta}>{props.drawerMeta}</div>
+              <IconButton
+                label={drawerTab === null ? "Open drawer" : "Close drawer"}
+                icon={<ChevronDownIcon className={styles.drawerChevron} />}
+                size="sm"
+                tooltipSide="left"
+                onClick={() => setDrawerTab(drawerTab === null ? tabs[0].id : null)}
+              />
+            </div>
+            {tabs.map((tab) => (
+              <div
+                key={tab.id}
+                id={`${drawerId}-panel-${tab.id}`}
+                role="tabpanel"
+                className={styles.drawerBody}
+                hidden={drawerTab !== tab.id}
+              >
+                {tab.content}
+              </div>
+            ))}
+          </section>
         )}
-      </div>
-    </ShellContext.Provider>
+      </main>
+      {/* The whole page takes dropped files, the game screen included. */}
+      {dragging && (
+        <div className={styles.dropHint} aria-hidden>
+          Drop a workspace file or a state code file to import it
+        </div>
+      )}
+    </div>
   );
 }

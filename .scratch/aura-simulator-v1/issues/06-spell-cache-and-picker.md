@@ -8,7 +8,8 @@
 
 - [x] Sync loads SpellName (+ icon mapping) for the current wowf build into SQLite
 - [x] Search by name and lookup by ID via API
-- [x] Icons/tooltips filled from Wowhead and cached
+- [x] Icons come with the sync (Forever's own icon mapping). Wowhead tooltips (and Wowhead's icon as a fallback) are
+  fetched lazily, one spell per lookup, and cached; sync does not fill them in bulk, unlike story 49's wording
 - [x] Picker in the page; preview uses real icons
 - [x] Unknown or unclear spells flagged; manual ID entry possible
 - [x] Tests use recorded wago/Wowhead fixtures, no network
@@ -35,8 +36,7 @@ Icon images: `https://wow.zamimg.com/images/wow/icons/<small|medium|large>/<icon
 
 - Sync stores the Interface\ICONS mapping in table `icons(file_id, name)`. `SpellCache.icons({files, spells})` maps
   FileDataIDs and spell IDs to icon names (spells: Forever's icon, else a cached Wowhead icon; no network).
-  Routes: `GET /api/icons/<fileDataId>` → `{fileDataId, icon, iconUrl}` (404 same body, 400 bad ID);
-  `GET /api/icons?files=1,2&spells=3,4` (≤200 each) → `{files: {id: name|null}, spells: {id: name|null}}`.
+  Route: `GET /api/icons?files=1,2&spells=3,4` (≤200 each) → `{files: {id: name|null}, spells: {id: name|null}}`.
 - `src/render/textures.ts`: icon resolution as in RegionTypes/Icon.lua (`iconSource` -1 = first trigger with a spell ID,
   0 = `displayIcon`, N = trigger N; then `displayIcon` as FileDataID or `Interface\Icons\...` path; then the question mark),
   with a batched, cached client store (`iconStore`, `useAuraIconUrl`).

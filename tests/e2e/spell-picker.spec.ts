@@ -107,16 +107,6 @@ test("an unsynced cache shows a first-run prompt whose Sync button syncs", async
 });
 
 test("icon API maps FileDataIDs and spell IDs", async ({ request }) => {
-  const one = await request.get("/api/icons/135932");
-  expect(one.status()).toBe(200);
-  expect(await one.json()).toEqual({
-    fileDataId: 135932,
-    icon: "spell_holy_magicalsentry",
-    iconUrl: "https://wow.zamimg.com/images/wow/icons/large/spell_holy_magicalsentry.jpg",
-  });
-  expect((await request.get("/api/icons/1")).status()).toBe(404);
-  expect((await request.get("/api/icons/abc")).status()).toBe(400);
-
   const batch = await request.get("/api/icons?files=135932,1&spells=116");
   expect(await batch.json()).toEqual({
     files: { 135932: "spell_holy_magicalsentry", 1: null },

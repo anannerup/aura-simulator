@@ -8,18 +8,13 @@ export {
   Select,
   Slider,
   Switch,
-  Segmented,
   type FieldProps,
   type InputProps,
   type TextAreaProps,
   type SelectProps,
   type SliderProps,
   type SwitchProps,
-  type SegmentedProps,
-  type SegmentedOption,
 } from "./Form";
-export { Section, SubHeading, type SectionProps } from "./Section";
-export { Tabs, type TabSpec, type TabsProps } from "./Tabs";
 export { GameTexture, ADDON_MEDIA, type GameTextureProps } from "./GameTexture";
 export { Tooltip, type TooltipSide } from "./Tooltip";
 export { ToastProvider, useToast } from "./Toast";

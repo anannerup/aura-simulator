@@ -302,28 +302,6 @@
   font-weight: var(--weight-semibold);
 }
 
-.color input[type="color"] {
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: 1px solid var(--border-strong);
-  background: transparent;
-  cursor: pointer;
-}
-
-.color input[type="color"]::-webkit-color-swatch-wrapper {
-  padding: 1px;
-}
-
-.color input[type="color"]::-webkit-color-swatch {
-  border: 0;
-}
-
-.alpha {
-  accent-color: var(--accent-check);
-  width: 70px;
-}
-
 .button,
 .section,
 .expandSmall,

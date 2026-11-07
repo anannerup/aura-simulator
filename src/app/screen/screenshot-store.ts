@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { idbStore } from "@/lib/idb";
 
 /** The screenshot behind the mock screen. It stays in this browser (IndexedDB) and is never uploaded. */
 export interface Screenshot {
@@ -14,27 +15,7 @@ const DB = "aura-simulator";
 const STORE = "screen";
 const KEY = "screenshot";
 
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function withStore<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
-  const db = await openDb();
-  try {
-    return await new Promise<T>((resolve, reject) => {
-      const req = run(db.transaction(STORE, mode).objectStore(STORE));
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  } finally {
-    db.close();
-  }
-}
+const store = idbStore(() => globalThis.indexedDB, DB, STORE);
 
 async function describe(blob: Blob, name: string): Promise<Screenshot> {
   const url = URL.createObjectURL(blob);
@@ -59,7 +40,7 @@ export function useScreenshot() {
     let loaded: Screenshot | null = null;
     (async () => {
       try {
-        const saved = await withStore<{ blob: Blob; name: string } | undefined>("readonly", (s) => s.get(KEY));
+        const saved = await store.run<{ blob: Blob; name: string } | undefined>("readonly", (s) => s.get(KEY));
         if (!saved || cancelled) return;
         loaded = await describe(saved.blob, saved.name);
         if (cancelled) URL.revokeObjectURL(loaded.url);
@@ -84,7 +65,7 @@ export function useScreenshot() {
       const next = await describe(file, file.name);
       setShot(next);
       try {
-        await withStore("readwrite", (s) => s.put({ blob: file, name: file.name }, KEY));
+        await store.run("readwrite", (s) => s.put({ blob: file, name: file.name }, KEY));
       } catch {
         setError("Shown, but could not be saved in this browser");
       }
@@ -97,7 +78,7 @@ export function useScreenshot() {
     setShot(null);
     setError(null);
     try {
-      await withStore("readwrite", (s) => s.delete(KEY));
+      await store.run("readwrite", (s) => s.delete(KEY));
     } catch {
       // Nothing stored, or storage unavailable.
     }
