@@ -37,6 +37,27 @@ async function pixel(page: Page, png: Buffer, x: number, y: number): Promise<num
   );
 }
 
+/** How much redder than green the reddest pixel of a rectangle of a PNG is (x and y as inclusive ranges). */
+async function reddest(page: Page, png: Buffer, xs: [number, number], ys: [number, number]): Promise<number> {
+  return page.evaluate(
+    async ({ b64, xs, ys }) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(xs[0], ys[0], xs[1] - xs[0] + 1, ys[1] - ys[0] + 1).data;
+      let best = -255;
+      for (let i = 0; i < data.length; i += 4) best = Math.max(best, data[i] - data[i + 1]);
+      return best;
+    },
+    { b64: png.toString("base64"), xs, ys },
+  );
+}
+
 async function screenshot(request: APIRequestContext, workspace: string, query: Record<string, string> = {}) {
   const res = await request.get(`/api/tbc/workspaces/${workspace}/screenshot.png?${new URLSearchParams(query)}`, { timeout: 120_000 });
   expect(res.status(), res.status() === 200 ? "" : await res.text()).toBe(200);
@@ -110,4 +131,26 @@ test("two situations give two different pictures", async ({ request }) => {
   const set = await request.put(`/api/tbc/workspaces/${workspace}/situation`, { data: { triggers: { "1": { remaining: 5 } } } });
   expect(set.status()).toBe(200);
   expect((await screenshot(request, workspace, { padding: "16" })).equals(urgent)).toBe(true);
+});
+
+test("a 1-unit border draws all four sides at any scale, snapped to whole pixels", async ({ page, request }) => {
+  test.setTimeout(240_000);
+  const workspace = uniqueId("render-border");
+  // A red 1-unit border 2 units outside the 64-unit icon: nothing else is drawn where it is.
+  const border = { type: "subborder", border_visible: true, border_edge: "Square Full White", border_size: 1, border_offset: 2, border_color: [1, 0, 0, 1] };
+  await push(request, workspace, { aura: { ...tbcCooldownIcon, subRegions: [{ type: "subbackground" }, border] } });
+  for (const scale of [1, 1.40625, 1.5, 2]) {
+    const png = await screenshot(request, workspace, { scale: String(scale), padding: "4", background: "000000" });
+    const { width, height } = pngSize(png);
+    // The picture is cropped to the icon plus 4 units of padding: the border is the 3rd unit in from each side.
+    const inFrom = (size: number, start: boolean): [number, number] => {
+      const [a, b] = [Math.floor(2 * scale) - 1, Math.ceil(3 * scale)];
+      return start ? [a, b] : [size - 1 - b, size - 1 - a];
+    };
+    const middle = (size: number): [number, number] => [Math.floor(size / 2) - 2, Math.floor(size / 2) + 2];
+    expect(await reddest(page, png, inFrom(width, true), middle(height)), `left at scale ${scale}`).toBeGreaterThan(200);
+    expect(await reddest(page, png, inFrom(width, false), middle(height)), `right at scale ${scale}`).toBeGreaterThan(200);
+    expect(await reddest(page, png, middle(width), inFrom(height, true)), `top at scale ${scale}`).toBeGreaterThan(200);
+    expect(await reddest(page, png, middle(width), inFrom(height, false)), `bottom at scale ${scale}`).toBeGreaterThan(200);
+  }
 });

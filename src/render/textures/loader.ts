@@ -5,7 +5,7 @@ import { fetchJson } from "@/lib/fetch-json";
 import { decodeTexture, type DecodedTexture } from "./decode";
 import { gameFilesFromApi, type ResolvePath } from "./files";
 import { fileDataIdUrl, isAddonPath, textureUrls, type AddonFileUrl, type TextureSource } from "./paths";
-import { cropTexture, shadePixels, type TextureVariant } from "./pixels";
+import { cropTexture, shadePixels, turnTexture, type TextureVariant } from "./pixels";
 
 export interface TextureLoaderOptions {
   /** fetch implementation (tests inject a mock). */
@@ -36,7 +36,7 @@ export interface TextureLoader {
   loadBytes(source: TextureSource): Promise<Uint8Array>;
   /** Decoded RGBA. */
   load(source: TextureSource): Promise<DecodedTexture>;
-  /** URL of the (optionally cropped / desaturated / tinted) texture, cached per variant. */
+  /** URL of the (optionally cropped / turned / desaturated / tinted) texture, cached per variant. */
   url(source: TextureSource, variant?: TextureVariant): Promise<TextureUrl>;
 }
 
@@ -156,11 +156,12 @@ export function createTextureLoader(options: TextureLoaderOptions = {}): Texture
   }
 
   function url(source: TextureSource, variant: TextureVariant = {}): Promise<TextureUrl> {
-    const k = `${key(source)}|${variant.desaturate ? 1 : 0}|${variant.tint?.join(",") ?? ""}|${variant.crop?.join(",") ?? ""}`;
+    const k = `${key(source)}|${variant.desaturate ? 1 : 0}|${variant.tint?.join(",") ?? ""}|${variant.crop?.join(",") ?? ""}|${variant.turn ? 1 : 0}`;
     let p = urlCache.get(k);
     if (!p) {
       p = load(source).then(async (tex) => {
-        const cropped = variant.crop ? cropTexture(tex, variant.crop) : tex;
+        const cut = variant.crop ? cropTexture(tex, variant.crop) : tex;
+        const cropped = variant.turn ? turnTexture(cut) : cut;
         const plain = !variant.desaturate && !variant.tint;
         const shaded = plain ? cropped : { ...cropped, data: shadePixels(cropped.data, variant) };
         return { url: await encode(shaded), width: shaded.width, height: shaded.height };

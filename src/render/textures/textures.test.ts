@@ -137,6 +137,9 @@ describe("texture loader", () => {
     expect(tinted).toEqual({ url: "img:1x1:76,76,76,255", width: 1, height: 1 });
     await loader.url(1, { desaturate: true, tint: [1, 1, 1], crop: [0, 0.5, 0, 0.5] });
     expect(encode).toHaveBeenCalledTimes(2);
+    // Turned a quarter clockwise (a backdrop's top and bottom edges): the left column becomes the top row, read upwards.
+    const turned = await loader.url(1, { crop: [0, 0.5, 0, 1], turn: true });
+    expect(turned).toEqual({ url: "img:2x1:0,0,255,255", width: 2, height: 1 });
   });
 
   it("survives a broken Cache Storage", async () => {
