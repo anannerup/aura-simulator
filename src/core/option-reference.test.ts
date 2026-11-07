@@ -63,6 +63,8 @@ let core: AuraCore | undefined;
  */
 let reference: OptionReference;
 const bases = new Map<string, Promise<AuraState>>();
+/** Each display type's new aura with every tab settled (what the bases of its tabs and its condition properties start from). */
+const allSettled = new Map<string, Promise<AuraState>>();
 
 /**
  * Follows a table path through JSON as the reference says to read it: a number is the n-th element of an array, any
@@ -168,6 +170,21 @@ async function settle(state: AuraState, tab: string): Promise<AuraState> {
   return state;
 }
 
+/** A display type's new aura with every tab settled, made once per display type (it takes hundreds of edits). */
+function settledTabs(regionType: string): Promise<AuraState> {
+  let settled = allSettled.get(regionType);
+  if (!settled) {
+    settled = (async () => {
+      const fresh = await newState(regionType);
+      let all = fresh;
+      for (const { key } of (await core!.options(fresh)).tabs) all = await settle(all, key);
+      return all;
+    })();
+    allSettled.set(regionType, settled);
+  }
+  return settled;
+}
+
 /** The settled aura a scope's probes start from (undefined for scopes this test doesn't rebuild: choices made first). */
 function baseFor(scope: OptionScope, tab: string): Promise<AuraState> | undefined {
   if (scope.after) return undefined;
@@ -187,10 +204,7 @@ function baseFor(scope: OptionScope, tab: string): Promise<AuraState> | undefine
         }
         return state;
       }
-      const { tabs } = await core!.options(fresh);
-      let all = fresh;
-      for (const t of tabs) all = await settle(all, t.key);
-      const settled = await settle(all, tab);
+      const settled = await settle(await settledTabs(scope.regionType), tab);
       if (!scope.added) return settled;
       const e = await core!.setOption(settled, { tab, path: scope.added.option });
       return settle(e.state, tab);
@@ -231,6 +245,7 @@ describe.each(GAMES.filter((g) => runsGame(shard, g.game)))("option reference of
   let fresh: boolean;
   beforeAll(async () => {
     bases.clear();
+    allSettled.clear();
     shownCache.clear();
     if (!(await load.available())) return;
     // Generated (when not cached for this addon version and generator code) on a core of its own, so the core the
@@ -479,9 +494,7 @@ describe.each(GAMES.filter((g) => runsGame(shard, g.game)))("option reference of
     for (const set of reference.conditions.properties.filter((s) => units.has(displayUnit(s.regionType)))) {
       const where = `${set.regionType} (${set.added.name})`;
       // The display's new aura, settled, with one sub element of each kind the Display tab's Add buttons add.
-      const fresh = await newState(set.regionType);
-      let state = fresh;
-      for (const { key } of (await core!.options(fresh)).tabs) state = await settle(state, key);
+      let state = await settledTabs(set.regionType);
       const adds = walkOptions(await tree(state, "region")).filter((n) => n.type === "execute" && n.canRun && !n.hidden && !n.disabled && /^Add\b/.test(n.name ?? ""));
       for (const add of adds) {
         const e = await core!.setOption(state, { tab: "region", path: add.path });

@@ -11,7 +11,7 @@
  */
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const ROOT = path.resolve(__dirname, "../..");
@@ -136,4 +136,9 @@ export async function writeGenerated(key: string, entry: string, value: unknown)
   const tmp = `${file}.${process.pid}.tmp`;
   await writeFile(tmp, JSON.stringify(value));
   await rename(tmp, file);
+  // The same key made by older code is never read again.
+  const stale = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-[0-9a-f]{16}\\.json$`);
+  for (const name of await readdir(GENERATED_CACHE_DIR)) {
+    if (stale.test(name) && name !== path.basename(file)) await rm(path.join(GENERATED_CACHE_DIR, name), { force: true });
+  }
 }

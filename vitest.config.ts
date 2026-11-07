@@ -8,16 +8,19 @@ import type { Shard } from "./tests/support/shards";
  * shards that run in parallel (tests/support/shards.ts).
  */
 const EXHAUSTIVE: { name: string; file: string; shards: Omit<Shard, "index">[] }[] = [
-  // The option reference replayed, probe by probe, per game: its display and trigger types dealt out. Each shard takes
-  // about a minute and a half on an idle machine (the longest of the full tier); more shards would cost more CPU: each
-  // settles the bases of its own units.
+  // The option reference replayed, probe by probe, per game: its display and trigger types dealt out (each shard about
+  // half a minute to a minute on an idle machine).
   {
     name: "option-reference",
     file: "src/core/option-reference.test.ts",
     shards: [...Array<Omit<Shard, "index">>(3).fill({ count: 3, game: "forever" }), ...Array<Omit<Shard, "index">>(3).fill({ count: 3, game: "tbc" })],
   },
-  // The tab sweep at seam A: one shard per game.
-  { name: "options-sweep", file: "src/core/options-sweep.test.ts", shards: [{ count: 1, game: "forever" }, { count: 1, game: "tbc" }] },
+  // The tab sweep at seam A: per game, the display types and the deeper sweeps.
+  {
+    name: "options-sweep",
+    file: "src/core/options-sweep.test.ts",
+    shards: [...Array<Omit<Shard, "index">>(2).fill({ count: 2, game: "forever" }), ...Array<Omit<Shard, "index">>(2).fill({ count: 2, game: "tbc" })],
+  },
   // The recorded wago.io TBC auras, dealt out by size.
   { name: "wago-tbc", file: "src/core/wago-tbc.test.ts", shards: Array<Omit<Shard, "index">>(4).fill({ count: 4 }) },
 ];

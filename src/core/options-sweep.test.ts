@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { loadAddon, type AddonGameId, type AuraCore, type AuraState, type OptionNode } from "@/core";
 import { cachedAddonFetcher } from "../../tests/support/addon-source";
 import { sweepValue, walkOptions } from "../../tests/support/options-sweep";
-import { currentShard, runsGame } from "../../tests/support/shards";
+import { currentShard, runsGame, shardUnits } from "../../tests/support/shards";
 import { TBC_TEST_VERSION, weakAuras2Available, weakAuras2Fetcher } from "../../tests/support/weakauras2";
 
 const TYPES = ["icon", "aurabar", "text", "texture", "progresstexture", "stopmotion", "model", "empty", "group", "dynamicgroup"];
@@ -157,8 +157,10 @@ function report(name: string, out: SweepResult) {
 
 const fresh = (): SweepResult => ({ problems: [], mismatches: [], edited: 0 });
 
-// In `npm run test:all` each game is a shard of its own.
+// In `npm run test:all` each game is split into shards: the display types' sweeps, and the deeper ones (every trigger
+// type, every added part) with the Load tab's lists.
 const shard = currentShard();
+const units = new Set(shardUnits(["display types", "deeper"], () => 1, shard));
 
 describe.each(GAMES.filter((g) => runsGame(shard, g.game)))("$game", ({ game, load }) => {
   let loaded: AuraCore | undefined;
@@ -170,7 +172,7 @@ describe.each(GAMES.filter((g) => runsGame(shard, g.game)))("$game", ({ game, lo
   }, 120_000);
   afterAll(() => loaded?.dispose());
 
-  describe.each(TYPES)("%s", (regionType) => {
+  describe.runIf(units.has("display types")).each(TYPES)("%s", (regionType) => {
     test("every tab builds, and every editable option takes a value and shows it again", { timeout: 600_000 }, async (ctx) => {
       if (!loaded) return ctx.skip();
       const base = await newState(regionType);
@@ -191,7 +193,7 @@ describe.each(GAMES.filter((g) => runsGame(shard, g.game)))("$game", ({ game, lo
     });
   });
 
-  describe("deeper", () => {
+  describe.runIf(units.has("deeper"))("deeper", () => {
     test("every trigger type (and event) of the Trigger tab builds and takes values", { timeout: 1_200_000 }, async (ctx) => {
       if (!loaded) return ctx.skip();
       const base = await newState("icon");
@@ -239,7 +241,7 @@ describe.each(GAMES.filter((g) => runsGame(shard, g.game)))("$game", ({ game, lo
     });
   });
 
-  describe("Load tab lists from the client data", () => {
+  describe.runIf(units.has("deeper"))("Load tab lists from the client data", () => {
     test.runIf(game === "forever")("Instance Type, Item Type Equipped and Talent offer the client's entries", async (ctx) => {
       if (!loaded) return ctx.skip();
       const tree = (await core.options(await newState("icon"), { tab: "load" })).tree!;

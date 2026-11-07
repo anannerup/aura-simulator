@@ -81,7 +81,8 @@ describe.each(mine)("$name (wago $id)", (recorded) => {
       const opened = await c.options(state, { selected });
       if (opened.warning) problems.push(`loading: ${opened.warning}`);
       for (const { key } of opened.tabs) {
-        const r = await c.options(state, { selected, tab: key });
+        // (Opening built the first tab already.)
+        const r = key === opened.tab ? opened : await c.options(state, { selected, tab: key });
         if (r.error) problems.push(`${selected} ${key}: ${r.error}`);
       }
     }
