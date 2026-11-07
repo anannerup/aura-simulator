@@ -5,22 +5,16 @@ import type { AuraDocument } from "@/core";
 import { ADDON_MEDIA, GameTexture, SearchIcon } from "@/components/ui";
 import { useAuraIconUrl } from "@/render/textures";
 import {
-  addSubtree,
   allIds,
   duplicateNode,
   findNode,
-  insertionTarget,
   isDynamicGroupDoc,
   moveNode,
-  newAuraNode,
-  newGroupNode,
   nodeId,
   removeNode,
   renameNode,
   shiftNode,
   traverse,
-  uniqueId,
-  type GroupKind,
   type Target,
   type WorkspaceNode,
 } from "@/workspace";
@@ -33,8 +27,6 @@ export interface WorkspaceTreeProps {
   onSelect(id: string): void;
   /** A tree edit: the new items (normalized: ids, `controlledChildren` and `parent` consistent) and what to select. */
   onChange(items: WorkspaceNode[], selectedId: string | null): void;
-  /** The addon's internalVersion, written into new auras and groups. */
-  internalVersion: number;
   /** Auras hidden in the preview (as if their trigger were inactive); shows an eye toggle per aura when given. */
   hiddenIds?: ReadonlySet<string>;
   onToggleHidden?(id: string): void;
@@ -89,9 +81,10 @@ const actionIcon = (name: string) => <GameTexture source={ADDON_MEDIA(name)} siz
 
 /**
  * The workspace's auras and groups as a tree, with the addon's rules: unique ids, dynamic groups hold no groups.
- * Self-contained: every edit is a pure operation from `@/workspace`, handed to `onChange`.
+ * Self-contained: every edit is a pure operation from `@/workspace`, handed to `onChange`. New auras and groups come
+ * from the window's New Aura page (the addon's own), not from here.
  */
-export function WorkspaceTree({ items, selectedId, onSelect, onChange, internalVersion, hiddenIds, onToggleHidden }: WorkspaceTreeProps) {
+export function WorkspaceTree({ items, selectedId, onSelect, onChange, hiddenIds, onToggleHidden }: WorkspaceTreeProps) {
   const [error, setError] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   // Enter commits and unmounts the input, whose blur would commit the same rename again.
@@ -112,25 +105,6 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, internalV
       setError(e instanceof Error ? e.message : String(e));
       return false;
     }
-  }
-
-  function addAura() {
-    apply(() => {
-      const target = insertionTarget(items, selectedId, false);
-      const siblings = target.parentId ? (findNode(items, target.parentId)?.node.items?.length ?? 0) : 0;
-      const node = newAuraNode(internalVersion, uniqueId(allIds(items), "New"), siblings);
-      const added = addSubtree(items, node, target);
-      return { items: added.items, select: added.id };
-    });
-  }
-
-  function addGroup(kind: GroupKind) {
-    apply(() => {
-      const target = insertionTarget(items, selectedId, true);
-      const node = newGroupNode(internalVersion, uniqueId(allIds(items), kind === "group" ? "New Group" : "New Dynamic Group"), kind);
-      const added = addSubtree(items, node, target);
-      return { items: added.items, select: added.id };
-    });
   }
 
   function remove() {
@@ -294,17 +268,6 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, internalV
       <div className={styles.listHeader}>
         <span>Loaded/Standby</span>
         <span className={styles.listCount}>{allIds(items).size}</span>
-      </div>
-      <div className={styles.toolbar}>
-        <button type="button" onClick={addAura}>
-          New aura
-        </button>
-        <button type="button" onClick={() => addGroup("group")}>
-          New group
-        </button>
-        <button type="button" onClick={() => addGroup("dynamicgroup")}>
-          New dynamic group
-        </button>
       </div>
       <ul
         role="tree"

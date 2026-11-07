@@ -1,6 +1,6 @@
 import { IDBFactory } from "fake-indexeddb";
 import { describe, expect, it } from "vitest";
-import { createWorkspaceStorage, StorageProblem, storageWarning } from "@/app/workspace/storage";
+import { createWorkspaceStorage, createWorkspaceStore, StorageProblem, storageWarning } from "@/client/workspace/storage";
 
 /** A Map-backed localStorage; `quota` makes setItem throw like a full browser storage. */
 function memoryStorage(entries: Record<string, string> = {}, quota = Infinity): Storage {
@@ -66,5 +66,30 @@ describe("workspace storage", () => {
     expect(await createWorkspaceStorage({ indexedDB: broken, localStorage: null }).read(KEY)).toBeNull();
     const error = await createWorkspaceStorage({ indexedDB: null, localStorage: null }).write(KEY, "x").catch((e: unknown) => e);
     expect((error as StorageProblem).kind).toBe("unavailable");
+  });
+});
+
+describe("workspace store (written behind)", () => {
+  it("writes a burst of saves once (the latest), and a read waits for it", async () => {
+    const local = memoryStorage();
+    const store = createWorkspaceStore(createWorkspaceStorage({ indexedDB: null, localStorage: local }));
+    const serialized: string[] = [];
+    const save = (text: string) => store.save("w1", () => (serialized.push(text), text), () => {});
+    save("first");
+    save("second");
+    save("third");
+    expect(await store.read("w1")).toBe("third");
+    expect(serialized).toEqual(["first", "third"]); // "second" was replaced before its turn and never serialized
+    expect(local.getItem(KEY)).toBe("third");
+  });
+
+  it("reports a failed write as a warning, and the next good write clears it", async () => {
+    const store = createWorkspaceStore(createWorkspaceStorage({ indexedDB: null, localStorage: memoryStorage({}, 10) }));
+    const heard: (string | null)[] = [];
+    store.save("w1", () => "far too long for this", (w) => heard.push(w));
+    await store.read("w1");
+    store.save("w1", () => "small", (w) => heard.push(w));
+    await store.read("w1");
+    expect(heard).toEqual([expect.stringMatching(/full/), null]);
   });
 });

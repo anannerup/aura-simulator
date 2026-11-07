@@ -7,7 +7,7 @@ import {
   extractStateCodes,
   newerWorkspace,
   parseAddress,
-  parseWorkspace,
+  readWorkspace,
 } from "@/workspace";
 
 const CODE = "!WA:2!Tr1ox(TnqKa)pL9";
@@ -23,15 +23,10 @@ describe("address", () => {
     expect(buildPageUrl("http://x", "w1")).toBe("http://x/?w=w1");
   });
 
-  it("reports old ?code= and ?s= links so the page can import once and strip them", () => {
-    expect(parseAddress(`?w=a&code=${encodeURIComponent(CODE)}`)).toEqual({
-      workspaceId: "a",
-      legacyCode: CODE,
-      legacyShortLink: false,
-    });
+  it("reports an old ?code= link so the page can import it once and strip it", () => {
+    expect(parseAddress(`?w=a&code=${encodeURIComponent(CODE)}`)).toEqual({ workspaceId: "a", legacyCode: CODE });
     expect(parseAddress(`?code=${CODE}`).legacyCode).toBe(CODE);
-    expect(parseAddress("?s=Ab12Cd34")).toEqual({ workspaceId: "default", legacyCode: null, legacyShortLink: true });
-    expect(parseAddress("?w=a")).toEqual({ workspaceId: "a", legacyCode: null, legacyShortLink: false });
+    expect(parseAddress("?w=a")).toEqual({ workspaceId: "a", legacyCode: null });
   });
 });
 
@@ -71,13 +66,13 @@ describe("stored workspace", () => {
     const decode = () => {
       throw new Error("not reached");
     };
-    expect(parseWorkspace(null)).toBeNull();
-    expect(parseWorkspace("{not json")).toBeNull();
-    expect(parseWorkspace(JSON.stringify({ format: "other", version: 1, items: [{ code: CODE }] }))).toBeNull();
+    expect(readWorkspace(null).ok).toBe(false);
+    expect(readWorkspace("{not json").ok).toBe(false);
+    expect(readWorkspace(JSON.stringify({ format: "other", version: 1, items: [{ code: CODE }] })).ok).toBe(false);
     expect(
-      parseWorkspace(JSON.stringify({ format: "aura-simulator/workspace", version: 1, items: [{ code: "hello" }] }), decode),
-    ).toBeNull();
-    expect(parseWorkspace(JSON.stringify({ format: "aura-simulator/workspace", version: 3, items: [] }))).toBeNull();
+      readWorkspace(JSON.stringify({ format: "aura-simulator/workspace", version: 1, items: [{ code: "hello" }] }), decode),
+    ).toMatchObject({ ok: false });
+    expect(readWorkspace(JSON.stringify({ format: "aura-simulator/workspace", version: 3, items: [] })).ok).toBe(false);
   });
 
   it("picks the newer of two", () => {

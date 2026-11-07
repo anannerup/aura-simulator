@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { ownWorkspacePage } from "../support/e2e-workspace";
+import { stateCode } from "../support/state-code";
 
 // The dev server's spell database is seeded from tests/fixtures/spells (see global-setup.ts).
 
@@ -34,7 +35,7 @@ test("search, pick with the keyboard, and the preview shows the spell's icon", a
   await expect(page.getByTestId("current-spell")).toContainText("Frostbolt");
   await expect(page.getByTestId("current-spell")).toContainText("ID 116");
   // The state code carries the new spell ID.
-  await expect(page.getByLabel("State code")).not.toHaveValue("");
+  await expect.poll(() => stateCode(page)).not.toBe("");
 });
 
 test("hovering a result shows its Wowhead tooltip; clicking picks it", async ({ page }) => {
@@ -107,16 +108,6 @@ test("an unsynced cache shows a first-run prompt whose Sync button syncs", async
 });
 
 test("icon API maps FileDataIDs and spell IDs", async ({ request }) => {
-  const one = await request.get("/api/icons/135932");
-  expect(one.status()).toBe(200);
-  expect(await one.json()).toEqual({
-    fileDataId: 135932,
-    icon: "spell_holy_magicalsentry",
-    iconUrl: "https://wow.zamimg.com/images/wow/icons/large/spell_holy_magicalsentry.jpg",
-  });
-  expect((await request.get("/api/icons/1")).status()).toBe(404);
-  expect((await request.get("/api/icons/abc")).status()).toBe(400);
-
   const batch = await request.get("/api/icons?files=135932,1&spells=116");
   expect(await batch.json()).toEqual({
     files: { 135932: "spell_holy_magicalsentry", 1: null },

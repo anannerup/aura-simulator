@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { EXAMPLES } from "@/render/examples";
 import { Lab } from "./Lab";
-import styles from "../page.module.css";
+import styles from "./lab.module.css";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -12,7 +12,7 @@ export default function LabPage({ searchParams }: { searchParams: SearchParams }
     <main className={styles.page}>
       <header className={styles.header}>
         <h1>Situation lab</h1>
-        <nav aria-label="Examples" style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 14 }}>
+        <nav aria-label="Examples" className={styles.examples}>
           {Object.keys(EXAMPLES).map((key) => (
             <Link key={key} href={`/lab?example=${key}`}>
               {key}

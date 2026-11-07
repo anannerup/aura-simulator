@@ -6,9 +6,9 @@
 
 **Status:** wontfix (built, then removed on 2026-11-06)
 
-- [x] Long codes get a short link automatically
-- [x] Short link restores the exact state code
-- [x] Stored in SQLite
+- [ ] ~~Long codes get a short link automatically~~ (built, then removed)
+- [ ] ~~Short link restores the exact state code~~ (built, then removed)
+- [ ] ~~Stored in SQLite~~ (built, then removed)
 
 ## Decision (2026-11-06): no links, files instead
 
@@ -18,6 +18,6 @@ files is best. So no linking." Short links were removed with everything that use
 - Gone: `POST /api/short-links`, `GET /api/short-links/<id>`, the SQLite store (`src/server/workspaces/short-links.ts`,
   `data/workspaces.sqlite`, `WORKSPACE_DB_PATH`), bundles (`encodeBundle`/`parseBundle`), the page's `?s=` handling and
   the push answer's short-link `url` (it is now the `?w=` page URL). Nothing else needed them.
-- An old `?s=` link only shows a notice ("Short links are no longer supported") and is stripped from the address.
+- An old `?s=` link is dropped from the address like any other unknown parameter (its notice went on 2026-11-07).
 - Instead: aura `.txt` files (exactly one state code) and workspace `.json` files, imported by picking or dropping
   them; see ticket 02's notes and `src/workspace/files.ts`.

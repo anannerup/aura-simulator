@@ -10,7 +10,7 @@ import {
   resolveRef,
   serverAddonFetcher,
   storeRef,
-} from "./addon-client";
+} from "@/client/addon-client";
 import type { AddonDiff, Resolution, VersionList } from "@/api/addon";
 
 const WASM_URI = "/lua/liblua5.1.wasm";

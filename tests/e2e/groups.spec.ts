@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { stateCode } from "../support/state-code";
 
 const uniqueId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
@@ -67,7 +68,7 @@ test("build a group with two auras, see both laid out, and paste its code into a
   // The group's state code holds both auras.
   await openExport(page);
   await expect(page.getByRole("heading", { name: "State code of Buffs" })).toBeVisible();
-  const code = await page.getByLabel("State code").inputValue();
+  const code = await stateCode(page);
   expect(code).toMatch(/^!WA:2!/);
 
   // A fresh browser: paste the group code, and the same tree comes back.
@@ -78,7 +79,7 @@ test("build a group with two auras, see both laid out, and paste its code into a
   await fresh.getByLabel("Paste a code to load").fill(code);
   await fresh.getByRole("region", { name: "Workspace", exact: true }).getByRole("button", { name: "Load" }).click();
   await expect.poll(() => treeShape(fresh)).toEqual(["1:Buffs", "2:Arcane Intellect", "2:New"]);
-  await expect(fresh.getByLabel("State code")).toHaveValue(code);
+  await expect.poll(() => stateCode(fresh)).toBe(code);
   const a2 = await box(region(fresh, "Arcane Intellect"));
   const b2 = await box(region(fresh, "New"));
   expect((b2.x - a2.x) / a2.width).toBeCloseTo(68 / 64, 2);

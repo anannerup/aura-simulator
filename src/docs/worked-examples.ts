@@ -1,7 +1,6 @@
 /**
  * The agent docs' worked examples: the four v1 acceptance auras (1a with an alternative) and one counter-example,
- * each a complete push body with the combat status the docs promise. The documents themselves live in `src/render/examples.ts`, shared
- * with the `/lab` page; tests push every example and check the promised status.
+ * each a complete push body with the combat status the docs promise.
  */
 import type { AuraDocument, CombatStatus } from "@/core";
 import {

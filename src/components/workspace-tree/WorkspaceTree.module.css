@@ -66,11 +66,6 @@
   text-align: center;
 }
 
-/* New items come from the window's New Aura button, as in game. */
-.toolbar {
-  display: none;
-}
-
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -78,7 +73,6 @@
   align-items: center;
 }
 
-.toolbar button,
 .actions button,
 .actions select {
   height: var(--control-h-sm);
@@ -97,7 +91,6 @@
     color var(--dur-fast) var(--ease);
 }
 
-.toolbar button:hover:not(:disabled),
 .actions button:hover:not(:disabled),
 .actions select:hover:not(:disabled) {
   background: var(--surface-3);
@@ -105,7 +98,6 @@
   color: var(--text-1);
 }
 
-.toolbar button:disabled,
 .actions button:disabled {
   opacity: 0.45;
   cursor: not-allowed;

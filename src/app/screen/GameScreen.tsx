@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Stage, StageToolbar, ToolbarSeparator, ToolbarText } from "@/components/shell";
 import { GridIcon, IconButton, ImageIcon, Popover, SlidersIcon } from "@/components/ui";
 import type { UiParent } from "@/render/screen/geometry";
@@ -15,8 +15,7 @@ import styles from "./GameScreen.module.css";
 export function useGameScreen() {
   const [settings, update] = useScreenSettings();
   const shot = useScreenshot();
-  const fileInputId = useId();
-  return { settings, update, ...shot, fileInputId };
+  return { settings, update, ...shot };
 }
 
 export type GameScreenState = ReturnType<typeof useGameScreen>;
@@ -66,13 +65,7 @@ export function GameScreenStage({
               onClick={() => update({ showBackground: !settings.showBackground })}
             />
           ) : (
-            // Opens the settings panel's file input, so there is one input and one code path.
-            <IconButton
-              label="Add a background image"
-              icon={<ImageIcon />}
-              size="sm"
-              onClick={() => document.getElementById(screen.fileInputId)?.click()}
-            />
+            <IconButton label="Add a background image" icon={<ImageIcon />} size="sm" onClick={screen.pickFile} />
           )}
           <ToolbarSeparator />
           <div role="radiogroup" aria-label="Zoom" className={styles.zoom}>
@@ -115,7 +108,6 @@ export function GameScreenStage({
               screenshotError={screen.error}
               onChooseScreenshot={screen.choose}
               onClearScreenshot={screen.clear}
-              fileInputId={screen.fileInputId}
             />
           </Popover>
         </StageToolbar>

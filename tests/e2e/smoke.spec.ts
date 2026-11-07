@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { stateCode } from "../support/state-code";
 
 test("the page loads, previews the sample aura and copies its state code", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
@@ -26,5 +27,5 @@ test("the page loads, previews the sample aura and copies its state code", async
   await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(copied).toMatch(/^!WA:2![A-Za-z0-9()]+$/);
-  await expect(page.getByLabel("State code")).toHaveValue(copied);
+  await expect.poll(() => stateCode(page)).toBe(copied);
 });

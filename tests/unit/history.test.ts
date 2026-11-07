@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { EMPTY_HISTORY, canRedo, canUndo, current, record, redo, undo, type History } from "@/workspace/history";
+import { EMPTY_HISTORY, canRedo, canUndo, current, record, redo, undo, type History } from "@/workspace";
 
-const recordAll = (codes: string[], h: History = EMPTY_HISTORY) => codes.reduce((acc, c) => record(acc, c), h);
+const recordAll = (codes: string[], h: History<string> = EMPTY_HISTORY) => codes.reduce((acc, c) => record(acc, c), h);
 
 describe("undo history", () => {
   test("the first code is the baseline: nothing to undo yet", () => {
@@ -42,9 +42,20 @@ describe("undo history", () => {
   test("keeps at most the limit, dropping the oldest", () => {
     const h = recordAll(["1", "2", "3", "4", "5"].map(String)).entries.length;
     expect(h).toBe(5);
-    let small = EMPTY_HISTORY;
-    for (const c of ["1", "2", "3", "4"]) small = record(small, c, 3);
+    let small: History<string> = EMPTY_HISTORY;
+    for (const c of ["1", "2", "3", "4"]) small = record(small, c, Object.is, 3);
     expect(small.entries).toEqual(["2", "3", "4"]);
     expect(current(small)).toBe("4");
+  });
+
+  test("an entry shown again (a new object with the same parts) is not a new step", () => {
+    type Snap = { items: object; selectedId: string };
+    const same = (a: Snap, b: Snap) => a.items === b.items && a.selectedId === b.selectedId;
+    const one = {};
+    let h = record<Snap>(EMPTY_HISTORY, { items: one, selectedId: "a" }, same);
+    h = record(h, { items: {}, selectedId: "a" }, same);
+    h = undo(h)!;
+    expect(record(h, { items: one, selectedId: "a" }, same)).toBe(h);
+    expect(canRedo(h)).toBe(true);
   });
 });
