@@ -1,11 +1,17 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { createSpellCache, FOREVER_SPELLS } from "@/server/spells";
-import { createFixtureFetch } from "../fixtures/spells/fixture-fetch";
+import { createSpellCache } from "@/server/spells";
+import { FOREVER_SPELLS } from "@/games/forever/sources";
+import { createFixtureFetch } from "../fixtures/forever/spells/fixture-fetch";
 
-/** The spell database the e2e dev server uses (passed as SPELL_DB_PATH), one per port. */
+/** The data directory the e2e dev server uses (passed as DATA_DIR), one per port. */
+export function e2eDataDir(port: number): string {
+  return path.resolve(__dirname, "../../.cache/e2e", String(port));
+}
+
+/** Forever's spell database in it (the server's layout: `<DATA_DIR>/<game>/spells.sqlite`). */
 export function e2eSpellDbPath(port: number): string {
-  return path.resolve(__dirname, "../../.cache/e2e", `spells-${port}.sqlite`);
+  return path.join(e2eDataDir(port), "forever", "spells.sqlite");
 }
 
 /** Spell IDs in the recorded wago fixtures, plus 99999999 (recorded as unknown to Wowhead). */

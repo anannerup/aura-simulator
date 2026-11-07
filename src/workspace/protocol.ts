@@ -1,10 +1,10 @@
 /**
  * The workspace wire protocol between the page and the server (push API and its event stream), defined once for both.
  *
- * - `POST pushUrl(id)`: a push (agent or page). A page sends `CLIENT_HEADER` so it can skip its own change later.
- * - `GET eventsUrl(id)`: Server-Sent Events. First a `snapshot` event, then a `state` event per change; each carries a
+ * - `POST pushUrl(w)`: a push (agent or page). A page sends `CLIENT_HEADER` so it can skip its own change later.
+ * - `GET eventsUrl(w)`: Server-Sent Events. First a `snapshot` event, then a `state` event per change; each carries a
  *   `WorkspaceNotice` (never the code: codes can be megabytes).
- * - `GET snapshotUrl(id, revision?)`: the `WorkspaceSnapshot` (latest, or that recent revision; 404 when no longer kept).
+ * - `GET snapshotUrl(w, revision?)`: the `WorkspaceSnapshot` (latest, or that recent revision; 404 when no longer kept).
  *
  * The server keeps only the latest few pushes per workspace, in memory: one aura or group each, not a Workspace.
  */
@@ -52,9 +52,15 @@ export function readPushInput(value: unknown): PushInput {
   throw new Error('Send either "code" (a state code) or "aura" (an aura document)');
 }
 
-const base = (id: string) => `/api/workspaces/${encodeURIComponent(id)}`;
+/** A game's workspace on the server: workspaces are namespaced per game. */
+export interface WorkspaceAddress {
+  game: string;
+  id: string;
+}
 
-export const snapshotUrl = (id: string, revision?: number) => (revision ? `${base(id)}?revision=${revision}` : base(id));
-export const eventsUrl = (id: string) => `${base(id)}/events`;
-export const pushUrl = (id: string, options: { validate?: boolean } = {}) =>
-  options.validate === false ? `${base(id)}/aura?validate=false` : `${base(id)}/aura`;
+const base = ({ game, id }: WorkspaceAddress) => `/api/${encodeURIComponent(game)}/workspaces/${encodeURIComponent(id)}`;
+
+export const snapshotUrl = (w: WorkspaceAddress, revision?: number) => (revision ? `${base(w)}?revision=${revision}` : base(w));
+export const eventsUrl = (w: WorkspaceAddress) => `${base(w)}/events`;
+export const pushUrl = (w: WorkspaceAddress, options: { validate?: boolean } = {}) =>
+  options.validate === false ? `${base(w)}/aura?validate=false` : `${base(w)}/aura`;

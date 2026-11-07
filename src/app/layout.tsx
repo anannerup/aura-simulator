@@ -10,7 +10,7 @@ const mono = Geist_Mono({ variable: "--font-mono-face", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Aura Simulator",
-  description: "Build and preview Musca Auras auras, then import them in the game.",
+  description: "Build and preview WeakAuras auras for your game, then import them in the game.",
 };
 
 export const viewport: Viewport = { themeColor: "#0b0b0b" };

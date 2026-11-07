@@ -6,27 +6,23 @@ import {
   buildSearch,
   classifyImportText,
   newerWorkspace,
-  parseAddress,
+  parseWorkspaceId,
   readWorkspace,
+  workspaceFileName,
 } from "@/workspace";
 
 const CODE = "!WA:2!Tr1ox(TnqKa)pL9";
 
 describe("address", () => {
-  it("names only the workspace, and leaves the default out", () => {
+  it("names the game and only the workspace, and leaves the default out", () => {
     expect(buildSearch("default")).toBe("");
     expect(buildSearch("abc-1")).toBe("?w=abc-1");
-    expect(parseAddress("?w=abc-1").workspaceId).toBe("abc-1");
-    expect(parseAddress("").workspaceId).toBe("default");
-    expect(parseAddress("?w=bad%20id").workspaceId).toBe("default");
-    expect(buildPageUrl("http://localhost:3000/", "default")).toBe("http://localhost:3000/");
-    expect(buildPageUrl("http://x", "w1")).toBe("http://x/?w=w1");
-  });
-
-  it("reports an old ?code= link so the page can import it once and strip it", () => {
-    expect(parseAddress(`?w=a&code=${encodeURIComponent(CODE)}`)).toEqual({ workspaceId: "a", legacyCode: CODE });
-    expect(parseAddress(`?code=${CODE}`).legacyCode).toBe(CODE);
-    expect(parseAddress("?w=a")).toEqual({ workspaceId: "a", legacyCode: null });
+    expect(parseWorkspaceId("?w=abc-1")).toBe("abc-1");
+    expect(parseWorkspaceId("")).toBe("default");
+    expect(parseWorkspaceId("?w=bad%20id")).toBe("default");
+    expect(parseWorkspaceId(`?w=a&code=${encodeURIComponent(CODE)}`)).toBe("a");
+    expect(buildPageUrl("http://localhost:3000/", "forever", "default")).toBe("http://localhost:3000/forever");
+    expect(buildPageUrl("http://x", "forever", "w1")).toBe("http://x/forever?w=w1");
   });
 });
 
@@ -68,20 +64,21 @@ describe("import and export files", () => {
     expect(auraFileName("..")).toBe("aura.txt");
     expect(auraFileName("")).toBe("aura.txt");
   });
+
+  it("names workspace files after the game and workspace, as .aura-workspace.json", () => {
+    expect(workspaceFileName("forever", "default")).toBe("forever-default.aura-workspace.json");
+  });
 });
 
 describe("stored workspace", () => {
-  it("ignores junk, other formats and non-codes", () => {
-    const decode = () => {
-      throw new Error("not reached");
-    };
-    expect(readWorkspace(null).ok).toBe(false);
-    expect(readWorkspace("{not json").ok).toBe(false);
-    expect(readWorkspace(JSON.stringify({ format: "other", version: 1, items: [{ code: CODE }] })).ok).toBe(false);
-    expect(
-      readWorkspace(JSON.stringify({ format: "aura-simulator/workspace", version: 1, items: [{ code: "hello" }] }), decode),
-    ).toMatchObject({ ok: false });
-    expect(readWorkspace(JSON.stringify({ format: "aura-simulator/workspace", version: 3, items: [] })).ok).toBe(false);
+  it("ignores junk, other formats, older versions and other games' workspaces", () => {
+    const file = (body: object) => JSON.stringify({ format: "aura-simulator/workspace", items: [], ...body });
+    expect(readWorkspace(null, "forever").ok).toBe(false);
+    expect(readWorkspace("{not json", "forever").ok).toBe(false);
+    expect(readWorkspace(JSON.stringify({ format: "other", version: 3, game: "forever", items: [] }), "forever").ok).toBe(false);
+    expect(readWorkspace(file({ version: 2 }), "forever")).toMatchObject({ ok: false, error: /version 2/ });
+    expect(readWorkspace(file({ version: 3, game: "tbc" }), "forever")).toMatchObject({ ok: false, error: /another game \(tbc\)/ });
+    expect(readWorkspace(file({ version: 3, game: "forever" }), "forever").ok).toBe(true);
   });
 
   it("picks the newer of two", () => {

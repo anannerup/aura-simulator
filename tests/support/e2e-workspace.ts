@@ -7,7 +7,7 @@ import type { AuraDocument } from "@/core";
  * would show up in the next (and live, over SSE, in tests running in parallel).
  */
 export function ownWorkspacePage(prefix: string): string {
-  return `/?w=${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  return `/forever?w=${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
 /**
@@ -17,7 +17,7 @@ export function ownWorkspacePage(prefix: string): string {
  */
 export async function openPushed(page: Page, aura: AuraDocument, children: AuraDocument[] = []): Promise<string> {
   const path = ownWorkspacePage(typeof aura.id === "string" ? aura.id.replace(/\W+/g, "-").toLowerCase() : "aura");
-  const id = path.slice("/?w=".length);
+  const id = path.slice("/forever?w=".length);
   await push(page, id, aura, children);
   await page.goto(path);
   await expect(page.getByRole("region", { name: "Situation" }).first()).toBeVisible({ timeout: 90_000 });
@@ -26,6 +26,6 @@ export async function openPushed(page: Page, aura: AuraDocument, children: AuraD
 
 /** Pushes an aura to a workspace (an open page on it follows). */
 export async function push(page: Page, workspace: string, aura: AuraDocument, children: AuraDocument[] = []) {
-  const res = await page.request.post(`/api/workspaces/${workspace}/aura?validate=false`, { data: { aura, children } });
+  const res = await page.request.post(`/api/forever/workspaces/${workspace}/aura?validate=false`, { data: { aura, children } });
   expect(res.ok(), await res.text()).toBe(true);
 }

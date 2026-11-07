@@ -2,16 +2,18 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createSpellCache, FOREVER_SPELLS, TBC_SPELLS, type SpellCache } from "@/server/spells";
-import { createFixtureFetch } from "../fixtures/spells/fixture-fetch";
-import { createTbcFixtureFetch } from "../fixtures/spells-tbc/fixture-fetch";
+import { createSpellCache, type SpellCache } from "@/server/spells";
+import { FOREVER_SPELLS } from "@/games/forever/sources";
+import { TBC_SPELLS } from "@/games/tbc/sources";
+import { createFixtureFetch } from "../fixtures/forever/spells/fixture-fetch";
+import { createTbcFixtureFetch } from "../fixtures/tbc/spells/fixture-fetch";
 
 // TBC Anniversary's spell database: wago `wow_anniversary`, Wowhead `/tbc/` with dataEnv=5, its own file.
 
 let dir: string;
 let caches: SpellCache[] = [];
 
-function open(fetchFn = createTbcFixtureFetch().fetch, dbFile = TBC_SPELLS.dbFile) {
+function open(fetchFn = createTbcFixtureFetch().fetch, dbFile = "spells.sqlite") {
   const cache = createSpellCache({ source: TBC_SPELLS, dbPath: path.join(dir, dbFile), fetch: fetchFn });
   caches.push(cache);
   return cache;

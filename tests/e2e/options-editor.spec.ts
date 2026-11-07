@@ -30,7 +30,7 @@ async function iconSize(page: Page): Promise<number> {
 }
 
 test("the editor has the game's tabs", async ({ page }) => {
-  await page.goto(`/?w=${uniqueId("opts")}`);
+  await page.goto(`/forever?w=${uniqueId("opts")}`);
   await openTab(page, "Display");
   await expect(editor(page).getByRole("tab")).toHaveText([
     "Display",
@@ -45,7 +45,7 @@ test("the editor has the game's tabs", async ({ page }) => {
 });
 
 test("changing the width in the Display tab resizes the preview and changes the state code", async ({ page }) => {
-  await page.goto(`/?w=${uniqueId("opts")}`);
+  await page.goto(`/forever?w=${uniqueId("opts")}`);
   await openTab(page, "Display");
   await expect.poll(() => iconSize(page), { timeout: 60_000 }).toBe(64);
   const before = await stateCode(page);
@@ -64,14 +64,14 @@ test("changing the width in the Display tab resizes the preview and changes the 
 });
 
 test("a spell ID input shows the spell's name from the spell cache, as in the game", async ({ page }) => {
-  await page.goto(`/?w=${uniqueId("opts")}`);
+  await page.goto(`/forever?w=${uniqueId("opts")}`);
   await openTab(page, "Trigger");
   await expect(option(page, "trigger.1.secretAura.spellid1")).toContainText("Arcane Intellect", { timeout: 30_000 });
   await expect(option(page, "trigger.1.secretAura.spellid1")).not.toContainText("Unknown Spell");
 });
 
 test("enabling Remaining Time in the Trigger tab keeps the icon fully usable in combat", async ({ page }) => {
-  await page.goto(`/?w=${uniqueId("opts")}`);
+  await page.goto(`/forever?w=${uniqueId("opts")}`);
   const panel = page.getByTestId("validation-panel");
   await expect(panel).toHaveAttribute("data-state", "done", { timeout: 90_000 });
   const before = await stateCode(page);
@@ -95,7 +95,7 @@ test("enabling Remaining Time in the Trigger tab keeps the icon fully usable in 
 });
 
 test("adds a glow and a condition that shows it, with the addon's own buttons", async ({ page }) => {
-  await page.goto(`/?w=${uniqueId("opts")}`);
+  await page.goto(`/forever?w=${uniqueId("opts")}`);
   await openTab(page, "Display");
   await editor(page).getByRole("button", { name: "Add Glow", exact: true }).click();
   await expect(raw(page)).toHaveValue(/type = "subglow"/, { timeout: 30_000 });

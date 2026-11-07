@@ -1,5 +1,5 @@
 /**
- * Remote data sources for the spell cache, and each game's spell source.
+ * Remote data sources for a game's spell cache.
  *
  * - wago.tools (authoritative client data per product: `wowf` for WoW Forever, `wow_anniversary` for TBC
  *   Anniversary): build list, and DB2 CSV exports SpellName (ID, Name_lang), SpellMisc (SpellID ->
@@ -12,37 +12,13 @@
 
 export type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 
-/** Where one game's spell database comes from and where it lives. Each game has its own database file. */
+/** Where a game client's spell data comes from. Each game names its own (`src/games/<game>/sources.ts`). */
 export interface SpellSource {
-  /** The game this is the spell database of. */
-  game: "forever" | "tbc";
   /** wago.tools product whose builds are synced. */
   product: string;
   /** Wowhead tooltip environment: `nether.wowhead.com/<path>/tooltip/spell/<id>?dataEnv=<dataEnv>`. */
   wowhead: { path: string; dataEnv: number };
-  /** Database file name in `<repo>/data/`. */
-  dbFile: string;
-  /** Environment variable that overrides the database path (the e2e server points it at a seeded file). */
-  dbPathEnv: string;
 }
-
-/** WoW Forever: wago `wowf`, Wowhead Classic (`/classic/`, `dataEnv=4`), `data/spells.sqlite`. */
-export const FOREVER_SPELLS: SpellSource = {
-  game: "forever",
-  product: "wowf",
-  wowhead: { path: "classic", dataEnv: 4 },
-  dbFile: "spells.sqlite",
-  dbPathEnv: "SPELL_DB_PATH",
-};
-
-/** TBC Anniversary: wago `wow_anniversary`, Wowhead TBC (`/tbc/`, `dataEnv=5`), `data/spells-tbc.sqlite`. */
-export const TBC_SPELLS: SpellSource = {
-  game: "tbc",
-  product: "wow_anniversary",
-  wowhead: { path: "tbc", dataEnv: 5 },
-  dbFile: "spells-tbc.sqlite",
-  dbPathEnv: "TBC_SPELL_DB_PATH",
-};
 
 const WAGO = "https://wago.tools";
 

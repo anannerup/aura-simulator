@@ -35,7 +35,7 @@ async function box(locator: Locator) {
 }
 
 async function openFresh(page: Page, prefix: string) {
-  await page.goto(`/?w=${uniqueId(prefix)}`);
+  await page.goto(`/forever?w=${uniqueId(prefix)}`);
   await expect(row(page, "Arcane Intellect")).toBeVisible({ timeout: 60_000 }); // the sample
 }
 
@@ -96,9 +96,9 @@ test("build a group with two auras, see both laid out, and paste its code into a
 
 test("a pushed dynamic group appears as a subtree; hidden children close up", async ({ page, request }) => {
   const workspace = uniqueId("dyn");
-  await page.goto(`/?w=${workspace}`);
+  await page.goto(`/forever?w=${workspace}`);
   await expect(row(page, "Arcane Intellect")).toBeVisible({ timeout: 60_000 });
-  await expect.poll(async () => (await (await request.get(`/api/workspaces/${workspace}`)).json()).code).toMatch(/^!WA:2!/);
+  await expect.poll(async () => (await (await request.get(`/api/forever/workspaces/${workspace}`)).json()).code).toMatch(/^!WA:2!/);
 
   const icon = (id: string) => ({
     id,
@@ -127,7 +127,7 @@ test("a pushed dynamic group appears as a subtree; hidden children close up", as
     xOffset: 0,
     yOffset: 200,
   };
-  const res = await request.post(`/api/workspaces/${workspace}/aura`, {
+  const res = await request.post(`/api/forever/workspaces/${workspace}/aura`, {
     data: { aura: group, children: [icon("One"), icon("Two"), icon("Three")] },
   });
   expect(res.status()).toBe(200);
@@ -156,7 +156,7 @@ test("workspace file export and import round trip", async ({ page, browser }) =>
   await page.getByRole("button", { name: "Export workspace file" }).click();
   const file = await (await download).path();
   const exported = JSON.parse(await readFile(file, "utf8"));
-  expect(exported).toMatchObject({ format: "aura-simulator/workspace", version: 2 });
+  expect(exported).toMatchObject({ format: "aura-simulator/workspace", version: 3, game: "forever" });
   expect(exported.items[1].aura.controlledChildren).toEqual(["New 2", "New 3"]);
   expect(exported.items[1].items[0].aura.parent).toBe("New");
   expect(JSON.stringify(exported)).not.toMatch(/data:image|base64/);

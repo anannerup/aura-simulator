@@ -3,5 +3,4 @@ export * from "./refs";
 export * from "./diff";
 export { clientSpells } from "./client-spells";
 export { buildAddonBundle, getEncodedAddonBundle, type EncodedAddonBundle } from "./bundle";
-export type { FetchFn, FileListing } from "./upstream";
-
+export type { AddonRepo, FetchFn, FileListing } from "./upstream";

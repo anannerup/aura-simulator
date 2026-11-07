@@ -8,7 +8,8 @@ import { createHash } from "node:crypto";
 import { describe, expect, test } from "vitest";
 import { cachedAddonFetcher } from "../../tests/support/addon-source";
 import { TBC_TEST_VERSION, weakAuras2Available, weakAuras2Fetcher } from "../../tests/support/weakauras2";
-import { DEFAULT_ADDON_REF, type AddonSourceFetcher } from "./addon-source";
+import { forever } from "@/games/forever";
+import type { AddonSourceFetcher } from "./addon-source";
 import { MIRRORED, SHARED_PORTS } from "./mirrored";
 
 const hash = (text: string) => createHash("sha256").update(text).digest("hex").slice(0, 16);
@@ -28,7 +29,7 @@ const tbcFetcher = async (ctx: { skip: () => void }): Promise<AddonSourceFetcher
 
 describe("Forever (Musca Auras)", () => {
   test("the restated files follow the default addon version", () => {
-    expect(MIRRORED.forever.ref).toBe(DEFAULT_ADDON_REF);
+    expect(MIRRORED.forever.ref).toBe(forever.addon.fallbackRef);
   });
 
   test("the files the rules and renderers restate are unchanged at the pinned version", async () => {

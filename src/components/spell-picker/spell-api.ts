@@ -1,32 +1,46 @@
-/** Browser client for the spell cache API (`/api/spells/*`). */
+/** Browser client for a game's spell cache API (`/api/<game>/spells/*`), given to the spell picker by context. */
+import { createContext, useContext } from "react";
 import type { Spell, SpellCacheStatus, SpellSearchResult, SyncResult } from "@/api/spells";
 import { fetchJson } from "@/lib/fetch-json";
 
 export type { Spell, SpellCacheStatus, SpellFlag, SpellSearchHit, SyncResult } from "@/api/spells";
 
-export async function searchSpells(q: string, signal?: AbortSignal): Promise<SpellSearchResult> {
-  return fetchJson(`/api/spells/search?${new URLSearchParams({ q, limit: "20" })}`, { signal });
+export interface SpellApi {
+  search(q: string, signal?: AbortSignal): Promise<SpellSearchResult>;
+  /** Full spell info with flags (404 bodies are valid answers: `found: false`). Cached per page. */
+  get(id: number): Promise<Spell>;
+  status(): Promise<SpellCacheStatus>;
+  sync(): Promise<SyncResult>;
 }
 
-const spellCache = new Map<number, Promise<Spell>>();
-
-/** Full spell info with flags (404 bodies are valid answers: `found: false`). Cached per page. */
-export function getSpell(id: number): Promise<Spell> {
-  let p = spellCache.get(id);
-  if (!p) {
-    p = fetchJson<Spell>(`/api/spells/${id}`, { answers: [404] });
-    p.catch(() => spellCache.delete(id));
-    spellCache.set(id, p);
-  }
-  return p;
+/** The spell API under `base` (e.g. "/api/forever/spells"). */
+export function createSpellApi(base: string): SpellApi {
+  const spellCache = new Map<number, Promise<Spell>>();
+  return {
+    search: (q, signal) => fetchJson(`${base}/search?${new URLSearchParams({ q, limit: "20" })}`, { signal }),
+    get(id) {
+      let p = spellCache.get(id);
+      if (!p) {
+        p = fetchJson<Spell>(`${base}/${id}`, { answers: [404] });
+        p.catch(() => spellCache.delete(id));
+        spellCache.set(id, p);
+      }
+      return p;
+    },
+    status: () => fetchJson(`${base}/status`),
+    async sync() {
+      const body = await fetchJson<SyncResult>(`${base}/sync`, { method: "POST" });
+      spellCache.clear();
+      return body;
+    },
+  };
 }
 
-export async function getSpellStatus(): Promise<SpellCacheStatus> {
-  return fetchJson("/api/spells/status");
-}
+export const SpellApiContext = createContext<SpellApi | null>(null);
 
-export async function syncSpells(): Promise<SyncResult> {
-  const body = await fetchJson<SyncResult>("/api/spells/sync", { method: "POST" });
-  spellCache.clear();
-  return body;
+/** The game's spell API (the page provides it). */
+export function useSpellApi(): SpellApi {
+  const api = useContext(SpellApiContext);
+  if (!api) throw new Error("No SpellApiContext: the page must provide its game's spell API");
+  return api;
 }

@@ -8,7 +8,7 @@ const uniqueId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math
  */
 test("every worked example in the docs pushes and validates with the combat status the docs claim", async ({ request }) => {
   test.setTimeout(180_000);
-  const md = await (await request.get("/docs/agents.md")).text();
+  const md = await (await request.get("/forever/docs/agents.md")).text();
   const blocks = [...md.matchAll(/^```json example=(\S+) combat=(\S+)\n([\s\S]*?)\n```$/gm)].map((m) => ({
     key: m[1],
     combat: m[2],
@@ -19,7 +19,7 @@ test("every worked example in the docs pushes and validates with the combat stat
   );
   for (const block of blocks) {
     const workspace = uniqueId(`docs-${block.key}`);
-    const res = await request.post(`/api/workspaces/${workspace}/aura`, {
+    const res = await request.post(`/api/forever/workspaces/${workspace}/aura`, {
       headers: { "Content-Type": "application/json" },
       data: block.body,
     });
@@ -31,7 +31,7 @@ test("every worked example in the docs pushes and validates with the combat stat
 });
 
 test("the docs are generated from the server's addon version", async ({ request }) => {
-  const md = await (await request.get("/llms.txt")).text();
+  const md = await (await request.get("/forever/llms.txt")).text();
   expect(md).toMatch(/This server follows Musca Auras \S+ \(WeakAuras [\d.]+, internalVersion \d+\)/);
   expect(md).toContain("### Defaults (generated)");
   expect(md).toContain("`faAuraRemaining` (Seconds left)");

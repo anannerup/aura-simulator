@@ -2,8 +2,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createSpellCache, FOREVER_SPELLS, type SpellCache } from "@/server/spells";
-import { createFixtureFetch } from "../fixtures/spells/fixture-fetch";
+import { createSpellCache, type SpellCache } from "@/server/spells";
+import { FOREVER_SPELLS } from "@/games/forever/sources";
+import { createFixtureFetch } from "../fixtures/forever/spells/fixture-fetch";
 
 let dir: string;
 let caches: SpellCache[] = [];

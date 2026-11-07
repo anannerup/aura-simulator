@@ -2,6 +2,14 @@
 
 Terms the project uses. Use them in code, tickets, docs and messages to the user.
 
+## Games
+
+- **Game**: a WoW client the app builds auras for, with the addon its players run there: WoW Forever with Musca
+  Auras, TBC Anniversary with official WeakAuras2. Each game is its own site with its own addon versions, spells,
+  rules, docs and workspaces; auras of different games never mix.
+  _Avoid_: flavor, product, mode.
+- **Game picker**: the page at `/` where the player chooses a game, every visit.
+
 ## The page
 
 - **Window**: the app's editor UI, modelled on the in-game options window (title bar, toolbar, aura list,
@@ -30,6 +38,6 @@ Terms the project uses. Use them in code, tickets, docs and messages to the user
 
 ## Sessions
 
-- **Workspace**: the auras being worked on in one session, identified by `?w=<id>`.
-- **Push**: an agent sending an aura to a workspace over HTTP. The server keeps only the latest few pushes per
+- **Workspace**: the auras of one game being worked on in one session, identified by its game and `?w=<id>`.
+- **Push**: an agent sending an aura to a game's workspace over HTTP. The server keeps only the latest few pushes per
   workspace, never the workspace itself.

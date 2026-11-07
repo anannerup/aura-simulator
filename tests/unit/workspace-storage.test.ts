@@ -1,6 +1,6 @@
 import { IDBFactory } from "fake-indexeddb";
 import { describe, expect, it } from "vitest";
-import { createWorkspaceStorage, createWorkspaceStore, StorageProblem, storageWarning } from "@/client/workspace/storage";
+import { createWorkspaceStorage, createWorkspaceStore, deleteOldWorkspaces, StorageProblem, storageWarning } from "@/client/workspace/storage";
 
 /** A Map-backed localStorage; `quota` makes setItem throw like a full browser storage. */
 function memoryStorage(entries: Record<string, string> = {}, quota = Infinity): Storage {
@@ -20,7 +20,8 @@ function memoryStorage(entries: Record<string, string> = {}, quota = Infinity): 
   };
 }
 
-const KEY = "aura-simulator:workspace:w1";
+const KEY = "aura-simulator:forever:workspace:w1";
+const W1 = { game: "forever", id: "w1" };
 
 describe("workspace storage", () => {
   it("keeps multi-megabyte workspaces in IndexedDB", async () => {
@@ -32,16 +33,11 @@ describe("workspace storage", () => {
     expect(await createWorkspaceStorage({ indexedDB, localStorage: null }).read("other")).toBeNull();
   });
 
-  it("moves a workspace saved in localStorage to IndexedDB once", async () => {
-    const indexedDB = new IDBFactory();
-    const local = memoryStorage({ [KEY]: '{"old": true}', unrelated: "stays" });
-    const storage = createWorkspaceStorage({ indexedDB, localStorage: local });
-    expect(await storage.read(KEY)).toBe('{"old": true}');
-    expect(local.getItem(KEY)).toBeNull();
+  it("deletes the workspaces stored before they were per game", async () => {
+    const local = memoryStorage({ "aura-simulator:workspace:w1": "{}", "aura-simulator:addon-ref": "v1.15.0", unrelated: "stays" });
+    deleteOldWorkspaces({ indexedDB: null, localStorage: local });
+    expect(local.length).toBe(1);
     expect(local.getItem("unrelated")).toBe("stays");
-    // From now on IndexedDB answers, and a stale localStorage copy can't win.
-    local.setItem(KEY, '{"stale": true}');
-    expect(await createWorkspaceStorage({ indexedDB, localStorage: local }).read(KEY)).toBe('{"old": true}');
   });
 
   it("falls back to localStorage without IndexedDB, and reports a full storage as a quota problem", async () => {
@@ -74,22 +70,24 @@ describe("workspace store (written behind)", () => {
     const local = memoryStorage();
     const store = createWorkspaceStore(createWorkspaceStorage({ indexedDB: null, localStorage: local }));
     const serialized: string[] = [];
-    const save = (text: string) => store.save("w1", () => (serialized.push(text), text), () => {});
+    const save = (text: string) => store.save(W1, () => (serialized.push(text), text), () => {});
     save("first");
     save("second");
     save("third");
-    expect(await store.read("w1")).toBe("third");
+    expect(await store.read(W1)).toBe("third");
     expect(serialized).toEqual(["first", "third"]); // "second" was replaced before its turn and never serialized
     expect(local.getItem(KEY)).toBe("third");
+    // Workspaces are per game: the same id in another game is another workspace.
+    expect(await store.read({ game: "tbc", id: "w1" })).toBeNull();
   });
 
   it("reports a failed write as a warning, and the next good write clears it", async () => {
     const store = createWorkspaceStore(createWorkspaceStorage({ indexedDB: null, localStorage: memoryStorage({}, 10) }));
     const heard: (string | null)[] = [];
-    store.save("w1", () => "far too long for this", (w) => heard.push(w));
-    await store.read("w1");
-    store.save("w1", () => "small", (w) => heard.push(w));
-    await store.read("w1");
+    store.save(W1, () => "far too long for this", (w) => heard.push(w));
+    await store.read(W1);
+    store.save(W1, () => "small", (w) => heard.push(w));
+    await store.read(W1);
     expect(heard).toEqual([expect.stringMatching(/full/), null]);
   });
 });

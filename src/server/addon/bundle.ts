@@ -34,7 +34,7 @@ export interface EncodedAddonBundle {
   gzipped(): Promise<Uint8Array>;
 }
 
-/** Builds a bundle by reading every file through the server's disk cache (fetching misses from jsDelivr). */
+/** Builds a bundle by reading every file through the server's disk cache (fetching misses upstream). */
 export async function buildAddonBundle(cache: AddonSourceCache, input: string, set: AddonBundleSet): Promise<AddonBundle> {
   const resolution = await cache.resolve(input);
   const read = (p: string) => cache.readText(resolution.ref, p);

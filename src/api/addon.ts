@@ -1,8 +1,8 @@
 /**
- * Wire types of the addon API (`/api/addon/*`), shared by the server and the page. No server code here.
+ * Wire types of a game's addon API (`/api/<game>/addon/*`), shared by the server and the page. No server code here.
  */
 
-/** Most spell IDs one `/api/addon/spells` request may ask about (the page splits bigger sets). */
+/** Most spell IDs one `/api/<game>/addon/spells` request may ask about (the page splits bigger sets). */
 export const MAX_CLIENT_SPELL_IDS = 500;
 
 /** One release of the addon. */
@@ -23,24 +23,21 @@ export interface VersionList {
   releases: AddonRelease[];
   /** Tag of the newest stable release: the picker's default. */
   defaultRef: string | null;
-  /** Branch names, when GitHub answered. */
-  branches: string[];
   /** False when GitHub's tag list was unavailable and tag names are guesses. */
   tagsConfirmed: boolean;
 }
 
-/** What a ref the user typed turned out to be. */
+/** The release a ref the user typed ("v1.15.0", "1.15.0") names. */
 export interface Resolution {
   /** What was asked for. */
   input: string;
-  kind: "release" | "branch" | "commit";
-  /** Immutable ref to fetch with: the real tag name, or a commit SHA. */
+  /** The real tag name, to fetch with. */
   ref: string;
-  /** Disk cache directory name (normalized version or commit SHA). */
+  /** Disk cache directory name (the normalized version). */
   key: string;
-  /** Normalized version, for releases. */
-  version?: string;
-  /** Commit SHA, when known. */
+  /** Normalized version. */
+  version: string;
+  /** Commit the tag points at, when known. */
   sha?: string;
 }
 

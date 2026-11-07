@@ -28,7 +28,7 @@ async function editRaw(page: Page, edit: (text: string) => string) {
 }
 
 test("edit the raw table: preview and state code follow; invalid text keeps the work and the preview", async ({ page }) => {
-  await page.goto(`/?w=${uniqueId("raw")}`);
+  await page.goto(`/forever?w=${uniqueId("raw")}`);
   await expectIconSize(page, 64);
   await openRaw(page);
   await expect(raw(page)).toHaveValue(/^\{\n {2}actions = /);
@@ -71,7 +71,7 @@ test("edit the raw table: preview and state code follow; invalid text keeps the 
 
 test("undo and redo step through raw edits, pastes and agent pushes", async ({ page, request }) => {
   const workspace = uniqueId("undo");
-  await page.goto(`/?w=${workspace}`);
+  await page.goto(`/forever?w=${workspace}`);
   await expectIconSize(page, 64);
   await openRaw(page);
   const sample = await stateCode(page);
@@ -84,10 +84,10 @@ test("undo and redo step through raw edits, pastes and agent pushes", async ({ p
   await expectIconSize(page, 50);
 
   // An agent push is its own step and shows in the raw view.
-  await expect.poll(async () => (await (await request.get(`/api/workspaces/${workspace}`)).json()).code).toMatch(/^!WA:2!/);
+  await expect.poll(async () => (await (await request.get(`/api/forever/workspaces/${workspace}`)).json()).code).toMatch(/^!WA:2!/);
   await page.getByRole("button", { name: "JSON" }).click();
   const doc = JSON.parse(await raw(page).inputValue());
-  const pushed = await request.post(`/api/workspaces/${workspace}/aura`, { data: { aura: { ...doc, width: 30 } } });
+  const pushed = await request.post(`/api/forever/workspaces/${workspace}/aura`, { data: { aura: { ...doc, width: 30 } } });
   expect(pushed.ok()).toBe(true);
   await expectIconSize(page, 30);
   await expect(raw(page)).toHaveValue(/"width": 30/);
@@ -113,7 +113,7 @@ test("undo and redo step through raw edits, pastes and agent pushes", async ({ p
 
   // A push while the raw text has unapplied edits asks before replacing them.
   await editRaw(page, (t) => t.replace('"width": 50', '"width": 51'));
-  await request.post(`/api/workspaces/${workspace}/aura`, { data: { aura: { ...doc, width: 33 } } });
+  await request.post(`/api/forever/workspaces/${workspace}/aura`, { data: { aura: { ...doc, width: 33 } } });
   await expectIconSize(page, 33);
   await expect(page.getByText("The aura changed elsewhere")).toBeVisible();
   await expect(raw(page)).toHaveValue(/"width": 51/);

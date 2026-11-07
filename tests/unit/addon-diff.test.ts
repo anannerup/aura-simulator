@@ -11,6 +11,7 @@ import {
   summarize,
   type OptionTables,
 } from "@/server/addon";
+import { FOREVER_ADDON } from "@/games/forever/sources";
 import { cachedAddonFetcher } from "../support/addon-source";
 
 describe("diffs", () => {
@@ -84,12 +85,12 @@ describe("option tables of a real addon version", () => {
 
 describe("diffAddonVersions", () => {
   it("still diffs files and the changelog when a side's options can't be read", async () => {
-    const { createFixtureFetch } = await import("../fixtures/addon/fixture-fetch");
+    const { createFixtureFetch } = await import("../fixtures/forever/addon/fixture-fetch");
     const { mkdtempSync, rmSync } = await import("node:fs");
     const { tmpdir } = await import("node:os");
     const root = mkdtempSync(path.join(tmpdir(), "addon-diff-"));
     try {
-      const cache = createAddonSourceCache({ root, fetch: createFixtureFetch().fetch });
+      const cache = createAddonSourceCache({ ...FOREVER_ADDON, root, fetch: createFixtureFetch().fetch });
       const registriesOf = async ({ ref }: { ref: string }) => {
         if (ref === "v1.10.0") throw new Error("no full VM for this one");
         return { regionTypes: { icon: { default: { width: 64 }, properties: { width: {} } } }, subRegionTypes: {} } as never;

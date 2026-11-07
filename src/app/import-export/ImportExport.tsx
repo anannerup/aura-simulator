@@ -181,7 +181,7 @@ export function ExportPanel({ session, name, code }: { session: WorkspaceSession
   return (
     <section className={styles.panel} aria-label="Export">
       <h2 className={styles.title}>State code of {name}</h2>
-      <p className={styles.hint}>{kb} KB. In the game, open Musca Auras, click Import, and paste it.</p>
+      <p className={styles.hint}>{kb} KB. In the game, open the addon&apos;s window, click Import, and paste it.</p>
       <div className={styles.buttons}>
         <Button
           onClick={() => {

@@ -15,14 +15,14 @@ async function expectAuraRendered(page: Page) {
 test("the newest release loads by default, through the server's addon cache", async ({ page }) => {
   const bundleRequests: string[] = [];
   page.on("request", (r) => {
-    if (r.url().includes("/api/addon/") && r.url().includes("/bundle?")) bundleRequests.push(r.url());
+    if (r.url().includes("/api/forever/addon/") && r.url().includes("/bundle?")) bundleRequests.push(r.url());
   });
   await page.goto(ownWorkspacePage("addon"));
   await expect(loaded(page)).toContainText("Musca Auras v1.15.0", { timeout: 60_000 });
   await expect(loaded(page)).toContainText("WeakAuras 5.22.0 · internal version 92");
   await expect(page.getByLabel("Musca Auras version")).toHaveValue("v1.15.0");
   await expectAuraRendered(page);
-  expect(bundleRequests.some((u) => u.includes("/api/addon/v1.15.0/bundle?set=full"))).toBe(true);
+  expect(bundleRequests.some((u) => u.includes("/api/forever/addon/v1.15.0/bundle?set=full"))).toBe(true);
 });
 
 test("switching version reloads the core, keeps the aura and reports what changed", async ({ page }) => {
@@ -56,39 +56,17 @@ test("switching version reloads the core, keeps the aura and reports what change
   await expect.poll(() => stateCode(page)).toBe(code);
 });
 
-test("a branch loads by name; an unknown ref shows an error and keeps the previous version", async ({ page }) => {
+test("the picker offers released tags only; an unknown release shows an error and keeps the version", async ({ page, request }) => {
   await page.goto(ownWorkspacePage("addon"));
   await expect(loaded(page)).toContainText("v1.15.0", { timeout: 60_000 });
-
   await openPicker(page);
-  const input = page.getByLabel("Branch or commit");
-  await input.fill("main");
-  await page.getByRole("region", { name: "Addon version picker" }).getByRole("button", { name: "Switch" }).click();
-  await expect(loaded(page)).toContainText(/Musca Auras main \([0-9a-f]{7}\)/, { timeout: 60_000 });
+  const options = await page.getByLabel("Musca Auras version").locator("option").allTextContents();
+  expect(options.every((o) => /^v?\d+\.\d+\.\d+/.test(o))).toBe(true);
+  await expect(page.getByLabel("Branch or commit")).toHaveCount(0);
 
-  await input.fill("no-such-branch");
-  await page.getByRole("region", { name: "Addon version picker" }).getByRole("button", { name: "Switch" }).click();
-  await expect(page.getByRole("alert").filter({ hasText: "Could not load" })).toContainText('no release, branch or commit called "no-such-branch"');
-  await expect(page.getByRole("alert").filter({ hasText: "Could not load" })).toContainText("Still using main");
-  await expect(loaded(page)).toContainText("Musca Auras main");
-  await expectAuraRendered(page);
-});
-
-test("without the server's addon routes, the core loads straight from jsDelivr", async ({ page, request }) => {
-  await page.route("**/api/addon/**", (route) => route.fulfill({ status: 500, body: "down" }));
-  // jsDelivr itself is answered from the server's addon cache (outside the page, so not blocked above): repeat runs
-  // need no network.
-  const fromJsDelivr: string[] = [];
-  await page.route("https://cdn.jsdelivr.net/gh/dldvlpr-addons-wow/Musca-Auras@*/**", async (route) => {
-    const m = /\/Musca-Auras@([^/]+)\/(.+)$/.exec(new URL(route.request().url()).pathname)!;
-    const [ref, file] = [decodeURIComponent(m[1]), decodeURIComponent(m[2])];
-    fromJsDelivr.push(file);
-    const res = await request.get(`/api/addon/${encodeURIComponent(ref)}/file?path=${encodeURIComponent(file)}`);
-    await route.fulfill({ status: res.status(), body: await res.body(), contentType: "text/plain; charset=utf-8" });
-  });
-  await page.goto(ownWorkspacePage("addon"));
-  await expect(loaded(page)).toContainText("Musca Auras v1.15.0", { timeout: 60_000 });
-  await expectAuraRendered(page);
-  expect(fromJsDelivr).toContain("WeakAuras/Init.lua");
-  await page.unrouteAll({ behavior: "ignoreErrors" }); // textures may still be loading
+  // Branches and commits don't resolve, on the server either.
+  const res = await request.get("/api/forever/addon/resolve?ref=main");
+  expect(res.status()).toBe(404);
+  expect((await res.json()).error).toBe('Musca Auras has no release called "main"');
+  expect((await request.get("/api/forever/addon/versions").then((r) => r.json())).branches).toBeUndefined();
 });

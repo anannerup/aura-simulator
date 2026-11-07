@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { ownWorkspacePage } from "../support/e2e-workspace";
 import { stateCode } from "../support/state-code";
 
-// The dev server's spell database is seeded from tests/fixtures/spells (see global-setup.ts).
+// The dev server's spell database is seeded from tests/fixtures/forever/spells (see global-setup.ts).
 
 async function openPage(page: Page) {
   await page.goto(ownWorkspacePage("spells"));
@@ -23,7 +23,7 @@ test("search, pick with the keyboard, and the preview shows the spell's icon", a
   await expect(options.first()).toContainText("Frostbolt");
   await expect(options.first()).toContainText("116");
 
-  // Keyboard-selected option gets a tooltip preview from /api/spells/<id>.
+  // Keyboard-selected option gets a tooltip preview from /api/forever/spells/<id>.
   await search.press("ArrowDown");
   await expect(options.nth(1)).toHaveAttribute("aria-selected", "true");
   await search.press("ArrowUp");
@@ -52,7 +52,7 @@ test("hovering a result shows its Wowhead tooltip; clicking picks it", async ({ 
     await brilliance.hover();
     await expect(brilliance).toHaveAttribute("aria-selected", "true", { timeout: 1_000 });
   }).toPass({ timeout: 20_000 });
-  // The tooltip follows after its debounce and /api/spells/<id> (slow to compile on a busy dev server).
+  // The tooltip follows after its debounce and /api/forever/spells/<id> (slow to compile on a busy dev server).
   await expect(page.getByTestId("spell-tooltip")).toContainText("Arcane Brilliance", { timeout: 20_000 });
   await expect(brilliance).toHaveAttribute("aria-selected", "true");
   await brilliance.click();
@@ -93,8 +93,8 @@ test("an unsynced cache shows a first-run prompt whose Sync button syncs", async
     spellsWithIcon: synced ? 18 : 0,
     wowhead: { found: 0, notFound: 0 },
   });
-  await page.route("**/api/spells/status", (route) => route.fulfill({ json: status() }));
-  await page.route("**/api/spells/sync", (route) => {
+  await page.route("**/api/forever/spells/status", (route) => route.fulfill({ json: status() }));
+  await page.route("**/api/forever/spells/sync", (route) => {
     synced = true;
     return route.fulfill({ json: { ...status(), durationMs: 5 } });
   });
@@ -108,10 +108,10 @@ test("an unsynced cache shows a first-run prompt whose Sync button syncs", async
 });
 
 test("icon API maps FileDataIDs and spell IDs", async ({ request }) => {
-  const batch = await request.get("/api/icons?files=135932,1&spells=116");
+  const batch = await request.get("/api/forever/icons?files=135932,1&spells=116");
   expect(await batch.json()).toEqual({
     files: { 135932: "spell_holy_magicalsentry", 1: null },
     spells: { 116: "spell_frost_frostbolt02" },
   });
-  expect((await request.get("/api/icons?files=x")).status()).toBe(400);
+  expect((await request.get("/api/forever/icons?files=x")).status()).toBe(400);
 });

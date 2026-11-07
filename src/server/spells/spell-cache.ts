@@ -106,7 +106,7 @@ export function createSpellCache(options: SpellCacheOptions): SpellCache {
   const storedProduct = getMeta("product");
   if (storedProduct !== null && storedProduct !== source.product) {
     db.close();
-    throw new Error(`${options.dbPath} holds ${storedProduct} spells, not ${source.product} (${source.game})`);
+    throw new Error(`${options.dbPath} holds ${storedProduct} spells, not ${source.product}`);
   }
   const setMeta = db.prepare("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
   const getSpellRow = db.prepare("SELECT id, name, icon_file_id, icon FROM spells WHERE id = ?");

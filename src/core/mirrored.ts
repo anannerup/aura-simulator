@@ -22,7 +22,7 @@ export interface GameMirror {
 }
 
 export const MIRRORED: Record<AddonGameId, GameMirror> = {
-  /** Musca Auras (GitHub tag; `DEFAULT_ADDON_REF`). */
+  /** Musca Auras (GitHub tag; Forever's fallback release, `src/games/forever`). */
   forever: {
     ref: "v1.15.0",
     files: {

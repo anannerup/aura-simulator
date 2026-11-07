@@ -7,14 +7,14 @@ const uniqueId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math
 /** Pushes an aura to a fresh workspace and returns the workspace ID. */
 async function pushAura(request: APIRequestContext, aura: object): Promise<string> {
   const workspace = uniqueId("checks");
-  const res = await request.post(`/api/workspaces/${workspace}/aura`, { data: { aura } });
+  const res = await request.post(`/api/forever/workspaces/${workspace}/aura`, { data: { aura } });
   expect(res.ok()).toBe(true);
   return workspace;
 }
 
 test("a remaining-time condition driving desaturate is flagged, pointing at the change", async ({ page, request }) => {
   const workspace = await pushAura(request, modernDesaturateBad);
-  await page.goto(`/?w=${workspace}`);
+  await page.goto(`/forever?w=${workspace}`);
   const panel = page.getByTestId("validation-panel");
   await expect(panel).toHaveAttribute("data-state", "done", { timeout: 90_000 });
   await expect(panel).toHaveAttribute("data-combat-status", "broken");
@@ -29,7 +29,7 @@ test("a remaining-time condition driving desaturate is flagged, pointing at the 
 
 test("a known-good Aura (Modern) is fully usable in combat", async ({ page, request }) => {
   const workspace = await pushAura(request, modernGlowOk);
-  await page.goto(`/?w=${workspace}`);
+  await page.goto(`/forever?w=${workspace}`);
   const panel = page.getByTestId("validation-panel");
   await expect(panel).toHaveAttribute("data-combat-status", "ok", { timeout: 90_000 });
   await expect(panel.getByTestId("combat-status")).toContainText("Fully usable in combat.");

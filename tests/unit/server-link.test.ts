@@ -9,7 +9,7 @@ function fakeServer() {
   class FakeEventSource {
     private listeners = new Map<string, (ev: Event) => void>();
     constructor(url: string) {
-      const id = decodeURIComponent(url.split("/")[3]);
+      const id = decodeURIComponent(url.split("/")[4]);
       const emit = (event: string, data: unknown) => this.listeners.get(event)?.({ data: JSON.stringify(data) } as MessageEvent);
       hub.subscribe(id, (n) => queueMicrotask(() => emit("state", n)));
       queueMicrotask(() => emit("snapshot", notice(hub.get(id))));
@@ -21,7 +21,7 @@ function fakeServer() {
   }
   const fakeFetch = (async (input: string, init?: RequestInit) => {
     const url = new URL(input, "http://x");
-    const id = decodeURIComponent(url.pathname.split("/")[3]);
+    const id = decodeURIComponent(url.pathname.split("/")[4]);
     if (init?.method === "POST") {
       const source = (init.headers as Record<string, string>)[CLIENT_HEADER];
       return Response.json(hub.set(id, String(init.body), source));
@@ -38,13 +38,13 @@ const settle = () => new Promise((r) => setTimeout(r, 10));
 describe("server link", () => {
   it("answers null when the server has no push yet", async () => {
     const { env } = fakeServer();
-    expect(await new ServerLink("w", env).latest()).toBeNull();
+    expect(await new ServerLink({ game: "forever", id: "w" }, env).latest()).toBeNull();
   });
 
   it("starts from the server's latest push, then hands over pushes from elsewhere in order, not its own", async () => {
     const { hub, env } = fakeServer();
     hub.set("w", "!WA:2!before");
-    const link = new ServerLink("w", env);
+    const link = new ServerLink({ game: "forever", id: "w" }, env);
     expect(await link.latest()).toMatchObject({ code: "!WA:2!before" });
     hub.set("w", "!WA:2!agent-1"); // arrives before the page follows: kept for it
     await settle();

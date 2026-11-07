@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { NOT_READY, type EditResult } from "@/client/workspace/session";
 import { useUndo } from "@/client/workspace/useUndo";
 import { useWorkspace } from "@/client/workspace/useWorkspace";
@@ -10,11 +10,13 @@ import { OptionsEditor } from "@/components/options-editor/OptionsEditor";
 import { RawEditor } from "@/components/raw-editor/RawEditor";
 import { AppShell, EmptyNote, ListSection, ScreenMessage, ScreenPane } from "@/components/shell";
 import { SpellPicker } from "@/components/spell-picker/SpellPicker";
+import { createSpellApi, SpellApiContext } from "@/components/spell-picker/spell-api";
 import { AuraList } from "@/components/aura-list/AuraList";
 import { Button, Popover, ToastProvider } from "@/components/ui";
 import { ensureFont } from "@/render/fonts";
 import { ADDON_MEDIA } from "@/render/media";
-import { GameTexture } from "@/render/textures";
+import { createIconStore, GameTexture, IconStoreContext, iconsFromApi } from "@/render/textures";
+import { findGame } from "@/games";
 import { GameScreenAuras } from "@/render/screen/GameScreenAuras";
 import { DEFAULT_WORKSPACE_ID, type WorkspaceNode } from "@/workspace";
 import { AddonVersionMenu } from "./addon/AddonVersionPicker";
@@ -28,14 +30,21 @@ import { ValidationPanel } from "./validation/ValidationPanel";
 import styles from "./AuraSimulator.module.css";
 
 /**
- * The composition root: loads the chosen addon version, follows the workspace, and wires each feature into the app
- * shell (`src/components/shell`): the window (title, toolbar, aura list, tabs, footer) beside the game screen.
+ * The composition root of a game's site (`/<game>`): loads the chosen addon version, follows the game's workspace,
+ * and wires each feature into the app shell (`src/components/shell`): the window (title, toolbar, aura list, tabs,
+ * footer) beside the game screen.
  */
-export function AuraSimulator() {
-  const addon = useAddonCore();
+export function AuraSimulator({ gameId }: { gameId: string }) {
+  const game = findGame(gameId);
+  if (!game) throw new Error(`No game called "${gameId}"`);
+  const api = `/api/${game.id}`;
+  const spellApi = useMemo(() => createSpellApi(`${api}/spells`), [api]);
+  const iconStore = useMemo(() => createIconStore(iconsFromApi(`${api}/icons`)), [api]);
+  const addon = useAddonCore(game);
   const { core } = addon;
-  // The agent docs of the version this window uses.
+  // The agent docs of the game and the version this window uses.
   const docsQuery = core ? `?ref=${encodeURIComponent(core.ref)}` : "";
+  const docs = `/${game.id}/docs/agents${docsQuery}`;
   const [situation, setSituation] = useState(DEFAULT_SITUATION);
   const screen = useGameScreen();
   const [creating, setCreating] = useState(false);
@@ -45,7 +54,7 @@ export function AuraSimulator() {
   // The window's title font (Friz Quadrata), from the game files at runtime.
   useEffect(() => ensureFont("Friz Quadrata TT"), []);
 
-  const { view: workspace, session } = useWorkspace(core);
+  const { view: workspace, session } = useWorkspace(core, game.id);
   const importer = useImporter(session);
 
   // Edits (tabs, spell picker, raw table) replace the selected aura's document (a group's tabs its descendants too).
@@ -82,11 +91,21 @@ export function AuraSimulator() {
 
   return (
     <ToastProvider>
+      <SpellApiContext value={spellApi}>
+      <IconStoreContext value={iconStore}>
       <AppShell
+        windowLabel={`${game.addon.name} options`}
         portrait={<GameTexture source={ADDON_MEDIA("logo_musca_round")} size={62} />}
-        title={<AddonVersionMenu addon={addon} />}
+        title={
+          <>
+            <Link href="/" className={styles.gameLink} title="Choose another game">
+              {game.name}
+            </Link>
+            <AddonVersionMenu addon={addon} addonName={game.addon.name} />
+          </>
+        }
         titleActions={
-          <Link href={`/docs/agents${docsQuery}`} className={styles.guide}>
+          <Link href={docs} className={styles.guide}>
             Guide: agent docs
           </Link>
         }
@@ -202,17 +221,17 @@ export function AuraSimulator() {
             <OptionsEditor core={core} aura={aura} childAuras={workspace.children} onChange={changeAura} />
           ) : (
             <div className={styles.emptyOptions}>
-              <EmptyNote>{ready ? "Select an aura, or click New Aura." : "Loading Musca Auras…"}</EmptyNote>
+              <EmptyNote>{ready ? "Select an aura, or click New Aura." : `Loading ${game.addon.name}…`}</EmptyNote>
             </div>
           )
         }
         footer={
           <>
-            <Link href={`/docs/agents${docsQuery}`} className={styles.footerLink}>
+            <Link href={docs} className={styles.footerLink}>
               <GameTexture source={ADDON_MEDIA("GitHub")} size={16} />
               Agent docs
             </Link>
-            <a href={`/llms.txt${docsQuery}`} className={styles.footerLink}>
+            <a href={`/${game.id}/llms.txt${docsQuery}`} className={styles.footerLink}>
               llms.txt
             </a>
             <span className={styles.footerSpacer} />
@@ -226,20 +245,16 @@ export function AuraSimulator() {
             <GameScreenPane
               screen={screen}
               notice={
-                workspace.notice || workspace.warning ? (
-                  <>
-                    {workspace.notice && <p className={styles.notice}>{workspace.notice}</p>}
-                    {workspace.warning && (
-                      <p className={styles.notice} role="status">
-                        {workspace.warning}
-                      </p>
-                    )}
-                  </>
+                workspace.warning ? (
+                  <p className={styles.notice} role="status">
+                    {workspace.warning}
+                  </p>
                 ) : null
               }
             >
               {(ui) => (
                 <GameScreenAuras
+                  game={game.id}
                   items={workspace.items}
                   situation={situation}
                   screen={ui}
@@ -254,17 +269,17 @@ export function AuraSimulator() {
             <ScreenPane>
               {addon.error && !core ? (
                 <ScreenMessage tone="danger">
-                  Could not load Musca Auras: {addon.error}
+                  Could not load {game.addon.name}: {addon.error}
                   <br />
                   Pick another version from the window&apos;s title.
                 </ScreenMessage>
               ) : (
-                <ScreenMessage>{core ? "Loading aura…" : "Loading Musca Auras…"}</ScreenMessage>
+                <ScreenMessage>{core ? "Loading aura…" : `Loading ${game.addon.name}…`}</ScreenMessage>
               )}
             </ScreenPane>
           )
         }
-        drawerMeta={core && <span>Musca Auras {core.ref} · WeakAuras {core.addonVersion}</span>}
+        drawerMeta={core && <span>{game.addon.name} {core.ref} · WeakAuras {core.addonVersion}</span>}
         drawerTabs={[
           {
             id: "raw",
@@ -278,6 +293,8 @@ export function AuraSimulator() {
           void importer.importFiles(files);
         }}
       />
+      </IconStoreContext>
+      </SpellApiContext>
     </ToastProvider>
   );
 }

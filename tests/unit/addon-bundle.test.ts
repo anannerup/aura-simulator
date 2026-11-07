@@ -5,7 +5,8 @@ import { gunzipSync } from "node:zlib";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { bundleFetcher, collectAddonBundle } from "@/core";
 import { buildAddonBundle, createAddonSourceCache, getEncodedAddonBundle, type FetchFn } from "@/server/addon";
-import { createFixtureFetch } from "../fixtures/addon/fixture-fetch";
+import { FOREVER_ADDON } from "@/games/forever/sources";
+import { createFixtureFetch } from "../fixtures/forever/addon/fixture-fetch";
 
 /**
  * A tiny synthetic addon: tocs that pull in XML, XML that includes XML and scripts (with Windows
@@ -103,7 +104,7 @@ describe("server bundle", () => {
       cdn.push(m[1]);
       return m[1] in ADDON ? new Response(ADDON[m[1]]) : new Response("not found", { status: 404 });
     };
-    return { cache: createAddonSourceCache({ root, fetch }), cdn };
+    return { cache: createAddonSourceCache({ ...FOREVER_ADDON, root, fetch }), cdn };
   }
 
   it("reads every file through the disk cache, at the resolved ref", async () => {

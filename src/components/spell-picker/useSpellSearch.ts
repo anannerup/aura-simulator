@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { searchSpells, type SpellSearchHit } from "./spell-api";
+import { useSpellApi, type SpellSearchHit } from "./spell-api";
 import { errorMessage } from "@/lib/errors";
 
 export interface SpellSearch {
@@ -20,12 +20,13 @@ export function useSpellSearch(
 ): SpellSearch {
   const q = query.trim();
   const on = enabled && q !== "";
+  const api = useSpellApi();
   const [answer, setAnswer] = useState<{ q: string; refresh: unknown } & SpellSearch>();
   useEffect(() => {
     if (!on) return;
     const ac = new AbortController();
     const t = setTimeout(() => {
-      searchSpells(q, ac.signal).then(
+      api.search(q, ac.signal).then(
         (r) => setAnswer({ q, refresh, hits: r.results, error: null }),
         (e: unknown) => !ac.signal.aborted && setAnswer({ q, refresh, hits: null, error: errorMessage(e) }),
       );
@@ -34,6 +35,6 @@ export function useSpellSearch(
       clearTimeout(t);
       ac.abort();
     };
-  }, [q, on, delayMs, refresh]);
+  }, [api, q, on, delayMs, refresh]);
   return on && answer?.q === q && answer.refresh === refresh ? answer : { hits: null, error: null };
 }

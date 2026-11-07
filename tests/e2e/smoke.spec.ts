@@ -4,7 +4,7 @@ import { stateCode } from "../support/state-code";
 test("the page loads, previews the sample aura and copies its state code", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   // Own workspace, so state pushed to "default" by other tests or agents does not leak in.
-  await page.goto(`/?w=smoke-${Date.now().toString(36)}`);
+  await page.goto(`/forever?w=smoke-${Date.now().toString(36)}`);
 
   const preview = page.getByTestId("aura-preview");
   await expect(preview).toBeVisible({ timeout: 60_000 });

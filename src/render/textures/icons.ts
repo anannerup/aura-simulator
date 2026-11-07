@@ -2,10 +2,11 @@
  * Where renderers get Blizzard art from. Art is loaded at runtime and never committed.
  *
  * Spell icons: an aura names its icon by FileDataID (e.g. 135932) or texture path, or takes it from a
- * trigger's spell. The app's spell cache maps both to icon file names (`GET /api/icons`), and Wowhead's
- * image server serves the images by name. Lookups are batched and cached for the page's lifetime.
+ * trigger's spell. The game's spell cache maps both to icon file names (`GET /api/<game>/icons`), and Wowhead's
+ * image server serves the images by name. Lookups are batched and cached for the page's lifetime; the page provides
+ * its game's store (`IconStoreContext`).
  */
-import { useEffect, useSyncExternalStore } from "react";
+import { createContext, useContext, useEffect, useSyncExternalStore } from "react";
 import { triggerSpellId, type AuraDocument, type LuaValue } from "@/core";
 import { iconNameUrl } from "@/api/spells";
 import { fetchJson } from "@/lib/fetch-json";
@@ -74,17 +75,20 @@ type FetchIcons = (request: { files: number[]; spells: number[] }) => Promise<{
   spells: Record<string, string | null>;
 }>;
 
-const fetchIconsFromApi: FetchIcons = ({ files, spells }) => {
-  const params = new URLSearchParams();
-  if (files.length) params.set("files", files.join(","));
-  if (spells.length) params.set("spells", spells.join(","));
-  return fetchJson(`/api/icons?${params}`);
-};
+/** Icon lookups from an icons endpoint (e.g. "/api/forever/icons"). */
+export function iconsFromApi(url: string): FetchIcons {
+  return ({ files, spells }) => {
+    const params = new URLSearchParams();
+    if (files.length) params.set("files", files.join(","));
+    if (spells.length) params.set("spells", spells.join(","));
+    return fetchJson(`${url}?${params}`);
+  };
+}
 
 const keyOf = (ref: { kind: "file" | "spell"; id: number }) => `${ref.kind}:${ref.id}`;
 
 /** A batched, cached icon lookup with change notification (for `useSyncExternalStore`). */
-export function createIconStore(fetchIcons: FetchIcons = fetchIconsFromApi) {
+export function createIconStore(fetchIcons: FetchIcons) {
   const known = new Map<string, string | null>();
   const requested = new Set<string>();
   const queue = { files: new Set<number>(), spells: new Set<number>() };
@@ -157,11 +161,15 @@ export function createIconStore(fetchIcons: FetchIcons = fetchIconsFromApi) {
 
 export type IconStore = ReturnType<typeof createIconStore>;
 
-/** The page's shared icon store. */
-export const iconStore: IconStore = createIconStore();
+/** Without a provider every lookup answers "unknown" (the question mark). */
+export const IconStoreContext = createContext<IconStore>(createIconStore(async () => ({ files: {}, spells: {} })));
+
+/** The page's icon store (its game's). */
+export const useIconStore = () => useContext(IconStoreContext);
 
 /** Image URL of an aura's icon, or null while it's still being looked up. */
-export function useAuraIconUrl(aura: AuraDocument, store: IconStore = iconStore): string | null {
+export function useAuraIconUrl(aura: AuraDocument): string | null {
+  const store = useIconStore();
   const version = useSyncExternalStore(store.subscribe, store.getVersion, () => 0);
   useEffect(() => {
     store.request(iconCandidates(aura));
@@ -171,7 +179,8 @@ export function useAuraIconUrl(aura: AuraDocument, store: IconStore = iconStore)
 }
 
 /** Image URL of one icon value (FileDataID, `spell:` ref or icon name), or null while it's being looked up or unknown. */
-export function useIconUrl(value: LuaValue | undefined, store: IconStore = iconStore): string | null {
+export function useIconUrl(value: LuaValue | undefined): string | null {
+  const store = useIconStore();
   const version = useSyncExternalStore(store.subscribe, store.getVersion, () => 0);
   const ref = displayIconRef(value);
   const key = ref ? JSON.stringify(ref) : "";

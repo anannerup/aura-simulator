@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { Blp, BlpImage, BLP_COLOR_FORMAT, BLP_IMAGE_FORMAT } from "@wowserhq/format";
-import { EXAMPLES } from "../../src/render/examples";
+import { EXAMPLES } from "../../src/games/forever/examples";
 import { openPushed } from "../support/e2e-workspace";
 
 test.describe.configure({ timeout: 180_000 });

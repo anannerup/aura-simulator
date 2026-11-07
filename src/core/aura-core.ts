@@ -1,5 +1,5 @@
 import { Lua } from "wasmoon-lua5.1";
-import { ADDON_FILES, DEFAULT_ADDON_REF, jsDelivrFetcher, normalizeNewlines, type AddonSourceFetcher } from "./addon-source";
+import { ADDON_FILES, normalizeNewlines, type AddonSourceFetcher } from "./addon-source";
 import { AURA_CORE, LOAD_LIBRARY, LOAD_TRANSMISSION } from "./lua-glue";
 import { LUA_STDLIB } from "./lua-stdlib";
 import { canonicalize, isLuaTable, toLuaLiteral, type AuraDocument, type AuraState, type LuaObject, type LuaValue } from "./lua-value";
@@ -22,7 +22,7 @@ export interface DecodedState extends AuraState {
 }
 
 export interface AuraCore {
-  /** The addon ref this core was loaded from (release tag, branch or commit). */
+  /** The addon version this core was loaded from (a release tag). */
   readonly ref: string;
   /** WeakAuras.versionString of that addon version, e.g. "5.22.0"; written as `s` into every state code. */
   readonly addonVersion: string;
@@ -81,8 +81,8 @@ type StateMethod = "fillDefaults" | "validate" | "options" | "setOption";
 type Tail<T extends unknown[]> = T extends [unknown, ...infer R] ? R : never;
 
 export interface LoadAddonOptions {
-  /** Where source files come from. Default: jsDelivr for `ref`. */
-  fetchSource?: AddonSourceFetcher;
+  /** Where the addon version's files come from (the game's addon source on the server, or a test cache). */
+  fetchSource: AddonSourceFetcher;
   /** Location of liblua5.1.wasm. Default: wasmoon's own (the page passes its own `/lua/liblua5.1.wasm` route). */
   wasmUri?: string;
   /** Where the full addon VM runs. Default: "worker" where Web Workers exist (browser), else "inline". */
@@ -113,12 +113,8 @@ function readInternalVersion(weakAuras: string): number {
 }
 
 /** Loads an addon version's Lua and returns an aura core bound to it. */
-export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAddonOptions = {}): Promise<AuraCore> {
-  // jsDelivr serves Musca's source tree; WeakAuras2 is loadable only from its release zip, which the server unpacks.
-  if (!options.fetchSource && (options.game ?? "forever") !== "forever") {
-    throw new Error(`Loading ${options.game} needs a fetchSource over its addon's release files`);
-  }
-  const fetchSource = options.fetchSource ?? jsDelivrFetcher(ref);
+export async function loadAddon(ref: string, options: LoadAddonOptions): Promise<AuraCore> {
+  const { fetchSource } = options;
   const names = Object.keys(ADDON_FILES) as (keyof typeof ADDON_FILES)[];
   const texts = await Promise.all(names.map((n) => fetchSource(ADDON_FILES[n])));
   const src = Object.fromEntries(names.map((n, i) => [n, normalizeNewlines(texts[i])])) as Record<

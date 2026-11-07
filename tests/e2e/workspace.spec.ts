@@ -37,7 +37,7 @@ const uniqueId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math
 
 /** Encodes an aura through the push API on a scratch workspace no page follows. */
 async function encode(request: APIRequestContext, aura: object): Promise<string> {
-  const res = await request.post(`/api/workspaces/${uniqueId("scratch")}/aura?validate=false`, { data: { aura } });
+  const res = await request.post(`/api/forever/workspaces/${uniqueId("scratch")}/aura?validate=false`, { data: { aura } });
   expect(res.ok()).toBe(true);
   return (await res.json()).code as string;
 }
@@ -86,7 +86,7 @@ async function stored(page: Page, workspace: string): Promise<string | null> {
     (key) =>
       new Promise<string | null>((resolve) => {
         // Open at the app's version so a missing database is created exactly as the app would.
-        const open = indexedDB.open("aura-simulator-workspaces", 1);
+        const open = indexedDB.open("aura-simulator-game-workspaces", 1);
         open.onupgradeneeded = () => open.result.createObjectStore("workspaces");
         open.onerror = () => resolve(null);
         open.onsuccess = () => {
@@ -99,14 +99,14 @@ async function stored(page: Page, workspace: string): Promise<string | null> {
           get.onerror = () => resolve(null);
         };
       }),
-    `aura-simulator:workspace:${workspace}`,
+    `aura-simulator:forever:workspace:${workspace}`,
   );
 }
 
 /** Asserts the address names the workspace and nothing else. */
 function expectAddress(page: Page, workspace: string) {
   const url = new URL(page.url());
-  expect(url.pathname).toBe("/");
+  expect(url.pathname).toBe("/forever");
   expect(url.search).toBe(`?w=${workspace}`);
 }
 
@@ -117,7 +117,7 @@ test("paste a state code, reload, and the same aura comes back from browser stor
   const workspace = uniqueId("paste");
   const code = await encode(request, iconAura("Pasted", 40));
 
-  await page.goto(`/?w=${workspace}`);
+  await page.goto(`/forever?w=${workspace}`);
   await expectIconSize(page, 64); // the sample
   await expect(page.getByTestId("workspace-id")).toHaveText(workspace);
 
@@ -136,7 +136,8 @@ test("paste a state code, reload, and the same aura comes back from browser stor
   await expect(page.getByLabel("Paste a code to load")).toHaveValue("!WA:2!garbage");
 
   await expect.poll(async () => JSON.parse((await stored(page, workspace)) ?? "{}")).toMatchObject({
-    version: 2,
+    version: 3,
+    game: "forever",
     items: [{ aura: { id: "Pasted", width: 40 }, code }],
   });
   await page.reload();
@@ -145,50 +146,19 @@ test("paste a state code, reload, and the same aura comes back from browser stor
   expectAddress(page, workspace);
 });
 
-test("a workspace saved in localStorage by an older version moves to IndexedDB", async ({ page, request }) => {
-  const workspace = uniqueId("migrate");
-  const code = await encode(request, iconAura("Old", 36));
-  const key = `aura-simulator:workspace:${workspace}`;
-  const old = JSON.stringify({ format: "aura-simulator/workspace", version: 1, updatedAt: new Date().toISOString(), items: [{ code }] });
-  await page.addInitScript(([k, v]) => {
-    if (!sessionStorage.getItem("seeded")) {
-      localStorage.setItem(k, v);
-      sessionStorage.setItem("seeded", "1");
-    }
-  }, [key, old] as const);
-  await page.goto(`/?w=${workspace}`);
-  await expectIconSize(page, 36);
-  await expect.poll(() => page.evaluate((k) => localStorage.getItem(k), key)).toBeNull();
-  expect(JSON.parse((await stored(page, workspace))!)).toMatchObject({ version: 2, items: [{ aura: { id: "Old" } }] });
-});
-
-test("an old ?code= link is imported once and stripped from the address", async ({ page, request }) => {
-  const workspace = uniqueId("legacy");
-  const code = await encode(request, iconAura("Linked", 42));
-  await page.goto(`/?w=${workspace}&code=${encodeURIComponent(code)}`);
-  await expectIconSize(page, 42);
-  await expect.poll(() => stateCode(page)).toBe(code);
-  await expect.poll(() => new URL(page.url()).search).toBe(`?w=${workspace}`);
-
-  // Anything else in the address (e.g. an old `?s=` short link) is dropped.
-  await page.goto(`/?w=${workspace}&s=Ab12Cd34`);
-  await expectIconSize(page, 42);
-  await expect.poll(() => new URL(page.url()).search).toBe(`?w=${workspace}`);
-});
-
 test("an agent pushes a document over HTTP and the open page shows it", async ({ page, request, baseURL }) => {
   const workspace = uniqueId("push");
-  await page.goto(`/?w=${workspace}`);
+  await page.goto(`/forever?w=${workspace}`);
   await expectIconSize(page, 64);
   // Let the page subscribe to its workspace before pushing.
-  await expect.poll(async () => (await (await request.get(`/api/workspaces/${workspace}`)).json()).code).toMatch(/^!WA:2!/);
+  await expect.poll(async () => (await (await request.get(`/api/forever/workspaces/${workspace}`)).json()).code).toMatch(/^!WA:2!/);
 
-  const res = await request.post(`/api/workspaces/${workspace}/aura`, { data: { aura: iconAura("Pushed", 52) } });
+  const res = await request.post(`/api/forever/workspaces/${workspace}/aura`, { data: { aura: iconAura("Pushed", 52) } });
   expect(res.status()).toBe(200);
   const body = await res.json();
   expect(body.workspace).toBe(workspace);
   expect(body.code).toMatch(/^!WA:2![A-Za-z0-9()]+$/);
-  expect(body.url).toBe(`${baseURL}/?w=${workspace}`);
+  expect(body.url).toBe(`${baseURL}/forever?w=${workspace}`);
   expect(body.validation).toBeTruthy();
 
   // The pushed aura joins the workspace beside the sample and is selected; the address stays the workspace.
@@ -196,22 +166,22 @@ test("an agent pushes a document over HTTP and the open page shows it", async ({
   await expectIconSize(page, 64, "Arcane Intellect");
   await expect.poll(() => stateCode(page)).toBe(body.code);
   expectAddress(page, workspace);
-  expect((await (await request.get(`/api/workspaces/${workspace}`)).json()).code).toBe(body.code);
+  expect((await (await request.get(`/api/forever/workspaces/${workspace}`)).json()).code).toBe(body.code);
 
   // Pushing the same id again replaces it instead of adding another.
-  const again = await request.post(`/api/workspaces/${workspace}/aura`, { data: { aura: iconAura("Pushed", 30) } });
+  const again = await request.post(`/api/forever/workspaces/${workspace}/aura`, { data: { aura: iconAura("Pushed", 30) } });
   expect(again.status()).toBe(200);
   await expectIconSize(page, 30, "Pushed");
   await expect(page.getByRole("treeitem")).toHaveCount(2);
 
-  const bad = await request.post(`/api/workspaces/${workspace}/aura`, { data: { code: "!WA:2!nope" } });
+  const bad = await request.post(`/api/forever/workspaces/${workspace}/aura`, { data: { code: "!WA:2!nope" } });
   expect(bad.status()).toBe(422);
   expect((await bad.json()).error).toBeTruthy();
 });
 
 test("an agent in the browser tab loads auras and reads the state code through window.auraSimulator", async ({ page, request }) => {
   const workspace = uniqueId("page-api");
-  await page.goto(`/?w=${workspace}`);
+  await page.goto(`/forever?w=${workspace}`);
   await expectIconSize(page, 64);
 
   // A document, as the agent docs show it: it joins the workspace (like a push) and is selected.
@@ -235,7 +205,7 @@ test("an agent in the browser tab loads auras and reads the state code through w
 });
 
 test("export an aura as a .txt file holding exactly its code, and import it into a fresh workspace", async ({ page, browser }) => {
-  await page.goto(`/?w=${uniqueId("export")}`);
+  await page.goto(`/forever?w=${uniqueId("export")}`);
   await expectIconSize(page, 64);
   const code = await stateCode(page);
 
@@ -257,7 +227,7 @@ test("export an aura as a .txt file holding exactly its code, and import it into
   const other = await browser.newContext();
   const fresh = await other.newPage();
   const workspace = uniqueId("import");
-  await fresh.goto(`/?w=${workspace}`);
+  await fresh.goto(`/forever?w=${workspace}`);
   await expectIconSize(fresh, 64);
   await openWorkspaceMenu(fresh);
   await fresh.getByLabel("Import files").setInputFiles(path);
@@ -274,7 +244,7 @@ test("drop text files with codes (several per file) on the window to import them
   const workspace = uniqueId("drop");
   const a = await encode(request, iconAura("Dropped A", 30));
   const b = await encode(request, iconAura("Dropped B", 34, { uid: "E2eDropB" }));
-  await page.goto(`/?w=${workspace}`);
+  await page.goto(`/forever?w=${workspace}`);
   await expectIconSize(page, 64);
 
   const dataTransfer = await page.evaluateHandle(
@@ -302,15 +272,15 @@ test("drop text files with codes (several per file) on the window to import them
 test("a 3 MB aura round-trips through push, storage and export without touching the address", async ({ page, request }) => {
   test.setTimeout(300_000);
   const workspace = uniqueId("big");
-  await page.goto(`/?w=${workspace}`);
+  await page.goto(`/forever?w=${workspace}`);
   await expectIconSize(page, 64);
-  await expect.poll(async () => (await (await request.get(`/api/workspaces/${workspace}`)).json()).code).toMatch(/^!WA:2!/);
+  await expect.poll(async () => (await (await request.get(`/api/forever/workspaces/${workspace}`)).json()).code).toMatch(/^!WA:2!/);
 
   // Incompressible custom text, so the state code itself stays megabytes.
   const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
   let desc = "";
   for (let i = 0; i < 3_000_000; i++) desc += alphabet[Math.floor(Math.random() * alphabet.length)];
-  const res = await request.post(`/api/workspaces/${workspace}/aura`, {
+  const res = await request.post(`/api/forever/workspaces/${workspace}/aura`, {
     data: { aura: iconAura("Big", 46, { uid: "E2eBig", desc }) },
     timeout: 120_000,
   });
@@ -339,14 +309,14 @@ test("a 3 MB aura round-trips through push, storage and export without touching 
 });
 
 test("agent docs explain the document, the push API and the worked examples, as a page and as Markdown", async ({ page, request }) => {
-  const md = await (await request.get("/llms.txt")).text();
-  expect(md).toContain("POST /api/workspaces/<id>/aura");
+  const md = await (await request.get("/forever/llms.txt")).text();
+  expect(md).toContain("POST /api/forever/workspaces/<id>/aura");
   expect(md).toContain("curl -s -X POST");
   expect(md).toContain("## Worked examples");
-  expect(await (await request.get("/docs/agents.md")).text()).toBe(md);
+  expect(await (await request.get("/forever/docs/agents.md")).text()).toBe(md);
 
-  await page.goto("/docs/agents");
+  await page.goto("/forever/docs/agents");
   await expect(page.getByRole("heading", { name: "The aura document" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "POST /api/workspaces/<id>/aura" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "POST /api/forever/workspaces/<id>/aura" })).toBeVisible();
   await expect(page.getByText("curl -s -X POST").first()).toBeVisible();
 });

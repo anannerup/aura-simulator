@@ -62,7 +62,7 @@ export function ValidationPanel({
       data-vm-timings={current.state === "done" ? JSON.stringify(current.timings) : undefined}
       aria-live="polite"
     >
-      {current.state === "loading" && <p className={styles.muted}>Checking with Musca Auras&apos; own rules…</p>}
+      {current.state === "loading" && <p className={styles.muted}>Checking with the addon&apos;s own rules…</p>}
       {current.state === "failed" && <p className={styles.error}>Could not check this aura: {current.error}</p>}
       {current.state === "done" && <Result result={current.result} />}
     </section>

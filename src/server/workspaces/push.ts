@@ -1,6 +1,7 @@
 import { canonicalize, isStateCode, type AuraCore, type AuraDocument, type ValidationResult } from "@/core";
 import { buildPageUrl, readPushInput, type PushInput } from "@/workspace";
 import { getServerAuraCore } from "@/server/addon/core";
+import type { ServerGame } from "@/server/game";
 import { getWorkspaceHub } from "./hub";
 import { errorMessage } from "@/lib/errors";
 
@@ -108,24 +109,25 @@ export interface PushOptions {
   source?: string | null;
   /** False skips the addon validation in the answer (the page validates itself). Default true. */
   validate?: boolean;
-  /** Addon version (release, branch or commit) to encode and validate with. Default: the server's (resolveServerRef). */
+  /** Addon version (a release) to encode and validate with. Default: the server's (resolveServerRef). */
   ref?: string | null;
 }
 
-/** Checks and encodes a push, records it for the workspace and notifies open pages. */
+/** Checks and encodes a push with the game's addon, records it for the game's workspace and notifies open pages. */
 export async function pushToWorkspace(
+  server: ServerGame,
   workspaceId: string,
   input: PushInput,
   origin: string,
   options: PushOptions = {},
 ): Promise<PushResult> {
-  const core = await getServerAuraCore(options.ref);
+  const core = await getServerAuraCore(server, options.ref);
   const code = toStateCode(core, input);
-  const snap = getWorkspaceHub().set(workspaceId, code, options.source ?? null);
+  const snap = getWorkspaceHub(server.game.id).set(workspaceId, code, options.source ?? null);
   return {
     workspace: workspaceId,
     code,
-    url: buildPageUrl(origin, workspaceId),
+    url: buildPageUrl(origin, server.game.id, workspaceId),
     updatedAt: snap.updatedAt!,
     revision: snap.revision,
     validation: options.validate === false ? null : await core.validate(core.decode(code)),

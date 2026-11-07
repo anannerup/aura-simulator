@@ -2,7 +2,7 @@
 import { ADDON_BUNDLE_SETS, type AddonBundleSet } from "@/core";
 import { getEncodedAddonBundle } from "./bundle";
 import { AddonRefError } from "./refs";
-import { getAddonSourceCache, type Resolution } from "./source-cache";
+import type { AddonSourceCache } from "./source-cache";
 import { errorMessage } from "@/lib/errors";
 
 export function errorResponse(e: unknown): Response {
@@ -20,19 +20,17 @@ function contentType(file: string): string {
   return TYPES[ext] ?? "application/octet-stream";
 }
 
-/** Releases and commits are immutable; branch answers expire. */
-function cacheControl(resolution: Resolution): string {
-  return resolution.kind === "branch" ? "public, max-age=300" : "public, max-age=31536000, immutable";
-}
+/** Releases never change. */
+const CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 /** Serves one addon file through the disk cache. */
-export async function addonFileResponse(ref: string, file: string): Promise<Response> {
+export async function addonFileResponse(cache: AddonSourceCache, ref: string, file: string): Promise<Response> {
   try {
-    const { resolution, bytes } = await getAddonSourceCache().readFile(ref, file);
+    const { resolution, bytes } = await cache.readFile(ref, file);
     return new Response(new Uint8Array(bytes), {
       headers: {
         "Content-Type": contentType(file),
-        "Cache-Control": cacheControl(resolution),
+        "Cache-Control": CACHE_CONTROL,
         "X-Addon-Ref": resolution.ref,
       },
     });
@@ -48,6 +46,7 @@ export async function addonFileResponse(ref: string, file: string): Promise<Resp
  * (Next.js won't pass a route's own Content-Encoding through, so the browser inflates it itself).
  */
 export async function addonBundleResponse(
+  cache: AddonSourceCache,
   request: Request,
   ref: string,
   set: string | null,
@@ -61,10 +60,10 @@ export async function addonBundleResponse(
     return Response.json({ error: "format must be json or gzip" }, { status: 400 });
   }
   try {
-    const bundle = await getEncodedAddonBundle(getAddonSourceCache(), ref, set as AddonBundleSet);
+    const bundle = await getEncodedAddonBundle(cache, ref, set as AddonBundleSet);
     const headers: Record<string, string> = {
       "Content-Type": format === "gzip" ? "application/gzip" : "application/json; charset=utf-8",
-      "Cache-Control": cacheControl(bundle.resolution),
+      "Cache-Control": CACHE_CONTROL,
       ETag: bundle.etag,
       "X-Addon-Ref": bundle.resolution.ref,
     };
