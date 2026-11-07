@@ -1,10 +1,10 @@
 import type { AuraCore, AuraDocument, AuraState, OptionDialog, OptionNode } from "@/core";
+import { errorMessage } from "@/lib/errors";
 
 /** Many changes in a row (slider drag) wait this long for the last one. */
 const CONTINUOUS_DELAY_MS = 50;
 
 export const optionId = (path: string[]) => path.join("\u001f");
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export interface Draft {
   value: unknown;
@@ -128,7 +128,7 @@ export class OptionEdits {
           this.setError(id, edit.warning ? `The addon reported an error during this change: ${edit.warning}` : null);
         }
       } catch (e) {
-        this.fail(id, message(e));
+        this.fail(id, errorMessage(e));
       } finally {
         const d = this.view.drafts[id];
         const finished = d && (node.type === "multiselect" || d.value === value);

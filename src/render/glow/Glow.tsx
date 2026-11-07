@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type CSSProperties } from "react";
+import { rgbaCss, type Rgba } from "../color";
 import { texCoordBackground, useTextureUrl, type TexCoord } from "../textures";
 import {
   ANIM_IN_DURATION,
@@ -16,7 +17,7 @@ import {
   createAntsAnimator,
   type ButtonGlowState,
 } from "./buttonGlow";
-import { ITEM_SOCKETS, SHINE_TEXCOORD, autoCastSparkles, autoCastTimers } from "./autoCast";
+import { autoCastSparkles, autoCastTimers, ITEM_SOCKETS, SHINE_TEXCOORD } from "./autoCast";
 import {
   glowDrawable,
   glowParams,
@@ -27,9 +28,8 @@ import {
   type GlowType,
   type PixelGlowParams,
   type ProcGlowParams,
-  type Rgba,
 } from "./params";
-import { PIXEL_BORDER_COLOR, bandClipPath, pixelGlowLines, pixelProgress } from "./pixelGlow";
+import { bandClipPath, PIXEL_BORDER_COLOR, pixelGlowLines, pixelProgress } from "./pixelGlow";
 import {
   PROC_ATLAS_FILE,
   PROC_LOOP_TEXCOORD,
@@ -202,10 +202,6 @@ function ButtonGlow({ params, width, height, visible, time }: RendererProps<Butt
 }
 
 // ---------------------------------------------------------------- PixelGlow
-
-function rgbaCss(c: Rgba) {
-  return `rgba(${c[0] * 255}, ${c[1] * 255}, ${c[2] * 255}, ${c[3]})`;
-}
 
 function PixelGlow({ params, width, height, time }: RendererProps<PixelGlowParams>) {
   const frame = offsetFrameRect(width, height, params.xOffset, params.yOffset);

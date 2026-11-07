@@ -1,6 +1,7 @@
 import type { AuraState } from "@/core";
 import { readPushInput } from "@/workspace";
 import type { WorkspaceSession } from "./session";
+import { errorMessage } from "@/lib/errors";
 
 /**
  * `window.auraSimulator`: the in-page command for agents driving the page in a browser tab (documented in the agent
@@ -34,7 +35,7 @@ export function installPageApi(session: WorkspaceSession, workspaceId: string): 
       try {
         return session.load(readPushInput(input));
       } catch (e) {
-        return { ok: false, error: e instanceof Error ? e.message : String(e) };
+        return { ok: false, error: errorMessage(e) };
       }
     },
     code: (id) => session.codeOf(id),

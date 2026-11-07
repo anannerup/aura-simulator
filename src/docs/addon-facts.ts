@@ -3,7 +3,7 @@
  * trigger types, the Aura (Modern) tables), its defaults (`fillDefaults`) and its own combat verdicts
  * (`validate` on a probe aura per trigger). So the docs follow addon updates without hand edits.
  */
-import type { AuraCore, AuraDocument, CombatStatus, LuaObject, LuaValue, Registries } from "@/core";
+import { plainText, type AuraCore, type AuraDocument, type CombatStatus, type LuaObject, type LuaValue, type Registries } from "@/core";
 
 export interface TriggerFact {
   /** The trigger's `type` (e.g. "spell"). */
@@ -97,10 +97,9 @@ const asRecord = (v: unknown): Record<string, unknown> => (v && typeof v === "ob
 const keysOf = (v: unknown): string[] => Object.keys(asRecord(v)).sort();
 /** A Lua sequence from the VM: an array, or {} when empty. */
 const listOf = (v: unknown): unknown[] => (Array.isArray(v) ? v : Object.values(asRecord(v)));
-const stripColor = (s: string) => s.replace(/\|c\w{8}|\|r|\|T[^|]*\|t/g, "");
 /** An options-window name: a string or a list of parts (non-strings are flags, not words). */
 const displayName = (d: unknown, fallback: string) =>
-  stripColor(Array.isArray(d) ? d.filter((x) => typeof x === "string").join(" ") : typeof d === "string" ? d : fallback);
+  plainText(Array.isArray(d) ? d.filter((x) => typeof x === "string").join(" ") : typeof d === "string" ? d : fallback);
 
 function probe(trigger: LuaObject, conditions: LuaValue = []): { aura: AuraDocument; children: AuraDocument[] } {
   return {
@@ -139,7 +138,7 @@ export async function collectAddonFacts(core: AuraCore): Promise<AddonFacts> {
     const proto = asRecord(p);
     const type = String(proto.type);
     const category = asRecord(categories[type]).name;
-    const name = `${category ? `${category}: ` : ""}${stripColor(String(proto.name ?? event))}`;
+    const name = `${category ? `${category}: ` : ""}${plainText(String(proto.name ?? event))}`;
     triggers.push({ type, event, name, ...(await verdict(probe({ type, event }))) });
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getField, isLuaTable, list, type AuraDocument, type AuraRenderState, type LuaValue } from "@/core";
+import { getField, isLuaTable, list, num, type AuraDocument, type AuraRenderState } from "@/core";
 import { advanceLife, auraAnimations, GONE, hideLife, lifePose, showLife, stampLife, type AnimBase, type Life } from "./animations";
 import { AuraRegion } from "./AuraRegion";
 import { RegionClockContext } from "./clock";
@@ -10,7 +10,6 @@ import { regionInfo } from "./region-types";
 import { animatedRect, type Rect } from "./screen/geometry";
 import { isTimedStopMotion } from "./stop-motion";
 
-const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /** Stop motion that steps with time (the region or a sub-element) needs the clock even without animations. */
 function needsClock(aura: AuraDocument): boolean {
@@ -80,7 +79,7 @@ export function AnimatedAuraRegion({ aura, rect, state, shown = state.shown, sel
   const animRect = animatedRect(drawn.rect, aura.selfPoint, sx, sy, pose.dx, pose.dy);
   const properties = { ...p };
   if (pose.alpha !== undefined) properties.alpha = pose.alpha;
-  if (pose.color) properties[colorKey] = pose.color;
+  if (pose.color) properties[colorKey] = [...pose.color];
   const animState = pose.alpha !== undefined || pose.color ? { ...drawn.state, properties } : drawn.state;
   const seconds = life.shownAt === null ? 0 : Math.max(0, now - life.shownAt);
 

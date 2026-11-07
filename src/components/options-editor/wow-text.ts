@@ -1,14 +1,4 @@
-/** WoW UI text escapes in option names and descriptions, turned into plain text. */
-export function plainText(text: unknown): string {
-  if (typeof text !== "string") return text === undefined || text === null ? "" : String(text);
-  return text
-    .replace(/\|c[0-9a-fA-F]{8}/g, "")
-    .replace(/\|r/g, "")
-    .replace(/\|T[^|]*\|t/g, "")
-    .replace(/\|A[^|]*\|a/g, "")
-    .replace(/\|n/g, "\n")
-    .replace(/\|\|/g, "|");
-}
+import { plainText } from "@/core";
 
 /**
  * The addon's spell/item inputs return "shown text\0raw text" from get(): the input shows the first

@@ -1,7 +1,8 @@
-import { canonicalize, type AuraCore, type AuraDocument, type ValidationResult } from "@/core";
+import { canonicalize, isStateCode, type AuraCore, type AuraDocument, type ValidationResult } from "@/core";
 import { buildPageUrl, readPushInput, type PushInput } from "@/workspace";
 import { getServerAuraCore } from "@/server/addon/core";
 import { getWorkspaceHub } from "./hub";
+import { errorMessage } from "@/lib/errors";
 
 export type { PushInput };
 
@@ -55,7 +56,7 @@ export async function readBodyText(request: Request, maxBytes = MAX_PUSH_BYTES):
  */
 export function parsePushBody(text: string, contentType: string | null): PushInput {
   const trimmed = text.trim();
-  if (!contentType?.includes("json") && trimmed.startsWith("!WA:")) return { code: trimmed };
+  if (!contentType?.includes("json") && isStateCode(trimmed)) return { code: trimmed };
   let body: unknown;
   try {
     body = JSON.parse(trimmed);
@@ -65,13 +66,13 @@ export function parsePushBody(text: string, contentType: string | null): PushInp
   try {
     return readPushInput(body);
   } catch (e) {
-    throw new PushError(e instanceof Error ? e.message : String(e));
+    throw new PushError(errorMessage(e));
   }
 }
 
 /** Checks the input with the addon's own decoder/encoder and returns its state code. */
 export function toStateCode(core: AuraCore, input: PushInput): string {
-  const fail = (prefix: string, e: unknown) => new PushError(`${prefix}${e instanceof Error ? e.message : String(e)}`, 422);
+  const fail = (prefix: string, e: unknown) => new PushError(`${prefix}${errorMessage(e)}`, 422);
   if ("code" in input) {
     try {
       core.decode(input.code); // throws for anything the addon wouldn't import

@@ -1,14 +1,13 @@
 "use client";
 
-import { getField, list, type AuraRenderState, type LuaTable, type LuaValue } from "@/core";
+import { getField, list, num, type AuraRenderState, type LuaTable } from "@/core";
 import { tickPlacement, type TickMode } from "../bar-geometry";
 import { CASTING_BAR_SPARK, textureSourceOf } from "../media";
-import { TurnedTexture, rgbaCss } from "../TurnedTexture";
+import { TurnedTexture } from "../TurnedTexture";
 import type { SubRegionHost } from "./host";
-import { color } from "../color";
+import { color, rgbaCss } from "../color";
 import styles from "./subregions.module.css";
 
-const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 const MODES = new Set(["AtValue", "AtMissingValue", "AtPercent", "ValueOffset"]);
 
 /**

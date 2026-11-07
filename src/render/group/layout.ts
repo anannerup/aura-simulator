@@ -18,7 +18,7 @@
  *   shown and no child is a dynamic group (Group.lua:177-235); a dynamic group's surrounds its shown children
  *   (:1630-1636), not with anchor-per-unit (:1099).
  */
-import { field, type AuraDocument, type LuaValue } from "@/core";
+import { field, num, type AuraDocument } from "@/core";
 import { anchorFraction, anchorFrameFor, type AnchorFrame, type Rect, type UiParent } from "../screen/geometry";
 import { dynamicSelfPoint, growPositions, type Size } from "./grow";
 
@@ -57,7 +57,6 @@ export interface StageLayout {
   standIns: AnchorFrame[];
 }
 
-const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" && Number.isFinite(v) ? v : fallback);
 const idOf = (a: AuraDocument) => (typeof a.id === "string" ? a.id : "");
 /** `data.scale and data.scale > 0 and data.scale <= 10 and data.scale or 1` */
 const scaleOf = (a: AuraDocument) => {

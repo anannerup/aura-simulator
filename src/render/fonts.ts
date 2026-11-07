@@ -6,6 +6,7 @@
  */
 import { useEffect, useSyncExternalStore, type CSSProperties } from "react";
 import { DEFAULT_ADDON_REF, type LuaValue } from "@/core";
+import { rgbaCss } from "./color";
 import { DEFAULT_FONT, FONTS } from "./media";
 import { textureLoader, textureUrls } from "./textures";
 
@@ -103,8 +104,7 @@ export function fontFlagsStyle(flags: LuaValue | undefined, shadow: { color: rea
   }
   const shadowless = f === "OUTLINE|SLUG" || f === "THICKOUTLINE|SLUG";
   if (!shadowless && (shadow.x !== 0 || shadow.y !== 0)) {
-    const [r, g, b, a] = shadow.color;
-    shadows.push(`${shadow.x}px ${-shadow.y}px 0 rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${a ?? 1})`);
+    shadows.push(`${shadow.x}px ${-shadow.y}px 0 ${rgbaCss(shadow.color)}`);
   }
   const style: CSSProperties = { textShadow: shadows.join(", ") || undefined };
   if (f.includes("MONOCHROME")) {

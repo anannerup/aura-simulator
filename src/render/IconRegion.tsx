@@ -1,7 +1,8 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { isLuaTable, type AuraDocument, type LuaValue } from "@/core";
+import { num, type AuraDocument } from "@/core";
+import { color, rgbaCss } from "./color";
 import { useWowFont } from "./fonts";
 import { iconHost } from "./subregions/host";
 import { SubRegions } from "./subregions/SubRegions";
@@ -10,20 +11,6 @@ import { useAuraIconUrl } from "./textures";
 import styles from "./regions.module.css";
 import type { RegionProps } from "./region-types";
 
-export function rgba(value: LuaValue | undefined, fallback: [number, number, number, number] = [1, 1, 1, 1]): [number, number, number, number] {
-  const c = isLuaTable(value) && Array.isArray(value) ? value : [];
-  return [0, 1, 2, 3].map((i) => (typeof c[i] === "number" ? Math.min(1, Math.max(0, c[i] as number)) : fallback[i])) as [
-    number,
-    number,
-    number,
-    number,
-  ];
-}
-
-export const css = ([r, g, b, a]: [number, number, number, number]) =>
-  `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${a})`;
-
-const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /**
  * The icon region (RegionTypes/Icon.lua): the texture with zoom, desaturation and colour, the cooldown
@@ -42,7 +29,7 @@ export function IconRegion({ aura, state, name, width, height }: RegionProps) {
   const background = (
     <>
       <div className={styles.iconClip}>
-        <IconTexture aura={aura} name={name} zoom={num(p.zoom, 0)} aspect={aspect} desaturate={desaturate} tint={rgba(p.color)} />
+        <IconTexture aura={aura} name={name} zoom={num(p.zoom, 0)} aspect={aspect} desaturate={desaturate} tint={color(p.color)} />
       </div>
       {showCooldown && (
         <CooldownSwipe
@@ -139,7 +126,7 @@ export function IconTexture({ aura, name, zoom, aspect = 1, desaturate, tint }: 
       {/* Blizzard art comes from Wowhead's image server at runtime; next/image would proxy it. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className={styles.icon} src={src} alt={name} style={style} draggable={false} />
-      {tinted && <div className={styles.tint} style={{ background: css([tint[0], tint[1], tint[2], 1]), opacity: tint[3] }} data-testid="icon-tint" />}
+      {tinted && <div className={styles.tint} style={{ background: rgbaCss([tint[0], tint[1], tint[2]]), opacity: tint[3] }} data-testid="icon-tint" />}
     </>
   );
 }

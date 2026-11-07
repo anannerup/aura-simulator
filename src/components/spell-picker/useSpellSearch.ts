@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { searchSpells, type SpellSearchHit } from "./spell-api";
+import { errorMessage } from "@/lib/errors";
 
 export interface SpellSearch {
   /** The answer for the current query; null while it is pending, failed, or the search is off. */
@@ -26,7 +27,7 @@ export function useSpellSearch(
     const t = setTimeout(() => {
       searchSpells(q, ac.signal).then(
         (r) => setAnswer({ q, refresh, hits: r.results, error: null }),
-        (e: unknown) => !ac.signal.aborted && setAnswer({ q, refresh, hits: null, error: e instanceof Error ? e.message : String(e) }),
+        (e: unknown) => !ac.signal.aborted && setAnswer({ q, refresh, hits: null, error: errorMessage(e) }),
       );
     }, delayMs);
     return () => {

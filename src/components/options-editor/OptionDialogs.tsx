@@ -6,11 +6,10 @@
  * through the same button, so the addon applies it the way its own dialog would.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { OptionDialog } from "@/core";
+import { plainText, type OptionDialog } from "@/core";
 import { GameTexture } from "@/components/ui";
 import { useSpellSearch } from "@/components/spell-picker/useSpellSearch";
 import { displayIconRef, iconNameUrl } from "@/render/textures";
-import { plainText } from "./wow-text";
 import { WowText } from "./WowText";
 import styles from "./Widgets.module.css";
 

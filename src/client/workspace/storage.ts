@@ -10,7 +10,8 @@
  * non-blocking warning.
  */
 
-import { IdbUnavailable, idbStore } from "@/lib/idb";
+import { idbStore, IdbUnavailable } from "@/lib/idb";
+import { errorMessage } from "@/lib/errors";
 
 // Its own database: "aura-simulator" belongs to the screenshot store (src/app/screen/screenshot-store.ts).
 const DB_NAME = "aura-simulator-workspaces";
@@ -65,7 +66,7 @@ function isQuotaError(e: unknown): boolean {
 function problemOf(e: unknown): StorageProblem {
   if (e instanceof StorageProblem) return e;
   if (isQuotaError(e)) return new StorageProblem("quota", "Browser storage is full");
-  const message = e instanceof Error ? e.message : String(e);
+  const message = errorMessage(e);
   return new StorageProblem("failed", `Browser storage failed: ${message}`);
 }
 

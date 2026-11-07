@@ -3,10 +3,11 @@ import { ADDON_BUNDLE_SETS, type AddonBundleSet } from "@/core";
 import { getEncodedAddonBundle } from "./bundle";
 import { AddonRefError } from "./refs";
 import { getAddonSourceCache, type Resolution } from "./source-cache";
+import { errorMessage } from "@/lib/errors";
 
 export function errorResponse(e: unknown): Response {
   const status = e instanceof AddonRefError ? e.status : 500;
-  const message = e instanceof Error ? e.message : String(e);
+  const message = errorMessage(e);
   return Response.json({ error: message }, { status });
 }
 

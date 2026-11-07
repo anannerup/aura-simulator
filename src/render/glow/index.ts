@@ -6,5 +6,4 @@ export {
   type GlowOptions,
   type GlowParams,
   type GlowType,
-  type Rgba,
 } from "./params";

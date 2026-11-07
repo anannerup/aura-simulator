@@ -5,9 +5,7 @@ import type { Box, TextureTurn } from "./bar-geometry";
 import { useTextureUrl } from "./textures";
 import type { TextureSource } from "./textures/paths";
 
-export type Rgba = readonly [number, number, number, number];
-
-const rgbaCss = (c: Rgba) => `rgba(${Math.round(c[0] * 255)}, ${Math.round(c[1] * 255)}, ${Math.round(c[2] * 255)}, ${c[3]})`;
+import { rgbaCss, type Rgba } from "./color";
 
 /**
  * A WoW texture stretched over `box`, turned by 90° steps and/or mirrored (SetTexCoord with swapped corners),
@@ -84,4 +82,3 @@ export function TurnedTexture({
   );
 }
 
-export { rgbaCss };

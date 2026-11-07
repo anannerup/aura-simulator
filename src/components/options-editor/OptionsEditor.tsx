@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from "react";
-import type { AuraCore, AuraDocument, OptionNode, OptionsTree } from "@/core";
+import { plainText, type AuraCore, type AuraDocument, type OptionNode, type OptionsTree } from "@/core";
 import {
   ColorField,
   ExecuteField,
@@ -15,9 +15,9 @@ import {
 } from "./fields";
 import { OptionDialogView } from "./OptionDialogs";
 import { OptionEdits, optionId, type Draft, type OptionEditsDeps } from "./option-edits";
-import { plainText } from "./wow-text";
 import { WowText } from "./WowText";
 import styles from "./OptionsEditor.module.css";
+import { errorMessage } from "@/lib/errors";
 
 export interface OptionsEditorProps {
   core: AuraCore;
@@ -32,7 +32,6 @@ export interface OptionsEditorProps {
 }
 
 const NO_CHILDREN: AuraDocument[] = [];
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /**
  * The in-game options window for one aura: the addon's own tabs and option tables (via the aura
@@ -69,7 +68,7 @@ export function OptionsEditor({ core, aura, childAuras = NO_CHILDREN, onChange }
       },
       (e: unknown) => {
         if (cancelled) return;
-        setLoadError(message(e));
+        setLoadError(errorMessage(e));
         setBuiltFor(request);
       },
     );

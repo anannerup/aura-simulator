@@ -1,6 +1,6 @@
 "use client";
 
-import type { AuraDocument, LuaValue } from "@/core";
+import { num, type AuraDocument, type LuaValue } from "@/core";
 import {
   barLayout,
   barProgress,
@@ -16,12 +16,11 @@ import { IconTexture } from "./IconRegion";
 import { CASTING_BAR_SPARK, statusBarTexture, textureSourceOf } from "./media";
 import { fullBox, type SubRegionHost } from "./subregions/host";
 import { SubRegions } from "./subregions/SubRegions";
-import { color } from "./color";
-import { TurnedTexture, rgbaCss } from "./TurnedTexture";
+import { color, rgbaCss } from "./color";
+import { TurnedTexture } from "./TurnedTexture";
 import styles from "./regions.module.css";
 import type { RegionProps } from "./region-types";
 
-const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /**
  * The aura bar region (RegionTypes/AuraBar.lua): a status bar texture over a background of the same texture,

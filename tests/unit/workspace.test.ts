@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { findStateCodes, isStateCode } from "@/core";
 import {
   auraFileName,
   buildPageUrl,
   buildSearch,
   classifyImportText,
-  extractStateCodes,
   newerWorkspace,
   parseAddress,
   readWorkspace,
@@ -34,10 +34,19 @@ describe("import and export files", () => {
   const other = "!WA:2!abc";
 
   it("finds every state code in a text, one per line or surrounded by other text", () => {
-    expect(extractStateCodes(`${CODE}\r\n\n${other}\n`)).toEqual([CODE, other]);
-    expect(extractStateCodes(`Here you go: ${CODE}. Enjoy!`)).toEqual([CODE]);
-    expect(extractStateCodes(`﻿${CODE}`)).toEqual([CODE]);
-    expect(extractStateCodes("nothing here")).toEqual([]);
+    expect(findStateCodes(`${CODE}\r\n\n${other}\n`)).toEqual([CODE, other]);
+    expect(findStateCodes(`Here you go: ${CODE}. Enjoy!`)).toEqual([CODE]);
+    expect(findStateCodes(`﻿${CODE}`)).toEqual([CODE]);
+    expect(findStateCodes("nothing here")).toEqual([]);
+  });
+
+  it("takes the encode versions the addon decodes with LibSerialize (2 and up), not older strings", () => {
+    expect(isStateCode(` ${CODE}\n`)).toBe(true);
+    expect(isStateCode("!WA:10!abc")).toBe(true);
+    expect(isStateCode("!WA:1!abc")).toBe(false);
+    expect(isStateCode("!WA:02!abc")).toBe(false);
+    expect(isStateCode(`${CODE} trailing`)).toBe(false);
+    expect(findStateCodes("!WA:1!abc !WA:0!abc")).toEqual([]);
   });
 
   it("tells a workspace JSON file from text with codes", () => {

@@ -1,3 +1,4 @@
+import { num } from "@/core";
 /**
  * Dynamic group growth, ported from Musca Auras v1.15.0 `WeakAuras/RegionTypes/DynamicGroup.lua`.
  *
@@ -34,7 +35,6 @@ export interface Size {
 
 export type Position = [number, number] | null;
 
-const num = (v: unknown, fallback: number) => (typeof v === "number" && Number.isFinite(v) ? v : fallback);
 
 /** staggerCoefficient, DynamicGroup.lua:406-422. */
 function staggerCoefficient(align: unknown, stagger: number): number {

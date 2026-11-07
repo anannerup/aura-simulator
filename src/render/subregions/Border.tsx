@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { getField, type AuraRenderState, type LuaTable, type LuaValue } from "@/core";
+import { getField, num, type AuraRenderState, type LuaTable } from "@/core";
 import type { Box } from "../bar-geometry";
 import { borderEdge } from "../media";
 import type { TextureSource } from "../textures/paths";
@@ -10,7 +10,6 @@ import { inflate, type SubRegionHost } from "./host";
 import { color } from "../color";
 import styles from "./subregions.module.css";
 
-const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 type Piece = "left" | "right" | "top" | "bottom" | "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
 /** Backdrop edge files hold eight square pieces side by side, in this order. */

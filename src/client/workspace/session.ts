@@ -24,6 +24,7 @@ import {
 import { StateCodes } from "./codes";
 import { ServerLink } from "./server-link";
 import { pageWorkspaceStore, type WorkspaceStore } from "./storage";
+import { errorMessage } from "@/lib/errors";
 
 /** What the page shows of the workspace. */
 export interface WorkspaceView {
@@ -91,7 +92,6 @@ export interface SessionDeps {
   link?: (workspaceId: string) => ServerLink;
 }
 
-const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const now = () => new Date().toISOString();
 
 /**
@@ -176,7 +176,7 @@ export class WorkspaceSession {
       this.commit(id, merged.items, merged.id, "page");
       return { ok: true, id: merged.id, code: this.codeOf(merged.id)! };
     } catch (e) {
-      return { ok: false, error: errorText(e) };
+      return { ok: false, error: errorMessage(e) };
     }
   }
 
@@ -219,7 +219,7 @@ export class WorkspaceSession {
       const placed = placeNewItem(this.view.items, this.view.selectedId, made);
       return this.attempt(() => this.commit(id, placed.items, placed.id, "page"));
     } catch (e) {
-      return { ok: false, error: errorText(e) };
+      return { ok: false, error: errorMessage(e) };
     }
   }
 
@@ -263,7 +263,7 @@ export class WorkspaceSession {
       try {
         text = await file.text();
       } catch (e) {
-        fail(errorText(e));
+        fail(errorMessage(e));
         continue;
       }
       if (this.disposed) return result;
@@ -319,7 +319,7 @@ export class WorkspaceSession {
       edit();
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: errorText(e) };
+      return { ok: false, error: errorMessage(e) };
     }
   }
 
@@ -336,7 +336,7 @@ export class WorkspaceSession {
       this.commit(id, next.items, next.id, "page");
       return { ok: true, id: next.id };
     } catch (e) {
-      return { ok: false, error: errorText(e) };
+      return { ok: false, error: errorMessage(e) };
     }
   }
 
@@ -352,7 +352,7 @@ export class WorkspaceSession {
     try {
       return { node: nodeFromState(this.codes.decode(code)) };
     } catch (e) {
-      return { error: errorText(e) };
+      return { error: errorMessage(e) };
     }
   }
 

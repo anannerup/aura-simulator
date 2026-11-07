@@ -3,7 +3,7 @@
  * BaseRegions/CircularProgressTexture.lua) and its native variant (ProgressTextureSecret.lua,
  * ProgressTextureNative.lua, NativeProgressPainter.lua). Pure; no React.
  */
-import type { LuaValue } from "@/core";
+import { num, type LuaValue } from "@/core";
 import type { Box } from "./bar-geometry";
 import { inflate } from "./subregions/host";
 import {
@@ -20,7 +20,6 @@ import {
   type LinearOrientation,
 } from "./texture-geometry";
 
-const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /**
  * ProgressTexture.lua:622-657 UpdateTime / 432-455 FrameTick: remaining / duration, flipped when Inverse is on, at

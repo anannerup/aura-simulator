@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { connection } from "next/server";
 import { MAX_CLIENT_SPELL_IDS } from "@/api/addon";
 import { clientSpells } from "@/server/addon";
+import { parseIdList } from "@/server/id-list";
 import { getSpellCache } from "@/server/spells";
 
 /**
@@ -11,13 +12,12 @@ import { getSpellCache } from "@/server/spells";
  */
 export async function GET(request: NextRequest) {
   await connection();
-  const raw = request.nextUrl.searchParams.get("ids") ?? "";
-  const parts = raw === "" ? [] : raw.split(",").map((s) => s.trim());
-  if (parts.length > MAX_CLIENT_SPELL_IDS || !parts.every((p) => /^\d+$/.test(p))) {
+  const ids = parseIdList(request.nextUrl.searchParams.get("ids"), MAX_CLIENT_SPELL_IDS);
+  if (!ids) {
     return Response.json(
       { error: `ids must be comma-separated positive integers (at most ${MAX_CLIENT_SPELL_IDS})` },
       { status: 400 },
     );
   }
-  return Response.json(await clientSpells(getSpellCache(), parts.map(Number)));
+  return Response.json(await clientSpells(getSpellCache(), ids));
 }

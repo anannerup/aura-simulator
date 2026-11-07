@@ -7,6 +7,7 @@
  */
 import { useEffect, useSyncExternalStore } from "react";
 import { triggerSpellId, type AuraDocument, type LuaValue } from "@/core";
+import { fetchJson } from "@/lib/fetch-json";
 
 const ICON_BASE = "https://wow.zamimg.com/images/wow/icons";
 export const QUESTION_MARK_ICON = "inv_misc_questionmark";
@@ -78,13 +79,11 @@ type FetchIcons = (request: { files: number[]; spells: number[] }) => Promise<{
   spells: Record<string, string | null>;
 }>;
 
-const fetchIconsFromApi: FetchIcons = async ({ files, spells }) => {
+const fetchIconsFromApi: FetchIcons = ({ files, spells }) => {
   const params = new URLSearchParams();
   if (files.length) params.set("files", files.join(","));
   if (spells.length) params.set("spells", spells.join(","));
-  const res = await fetch(`/api/icons?${params}`);
-  if (!res.ok) throw new Error(`GET /api/icons: HTTP ${res.status}`);
-  return res.json();
+  return fetchJson(`/api/icons?${params}`);
 };
 
 const keyOf = (ref: { kind: "file" | "spell"; id: number }) => `${ref.kind}:${ref.id}`;

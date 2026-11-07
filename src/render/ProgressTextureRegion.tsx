@@ -1,6 +1,6 @@
 "use client";
 
-import type { LuaValue, AuraRenderState } from "@/core";
+import { num, type AuraRenderState } from "@/core";
 import { barProgress } from "./bar-geometry";
 import { MappedTexture } from "./MappedTexture";
 import { textureSourceOf } from "./media";
@@ -12,7 +12,6 @@ import { circularProgressAngles, regionAngles } from "./texture-geometry";
 import styles from "./regions.module.css";
 import type { RegionProps } from "./region-types";
 
-const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /** A duration object reaches the region from Aura and Aura (Modern) triggers (BuffTrigger2.lua:937, RegionPrototype.lua:473). */
 function drawsNatively(state: AuraRenderState): boolean {

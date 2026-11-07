@@ -12,19 +12,10 @@ import {
   type ClientSpell,
   type SpellInfoSource,
 } from "@/core";
+import { fetchJson, HttpError } from "@/lib/fetch-json";
 
-async function errorText(res: Response): Promise<string> {
-  try {
-    const body = (await res.json()) as { error?: string };
-    if (body.error) return body.error;
-  } catch {}
-  return `HTTP ${res.status}`;
-}
-
-export async function fetchVersions(): Promise<VersionList> {
-  const res = await fetch("/api/addon/versions");
-  if (!res.ok) throw new Error(await errorText(res));
-  return res.json();
+export function fetchVersions(): Promise<VersionList> {
+  return fetchJson("/api/addon/versions");
 }
 
 /**
@@ -32,15 +23,12 @@ export async function fetchVersions(): Promise<VersionList> {
  * can't answer, returns null so the caller can fall back to jsDelivr with the ref as typed.
  */
 export async function resolveRef(ref: string): Promise<Resolution | null> {
-  let res: Response;
   try {
-    res = await fetch(`/api/addon/resolve?ref=${encodeURIComponent(ref)}`);
-  } catch {
+    return await fetchJson(`/api/addon/resolve?ref=${encodeURIComponent(ref)}`);
+  } catch (e) {
+    if (e instanceof HttpError && e.status >= 400 && e.status < 500) throw e;
     return null;
   }
-  if (res.ok) return res.json();
-  if (res.status >= 400 && res.status < 500) throw new Error(await errorText(res));
-  return null;
 }
 
 /** Fetches one file through the server's addon cache, falling back to jsDelivr. */
@@ -123,17 +111,13 @@ export function serverAddonFetcher(ref: string, set: AddonBundleSet = "full"): A
 export const fetchClientSpells: SpellInfoSource = async (ids) => {
   const out: Record<number, ClientSpell | null> = {};
   for (let i = 0; i < ids.length; i += MAX_CLIENT_SPELL_IDS) {
-    const res = await fetch(`/api/addon/spells?ids=${ids.slice(i, i + MAX_CLIENT_SPELL_IDS).join(",")}`);
-    if (!res.ok) throw new Error(await errorText(res));
-    Object.assign(out, await res.json());
+    Object.assign(out, await fetchJson(`/api/addon/spells?ids=${ids.slice(i, i + MAX_CLIENT_SPELL_IDS).join(",")}`));
   }
   return out;
 };
 
-export async function fetchDiff(from: string, to: string): Promise<AddonDiff> {
-  const res = await fetch(`/api/addon/diff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
-  if (!res.ok) throw new Error(await errorText(res));
-  return res.json();
+export function fetchDiff(from: string, to: string): Promise<AddonDiff> {
+  return fetchJson(`/api/addon/diff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
 }
 
 const STORAGE_KEY = "aura-simulator:addon-ref";

@@ -12,6 +12,7 @@ import {
   storeRef,
 } from "@/client/addon-client";
 import type { AddonDiff, Resolution, VersionList } from "@/api/addon";
+import { errorMessage } from "@/lib/errors";
 
 const WASM_URI = "/lua/liblua5.1.wasm";
 
@@ -78,7 +79,7 @@ export function useAddonCore(): AddonCoreState {
       loaded = await loadCore(ref);
     } catch (e) {
       if (gen !== generation.current) return;
-      const message = e instanceof Error ? e.message : String(e);
+      const message = errorMessage(e);
       setError(`Could not load Musca Auras ${ref}: ${message}`);
       setLoadingRef(null);
       if (!previous && fallbackRef && fallbackRef !== ref) {
@@ -100,7 +101,7 @@ export function useAddonCore(): AddonCoreState {
       setDiff(state);
       fetchDiff(previous.ref, ref).then(
         (result) => setDiff((d) => (d === state ? { ...state, result } : d)),
-        (err: unknown) => setDiff((d) => (d === state ? { ...state, error: err instanceof Error ? err.message : String(err) } : d)),
+        (err: unknown) => setDiff((d) => (d === state ? { ...state, error: errorMessage(err) } : d)),
       );
     }
   }, [adopt]);

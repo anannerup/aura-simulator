@@ -1,14 +1,12 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { getField, type AuraDocument, type AuraRenderState, type LuaValue } from "@/core";
+import { getField, num, type AuraDocument, type AuraRenderState } from "@/core";
 import { fontFlagsStyle, textWidthStyle, useWowFont } from "./fonts";
-import { color } from "./color";
+import { color, rgbaCss } from "./color";
 import { formatText, textValues } from "./text-format";
-import { rgbaCss } from "./TurnedTexture";
 import type { RegionProps } from "./region-types";
 
-const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /** The text a text region shows (Text.lua:330-345): format codes replaced; an empty result shows as " "; `\n` breaks lines. */
 export function displayText(aura: AuraDocument, state: AuraRenderState, name: string): string {

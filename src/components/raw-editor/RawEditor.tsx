@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui";
 import { highlight } from "./highlight";
 import styles from "./RawEditor.module.css";
+import { errorMessage } from "@/lib/errors";
 
 export type RawFormat = "lua" | "json";
 
@@ -45,7 +46,7 @@ function parse(text: string, mode: RawFormat): Parsed {
     return { ok: true, doc: value };
   } catch (e) {
     if (e instanceof LuaLiteralError) return { ok: false, error: { message: e.message, line: e.line } };
-    return { ok: false, error: { message: e instanceof Error ? e.message : String(e), line: null } };
+    return { ok: false, error: { message: errorMessage(e), line: null } };
   }
 }
 

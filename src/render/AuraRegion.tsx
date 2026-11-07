@@ -1,11 +1,10 @@
 import type { CSSProperties } from "react";
-import type { AuraDocument, AuraRenderState, LuaValue } from "@/core";
+import { num, type AuraDocument, type AuraRenderState } from "@/core";
 import { regionInfo, type RegionAnim } from "./region-types";
 import { regionRenderer } from "./regions";
 import { anchorFraction, strataZIndex, type Rect } from "./screen/geometry";
 import styles from "./regions.module.css";
 
-const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 export interface AuraRegionProps {
   aura: AuraDocument;

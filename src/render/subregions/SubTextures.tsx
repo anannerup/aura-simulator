@@ -1,12 +1,12 @@
 "use client";
 
-import { getField, type AuraRenderState, type LuaTable, type LuaValue } from "@/core";
+import { getField, num, type AuraRenderState, type LuaTable } from "@/core";
 import { anchorFraction } from "../screen/geometry";
 import type { Box } from "../bar-geometry";
 import { useRegionClock } from "../clock";
 import { MappedTexture } from "../MappedTexture";
 import { textureSourceOf } from "../media";
-import { ModelPlaceholder, modelLabel } from "../ModelRegion";
+import { modelLabel, ModelPlaceholder } from "../ModelRegion";
 import { DEFAULT_STOP_MOTION_TEXTURE, stopMotionFrame, stopMotionSheet } from "../stop-motion";
 import { StopMotionFrame } from "../StopMotionRegion";
 import {
@@ -22,7 +22,6 @@ import {
 import { anchorPosition, type SubRegionHost } from "./host";
 import { color } from "../color";
 
-const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /**
  * Where a texture-like sub-element goes (the sub-region's modify + RegionPrototype.lua:804-823 AnchorSubRegion):

@@ -1,6 +1,7 @@
 /** The canonical JSON form of aura documents (see lua-value.ts), printed for people and parsed back. */
 import { LuaLiteralError } from "./lua-literal";
 import { canonicalize, isLuaTable, type LuaValue } from "./lua-value";
+import { errorMessage } from "@/lib/errors";
 
 const MAX_INLINE = 72;
 
@@ -30,7 +31,7 @@ export function parseCanonicalJson(text: string): LuaValue {
   try {
     parsed = JSON.parse(text);
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
+    const message = errorMessage(e);
     const m = /position (\d+)/.exec(message);
     if (m) {
       const pos = Number(m[1]);

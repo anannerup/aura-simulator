@@ -11,12 +11,13 @@
  * and saves ~13 ms of JSON.parse, so JSON stays.
  */
 import { createHash } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { gzip } from "node:zlib";
 import { collectAddonBundle, type AddonBundle, type AddonBundleSet } from "@/core";
 import type { AddonSourceCache, Resolution } from "./source-cache";
+import { writeAtomic } from "./write-atomic";
 
 const gzipAsync = promisify(gzip);
 
@@ -91,11 +92,6 @@ async function cachedOnDisk(file: string, make: () => Promise<Uint8Array>): Prom
     return new Uint8Array(await readFile(file));
   } catch {}
   const body = await make();
-  try {
-    await mkdir(path.dirname(file), { recursive: true });
-    const tmp = `${file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
-    await writeFile(tmp, body);
-    await rename(tmp, file);
-  } catch {}
+  await writeAtomic(file, body).catch(() => {});
   return body;
 }

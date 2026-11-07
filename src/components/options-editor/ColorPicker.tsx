@@ -5,43 +5,13 @@
  * square, hue and opacity bars, and the values as numbers). Colours are what the addon stores: [r, g, b, a], 0..1.
  */
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { hsvToRgb, rgbaCss, rgbToHsv, type Rgba } from "@/render/color";
 import styles from "./Widgets.module.css";
-
-export type Rgba = [number, number, number, number];
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0));
 
-export function toRgba(value: unknown): Rgba {
-  const v = Array.isArray(value) ? (value as unknown[]).map(Number) : [];
-  return [clamp01(v[0] ?? 1), clamp01(v[1] ?? 1), clamp01(v[2] ?? 1), Number.isFinite(v[3]) ? clamp01(v[3]) : 1];
-}
-
 const hex2 = (v: number) => Math.round(clamp01(v) * 255).toString(16).padStart(2, "0");
 export const rgbHex = ([r, g, b]: readonly number[]) => `#${hex2(r)}${hex2(g)}${hex2(b)}`;
-export const cssRgba = ([r, g, b, a]: readonly number[]) => `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${a})`;
-
-/** HSV (h 0..360, s/v 0..1) from RGB 0..1. */
-export function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
-  const max = Math.max(r, g, b);
-  const d = max - Math.min(r, g, b);
-  let h = 0;
-  if (d > 0) {
-    if (max === r) h = ((g - b) / d) % 6;
-    else if (max === g) h = (b - r) / d + 2;
-    else h = (r - g) / d + 4;
-    h *= 60;
-    if (h < 0) h += 360;
-  }
-  return [h, max === 0 ? 0 : d / max, max];
-}
-
-export function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
-  const c = v * s;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = v - c;
-  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
-  return [r + m, g + m, b + m];
-}
 
 /** Parses #rgb, #rrggbb or #rrggbbaa; null when it isn't one. */
 export function parseHex(text: string): number[] | null {
@@ -98,7 +68,7 @@ export function ColorPicker({ label, value, hasAlpha, disabled, onChange }: Colo
         onClick={() => setOpen((o) => !o)}
       >
         <span className={styles.swatchChecker} aria-hidden />
-        <span className={styles.swatchFill} style={{ background: cssRgba(hasAlpha ? value : [value[0], value[1], value[2], 1]) }} aria-hidden />
+        <span className={styles.swatchFill} style={{ background: rgbaCss(hasAlpha ? value : [value[0], value[1], value[2]]) }} aria-hidden />
       </button>
       {open && (
         <div id={panelId} role="dialog" aria-label={`${label} colour`} className={styles.colorPanel}>
@@ -157,10 +127,10 @@ function ColorPanel({ value, hasAlpha, onChange }: Omit<ColorPickerProps, "label
   const setChannel = (i: number, text: string) => {
     const n = Number(text);
     if (!Number.isFinite(n)) return;
-    const next = [...value] as Rgba;
+    const next: [number, number, number, number] = [...value];
     next[i] = clamp01(i < 3 ? n / 255 : n / 100);
     if (i < 3) setHsv(rgbToHsv(next[0], next[1], next[2]));
-    onChange(next.map(round3) as Rgba, false);
+    onChange([round3(next[0]), round3(next[1]), round3(next[2]), round3(next[3])], false);
   };
   const applyHex = () => {
     if (hexDraft === null) return;
@@ -169,7 +139,7 @@ function ColorPanel({ value, hasAlpha, onChange }: Omit<ColorPickerProps, "label
     if (!parsed) return;
     const next: Rgba = [parsed[0], parsed[1], parsed[2], hasAlpha && parsed.length === 4 ? parsed[3] : alpha];
     setHsv(rgbToHsv(next[0], next[1], next[2]));
-    onChange(next.map(round3) as Rgba, false);
+    onChange([round3(next[0]), round3(next[1]), round3(next[2]), round3(next[3])], false);
   };
   const pure = hsvToRgb(h, 1, 1);
 

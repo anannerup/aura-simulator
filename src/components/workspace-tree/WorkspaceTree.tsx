@@ -19,6 +19,7 @@ import {
   type WorkspaceNode,
 } from "@/workspace";
 import styles from "./WorkspaceTree.module.css";
+import { errorMessage } from "@/lib/errors";
 
 export interface WorkspaceTreeProps {
   /** The workspace's top-level items. */
@@ -102,7 +103,7 @@ export function WorkspaceTree({ items, selectedId, onSelect, onChange, hiddenIds
       onChange(next.items, next.select);
       return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
       return false;
     }
   }

@@ -12,8 +12,9 @@
  * (`code`): informational, handy to copy, and lets the page show the very same code again; the documents decide.
  * Version 1 (`items: [{code}]`, one state code per top-level item) is still read and migrated by decoding each code.
  */
-import { canonicalize, isLuaTable, type AuraDocument, type AuraState } from "@/core";
-import { addSubtree, findNode, isGroupDoc, nodeFromState, normalizeItems, nodeId, type WorkspaceNode } from "./tree";
+import { canonicalize, isLuaTable, isStateCode, type AuraDocument, type AuraState } from "@/core";
+import { addSubtree, findNode, isGroupDoc, nodeFromState, nodeId, normalizeItems, type WorkspaceNode } from "./tree";
+import { errorMessage } from "@/lib/errors";
 
 export interface Workspace {
   items: WorkspaceNode[];
@@ -25,11 +26,6 @@ export interface Workspace {
 
 /** Decodes a state code (the aura core's `decode`); throws for anything that isn't an aura. */
 export type DecodeState = (code: string) => AuraState;
-
-/** Cheap shape check (no decoding): `!WA:2!` followed by LibDeflate's print-safe alphabet. */
-export function looksLikeStateCode(text: string): boolean {
-  return /^!WA:2![A-Za-z0-9()]+$/.test(text.trim());
-}
 
 export const WORKSPACE_FORMAT = "aura-simulator/workspace";
 export const WORKSPACE_VERSION = 2;
@@ -98,7 +94,7 @@ export function readWorkspace(text: string | null | undefined, decode?: DecodeSt
     const codes: string[] = [];
     for (const item of d.items) {
       const code = (item as { code?: unknown } | null)?.code;
-      if (typeof code !== "string" || !looksLikeStateCode(code)) continue;
+      if (typeof code !== "string" || !isStateCode(code)) continue;
       try {
         states.push(decode(code.trim()));
         codes.push(code.trim());
@@ -122,7 +118,7 @@ export function readWorkspace(text: string | null | undefined, decode?: DecodeSt
       if (!isLuaTable(c) || Array.isArray(c)) throw new Error("not a table with string keys");
       aura = c;
     } catch (e) {
-      throw new Error(`${where}.aura is not a valid aura document: ${e instanceof Error ? e.message : String(e)}`);
+      throw new Error(`${where}.aura is not a valid aura document: ${errorMessage(e)}`);
     }
     if (typeof aura.id !== "string" || !aura.id) throw new Error(`${where}.aura needs an id`);
     if (seen.has(aura.id)) throw new Error(`The id "${aura.id}" is used twice`);
@@ -141,11 +137,11 @@ export function readWorkspace(text: string | null | undefined, decode?: DecodeSt
     const selected = typeof d.selected === "string" && findNode(items, d.selected) ? d.selected : (items[0] ? nodeId(items[0]) : null);
     const codes = d.items
       .map((raw) => (raw as { code?: unknown }).code)
-      .filter((c): c is string => typeof c === "string" && looksLikeStateCode(c))
+      .filter((c): c is string => typeof c === "string" && isStateCode(c))
       .map((c) => c.trim());
     return { ok: true, workspace: { items, updatedAt, selected }, codes };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: errorMessage(e) };
   }
 }
 

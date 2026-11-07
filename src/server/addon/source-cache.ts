@@ -9,7 +9,7 @@
  * Releases and commits never change, so their files are cached forever. Branches resolve to a commit
  * SHA first (cached in memory for a few minutes), so a branch's files are cached per commit.
  */
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import {
   fetchAddonFile,
@@ -35,7 +35,9 @@ import {
   type GitHubTag,
 } from "./refs";
 import { createUpstreamFixtureFetch } from "./upstream-fixtures";
+import { writeAtomic } from "./write-atomic";
 import type { Resolution, VersionList } from "@/api/addon";
+import { errorMessage } from "@/lib/errors";
 
 export type { Resolution, VersionList };
 
@@ -75,13 +77,6 @@ export function createAddonSourceCache(options: AddonSourceCacheOptions): AddonS
     const p = work().finally(() => inflight.delete(key));
     inflight.set(key, p);
     return p;
-  }
-
-  async function writeAtomic(file: string, data: Uint8Array | string) {
-    await mkdir(path.dirname(file), { recursive: true });
-    const tmp = `${file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
-    await writeFile(tmp, data);
-    await rename(tmp, file);
   }
 
   async function readJson<T>(file: string): Promise<T | null> {
@@ -161,7 +156,7 @@ export function createAddonSourceCache(options: AddonSourceCacheOptions): AddonS
       sha = await branchSha(input);
     } catch (e) {
       throw new AddonRefError(
-        `Could not look up branch "${input}" on GitHub (${e instanceof Error ? e.message : e}); try a release or a full commit SHA`,
+        `Could not look up branch "${input}" on GitHub (${errorMessage(e)}); try a release or a full commit SHA`,
         502,
       );
     }

@@ -1,17 +1,15 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { getField, type AuraRenderState, type LuaTable, type LuaValue } from "@/core";
-import { color } from "../color";
+import { getField, num, type AuraRenderState, type LuaTable } from "@/core";
+import { color, rgbaCss } from "../color";
 import { regionInfo } from "../region-types";
 import { anchorFraction } from "../screen/geometry";
 import { fontFlagsStyle, textWidthStyle, useWowFont } from "../fonts";
 import { formatSubText, type TextValues } from "../text-format";
-import { rgbaCss } from "../TurnedTexture";
 import { anchorPosition, type SubRegionHost } from "./host";
 import styles from "./subregions.module.css";
 
-const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /**
  * A text sub-region (SubRegionTypes/SubText.lua): format codes, font, size, outline/shadow, colour, justify,

@@ -1,4 +1,5 @@
 import type { LuaKey } from "../lua-value";
+import { plainText } from "../wow-text";
 
 /** The part of the in-game options that causes a message. Indexes are 1-based, as in the game. */
 export type OptionTarget =
@@ -153,7 +154,7 @@ export function interpretValidation(raw: RawValidation, auraId?: string): Valida
   for (const line of raw.prepare.prints ?? []) {
     const isError = /ERROR/.test(line);
     (isError ? errors : warnings).push(
-      tag({ code: "defaults.message", severity: isError ? "error" : "info", message: line.replace(/\|c\w{8}|\|r/g, "") }),
+      tag({ code: "defaults.message", severity: isError ? "error" : "info", message: plainText(line) }),
     );
   }
 

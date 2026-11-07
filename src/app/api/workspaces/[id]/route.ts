@@ -1,7 +1,7 @@
 import { connection, type NextRequest } from "next/server";
-import { buildPageUrl, isWorkspaceId } from "@/workspace";
+import { buildPageUrl } from "@/workspace";
 import { requestOrigin } from "@/server/request-origin";
-import { getWorkspaceHub } from "@/server/workspaces";
+import { getWorkspaceHub, rejectWorkspaceId } from "@/server/workspaces";
 
 /**
  * GET /api/workspaces/<id>: the latest push to the workspace (`code: null` when there is none yet), with
@@ -11,7 +11,8 @@ import { getWorkspaceHub } from "@/server/workspaces";
 export async function GET(request: NextRequest, ctx: RouteContext<"/api/workspaces/[id]">) {
   await connection();
   const { id } = await ctx.params;
-  if (!isWorkspaceId(id)) return Response.json({ error: "Workspace IDs are 1-64 of A-Z a-z 0-9 _ -" }, { status: 400 });
+  const rejected = rejectWorkspaceId(id);
+  if (rejected) return rejected;
   const url = buildPageUrl(requestOrigin(request.headers), id);
   const headers = { "Cache-Control": "no-store" };
   const wanted = request.nextUrl.searchParams.get("revision");

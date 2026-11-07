@@ -6,7 +6,7 @@ import { clipPolygon, cssMatrix, IDENTITY, textureElementMatrix, type Affine, ty
 import type { TextureSource } from "./textures/paths";
 import { useTextureUrl } from "./textures";
 
-export type Rgba = readonly [number, number, number, number];
+import type { Rgba } from "./color";
 
 /** WoW blend modes as CSS: ADD is additive, MOD multiplies; BLEND, ALPHAKEY and DISABLE draw normally. */
 export function blendCss(blendMode: unknown): CSSProperties["mixBlendMode"] {

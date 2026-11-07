@@ -9,6 +9,7 @@ import type { ValidationResult } from "./addon-vm/validation";
 import type { OptionAddress, OptionEdit, OptionsTree } from "./addon-vm/options";
 import type { AuraPacks, NewAuraPage } from "./addon-vm/new-aura";
 import { createSpellPreloader, type SpellInfoSource } from "./addon-vm/spells";
+import { isStateCode } from "./state-code";
 
 export type { AuraDocument, AuraState };
 
@@ -92,8 +93,6 @@ export interface LoadAddonOptions {
    */
   spellInfo?: SpellInfoSource;
 }
-
-const STATE_CODE_PREFIX = "!WA:2!";
 
 function readVersionString(init: string): string {
   const m = /^local versionString = "([^"]+)"/m.exec(init);
@@ -205,13 +204,13 @@ export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAd
       };
       if (children.length > 0) transmit.c = children;
       const code: unknown = lua.doStringSync(`return AuraCore.encode(${toLuaLiteral(transmit)})`);
-      if (typeof code !== "string" || !code.startsWith(STATE_CODE_PREFIX)) throw new Error("Encoding failed");
+      if (typeof code !== "string" || !isStateCode(code)) throw new Error("Encoding failed");
       return code;
     },
 
     decode(code) {
       const trimmed = code.trim();
-      if (!trimmed.startsWith(STATE_CODE_PREFIX)) throw new Error(`A state code starts with ${STATE_CODE_PREFIX}`);
+      if (!isStateCode(trimmed)) throw new Error("Not a state code (!WA:2!…)");
       const result: unknown = lua.doStringSync(`return AuraCore.decode(${toLuaLiteral(trimmed)})`);
       if (typeof result !== "string") throw new Error("Decoding failed");
       if (result.startsWith("E")) throw new Error(result.slice(1));

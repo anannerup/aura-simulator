@@ -7,6 +7,7 @@ import { displayIconRef, iconNameUrl } from "@/render/textures";
 import type { EditResult } from "@/client/workspace/session";
 import { findNode, isDynamicGroupDoc, type WorkspaceNode } from "@/workspace";
 import styles from "./NewAuraChooser.module.css";
+import { errorMessage } from "@/lib/errors";
 
 export interface NewAuraChooserProps {
   core: AuraCore;
@@ -44,7 +45,7 @@ export function NewAuraChooser({ core, items, selectedId, onCreate, onImport, on
         for (const t of p.types) if (!isGroupType(t.regionType)) made[t.regionType] = await core.newAura(t.regionType).catch(() => ({}) as AuraDocument);
         if (!cancelled) setSamples(made);
       },
-      (e: unknown) => !cancelled && setError(e instanceof Error ? e.message : String(e)),
+      (e: unknown) => !cancelled && setError(errorMessage(e)),
     );
     return () => {
       cancelled = true;
@@ -203,7 +204,7 @@ function PacksPage({ core, onImport, onBack, onCancel }: { core: AuraCore; onImp
     let cancelled = false;
     core.packs().then(
       (p) => !cancelled && setPacks(p),
-      (e: unknown) => !cancelled && setError(e instanceof Error ? e.message : String(e)),
+      (e: unknown) => !cancelled && setError(errorMessage(e)),
     );
     return () => {
       cancelled = true;
@@ -219,7 +220,7 @@ function PacksPage({ core, onImport, onBack, onCancel }: { core: AuraCore; onImp
         setDone(name);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     }
   };
   const categories = packs ? [...new Set(packs.utility.map((p) => p.category ?? ""))] : [];

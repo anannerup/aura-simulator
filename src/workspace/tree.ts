@@ -11,6 +11,7 @@
  * Private.TraverseAllChildren (WeakAuras.lua:7311-7356, pre-order); see `stateFromNode` and `nodeFromState`.
  */
 import { canonicalize, isLuaTable, type AuraDocument, type AuraState, type LuaValue } from "@/core";
+import { errorMessage } from "@/lib/errors";
 
 export interface WorkspaceNode {
   aura: AuraDocument;
@@ -313,7 +314,7 @@ export function updateNode(items: WorkspaceNode[], id: string, doc: AuraDocument
     if (!isLuaTable(c) || Array.isArray(c)) throw new Error("An aura must be a table with string keys");
     aura = c;
   } catch (e) {
-    throw new TreeError(e instanceof Error ? e.message : String(e));
+    throw new TreeError(errorMessage(e));
   }
   const newId = typeof aura.id === "string" ? aura.id.trim() : "";
   if (!newId) throw new TreeError("An aura needs an id");

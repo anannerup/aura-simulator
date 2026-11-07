@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { idbStore } from "@/lib/idb";
+import { errorMessage } from "@/lib/errors";
 
 /** The screenshot behind the mock screen. It stays in this browser (IndexedDB) and is never uploaded. */
 export interface Screenshot {
@@ -70,7 +71,7 @@ export function useScreenshot() {
         setError("Shown, but could not be saved in this browser");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     }
   }, []);
 

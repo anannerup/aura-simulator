@@ -1,3 +1,4 @@
+import { errorMessage } from "./errors";
 /** IndexedDB could not be opened (missing, blocked site data, private mode, another tab blocking an upgrade). */
 export class IdbUnavailable extends Error {}
 
@@ -19,7 +20,7 @@ export function idbStore(factory: () => IDBFactory | null | undefined, database:
   const connect = () => {
     db ??= open(factory, database, store, () => (db = null)).catch((e: unknown) => {
       db = null;
-      throw new IdbUnavailable(e instanceof Error ? e.message : String(e));
+      throw new IdbUnavailable(errorMessage(e));
     });
     return db;
   };

@@ -5,14 +5,15 @@
  * component (props in, `onEdit` out) so it can be swapped for the UI kit's Input/Select/Slider/Switch.
  */
 import { useId, useState, type KeyboardEvent } from "react";
-import type { LuaKey, OptionNode } from "@/core";
+import { plainText, type LuaKey, type LuaValue, type OptionNode } from "@/core";
 import { useSpellSearch } from "@/components/spell-picker/useSpellSearch";
 import { GameTexture } from "@/components/ui";
+import { color } from "@/render/color";
 import { displayIconRef, useIconUrl } from "@/render/textures";
-import { imageName, plainText, splitInputValue } from "./wow-text";
+import { imageName, splitInputValue } from "./wow-text";
 import { WowText } from "./WowText";
-import { ColorPicker, toRgba } from "./ColorPicker";
-import { MediaSelect, mediaKind } from "./MediaSelect";
+import { ColorPicker } from "./ColorPicker";
+import { mediaKind, MediaSelect } from "./MediaSelect";
 import styles from "./OptionsEditor.module.css";
 
 export interface EditOptions {
@@ -282,10 +283,10 @@ export function ColorField({ node, value, disabled, onEdit }: FieldProps) {
     <div className={styles.color} title={plainText(node.desc) || undefined}>
       <ColorPicker
         label={name || "Colour"}
-        value={toRgba(value)}
+        value={color(value as LuaValue)}
         hasAlpha={node.hasAlpha !== false}
         disabled={disabled}
-        onChange={(rgba, continuous) => onEdit(rgba, { continuous })}
+        onChange={(rgba, continuous) => onEdit([...rgba], { continuous })}
       />
       {name && (
         <span>

@@ -1,6 +1,6 @@
 import { connection, type NextRequest } from "next/server";
-import { EVENTS, isWorkspaceId, type WorkspaceNotice } from "@/workspace";
-import { getWorkspaceHub, notice } from "@/server/workspaces";
+import { EVENTS, type WorkspaceNotice } from "@/workspace";
+import { getWorkspaceHub, notice, rejectWorkspaceId } from "@/server/workspaces";
 
 const HEARTBEAT_MS = 20_000;
 
@@ -13,7 +13,8 @@ const HEARTBEAT_MS = 20_000;
 export async function GET(request: NextRequest, ctx: RouteContext<"/api/workspaces/[id]/events">) {
   await connection();
   const { id } = await ctx.params;
-  if (!isWorkspaceId(id)) return Response.json({ error: "Workspace IDs are 1-64 of A-Z a-z 0-9 _ -" }, { status: 400 });
+  const rejected = rejectWorkspaceId(id);
+  if (rejected) return rejected;
 
   const encoder = new TextEncoder();
   let cleanup = () => {};

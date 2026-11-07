@@ -1,10 +1,10 @@
 "use client";
 
 import { useId, type ReactNode } from "react";
-import type { LuaValue } from "@/core";
+import { num } from "@/core";
 import type { Box } from "./bar-geometry";
 import { useRegionClock } from "./clock";
-import { blendCss, needsShade, ShadeFilter, type Rgba } from "./MappedTexture";
+import { blendCss, needsShade, ShadeFilter } from "./MappedTexture";
 import {
   DEFAULT_STOP_MOTION_TEXTURE,
   numberedFrameFile,
@@ -15,12 +15,11 @@ import {
 } from "./stop-motion";
 import { regionHost } from "./subregions/host";
 import { SubRegions } from "./subregions/SubRegions";
-import { color } from "./color";
+import { color, type Rgba } from "./color";
 import { useTextureUrl } from "./textures";
 import styles from "./regions.module.css";
 import type { RegionProps } from "./region-types";
 
-const num = (v: LuaValue | undefined, fallback?: number) => (typeof v === "number" ? v : fallback);
 
 /** One frame of a stop motion sheet, stretched over `box` (StopMotion.lua SetFrameViaAtlas / SetFrameViaFrames). */
 export function StopMotionFrame({

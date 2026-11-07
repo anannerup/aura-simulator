@@ -7,9 +7,9 @@
  * function and are listed in `customCode`.
  */
 import { getField, isLuaTable, type LuaValue } from "@/core";
+import { hsvToRgb, rgbToHsv, type Rgba } from "./color";
 import { regionInfo, type RegionTypeInfo } from "./region-types";
 
-export type Rgba = [number, number, number, number];
 export type AnimKind = "start" | "main" | "finish";
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -107,32 +107,8 @@ const ROTATE_FUNCTIONS: Record<string, Fn1> = {
   wobble: (p, start, delta) => start + Math.sin(p * 2 * Math.PI) * delta,
 };
 
-const lerpColor = (k: number, a: Rgba, b: Rgba): Rgba => [0, 1, 2, 3].map((i) => a[i] + k * (b[i] - a[i])) as Rgba;
+const lerpColor = (k: number, a: Rgba, b: Rgba): Rgba => [a[0] + k * (b[0] - a[0]), a[1] + k * (b[1] - a[1]), a[2] + k * (b[2] - a[2]), a[3] + k * (b[3] - a[3])];
 const pulseK = (p: number) => (Math.sin(p * 2 * Math.PI - Math.PI / 2) + 1) / 2;
-
-/** ColorSelect's HSV (h in degrees). */
-export function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const d = max - min;
-  let h = 0;
-  if (d > 0) {
-    if (max === r) h = 60 * (((g - b) / d) % 6);
-    else if (max === g) h = 60 * ((b - r) / d + 2);
-    else h = 60 * ((r - g) / d + 4);
-  }
-  if (h < 0) h += 360;
-  return [h, max === 0 ? 0 : d / max, max];
-}
-
-export function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
-  const c = v * s;
-  const hp = (((h % 360) + 360) % 360) / 60;
-  const x = c * (1 - Math.abs((hp % 2) - 1));
-  const [r, g, b] = hp < 1 ? [c, x, 0] : hp < 2 ? [x, c, 0] : hp < 3 ? [0, c, x] : hp < 4 ? [0, x, c] : hp < 5 ? [x, 0, c] : [c, 0, x];
-  const m = v - c;
-  return [r + m, g + m, b + m];
-}
 
 /** Prototypes.lua:249-275 WeakAuras.GetHSVTransition: hue along the shorter arc, saturation/value/alpha linear. */
 export function hsvTransition(perc: number, from: Rgba, to: Rgba): Rgba {

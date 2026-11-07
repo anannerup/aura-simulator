@@ -86,6 +86,13 @@ export function list(value: LuaValue | undefined): LuaValue[] {
     .map(([, v]) => v);
 }
 
+/** A number field: `value` when it is a finite number, else `fallback`. */
+export function num(value: unknown): number | undefined;
+export function num(value: unknown, fallback: number): number;
+export function num(value: unknown, fallback?: number): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
 /** A number, or a numeric string, as Lua's `tonumber` reads it; undefined otherwise. */
 export function finite(value: LuaValue | undefined): number | undefined {
   const n = typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : NaN;

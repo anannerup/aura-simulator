@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getSpellStatus, syncSpells, type SpellCacheStatus } from "./spell-api";
 import { Button, Callout, IconButton, RefreshIcon, WarningIcon } from "@/components/ui";
 import styles from "./SpellPicker.module.css";
+import { errorMessage } from "@/lib/errors";
 
 /**
  * Spell cache status: a first-run prompt when the spell list was never downloaded, else a small
@@ -18,7 +19,7 @@ export function SpellSync({ onSynced }: { onSynced?: () => void }) {
     let cancelled = false;
     getSpellStatus()
       .then((s) => !cancelled && setStatus(s))
-      .catch((e: unknown) => !cancelled && setError(e instanceof Error ? e.message : String(e)));
+      .catch((e: unknown) => !cancelled && setError(errorMessage(e)));
     return () => {
       cancelled = true;
     };
@@ -32,7 +33,7 @@ export function SpellSync({ onSynced }: { onSynced?: () => void }) {
       setStatus(await getSpellStatus());
       onSynced?.();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     } finally {
       setSyncing(false);
     }

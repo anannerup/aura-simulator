@@ -6,11 +6,10 @@
  * sounds with a play button. Media is loaded at runtime (fonts and textures via src/render), never committed.
  */
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import type { LuaKey, OptionNode } from "@/core";
+import { plainText, type LuaKey, type OptionNode } from "@/core";
 import { GameTexture } from "@/components/ui";
 import { ensureFont, fontFamily, fontUrl } from "@/render/fonts";
 import { BORDER_EDGES, FONTS, STATUSBAR_TEXTURES } from "@/render/media";
-import { plainText } from "./wow-text";
 import styles from "./Widgets.module.css";
 
 export type MediaKind = "font" | "statusbar" | "border" | "background" | "sound";

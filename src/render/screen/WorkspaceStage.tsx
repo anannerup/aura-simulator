@@ -1,6 +1,7 @@
 import { useMemo, type CSSProperties } from "react";
 import { evaluateAura, type AuraDocument, type AuraRenderState, type ConditionProblem, type LuaValue, type Situation } from "@/core";
 import { AnimatedAuraRegion } from "../AnimatedAuraRegion";
+import { rgbaCss } from "../color";
 import { layoutStage, type LayoutNode } from "../group/layout";
 import { uiParent, type Rect, type UiParent } from "./geometry";
 import styles from "./WorkspaceStage.module.css";
@@ -25,10 +26,9 @@ function box(r: Rect): CSSProperties {
   return { left: r.x, top: r.y, width: r.width, height: r.height };
 }
 
-function rgba(v: LuaValue | undefined, fallback: string): string {
-  if (!Array.isArray(v) || v.length < 3 || !v.every((c) => typeof c === "number")) return fallback;
-  const [r, g, b, a = 1] = v as number[];
-  return `rgb(${Math.round(r * 255)} ${Math.round(g * 255)} ${Math.round(b * 255)} / ${a})`;
+/** CSS of a Lua colour, or `fallback` unless it has at least r, g and b. */
+function cssColor(v: LuaValue | undefined, fallback: string): string {
+  return Array.isArray(v) && v.length >= 3 && v.every((c) => typeof c === "number") ? rgbaCss(v as number[]) : fallback;
 }
 
 /** A group's border and backdrop, approximated with CSS ("Square Full White" edge, flat backdrop colour). */
@@ -38,8 +38,8 @@ function borderStyle(aura: AuraDocument, rect: Rect, scale: number): CSSProperti
   const size = (typeof aura.borderSize === "number" ? aura.borderSize : 2) * scale;
   return {
     ...box(rect),
-    border: edge ? `${size}px solid ${rgba(aura.borderColor, "rgb(0 0 0 / 1)")}` : undefined,
-    background: backdrop ? rgba(aura.backdropColor, "rgb(255 255 255 / 0.5)") : undefined,
+    border: edge ? `${size}px solid ${cssColor(aura.borderColor, "rgba(0, 0, 0, 1)")}` : undefined,
+    background: backdrop ? cssColor(aura.backdropColor, "rgba(255, 255, 255, 0.5)") : undefined,
   };
 }
 

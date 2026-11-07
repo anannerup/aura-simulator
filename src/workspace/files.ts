@@ -5,9 +5,10 @@
  *   player can open it and paste it into the game's import dialog.
  * - A **workspace file** (`.json`): the whole workspace, format v2 (see `workspace.ts`).
  *
- * Importing accepts either: any text holding one or more `!WA:` strings (several, e.g. one per line), or a
+ * Importing accepts either: any text holding one or more state codes (several, e.g. one per line), or a
  * workspace file. Pure; the page reads the files and the session applies them.
  */
+import { findStateCodes } from "@/core";
 import { WORKSPACE_FORMAT } from "./workspace";
 
 export type ImportText =
@@ -16,11 +17,6 @@ export type ImportText =
   /** State codes found in the text, in order (unchecked: decode them before trusting them). */
   | { kind: "codes"; codes: string[] }
   | { kind: "none"; error: string };
-
-/** Every `!WA:<n>!` string in a text, in order. Codes end at the first character outside their alphabet. */
-export function extractStateCodes(text: string): string[] {
-  return Array.from(text.matchAll(/!WA:\d+![A-Za-z0-9()]+/g), (m) => m[0]);
-}
 
 /** Whether a text is a workspace file: JSON with this app's `format`. */
 function isWorkspaceJson(text: string): boolean {
@@ -37,7 +33,7 @@ function isWorkspaceJson(text: string): boolean {
 /** What an imported file holds. JSON that isn't a workspace file still yields the codes in it, if any. */
 export function classifyImportText(text: string): ImportText {
   if (isWorkspaceJson(text)) return { kind: "workspace", text };
-  const codes = extractStateCodes(text);
+  const codes = findStateCodes(text);
   if (codes.length > 0) return { kind: "codes", codes };
   if (text.trimStart().startsWith("{")) return { kind: "none", error: "Not a workspace file and holds no state code (!WA:2!…)" };
   return { kind: "none", error: "Holds no state code (!WA:2!…)" };

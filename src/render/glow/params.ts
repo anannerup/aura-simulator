@@ -3,10 +3,9 @@
  * LibCustomGlow-1.0 start calls, including LibCustomGlow's own fallbacks.
  */
 
-export type GlowType = "buttonOverlay" | "Pixel" | "ACShine" | "Proc";
+import type { Rgba } from "../color";
 
-/** RGBA in 0..1, as stored in the aura (glowColor). */
-export type Rgba = readonly [number, number, number, number];
+export type GlowType = "buttonOverlay" | "Pixel" | "ACShine" | "Proc";
 
 /** The glow sub-region's fields, named as in the aura document. */
 export interface GlowOptions {

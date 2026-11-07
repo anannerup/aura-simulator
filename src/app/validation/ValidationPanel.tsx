@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { AddonVMReport, AuraCore, AuraDocument, ValidationMessage, ValidationResult } from "@/core";
 import styles from "./ValidationPanel.module.css";
+import { errorMessage } from "@/lib/errors";
 
 type Check =
   | { state: "loading" }
@@ -41,7 +42,7 @@ export function ValidationPanel({
       const result = await core.validate({ aura, children: childAuras });
       if (!cancelled) setCheck({ state: "done", result, timings: report.timings, key });
     })().catch((e: unknown) => {
-      if (!cancelled) setCheck({ state: "failed", error: e instanceof Error ? e.message : String(e), key });
+      if (!cancelled) setCheck({ state: "failed", error: errorMessage(e), key });
     });
     return () => {
       cancelled = true;

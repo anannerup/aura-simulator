@@ -1,6 +1,7 @@
 /** Web Worker that hosts the full addon VM (see host.ts for the page side). */
 import type { FromWorker, ToWorker } from "./host";
 import { loadAddonVM, type AddonVM } from "./vm";
+import { errorMessage } from "@/lib/errors";
 
 const scope = self as unknown as {
   postMessage(message: FromWorker): void;
@@ -45,7 +46,7 @@ scope.onmessage = (event) => {
         type: "error",
         id: msg.id,
         name: e instanceof Error ? e.name : "Error",
-        message: e instanceof Error ? e.message : String(e),
+        message: errorMessage(e),
       }),
   );
 };

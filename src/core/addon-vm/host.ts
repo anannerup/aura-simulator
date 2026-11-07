@@ -1,5 +1,6 @@
 import type { AddonSourceFetcher } from "../addon-source";
 import type { AddonVM, AddonVMReport, LoadAddonVMOptions } from "./vm";
+import { errorMessage } from "@/lib/errors";
 
 /** AddonVM's calls (everything but `ref`, `report` and `dispose`). */
 export type AddonVMMethod = Exclude<
@@ -67,7 +68,7 @@ export async function loadWorkerAddonVM(
       options.fetchSource(msg.path).then(
         (text) => worker.postMessage({ type: "fetched", id: msg.id, text } satisfies ToWorker),
         (e: unknown) =>
-          worker.postMessage({ type: "fetched", id: msg.id, error: e instanceof Error ? e.message : String(e) } satisfies ToWorker),
+          worker.postMessage({ type: "fetched", id: msg.id, error: errorMessage(e) } satisfies ToWorker),
       );
       return;
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import type { LuaValue } from "@/core";
+import { num, type LuaValue } from "@/core";
 import { MappedTexture } from "./MappedTexture";
 import { textureSourceOf } from "./media";
 import { fullBox, regionHost } from "./subregions/host";
@@ -10,7 +10,6 @@ import { affineFromCorners, textureCorners } from "./texture-geometry";
 import styles from "./regions.module.css";
 import type { RegionProps } from "./region-types";
 
-const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /** A texture setting that names something the preview can't load (an atlas name). */
 function unsupportedTexture(value: LuaValue | undefined): string | undefined {

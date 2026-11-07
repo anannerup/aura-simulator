@@ -8,6 +8,7 @@
 import type { Registries } from "@/core";
 import type { AddonDiff, FileListing, OptionTable, OptionTables, TypeChange } from "@/api/addon";
 import type { AddonSourceCache, Resolution } from "./source-cache";
+import { errorMessage } from "@/lib/errors";
 
 export type { AddonDiff, OptionTable, OptionTables, TypeChange };
 
@@ -148,7 +149,7 @@ async function optionTablesAt(cache: AddonSourceCache, resolution: Resolution, r
   try {
     return { tables: await cache.memo(resolution, "registry-option-tables", async () => optionTablesOf(await registriesOf(resolution))) };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : String(e) };
+    return { error: errorMessage(e) };
   }
 }
 
