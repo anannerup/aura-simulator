@@ -41,6 +41,7 @@ export const DOCUMENTED_ENDPOINTS = [
   "GET /api/forever/workspaces/<id>/situation",
   "PUT /api/forever/workspaces/<id>/situation",
   "GET /api/forever/workspaces/<id>/screenshot.png",
+  "POST /api/forever/workspaces/<id>/compare",
   "GET /api/forever/wago/<id>",
   "GET /api/forever/spells/search",
   "GET /api/forever/spells/<id>",
