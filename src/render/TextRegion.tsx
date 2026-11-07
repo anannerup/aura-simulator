@@ -6,9 +6,13 @@ import { fontFlagsStyle, textWidthStyle, useWowFont } from "./fonts";
 import { color, rgbaCss } from "./color";
 import { formatText, textValues } from "./text-format";
 import type { RegionProps } from "./region-types";
+import { WowString } from "./WowString";
 
 
-/** The text a text region shows (Text.lua:330-345): format codes replaced; an empty result shows as " "; `\n` breaks lines. */
+/**
+ * The text a text region shows (Text.lua:330-345): format codes replaced; an empty result shows as " "; `\n` breaks lines.
+ * The font string then interprets WoW's escapes (`WowString`).
+ */
 function displayText(aura: AuraDocument, state: AuraRenderState, name: string): string {
   const raw = state.properties.displayText ?? "%p";
   const source = typeof raw === "string" ? raw : String(raw);
@@ -50,7 +54,7 @@ export function TextRegion({ aura, state, name }: RegionProps) {
   };
   return (
     <span style={style} data-testid="text-region" data-font={font.status}>
-      {displayText(aura, state, name)}
+      <WowString text={displayText(aura, state, name)} />
     </span>
   );
 }

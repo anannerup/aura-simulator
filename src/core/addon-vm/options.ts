@@ -82,6 +82,11 @@ export interface OptionsTree {
   /** Its evaluated option tree, or why it couldn't be built. */
   tree?: OptionNode;
   error?: string;
+  /**
+   * The addon raised an error while registering this aura or one of its descendants for the editor (in the game, a
+   * Lua error), one line per aura: "<id>: <error>". The tabs show what the addon did register.
+   */
+  warning?: string;
   /** WeakAuras.doubleWidth: the width of a full row in `width` units. */
   fullWidth: number;
 }
