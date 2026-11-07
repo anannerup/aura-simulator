@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NOT_READY, type ExportedFile, type PendingWorkspaceFile, type WorkspaceSession } from "@/client/workspace/session";
 import { Button, Callout, TextArea, useToast, WarningIcon } from "@/components/ui";
+import { errorMessage } from "@/lib/errors";
 import styles from "./ImportExport.module.css";
 
 /** Pasted strings up to this size go through the paste box; anything bigger should be a file. */
@@ -155,7 +156,7 @@ export function ImportPanel({ importer }: { importer: Importer }) {
 
 /**
  * The Export dialog for the selected aura or group (`name`, state code `code`): save it as a file, or copy it to
- * paste into the game's import box. Also exports the whole workspace as a file.
+ * paste into the game's import box, or save it as wago JSON. Also exports the whole workspace as a file.
  */
 export function ExportPanel({ session, name, code }: { session: WorkspaceSession; name: string; code: string }) {
   const [copied, setCopied] = useState(false);
@@ -191,6 +192,23 @@ export function ExportPanel({ session, name, code }: { session: WorkspaceSession
           Save as file
         </Button>
         <Button onClick={copy}>{copied ? "Copied" : "Copy to clipboard"}</Button>
+      </div>
+      <h3 className={styles.subTitle}>wago JSON</h3>
+      <p className={styles.hint}>The table as wago.io&apos;s Editor shows it.</p>
+      <div className={styles.buttons}>
+        <Button
+          size="sm"
+          onClick={() => {
+            try {
+              const file = session.auraJsonFile(name);
+              if (file) download(file);
+            } catch (e) {
+              toast(errorMessage(e), { tone: "danger" });
+            }
+          }}
+        >
+          Save as .json
+        </Button>
       </div>
       <h3 className={styles.subTitle}>Whole workspace</h3>
       <div className={styles.buttons}>

@@ -1,4 +1,4 @@
-import { canonicalize, sampleIconAura, type AuraCore, type AuraDocument, type AuraState, type LuaObject } from "@/core";
+import { canonicalize, sampleIconAura, toWagoJson, type AuraCore, type AuraDocument, type AuraState, type LuaObject } from "@/core";
 import {
   addSubtree,
   auraFileName,
@@ -240,6 +240,17 @@ export class WorkspaceSession {
     const code = this.codeOf(auraId);
     if (!code || !auraId) return null;
     return { name: auraFileName(auraId), text: code, type: "text/plain;charset=utf-8" };
+  }
+
+  /**
+   * An aura's wago JSON file: `<id>.json` holding what wago.io's Editor shows for its state code; the selected one
+   * by default. Throws WagoJsonError when wago can't hold the aura (a boolean key).
+   */
+  auraJsonFile(auraId: string | null = this.view.selectedId): ExportedFile | null {
+    const code = this.codeOf(auraId);
+    if (!code || !auraId) return null;
+    const name = auraFileName(auraId).replace(/\.txt$/, ".json");
+    return { name, text: toWagoJson(this.core.decode(code)), type: "application/json" };
   }
 
   /** The workspace file (JSON, format v2). */
