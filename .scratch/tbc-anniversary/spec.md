@@ -48,7 +48,7 @@ The app only builds auras for one game: Musca Auras on WoW Forever. The user als
 25. As an agent, docs, push and validation use the addon version I name (`?ref=`), defaulting to the newest release.
 26. As the user, I import the TBC v1 auras in game and confirm they work (human ticket).
 27. As a developer, the TBC client profile marks every answer it assumes as unverified until checked in game.
-28. As a developer, renderers are shared between games only while the Lua file they port is byte-identical in both addons. Each game records hashes of the files it mirrors, and a test fails when they diverge.
+28. As a developer, renderers are shared between games while the behaviour they port is the same in both addons (user's decision 14a, after only 5 mirrored files turned out byte-identical). Each game records hashes of the files it mirrors, every difference has a written reason, and a test fails when any mirrored file changes; a renderer is split where behaviour differs.
 
 ## Implementation Decisions
 
@@ -59,7 +59,7 @@ The app only builds auras for one game: Musca Auras on WoW Forever. The user als
   - workspace storage and the push mechanism;
   - the window frame;
   - wago JSON;
-  - renderers, but only by the hash rule (story 28).
+  - renderers, by the rule in story 28.
 
   Per game:
   - addon source and versions;
