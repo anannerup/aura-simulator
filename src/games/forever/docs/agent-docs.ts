@@ -287,7 +287,8 @@ every element, backgrounds included) as \`sub.N.<key>\`.
 - \`subtext\`: \`text_text\` (format codes), \`text_color\`, \`text_font\`, \`text_fontSize\`, \`text_fontType\`
   (\`None\`/\`OUTLINE\`/\`THICKOUTLINE\`), \`text_visible\`, \`text_justify\`, \`text_selfPoint\` (\`AUTO\`),
   \`anchor_point\` (\`CENTER\`, \`INNER_TOPLEFT\`, \`INNER_BOTTOMRIGHT\`, \`INNER_LEFT\`, \`INNER_RIGHT\`, \`OUTER_TOP\`, …),
-  \`anchorXOffset\`/\`anchorYOffset\`, \`text_shadowColor\`.
+  \`text_anchorXOffset\`/\`text_anchorYOffset\` (X/Y Offset: write these; a plain sub text never reads the
+  \`anchorXOffset\` keys new sub texts carry), \`text_shadowColor\`. Custom text (\`%c\`) isn't evaluated: it draws as a marked \`[%c]\`.
 - \`subglow\`: \`glow\` (on/off; usually \`false\`, turned on by a condition), \`glowType\` (\`buttonOverlay\`,
   \`Pixel\`, \`ACShine\` (autocast), \`Proc\`), \`useGlowColor\`/\`glowColor\`, \`glowLines\`, \`glowFrequency\`,
   \`glowLength\`, \`glowThickness\`, \`glowScale\`, \`glowXOffset\`/\`glowYOffset\`, \`anchor_area\` (bars:

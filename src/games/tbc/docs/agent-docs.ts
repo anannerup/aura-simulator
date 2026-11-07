@@ -157,7 +157,8 @@ element, backgrounds included) as \`sub.N.<key>\`.
 - \`subtext\`: \`text_text\` (format codes), \`text_color\`, \`text_font\`, \`text_fontSize\`, \`text_fontType\`
   (\`None\`/\`OUTLINE\`/\`THICKOUTLINE\`), \`text_visible\`, \`text_justify\`, \`text_selfPoint\` (\`AUTO\`),
   \`anchor_point\` (\`CENTER\`, \`INNER_TOPLEFT\`, \`INNER_BOTTOMRIGHT\`, \`INNER_LEFT\`, \`INNER_RIGHT\`, \`OUTER_TOP\`,
-  \`OUTER_BOTTOM\`, …), \`anchorXOffset\`/\`anchorYOffset\`.
+  \`OUTER_BOTTOM\`, …), \`text_anchorXOffset\`/\`text_anchorYOffset\` (X/Y Offset; the \`anchorXOffset\` keys new sub
+  texts carry are never read). Custom text (\`%c\`) isn't evaluated: it draws as a marked \`[%c]\`.
 - \`subglow\`: \`glow\` (on/off), \`glowType\` (\`buttonOverlay\`, \`Pixel\`, \`ACShine\`, \`Proc\`),
   \`useGlowColor\`/\`glowColor\`.
 - \`subborder\`: \`border_visible\`, \`border_color\`, \`border_edge\`, \`border_size\`.

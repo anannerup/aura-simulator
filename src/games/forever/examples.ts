@@ -32,8 +32,8 @@ const durationText = (extra: LuaObject = {}): LuaObject => ({
   text_justify: "CENTER",
   text_selfPoint: "AUTO",
   anchor_point: "CENTER",
-  anchorXOffset: 0,
-  anchorYOffset: 0,
+  text_anchorXOffset: 0,
+  text_anchorYOffset: 0,
   ...extra,
 });
 
@@ -157,8 +157,8 @@ const barText = (text: string, anchor: string, extra: LuaObject = {}): LuaObject
   text_visible: true,
   text_selfPoint: "AUTO",
   anchor_point: anchor,
-  anchorXOffset: 0,
-  anchorYOffset: 0,
+  text_anchorXOffset: 0,
+  text_anchorYOffset: 0,
   text_shadowColor: [0, 0, 0, 1],
   text_shadowXOffset: 1,
   text_shadowYOffset: -1,
