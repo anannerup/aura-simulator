@@ -39,8 +39,13 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   a Web Worker in the browser). To add a full-VM call, add the method to `AddonVM` (`vm.ts`) and `AuraCore`
   (`aura-core.ts`); the worker and its host (`host.ts`) forward any `AddonVM` method by name. Both VMs share `lua-stdlib.ts`; answers to the page
   are one JSON (`B.json` in `lua/bridge.ts`, aura documents inside marked with `B.doc`). A core that is replaced
-  must be `dispose()`d (its worker holds a whole Lua heap). Client answers that change validation belong in its Forever client profile
-  (`profile.ts`), and every addon internal it uses in its contract (`contract.ts`).
+  must be `dispose()`d (its worker holds a whole Lua heap). `loadAddon(ref, { game })` picks the game's client:
+  `"forever"` (default: Musca Auras, `<Addon>.toc`) or `"tbc"` (WeakAuras2 from its release zip, `<Addon>_TBC.toc`;
+  needs a `fetchSource`); per game the full VM takes a client profile, a contract and its own extractors
+  (`addon-vm/games.ts`). Client answers belong in the game's client profile (Forever: `profile.ts`; TBC:
+  `profile-tbc.ts`, every answer marked UNVERIFIED until checked in game). Every addon internal the extractors use is
+  in the contract (`contract.ts`): `COMMON_CONTRACT` for what every WeakAuras has (`lua/extract.ts`, `lua/options.ts`),
+  `FOREVER_CONTRACT` for Musca's own (Aura (Modern), combat warnings, packs: `lua/extract-forever.ts`, `lua/new-aura.ts`).
   The options editor (`options`/`setOption`) builds the in-game options tabs in that VM with WeakAurasOptions' own
   generators and applies edits through each option's own `set()` (`addon-vm/options.ts`, `lua/options.ts`, dialogs in
   `lua/dialogs.ts`); its form is `src/components/options-editor/`. Tabs are the addon's keys (`region` is Display,
@@ -63,6 +68,10 @@ Parallel agents work on this repo; keep to these boundaries so work merges clean
   environment and the file; `FOREVER_SPELLS` is `data/spells.sqlite`, `TBC_SPELLS` `data/spells-tbc.sqlite`, gitignored). The addon source cache (`server/addon/source-cache.ts`) is the only
   place the server reads addon files; the server's aura core (`server/addon/core.ts`, one per resolved ref) and the
   agent-docs loader (`server/agent-docs.ts`) use it. Push, docs and diff follow `?ref=` (default: newest release).
+  WeakAuras2 (TBC) comes from GitHub release zips instead (`server/addon/weakauras2-releases.ts`: tags from 5.21.0
+  with a `WeakAuras-<tag>.zip`, checked against GitHub's sha256, unpacked once per version; `unzip.ts`). Its tests
+  use a recorded release list (`tests/fixtures/weakauras2`) and download the 5.22.1 zip once into
+  `.cache/weakauras2` (`tests/support/weakauras2.ts`), skipping when offline.
 - `src/api/`: wire types and limits of the HTTP API shared by server and page (`addon.ts`, `spells.ts`, with
   `iconNameUrl`). No server code: client code imports these, never `@/server/*`.
 - `src/workspace/`: the workspace model (`tree.ts`: top-level auras as nodes, groups nest their `items`; pure operations keep ids unique and

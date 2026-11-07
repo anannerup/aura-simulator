@@ -9,6 +9,7 @@ import type { ValidationResult } from "./addon-vm/validation";
 import type { OptionAddress, OptionEdit, OptionsTree } from "./addon-vm/options";
 import type { AuraPacks, NewAuraPage } from "./addon-vm/new-aura";
 import { createSpellPreloader, type SpellInfoSource } from "./addon-vm/spells";
+import type { AddonGameId } from "./addon-vm/toc";
 import { isStateCode } from "./state-code";
 
 export type { AuraDocument, AuraState };
@@ -92,6 +93,11 @@ export interface LoadAddonOptions {
    * an aura refers to before each full-VM call. Without it every spell is unknown (nil).
    */
   spellInfo?: SpellInfoSource;
+  /**
+   * Which game's client the addon runs in: "forever" (Musca Auras, the default) or "tbc" (official WeakAuras2 from
+   * its release zip). Decides the .toc files the full VM loads, its client profile and the addon contract.
+   */
+  game?: AddonGameId;
 }
 
 function readVersionString(init: string): string {
@@ -108,6 +114,10 @@ function readInternalVersion(weakAuras: string): number {
 
 /** Loads an addon version's Lua and returns an aura core bound to it. */
 export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAddonOptions = {}): Promise<AuraCore> {
+  // jsDelivr serves Musca's source tree; WeakAuras2 is loadable only from its release zip, which the server unpacks.
+  if (!options.fetchSource && (options.game ?? "forever") !== "forever") {
+    throw new Error(`Loading ${options.game} needs a fetchSource over its addon's release files`);
+  }
   const fetchSource = options.fetchSource ?? jsDelivrFetcher(ref);
   const names = Object.keys(ADDON_FILES) as (keyof typeof ADDON_FILES)[];
   const texts = await Promise.all(names.map((n) => fetchSource(ADDON_FILES[n])));
@@ -138,7 +148,7 @@ export async function loadAddon(ref: string = DEFAULT_ADDON_REF, options: LoadAd
   const full = () => {
     if (disposed) return Promise.reject(new Error("This aura core was disposed"));
     if (!fullVM) {
-      const loading = (fullAddonMode === "worker" ? loadWorkerAddonVM : loadInlineAddonVM)(ref, { fetchSource, wasmUri: options.wasmUri });
+      const loading = (fullAddonMode === "worker" ? loadWorkerAddonVM : loadInlineAddonVM)(ref, { fetchSource, wasmUri: options.wasmUri, game: options.game });
       // A failed load is retried on the next call.
       loading.catch(() => {
         if (fullVM === loading) fullVM = undefined;

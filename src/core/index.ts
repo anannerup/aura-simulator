@@ -5,6 +5,8 @@ export { ADDON_REPO, DEFAULT_ADDON_REF, jsDelivrFetcher, jsDelivrUrl } from "./a
 export type { AddonSourceFetcher } from "./addon-source";
 export { ADDON_BUNDLE_SETS, bundleFetcher, collectAddonBundle } from "./addon-bundle";
 export type { AddonBundle, AddonBundleSet } from "./addon-bundle";
+export { ADDON_GAME_IDS, tocPath } from "./addon-vm/toc";
+export type { AddonGameId } from "./addon-vm/toc";
 export { canonicalize, field, getField, isLuaTable, list, num } from "./lua-value";
 export { DEFAULT_SITUATION, auraTriggers, setInCombat, triggerSituation, withTrigger } from "./situation";
 export type { Situation, TriggerKind, TriggerSituation } from "./situation";

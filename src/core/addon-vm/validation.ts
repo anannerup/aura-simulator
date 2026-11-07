@@ -56,8 +56,9 @@ export interface ValidationResult {
 export interface RawValidation {
   prepare: { ok: boolean; error?: string; handlerErrors?: string[]; prints?: string[] };
   regionType?: string;
-  hasModernTrigger: boolean;
-  eligible: boolean;
+  /** Musca Auras only (Aura (Modern), lua/extract-forever.ts); absent for other games. */
+  hasModernTrigger?: boolean;
+  eligible?: boolean;
   sourceTrigger?: number;
   problems?: {
     message: string;

@@ -31,5 +31,8 @@ export const ADDON_FILES = {
   transmission: "WeakAuras/Transmission.lua",
 } as const;
 
-/** Lua source as the VMs run it: Unix newlines (the repo has files with CRLF). */
-export const normalizeNewlines = (s: string) => s.replace(/\r\n?/g, "\n");
+/**
+ * Lua source as the VMs run it: Unix newlines (the repo has files with CRLF; WeakAuras2's release zip has CRLF
+ * throughout) and no UTF-8 byte order mark (the game skips it; Lua 5.1 can't parse it).
+ */
+export const normalizeNewlines = (s: string) => s.replace(/^﻿/, "").replace(/\r\n?/g, "\n");

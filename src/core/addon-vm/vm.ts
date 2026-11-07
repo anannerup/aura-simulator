@@ -3,7 +3,8 @@ import { normalizeNewlines, type AddonSourceFetcher } from "../addon-source";
 import { AURA_CORE } from "../lua-glue";
 import { LUA_STDLIB } from "../lua-stdlib";
 import { canonicalize, isLuaTable, toLuaLiteral, type AuraDocument, type AuraState, type LuaObject, type LuaValue } from "../lua-value";
-import { ADDON_CONTRACT, AddonContractError } from "./contract";
+import { AddonContractError } from "./contract";
+import { ADDON_VM_GAMES } from "./games";
 import { BRIDGE_LUA } from "./lua/bridge";
 import { EXTRACT_LUA } from "./lua/extract";
 import type { AuraPacks, NewAuraPage } from "./new-aura";
@@ -22,8 +23,7 @@ import {
 } from "./options";
 import { SHIM_LUA } from "./lua/shim";
 import { spellsToLua, type ClientSpell } from "./spells";
-import { CLIENT_DATA_LUA, PROFILE_LUA } from "./profile";
-import { FULL_VM_ADDONS as ADDONS, addonLoadOrder } from "./toc";
+import { FULL_VM_ADDONS as ADDONS, addonLoadOrder, type AddonGameId } from "./toc";
 import { interpretValidation, mergeValidation, type RawValidation, type ValidationResult } from "./validation";
 
 /** Region and sub-region defaults and properties, trigger prototypes, Aura (Modern) registries. Plain JSON. */
@@ -68,6 +68,8 @@ export interface AddonVM {
 export interface LoadAddonVMOptions {
   fetchSource: AddonSourceFetcher;
   wasmUri?: string;
+  /** Which game's client the addon runs in (its .toc files, client profile and contract). Default "forever". */
+  game?: AddonGameId;
 }
 
 const PROBE_NAMESPACES = /^(C_Secrets|C_CurveUtil|C_StringUtil|C_DurationUtil|C_NamePlate|C_UnitAuras|AuraUtil|Enum)\./;
@@ -76,14 +78,15 @@ const now = () => (typeof performance !== "undefined" ? performance.now() : Date
 
 /**
  * Loads WeakAuras and WeakAurasOptions of one addon version into a fresh Lua VM, with the WoW API
- * shim and the Forever client profile, runs login, and checks the addon contract.
+ * shim and the game's client profile, runs login, and checks the addon contract.
  */
 export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Promise<AddonVM> {
   const t0 = now();
   const { fetchSource } = options;
+  const game = ADDON_VM_GAMES[options.game ?? "forever"];
   const plans = await Promise.all(
     ADDONS.map(async (addon) => {
-      const { toc, files } = await addonLoadOrder(fetchSource, addon);
+      const { toc, files } = await addonLoadOrder(fetchSource, addon, game.id);
       const sources = await Promise.all(files.map(async (f) => normalizeNewlines(await fetchSource(`${addon}/${f}`))));
       return { addon, toc, files, sources };
     }),
@@ -95,8 +98,7 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
   lua.doStringSync(LUA_STDLIB);
   lua.doStringSync(SHIM_LUA);
   lua.doStringSync(BRIDGE_LUA);
-  lua.doStringSync(CLIENT_DATA_LUA);
-  lua.doStringSync(PROFILE_LUA);
+  for (const chunk of game.profileLua) lua.doStringSync(chunk);
 
   const json = <T>(expr: string): T => JSON.parse(lua.doStringSync(`return __bridge.json(${expr})`) as string) as T;
   const fileErrors: AddonVMReport["fileErrors"] = [];
@@ -132,6 +134,7 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
   lua.doStringSync(AURA_CORE);
   lua.doStringSync("__profile.afterLoad()");
   lua.doStringSync(EXTRACT_LUA);
+  for (const chunk of game.extractLua) lua.doStringSync(chunk);
   lua.doStringSync(OPTIONS_LUA);
   lua.doStringSync(DIALOGS_LUA);
   lua.doStringSync(NEW_AURA_LUA);
@@ -146,12 +149,12 @@ export async function loadAddonVM(ref: string, options: LoadAddonVMOptions): Pro
     );
   }
 
-  const missing = json<string[]>(`__extract.checkContract(${toLuaLiteral(ADDON_CONTRACT as unknown as LuaValue)})`);
+  const missing = json<string[]>(`__extract.checkContract(${toLuaLiteral(game.contract as unknown as LuaValue)})`);
   if (Array.isArray(missing) && missing.length > 0) {
     lua.global.close();
-    throw new AddonContractError(ref, missing);
+    throw new AddonContractError(ref, missing, game.addonName);
   }
-  if (!loginFinished) throw new Error(`Musca Auras ${ref} did not finish logging in inside the simulated client`);
+  if (!loginFinished) throw new Error(`${game.addonName} ${ref} did not finish logging in inside the simulated client`);
   lua.doStringSync("__extract.installWarningRecorder()");
 
   const touched = json<Record<string, unknown>>("__shim.touched");

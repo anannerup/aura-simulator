@@ -1,4 +1,5 @@
 import type { AddonSourceFetcher } from "../addon-source";
+import type { AddonGameId } from "./toc";
 import type { AddonVM, AddonVMReport, LoadAddonVMOptions } from "./vm";
 import { errorMessage } from "@/lib/errors";
 
@@ -19,7 +20,7 @@ export type AsyncAddonVM = {
 
 /** Messages between the page and the worker. */
 export type ToWorker =
-  | { type: "load"; id: number; ref: string; wasmUri?: string }
+  | { type: "load"; id: number; ref: string; wasmUri?: string; game?: AddonGameId }
   | { type: "call"; id: number; method: AddonVMMethod; args: unknown[] }
   | { type: "fetched"; id: number; text?: string; error?: string };
 
@@ -55,7 +56,7 @@ export async function loadInlineAddonVM(ref: string, options: LoadAddonVMOptions
  */
 export async function loadWorkerAddonVM(
   ref: string,
-  options: { fetchSource: AddonSourceFetcher; wasmUri?: string },
+  options: { fetchSource: AddonSourceFetcher; wasmUri?: string; game?: AddonGameId },
 ): Promise<AsyncAddonVM> {
   const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module", name: `addon-vm-${ref}` });
   let nextId = 1;
@@ -88,7 +89,7 @@ export async function loadWorkerAddonVM(
     pending.clear();
   };
 
-  type Request = { type: "load"; ref: string; wasmUri?: string } | { type: "call"; method: AddonVMMethod; args: unknown[] };
+  type Request = { type: "load"; ref: string; wasmUri?: string; game?: AddonGameId } | { type: "call"; method: AddonVMMethod; args: unknown[] };
   const send = (msg: Request): Promise<unknown> => {
     if (failed) return Promise.reject(failed);
     const id = nextId++;
@@ -101,7 +102,7 @@ export async function loadWorkerAddonVM(
   const wasmUri = options.wasmUri ? new URL(options.wasmUri, globalThis.location?.href).href : undefined;
   let report: AddonVMReport;
   try {
-    report = (await send({ type: "load", ref, wasmUri })) as AddonVMReport;
+    report = (await send({ type: "load", ref, wasmUri, game: options.game })) as AddonVMReport;
   } catch (e) {
     worker.terminate();
     throw e;
