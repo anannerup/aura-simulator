@@ -1,7 +1,8 @@
 import { createContext, useContext } from "react";
 import { forever } from "@/games/forever";
 import { decodeTexture, type DecodedTexture } from "./decode";
-import { textureUrls, type AddonFileUrl, type TextureSource } from "./paths";
+import type { ResolvePath } from "./files";
+import { fileDataIdUrl, isAddonPath, textureUrls, type AddonFileUrl, type TextureSource } from "./paths";
 import { cropTexture, shadePixels, type TextureVariant } from "./pixels";
 
 export interface TextureLoaderOptions {
@@ -14,12 +15,20 @@ export interface TextureLoaderOptions {
   persistentCache?: Pick<CacheStorage, "open"> | null;
   /** Where the game's addon's own files (`Interface\\AddOns\\…`) load from. Default: Musca Auras' fallback release. */
   addonFileUrl?: AddonFileUrl;
+  /**
+   * The game's file list: a game texture path's FileDataID (`gameFilesFromApi("/api/<game>/files")`). Without it only
+   * FileDataIDs, addon files and the renderers' own textures load.
+   */
+  resolvePath?: ResolvePath;
   /** Turns RGBA pixels into a URL usable as an <img> src / CSS background. Defaults to a canvas PNG blob URL. */
   encode?: (tex: DecodedTexture) => Promise<string>;
 }
 
 export interface TextureLoader {
-  /** Candidate URLs of a game file, tried in order (`textureUrls` with this loader's addon files). */
+  /**
+   * Candidate URLs of a game file, tried in order (`textureUrls` with this loader's addon files); `[]` for a game path
+   * whose FileDataID only the game's file list knows (`loadBytes` asks it).
+   */
   urls(source: TextureSource): string[];
   /** Raw file bytes (memory → Cache Storage → network): textures, and other game files such as fonts. */
   loadBytes(source: TextureSource): Promise<Uint8Array>;
@@ -33,6 +42,17 @@ export interface TextureUrl {
   url: string;
   width: number;
   height: number;
+}
+
+/** A game file that can't be drawn: the game has no such file, or it couldn't be downloaded. */
+export class TextureMissingError extends Error {
+  constructor(
+    readonly source: TextureSource,
+    readonly reason: string,
+  ) {
+    super(`Texture can't be drawn: ${source} (${reason})`);
+    this.name = "TextureMissingError";
+  }
 }
 
 const TEXTURE_CACHE_NAME = "aura-sim-textures-v1";
@@ -103,12 +123,18 @@ export function createTextureLoader(options: TextureLoaderOptions = {}): Texture
     let p = bytesCache.get(k);
     if (!p) {
       p = (async () => {
-        const candidates = urls(source);
+        let candidates = urls(source);
+        if (candidates.length === 0 && typeof source === "string") {
+          const id = options.resolvePath ? await options.resolvePath(source) : null;
+          if (id === null) throw new TextureMissingError(source, "not in the game's file list");
+          candidates = [fileDataIdUrl(id)];
+        }
         for (const url of candidates) {
           const bytes = await fetchOne(url);
           if (bytes) return bytes;
         }
-        throw new Error(`Texture not found: ${source} (${candidates.join(", ")})`);
+        const where = typeof source === "string" && isAddonPath(source) ? "not one of the game's addon's files" : "not found";
+        throw new TextureMissingError(source, `${where}: ${candidates.join(", ")}`);
       })();
       p.catch(() => bytesCache.delete(k));
       bytesCache.set(k, p);

@@ -6,6 +6,7 @@ import {
   previewSituation,
   WagoJsonError,
   type AuraCore,
+  type AuraState,
   type AuraDocument,
   type SituationPreview,
   type ValidationResult,
@@ -15,6 +16,7 @@ import { getServerAuraCore } from "@/server/addon/core";
 import type { ServerGame } from "@/server/game";
 import { fetchWagoCode, WagoFetchError } from "@/server/wago";
 import { getWorkspaceHub } from "./hub";
+import { textureProblems } from "@/server/media-check";
 import { errorMessage } from "@/lib/errors";
 
 export type { PushInput };
@@ -163,6 +165,16 @@ export interface PushOptions {
   ref?: string | null;
 }
 
+/** Adds the textures the game can't draw (`media.texture`); without the game's file list (offline) the addon's own checks stand. */
+async function withTextureProblems(server: ServerGame, state: AuraState, validation: ValidationResult): Promise<ValidationResult> {
+  try {
+    const problems = await textureProblems(server.files, state, server.game.id);
+    return problems.length ? { ...validation, warnings: [...validation.warnings, ...problems] } : validation;
+  } catch {
+    return validation;
+  }
+}
+
 /** Checks and encodes a push with the game's addon, records it for the game's workspace and notifies open pages. */
 export async function pushToWorkspace(
   server: ServerGame,
@@ -179,7 +191,7 @@ export async function pushToWorkspace(
   const hub = getWorkspaceHub(server.game.id);
   const snap = hub.set(workspaceId, code, options.source ?? null);
   const state = core.decode(code);
-  const validation = options.validate === false ? null : await core.validate(state);
+  const validation = options.validate === false ? null : await withTextureProblems(server, state, await core.validate(state));
   return {
     workspace: workspaceId,
     code,

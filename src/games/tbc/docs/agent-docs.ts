@@ -7,7 +7,17 @@
 import type { OptionReference } from "@/core";
 import { DEFAULT_WORKSPACE_ID } from "@/workspace";
 import { optionReferenceSection, optionReferenceUrls } from "../../docs/option-reference";
-import { compactJson, picturesSection, pushApiSection, situationSection, spellApiSection, wagoJsonSection, wagoLinksSection } from "../../docs/shared";
+import {
+  compactJson,
+  displayMediaNotes,
+  gameDataSection,
+  picturesSection,
+  pushApiSection,
+  situationSection,
+  spellApiSection,
+  wagoJsonSection,
+  wagoLinksSection,
+} from "../../docs/shared";
 import { tbc } from "..";
 import { TBC_MINIMAL_WAGO_JSON } from "../examples";
 import type { TbcAddonFacts } from "./addon-facts";
@@ -36,6 +46,11 @@ export const TBC_DOCUMENTED_ENDPOINTS = [
   "GET /api/tbc/wago/<id>",
   "GET /api/tbc/spells/search",
   "GET /api/tbc/spells/<id>",
+  "GET /api/tbc/items/search",
+  "GET /api/tbc/items/<id>",
+  "GET /api/tbc/icons/search",
+  "GET /api/tbc/files",
+  "GET /api/tbc/media",
 ] as const;
 
 const code = (s: string) => `\`${s}\``;
@@ -69,6 +84,7 @@ export function tbcAgentDocsMarkdown(f: TbcAgentDocsFacts): string {
     pictures,
     validation,
     spells,
+    gameData,
     pushApi,
     wagoLinks,
     workedExamples,
@@ -99,7 +115,8 @@ ${JSON.stringify(TBC_MINIMAL_WAGO_JSON)}
 \`\`\`
 
 Contents: Workflow · wago JSON · The aura · Triggers · Conditions · The addon (generated) · Option ↔ table
-reference · Situation · Pictures · Validation · Spells · Push API · Wago links · Worked examples · Troubleshooting.
+reference · Situation · Pictures · Validation · Spells · Items, icons and media · Push API · Wago links · Worked
+examples · Troubleshooting.
 `;
 }
 
@@ -132,7 +149,7 @@ function wagoJson(): string {
   return wagoJsonSection({ minimal: TBC_MINIMAL_WAGO_JSON, groupsBelow: false, defaultsBelow: false });
 }
 
-function theAura(): string {
+function theAura({ o, ref }: Ctx): string {
   return `## The aura
 
 Common to every display: \`id\` (its name, unique), \`regionType\`, \`anchorPoint\` (point of the screen or group),
@@ -141,15 +158,16 @@ Common to every display: \`id\` (its name, unique), \`regionType\`, \`anchorPoin
 \`conditions\`, \`subRegions\`, \`actions\`, \`animation\`. Points: \`CENTER\`, \`TOP\`, \`BOTTOM\`, \`LEFT\`, \`RIGHT\`,
 \`TOPLEFT\`, \`TOPRIGHT\`, \`BOTTOMLEFT\`, \`BOTTOMRIGHT\`.
 
-- \`icon\`: \`displayIcon\` (icon file ID, \`inGame.iconFileId\` from Spells; the trigger's own icon is used when it
-  has one), \`desaturate\`, \`color\`, \`zoom\` (0-1), \`keepAspectRatio\`, \`cooldown\` (draw the cooldown swipe),
-  \`cooldownTextDisabled\` (hide the game's countdown numbers), \`inverse\`.
+- \`icon\`: \`displayIcon\` (a FileDataID such as \`inGame.iconFileId\` from Spells, or an \`Interface\\Icons\\\`
+  path; see Icons, textures, fonts and borders; the trigger's own icon is used when it has one), \`desaturate\`,
+  \`color\`, \`zoom\` (0-1), \`keepAspectRatio\`, \`cooldown\` (draw the cooldown swipe), \`cooldownTextDisabled\` (hide
+  the game's countdown numbers), \`inverse\`.
 - \`aurabar\`: \`texture\` (a bar texture name, e.g. \`"Blizzard"\`), \`orientation\` (\`HORIZONTAL\`,
   \`HORIZONTAL_INVERSE\`, \`VERTICAL\`, \`VERTICAL_INVERSE\`), \`inverse\`, \`barColor\`, \`backgroundColor\`, \`icon\`
   (show the icon), \`icon_side\` (\`LEFT\`/\`RIGHT\`), \`spark\`.
 - \`text\`: \`displayText\` (with format codes), \`font\`, \`fontSize\`, \`outline\`, \`color\`, \`justify\`.
 - \`group\` (children keep their own offsets, relative to the group's centre) and \`dynamicgroup\` (lays out the shown
-  children: \`grow\`, \`align\`, \`space\`, \`sort\`).
+  children: \`grow\`, \`align\`, \`space\`, \`sort\`; these are Group tab options, see below).
 
 Format codes in texts: \`%p\` time left, \`%t\` total time, \`%n\` name, \`%s\` stacks, \`%i\` icon. Literal \`%\` is
 \`%%\`. The option ↔ table reference has every option of every display type with its keys, values and defaults.
@@ -166,7 +184,8 @@ element, backgrounds included) as \`sub.N.<key>\`.
   texts carry are never read). Custom text (\`%c\`) isn't evaluated: it draws as a marked \`[%c]\`.
 - \`subglow\`: \`glow\` (on/off), \`glowType\` (\`buttonOverlay\`, \`Pixel\`, \`ACShine\`, \`Proc\`),
   \`useGlowColor\`/\`glowColor\`.
-- \`subborder\`: \`border_visible\`, \`border_color\`, \`border_edge\`, \`border_size\`.
+- \`subborder\`: \`border_visible\`, \`border_color\`, \`border_edge\`, \`border_size\`, \`border_offset\` (how they draw:
+  below).
 - \`subtick\` (bars only), \`subbackground\`, \`subforeground\` (no fields: the display's own background and a bar's
   foreground).
 
@@ -175,6 +194,7 @@ the window's New Aura gives a new aura (an icon gets a \`%s\` stack text and a g
 The addon itself only adds a missing \`subbackground\` first (and on bars a \`subforeground\`) and renumbers your
 conditions' \`sub.N\` to match, so write them yourself and the numbers you write are the ones the window shows.
 
+${displayMediaNotes({ game: "tbc", origin: o, ref })}
 ### Groups
 
 A group is an aura with \`"regionType": "group"\` or \`"dynamicgroup"\`. In wago JSON it is \`d\` and every descendant
@@ -339,6 +359,16 @@ name with \`auranames\`) and into the spell cooldown trigger as a number (\`"spe
 Finding a buff by what it does: search names, not effects. Many buffs share a name (food buffs are "Well Fed"): search
 the name, read the candidates' \`buff\` text (what the buff says in game) with the lookup, and use the IDs that match.
 `;
+}
+
+function gameData({ o }: Ctx): string {
+  return gameDataSection({
+    game: "tbc",
+    origin: o,
+    whose: "TBC Anniversary's",
+    item: { name: "super mana potion", id: 22832 },
+    icon: "food basilisk",
+  });
 }
 
 function pushApi({ o, d }: Ctx): string {

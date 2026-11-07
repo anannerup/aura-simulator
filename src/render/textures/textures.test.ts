@@ -4,6 +4,7 @@ import {
   createTextureLoader,
   cropTexture,
   decodeTexture,
+  gameFilesFromApi,
   shadePixels,
   texCoordBackground,
   texCoordPixelRect,
@@ -65,8 +66,8 @@ describe("texture paths", () => {
     ]);
   });
 
-  it("rejects unknown Blizzard paths", () => {
-    expect(() => textureUrls("Interface\\Nope\\Nothing", musca)).toThrow(/Unknown texture path/);
+  it("leaves other game paths to the game's file list", () => {
+    expect(textureUrls("Interface\\Cursor\\Cast", musca)).toEqual([]);
   });
 });
 
@@ -157,6 +158,28 @@ describe("texture loader", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
 
     const missing = createTextureLoader({ fetch: vi.fn(async () => new Response("", { status: 404 })), persistentCache: null });
-    await expect(missing.load(42)).rejects.toThrow(/Texture not found: 42/);
+    await expect(missing.load(42)).rejects.toThrow(/Texture can't be drawn: 42 \(not found/);
+  });
+
+  it("loads any game path by the FileDataID the game's file list gives, in one request per tick", async () => {
+    const fetch = vi.fn(async (url: RequestInfo | URL) =>
+      String(url) === "https://wago.tools/api/casc/131015" ? new Response(blp.slice()) : new Response("", { status: 404 }),
+    );
+    const asked: string[] = [];
+    const resolvePath = gameFilesFromApi("/api/tbc/files", async (url) => {
+      asked.push(url);
+      const paths = new URL(url, "http://x").searchParams.getAll("path");
+      return { build: "2.5.6.70577", ids: {}, paths: Object.fromEntries(paths.map((p) => [p, /cast/i.test(p) ? { id: 131015, path: "Interface\\CURSOR\\Cast.blp" } : null])) };
+    });
+    const loader = createTextureLoader({ fetch, persistentCache: null, resolvePath, encode: async () => "x" });
+    const [cast, again, nothing] = await Promise.allSettled([
+      loader.load("Interface\\Cursor\\Cast"),
+      loader.load("interface/cursor/cast.blp"),
+      loader.load("Interface\\Nope\\Nothing"),
+    ]);
+    expect(cast.status === "fulfilled" && cast.value.width).toBe(2);
+    expect(again.status).toBe("fulfilled");
+    expect(nothing.status === "rejected" && String(nothing.reason)).toMatch(/Interface\\Nope\\Nothing \(not in the game's file list\)/);
+    expect(asked).toEqual(["/api/tbc/files?path=Interface%5CCursor%5CCast&path=Interface%5CNope%5CNothing"]);
   });
 });
