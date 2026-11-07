@@ -48,6 +48,29 @@ test("an agent pushes a TBC aura; the window shows it and exports its import str
   expect(decoded.status(), await decoded.text()).toBe(200);
 });
 
+test("/tbc previews icon, bar, text, texture and progress texture auras on aura2 triggers, in and out of combat", async ({ page, request }) => {
+  const trigger = TBC_MINIMAL_PUSH.aura.triggers;
+  const types = ["icon", "aurabar", "text", "texture", "progresstexture"];
+  const workspace = uniqueId("tbc-types");
+  // The page is open while the agent pushes: each push joins the workspace's top level, live.
+  await openWorkspace(page, workspace);
+  for (const [i, regionType] of types.entries()) {
+    const aura = { id: `TBC ${regionType}`, regionType, triggers: trigger, xOffset: -300 + i * 150, displayText: "%p" };
+    const res = await request.post(`/api/tbc/workspaces/${workspace}/aura`, { data: { aura } });
+    expect(res.status(), await res.text()).toBe(200);
+    expect((await res.json()).validation.errors, regionType).toEqual([]);
+    await expect(tbcWindow(page).getByRole("treeitem", { name: `TBC ${regionType}` })).toBeVisible({ timeout: 30_000 });
+  }
+  const preview = page.getByTestId("aura-preview");
+  const shown = async () => {
+    for (const regionType of types) await expect(preview.locator(`[data-aura-id="TBC ${regionType}"][data-region-type="${regionType}"]`), regionType).toBeVisible({ timeout: 30_000 });
+    await expect(preview.locator('[data-frozen="true"]')).toHaveCount(0);
+  };
+  await shown();
+  await page.getByRole("region", { name: "Situation" }).getByRole("switch", { name: "In combat" }).click();
+  await shown();
+});
+
 test("no combat check on /tbc: the addon's own checks, and In combat changes nothing frozen", async ({ page, request }) => {
   const workspace = uniqueId("tbc-checks");
   expect((await request.post(`/api/tbc/workspaces/${workspace}/aura?validate=false`, { data: TBC_MINIMAL_PUSH })).ok()).toBe(true);
