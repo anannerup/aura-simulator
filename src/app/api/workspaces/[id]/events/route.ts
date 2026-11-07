@@ -1,6 +1,6 @@
 import { connection, type NextRequest } from "next/server";
-import { isWorkspaceId } from "@/workspace";
-import { getWorkspaceHub, notice, type WorkspaceNotice } from "@/server/workspaces";
+import { EVENTS, isWorkspaceId, type WorkspaceNotice } from "@/workspace";
+import { getWorkspaceHub, notice } from "@/server/workspaces";
 
 const HEARTBEAT_MS = 20_000;
 
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/workspac
         }
       };
       const unsubscribe = getWorkspaceHub().subscribe(id, (n: WorkspaceNotice) => {
-        send(`event: state\ndata: ${JSON.stringify(n)}\n\n`);
+        send(`event: ${EVENTS.state}\ndata: ${JSON.stringify(n)}\n\n`);
       });
       const heartbeat = setInterval(() => send(": ping\n\n"), HEARTBEAT_MS);
       cleanup = () => {
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/workspac
         }
       };
       request.signal.addEventListener("abort", () => cleanup());
-      send(`retry: 2000\nevent: snapshot\ndata: ${JSON.stringify(notice(getWorkspaceHub().get(id)))}\n\n`);
+      send(`retry: 2000\nevent: ${EVENTS.snapshot}\ndata: ${JSON.stringify(notice(getWorkspaceHub().get(id)))}\n\n`);
     },
     cancel() {
       cleanup();

@@ -4,7 +4,7 @@
 
 **Blocked by:** 03
 
-**Status:** done except the push-response merge (one line, see below)
+**Status:** done (the push answer carries `validation`: `pushToWorkspace` in `src/server/workspaces/push.ts`)
 
 - [x] Defaults filled from the addon's default tables; internalVersion matches the addon
 - [x] Validation errors and combat warnings in plain words, pointing at the option

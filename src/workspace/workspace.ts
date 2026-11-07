@@ -34,11 +34,6 @@ export function looksLikeStateCode(text: string): boolean {
 export const WORKSPACE_FORMAT = "aura-simulator/workspace";
 export const WORKSPACE_VERSION = 2;
 
-/** Browser-storage key of a workspace (the IndexedDB record key, and the old localStorage key it migrates from). */
-export function storageKey(workspaceId: string): string {
-  return `aura-simulator:workspace:${workspaceId}`;
-}
-
 /** A workspace from state codes (one top-level item each); clashing ids get the addon's "name 2". */
 export function workspaceFromStates(states: AuraState[], updatedAt: string = new Date().toISOString()): Workspace {
   let items: WorkspaceNode[] = [];
@@ -73,8 +68,6 @@ export type ReadResult =
   | {
       ok: true;
       workspace: Workspace;
-      /** Unreadable version 1 items left out. */
-      skipped: number;
       /** State codes the file carries for its top-level items (unchecked: decode them before trusting them). */
       codes: string[];
     }
@@ -82,7 +75,7 @@ export type ReadResult =
 
 /**
  * Reads a stored workspace or workspace file, checking it strictly: the format, unique ids, groups only where
- * groups may be. Version 1 needs `decode` (codes that don't decode are skipped and counted).
+ * groups may be. Version 1 needs `decode` (codes that don't decode are left out).
  */
 export function readWorkspace(text: string | null | undefined, decode?: DecodeState): ReadResult {
   if (!text) return { ok: false, error: "Empty file" };
@@ -103,22 +96,18 @@ export function readWorkspace(text: string | null | undefined, decode?: DecodeSt
     if (!decode) return { ok: false, error: "Version 1 workspaces need the aura core to read" };
     const states: AuraState[] = [];
     const codes: string[] = [];
-    let skipped = 0;
     for (const item of d.items) {
       const code = (item as { code?: unknown } | null)?.code;
-      if (typeof code !== "string" || !looksLikeStateCode(code)) {
-        skipped++;
-        continue;
-      }
+      if (typeof code !== "string" || !looksLikeStateCode(code)) continue;
       try {
         states.push(decode(code.trim()));
         codes.push(code.trim());
       } catch {
-        skipped++;
+        // left out
       }
     }
     if (states.length === 0) return { ok: false, error: "No item of this version 1 workspace could be read" };
-    return { ok: true, workspace: workspaceFromStates(states, updatedAt), skipped, codes };
+    return { ok: true, workspace: workspaceFromStates(states, updatedAt), codes };
   }
   if (d.version !== WORKSPACE_VERSION) return { ok: false, error: `Unknown workspace version ${String(d.version)}` };
 
@@ -154,16 +143,10 @@ export function readWorkspace(text: string | null | undefined, decode?: DecodeSt
       .map((raw) => (raw as { code?: unknown }).code)
       .filter((c): c is string => typeof c === "string" && looksLikeStateCode(c))
       .map((c) => c.trim());
-    return { ok: true, workspace: { items, updatedAt, selected }, skipped: 0, codes };
+    return { ok: true, workspace: { items, updatedAt, selected }, codes };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
-}
-
-/** Lenient read for browser storage: null for anything unreadable. */
-export function parseWorkspace(text: string | null | undefined, decode?: DecodeState): Workspace | null {
-  const result = readWorkspace(text, decode);
-  return result.ok ? result.workspace : null;
 }
 
 /** The newer of two workspaces (the first one on a tie). */

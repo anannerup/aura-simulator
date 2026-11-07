@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { stateCode } from "../support/state-code";
 
 const uniqueId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
@@ -18,7 +19,6 @@ async function expectIconSize(page: Page, size: number) {
 const raw = (page: Page) => page.getByLabel("Raw table text");
 /** The raw table lives in a tab of the drawer under the game screen. */
 const openRaw = (page: Page) => page.getByRole("tab", { name: "Raw table" }).click();
-const stateCode = (page: Page) => page.getByLabel("State code");
 
 async function editRaw(page: Page, edit: (text: string) => string) {
   const text = await raw(page).inputValue();
@@ -34,15 +34,15 @@ test("edit the raw table: preview and state code follow; invalid text keeps the 
   await expect(raw(page)).toHaveValue(/^\{\n {2}actions = /);
   await expect(raw(page)).toHaveValue(/\n {2}width = 64,\n/);
   await expect(raw(page)).toHaveValue(/\[1\] = \{/); // triggers[1] is a number key
-  const original = await stateCode(page).inputValue();
+  const original = await stateCode(page);
 
   await editRaw(page, (t) => t.replace("width = 64,", "width = 48,"));
   await expect(page.getByTestId("raw-editor-state")).toHaveText("Unapplied edits");
   await raw(page).press("Control+Enter");
   await expectIconSize(page, 48);
   await expect(page.getByTestId("raw-editor-state")).toHaveText("In sync");
-  await expect(stateCode(page)).not.toHaveValue(original);
-  const edited = await stateCode(page).inputValue();
+  await expect.poll(() => stateCode(page)).not.toBe(original);
+  const edited = await stateCode(page);
   expect(edited).toMatch(/^!WA:2!/);
   expect(new URL(page.url()).searchParams.has("code")).toBe(false); // auras never go in the address
 
@@ -53,7 +53,7 @@ test("edit the raw table: preview and state code follow; invalid text keeps the 
   await page.getByRole("button", { name: "Apply" }).click();
   await expect(page.getByTestId("raw-editor-error")).toBeVisible();
   await expect(raw(page)).toHaveValue(broken);
-  await expect(stateCode(page)).toHaveValue(edited);
+  await expect.poll(() => stateCode(page)).toBe(edited);
   await expectIconSize(page, 48);
 
   // The JSON form shows the canonical document; switching needs valid text.
@@ -74,7 +74,7 @@ test("undo and redo step through raw edits, pastes and agent pushes", async ({ p
   await page.goto(`/?w=${workspace}`);
   await expectIconSize(page, 64);
   await openRaw(page);
-  const sample = await stateCode(page).inputValue();
+  const sample = await stateCode(page);
   const undoButton = page.getByRole("button", { name: "Undo" });
   const redoButton = page.getByRole("button", { name: "Redo" });
   await expect(undoButton).toBeDisabled();
@@ -97,7 +97,7 @@ test("undo and redo step through raw edits, pastes and agent pushes", async ({ p
   await expect(raw(page)).toHaveValue(/"width": 50/);
   await undoButton.click();
   await expectIconSize(page, 64);
-  await expect(stateCode(page)).toHaveValue(sample);
+  await expect.poll(() => stateCode(page)).toBe(sample);
   await expect(undoButton).toBeDisabled();
 
   // Keyboard shortcuts work outside text fields; inside them the field's own undo applies.

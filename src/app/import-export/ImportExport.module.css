@@ -60,13 +60,3 @@
   font-size: var(--text-sm);
   color: var(--text-3);
 }
-
-/* Off screen but in the document, so the code can be read without showing megabytes of it. */
-.hiddenCode {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-  overflow: hidden;
-}

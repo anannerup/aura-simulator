@@ -10,15 +10,13 @@
  * State codes carry a group as the group's document plus its descendants flattened in the order of
  * Private.TraverseAllChildren (WeakAuras.lua:7311-7356, pre-order); see `stateFromNode` and `nodeFromState`.
  */
-import { canonicalize, isLuaTable, sampleIconAura, type AuraDocument, type AuraState, type LuaValue } from "@/core";
+import { canonicalize, isLuaTable, type AuraDocument, type AuraState, type LuaValue } from "@/core";
 
 export interface WorkspaceNode {
   aura: AuraDocument;
   /** Present exactly for groups and dynamic groups: the children, in `controlledChildren` order. */
   items?: WorkspaceNode[];
 }
-
-export type GroupKind = "group" | "dynamicgroup";
 
 /** Private.IsGroupType (WeakAuras.lua:7395): regionType "group" or "dynamicgroup". */
 export function isGroupDoc(doc: AuraDocument): boolean {
@@ -125,12 +123,6 @@ function allUids(items: WorkspaceNode[]): Set<string> {
   const uids = new Set<string>();
   for (const n of traverse(items)) if (typeof n.aura.uid === "string") uids.add(n.aura.uid);
   return uids;
-}
-
-/** The top-level item that holds `id` (itself when it is top level). */
-export function topLevelOf(items: WorkspaceNode[], id: string): WorkspaceNode | null {
-  const found = findNode(items, id);
-  return found ? (items.find((n) => nodeId(n) === found.path[0]) ?? null) : null;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -343,6 +335,27 @@ export function updateNode(items: WorkspaceNode[], id: string, doc: AuraDocument
 }
 
 /**
+ * Replaces a group's document together with its descendants' (the window's tabs edit a group's children too, as in
+ * the game). Descendants whose document didn't change keep their node.
+ */
+export function updateWithDescendants(
+  items: WorkspaceNode[],
+  id: string,
+  doc: AuraDocument,
+  descendants: AuraDocument[],
+): { items: WorkspaceNode[]; id: string } {
+  let next = items;
+  for (const child of descendants) {
+    const childId = typeof child.id === "string" ? child.id : null;
+    const found = childId ? findNode(next, childId) : null;
+    if (childId && found && JSON.stringify(found.node.aura) !== JSON.stringify(canonicalize(child))) {
+      next = updateNode(next, childId, child).items;
+    }
+  }
+  return updateNode(next, id, doc);
+}
+
+/**
  * Merges a pushed or pasted item into the top level, like the addon's import updates an installed aura: it
  * replaces the top-level item with the same `uid` (else the same `id`), keeping its place, or is appended.
  */
@@ -373,67 +386,19 @@ export function insertionTarget(items: WorkspaceNode[], selectedId: string | nul
   return { parentId: null, index: top + 1 };
 }
 
-/** A new icon aura (the built-in sample's settings), placed beside its future siblings so it doesn't hide them. */
-export function newAuraNode(internalVersion: number, id: string, siblings = 0): WorkspaceNode {
-  const aura = sampleIconAura(internalVersion);
-  const size = typeof aura.width === "number" ? aura.width : 64;
-  return { aura: { ...aura, id, uid: newUid(), xOffset: siblings * (size + 4) } };
-}
-
-/** A new group or dynamic group with the region defaults of Group.lua:10-32 / DynamicGroup.lua:56-92. */
-export function newGroupNode(internalVersion: number, id: string, kind: GroupKind): WorkspaceNode {
-  const common: AuraDocument = {
-    id,
-    uid: newUid(),
-    internalVersion,
-    regionType: kind,
-    controlledChildren: {},
-    anchorPoint: "CENTER",
-    anchorFrameType: "SCREEN",
-    xOffset: 0,
-    yOffset: 0,
-    frameStrata: 1,
-    border: false,
-    borderColor: [0, 0, 0, 1],
-    backdropColor: [1, 1, 1, 0.5],
-    borderEdge: "Square Full White",
-    borderOffset: 4,
-    borderInset: 1,
-    borderSize: 2,
-    borderBackdrop: "Blizzard Tooltip",
-    scale: 1,
-    alpha: 1,
-    load: {},
-  };
-  if (kind === "group") {
-    return { aura: { ...common, selfPoint: "CENTER" }, items: [] };
-  }
-  return {
-    aura: {
-      ...common,
-      grow: "RIGHT",
-      selfPoint: "LEFT",
-      align: "CENTER",
-      space: 2,
-      stagger: 0,
-      sort: "none",
-      animate: false,
-      radius: 200,
-      rotation: 0,
-      stepAngle: 15,
-      fullCircle: true,
-      arcLength: 360,
-      constantFactor: "RADIUS",
-      useLimit: false,
-      limit: 5,
-      gridType: "RD",
-      centerType: "LR",
-      gridWidth: 5,
-      rowSpace: 1,
-      columnSpace: 1,
-    },
-    items: [],
-  };
+/**
+ * Adds an aura the addon's New Aura made (`WeakAuras.NewAura`), named "New" as in the game, where the game puts it:
+ * into a selected group, else after the selection. In a group it is placed beside its future siblings so it doesn't
+ * hide them (the game puts it on top of them).
+ */
+export function placeNewItem(items: WorkspaceNode[], selectedId: string | null, made: AuraDocument): { items: WorkspaceNode[]; id: string } {
+  const group = isGroupDoc(made);
+  const target = insertionTarget(items, selectedId, group);
+  const aura: AuraDocument = { ...made, id: "New" };
+  delete aura.uid;
+  const siblings = target.parentId ? (findNode(items, target.parentId)?.node.items?.length ?? 0) : 0;
+  if (!group && siblings > 0) aura.xOffset = siblings * ((typeof aura.width === "number" ? aura.width : 64) + 4);
+  return addSubtree(items, group ? { aura, items: [] } : { aura }, target);
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { cachedAddonFetcher } from "../support/addon-source";
 import { ownWorkspacePage } from "../support/e2e-workspace";
+import { stateCode } from "../support/state-code";
 
 const loaded = (page: Page) => page.getByTestId("addon-loaded");
 /** The version picker lives in a popover under the top bar's version button. */
@@ -9,7 +10,7 @@ const openPicker = (page: Page) => page.getByRole("button", { name: /^Musca Aura
 async function expectAuraRendered(page: Page) {
   const icon = page.getByTestId("aura-preview").locator('[data-region-type="icon"] img');
   await expect(icon).toBeVisible();
-  await expect(page.getByLabel("State code")).toHaveValue(/^!WA:2![A-Za-z0-9()]+$/);
+  await expect.poll(() => stateCode(page)).toMatch(/^!WA:2![A-Za-z0-9()]+$/);
 }
 
 test("the newest release loads by default, through the server's addon cache", async ({ page }) => {
@@ -35,14 +36,14 @@ test("switching version reloads the core, keeps the aura and reports what change
   await search.fill("frostbolt");
   await page.getByRole("listbox", { name: "Spells" }).getByRole("option", { name: /Frostbolt/ }).first().click();
   await expect(icon).toHaveAttribute("src", /spell_frost_frostbolt02/);
-  const code = await page.getByLabel("State code").inputValue();
+  const code = await stateCode(page);
 
   await openPicker(page);
   await page.getByLabel("Musca Auras version").selectOption("v1.10.0");
   await expect(loaded(page)).toContainText("Musca Auras v1.10.0", { timeout: 60_000 });
   await expect(loaded(page)).toContainText("internal version 91");
   await expectAuraRendered(page);
-  await expect(page.getByLabel("State code")).toHaveValue(code);
+  await expect.poll(() => stateCode(page)).toBe(code);
   await expect(icon).toHaveAttribute("src", /spell_frost_frostbolt02/);
   await expect(page.getByTestId("current-spell")).toContainText("ID 116");
 
@@ -53,7 +54,7 @@ test("switching version reloads the core, keeps the aura and reports what change
   // The choice is remembered.
   await page.reload();
   await expect(loaded(page)).toContainText("Musca Auras v1.10.0", { timeout: 60_000 });
-  await expect(page.getByLabel("State code")).toHaveValue(code);
+  await expect.poll(() => stateCode(page)).toBe(code);
 });
 
 test("a branch loads by name; an unknown ref shows an error and keeps the previous version", async ({ page }) => {

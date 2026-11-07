@@ -3,8 +3,8 @@
  * Auras never travel in the address: they can be megabytes, so they move as files (see `files.ts`), over the
  * push API, or through the clipboard.
  *
- * Old links from before that decision may carry `?code=<state code>` or `?s=<short id>`. `parseAddress` reports
- * them so the page can import a `code` once and strip both (short links are gone; `s` only earns a notice).
+ * Old links from before that decision may carry `?code=<state code>`: `parseAddress` reports it so the page can
+ * import it once. The page then rewrites the address to `buildSearch`, which drops every other parameter.
  */
 
 export const DEFAULT_WORKSPACE_ID = "default";
@@ -19,21 +19,15 @@ export interface AddressState {
   workspaceId: string;
   /** A legacy `?code=` state code to import once, if any. */
   legacyCode: string | null;
-  /** True when the address carries a legacy `?s=` short link (no longer resolvable). */
-  legacyShortLink: boolean;
 }
 
-/** Reads `w` (and the legacy `code`/`s`) from a query string (with or without the leading `?`). */
+/** Reads `w` (and the legacy `code`) from a query string (with or without the leading `?`). */
 export function parseAddress(search: string): AddressState {
   const params = new URLSearchParams(search);
   const w = params.get("w");
   // URLSearchParams turns "+" into a space; state codes never contain either.
   const legacyCode = params.get("code")?.replace(/ /g, "+").trim() || null;
-  return {
-    workspaceId: w && isWorkspaceId(w) ? w : DEFAULT_WORKSPACE_ID,
-    legacyCode,
-    legacyShortLink: params.has("s"),
-  };
+  return { workspaceId: w && isWorkspaceId(w) ? w : DEFAULT_WORKSPACE_ID, legacyCode };
 }
 
 /** The query string for a workspace (with leading `?`, or "" for the default workspace). */

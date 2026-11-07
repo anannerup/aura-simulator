@@ -16,6 +16,9 @@ functions update the aura exactly like the in-game editor.
 
 ## Prototype
 
+Removed on 2026-11-07: `src/core/addon-vm/` grew from it and supersedes it. It is in git history, e.g.
+`git show 634cc0a:prototypes/headless-addon/run.mjs`; the commands and outputs below refer to that tree.
+
 `prototypes/headless-addon/` (plain `.mjs` + Lua, no TypeScript, nothing in `src/`):
 
 | File | Role |

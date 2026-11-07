@@ -1,10 +1,10 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { stateCode } from "../support/state-code";
 
 const uniqueId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 const editor = (page: Page) => page.getByRole("region", { name: "Aura options" });
 const option = (page: Page, path: string) => editor(page).locator(`[data-option="${path}"]`);
-const stateCode = (page: Page) => page.getByLabel("State code");
 const raw = (page: Page) => page.getByLabel("Raw table text");
 
 async function openTab(page: Page, name: string) {
@@ -48,7 +48,7 @@ test("changing the width in the Display tab resizes the preview and changes the 
   await page.goto(`/?w=${uniqueId("opts")}`);
   await openTab(page, "Display");
   await expect.poll(() => iconSize(page), { timeout: 60_000 }).toBe(64);
-  const before = await stateCode(page).inputValue();
+  const before = await stateCode(page);
 
   // "Position and Size Settings" starts collapsed, as in the game.
   await editor(page).getByRole("button", { name: "Position and Size Settings" }).click();
@@ -58,7 +58,7 @@ test("changing the width in the Display tab resizes the preview and changes the 
   await width.press("Enter");
 
   await expect.poll(() => iconSize(page), { timeout: 30_000 }).toBe(100);
-  await expect(stateCode(page)).not.toHaveValue(before);
+  await expect.poll(() => stateCode(page)).not.toBe(before);
   await expect(raw(page)).toHaveValue(/\n {2}width = 100,\n/);
   await expect(width).toHaveValue("100");
 });
@@ -74,7 +74,7 @@ test("enabling Remaining Time in the Trigger tab keeps the icon fully usable in 
   await page.goto(`/?w=${uniqueId("opts")}`);
   const panel = page.getByTestId("validation-panel");
   await expect(panel).toHaveAttribute("data-state", "done", { timeout: 90_000 });
-  const before = await stateCode(page).inputValue();
+  const before = await stateCode(page);
 
   await openTab(page, "Trigger");
   const useRem = option(page, "trigger.1.secretAura.useRem").getByRole("checkbox");
@@ -87,7 +87,7 @@ test("enabling Remaining Time in the Trigger tab keeps the icon fully usable in 
   await expect(raw(page)).toHaveValue(/secretUseRem = true/);
   // The checks rerun for the new state code. Blizzard's aura container gives the Remaining Time window its slot,
   // as in the game: no "could not create the Remaining Time display" warning.
-  await expect(stateCode(page)).not.toHaveValue(before);
+  await expect.poll(() => stateCode(page)).not.toBe(before);
   await expect(panel).toHaveAttribute("data-state", "done", { timeout: 30_000 });
   await expect(panel).toHaveAttribute("data-combat-status", "ok");
   await expect(page.getByTestId("combat-status")).toContainText("Fully usable in combat.");

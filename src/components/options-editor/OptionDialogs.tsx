@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { OptionDialog } from "@/core";
 import { GameTexture } from "@/components/ui";
-import { searchSpells } from "@/components/spell-picker/spell-api";
+import { useSpellSearch } from "@/components/spell-picker/useSpellSearch";
 import { displayIconRef, iconNameUrl } from "@/render/textures";
 import { plainText } from "./wow-text";
 import { WowText } from "./WowText";
@@ -102,31 +102,13 @@ const ICON_PATH = (name: string) => `Interface\\Icons\\${name}`;
 /** The game's icon picker: search icons by spell name, or enter an icon name or FileDataID. */
 function IconPicker({ current, onChoose }: { current?: string | number; onChoose(value: unknown): void }) {
   const [q, setQ] = useState("");
-  const [hits, setHits] = useState<{ q: string; icons: { icon: string; spells: string[] }[] }>({ q: "", icons: [] });
-  const [error, setError] = useState<string | null>(null);
   const query = q.trim();
-  useEffect(() => {
-    if (query.length < 2 || /^\d+$/.test(query)) return;
-    const ac = new AbortController();
-    const t = setTimeout(() => {
-      searchSpells(query, ac.signal).then(
-        (r) => {
-          const byIcon = new Map<string, string[]>();
-          for (const hit of r.results) if (hit.icon) byIcon.set(hit.icon, [...(byIcon.get(hit.icon) ?? []), hit.name]);
-          setHits({ q: query, icons: [...byIcon].map(([icon, spells]) => ({ icon, spells })) });
-          setError(null);
-        },
-        (e: unknown) => !ac.signal.aborted && setError(e instanceof Error ? e.message : String(e)),
-      );
-    }, 150);
-    return () => {
-      clearTimeout(t);
-      ac.abort();
-    };
-  }, [query]);
+  const { hits, error } = useSpellSearch(query, { enabled: query.length >= 2 && !/^\d+$/.test(query) });
+  const byIcon = new Map<string, string[]>();
+  for (const hit of hits ?? []) if (hit.icon) byIcon.set(hit.icon, [...(byIcon.get(hit.icon) ?? []), hit.name]);
+  const icons = [...byIcon].map(([icon, spells]) => ({ icon, spells }));
   const ref = displayIconRef(current);
   const typed = /^\d+$/.test(query) ? Number(query) : /^[a-z0-9_]+$/i.test(query) && query.includes("_") ? ICON_PATH(query) : null;
-  const icons = hits.q === query ? hits.icons : [];
   return (
     <div className={styles.iconPicker}>
       <p className={styles.dialogMuted}>
@@ -161,7 +143,7 @@ function IconPicker({ current, onChoose }: { current?: string | number; onChoose
           </li>
         ))}
       </ul>
-      {query.length >= 2 && hits.q === query && icons.length === 0 && <p className={styles.dialogMuted}>No spells with icons match.</p>}
+      {hits !== null && icons.length === 0 && <p className={styles.dialogMuted}>No spells with icons match.</p>}
     </div>
   );
 }

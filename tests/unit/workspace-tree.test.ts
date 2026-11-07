@@ -7,8 +7,8 @@ import {
   findNode,
   mergeTopLevel,
   moveNode,
-  newAuraNode,
-  newGroupNode,
+  newUid,
+  placeNewItem,
   nodeFromState,
   nodeId,
   readWorkspace,
@@ -19,12 +19,17 @@ import {
   traverse,
   TreeError,
   updateNode,
+  updateWithDescendants,
   type WorkspaceNode,
 } from "@/workspace";
 import { cachedAddonFetcher } from "../support/addon-source";
 
 const V = 92;
-const aura = (id: string) => newAuraNode(V, id);
+const aura = (id: string): WorkspaceNode => ({ aura: { ...sampleIconAura(V), id, uid: newUid() } });
+const group = (id: string, regionType: "group" | "dynamicgroup"): WorkspaceNode => ({
+  aura: { id, uid: newUid(), internalVersion: V, regionType, controlledChildren: {} },
+  items: [],
+});
 
 /** Every link the addon relies on: unique ids, controlledChildren = child ids, parent = group id. */
 function expectConsistent(items: WorkspaceNode[]) {
@@ -47,10 +52,10 @@ const shape = (items: WorkspaceNode[]): unknown[] => items.map((n) => (n.items ?
 
 function build(): WorkspaceNode[] {
   let items: WorkspaceNode[] = [];
-  items = addSubtree(items, newGroupNode(V, "G", "group"), { parentId: null }).items;
+  items = addSubtree(items, group("G", "group"), { parentId: null }).items;
   items = addSubtree(items, aura("A"), { parentId: "G" }).items;
   items = addSubtree(items, aura("B"), { parentId: "G" }).items;
-  items = addSubtree(items, newGroupNode(V, "D", "dynamicgroup"), { parentId: null }).items;
+  items = addSubtree(items, group("D", "dynamicgroup"), { parentId: null }).items;
   items = addSubtree(items, aura("C"), { parentId: null }).items;
   return items;
 }
@@ -93,7 +98,7 @@ describe("workspace tree operations", () => {
     expect(shape(items)).toEqual(["A", { G: [] }, { D: ["B", "C"] }]);
     expectConsistent(items);
     expect(() => moveNode(items, "G", { parentId: "D" })).toThrow(/dynamic group/);
-    items = addSubtree(items, newGroupNode(V, "Inner", "group"), { parentId: "G" }).items;
+    items = addSubtree(items, group("Inner", "group"), { parentId: "G" }).items;
     expect(() => moveNode(items, "G", { parentId: "Inner" })).toThrow(/itself/);
   });
 
@@ -130,6 +135,47 @@ describe("workspace tree operations", () => {
     const appended = mergeTopLevel(items, aura("E"));
     expect(shape(appended.items)).toEqual([{ G: ["A", "B"] }, { D: [] }, "C", "E"]);
   });
+
+  it("updates a group and its changed descendants in one edit, leaving unchanged ones as they are", () => {
+    const items = build();
+    const [a, b] = findNode(items, "G")!.node.items!;
+    const g = findNode(items, "G")!.node.aura;
+    const next = updateWithDescendants(items, "G", { ...g, alpha: 0.5 }, [{ ...a.aura }, { ...b.aura, width: 12 }]);
+    expect(next.id).toBe("G");
+    expect(findNode(next.items, "G")!.node.aura.alpha).toBe(0.5);
+    expect(findNode(next.items, "B")!.node.aura.width).toBe(12);
+    expect(findNode(next.items, "A")!.node).toBe(a);
+    expectConsistent(next.items);
+  });
+});
+
+describe("new items", () => {
+  const made = { ...sampleIconAura(V), id: "Icon from the addon", width: 40 };
+
+  it("go after the selection, or at the end with nothing selected, named New with a fresh uid", () => {
+    const end = placeNewItem(build(), null, made);
+    expect(end.id).toBe("New");
+    expect(shape(end.items).at(-1)).toBe("New");
+    expect(typeof findNode(end.items, "New")!.node.aura.uid).toBe("string");
+    const after = placeNewItem(end.items, "C", made);
+    expect(after.id).toBe("New 2");
+    expect(shape(after.items)).toEqual([{ G: ["A", "B"] }, { D: [] }, "C", "New 2", "New"]);
+  });
+
+  it("go into a selected group, beside the children already there", () => {
+    const placed = placeNewItem(build(), "G", made);
+    expect(shape(placed.items)[0]).toEqual({ G: ["A", "B", "New"] });
+    expect(findNode(placed.items, "New")!.node.aura.xOffset).toBe(2 * (40 + 4));
+    expectConsistent(placed.items);
+  });
+
+  it("a new group is an empty group; next to a dynamic group's child it goes to the top level", () => {
+    let items = moveNode(build(), "C", { parentId: "D" });
+    const placed = placeNewItem(items, "C", { id: "x", regionType: "group" });
+    items = placed.items;
+    expect(shape(items)).toEqual([{ G: ["A", "B"] }, { D: ["C"] }, { New: [] }]);
+    expect(findNode(items, "New")!.node.aura.controlledChildren).toEqual({});
+  });
 });
 
 describe("state codes and the workspace file", () => {
@@ -140,7 +186,7 @@ describe("state codes and the workspace file", () => {
 
   function nested(): WorkspaceNode[] {
     let items = build();
-    items = addSubtree(items, newGroupNode(V, "Inner", "group"), { parentId: "G" }).items;
+    items = addSubtree(items, group("Inner", "group"), { parentId: "G" }).items;
     items = moveNode(items, "C", { parentId: "Inner" });
     return items; // G: [A, B, Inner: [C]], D: []
   }
@@ -213,7 +259,6 @@ describe("state codes and the workspace file", () => {
     const read = readWorkspace(v1, (c) => core.decode(c));
     expect(read.ok).toBe(true);
     if (!read.ok) return;
-    expect(read.skipped).toBe(1);
     expect(read.workspace.updatedAt).toBe("2026-01-01T00:00:00.000Z");
     expect(read.workspace.items).toEqual(items);
     expect(allIds(read.workspace.items).size).toBe(6);

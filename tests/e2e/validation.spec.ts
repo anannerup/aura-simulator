@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { modernDesaturateBad, modernGlowOk } from "../fixtures/auras";
+import { stateCode } from "../support/state-code";
 
 const uniqueId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
@@ -22,7 +23,7 @@ test("a remaining-time condition driving desaturate is flagged, pointing at the 
   await expect(error).toContainText("Choose a supported property for this Aura (Modern) condition.");
   await expect(error).toContainText("Condition 1, change 1 (desaturate)");
   // never blocks export
-  await expect(page.getByLabel("State code")).toHaveValue(/^!WA:2!/);
+  await expect.poll(() => stateCode(page)).toMatch(/^!WA:2!/);
   console.log(`full addon VM load in the browser (ms): ${await panel.getAttribute("data-vm-timings")}`);
 });
 
