@@ -43,7 +43,10 @@ export function triggerState(info: TriggerInfo, facts: SituationFacts): TriggerS
     case "aura2":
       return { ...aura2State(info, facts), frozen: false };
     case "spellCooldown":
-      return spellCooldownState(info, facts);
+    case "itemCooldown":
+      return cooldownProgressState(info, facts);
+    case "weaponEnchant":
+      return weaponEnchantState(info, facts);
     case "itemCount":
       return itemCountState(info, facts);
     default:
@@ -93,11 +96,13 @@ export function aura2State(info: TriggerInfo, facts: SituationFacts): Omit<Trigg
 }
 
 /**
- * Cooldown Progress (Spell) (Prototypes.lua:4254). genericShowOn (default showOnCooldown, :4703):
- * showOnCooldown = startTime > 0, showOnReady = startTime == 0, showAlways (:4305-4310). Charges become
- * stacks when the spell has more than one (:4332). Forever's "Desaturate while on cooldown" is in forever.ts.
+ * The Cooldown Progress triggers: (Spell) (Prototypes.lua:4254) and the item ones, (Item) and (Equipment Slot).
+ * genericShowOn (default showOnCooldown, :4703): showOnCooldown = startTime > 0, showOnReady = startTime == 0,
+ * showAlways (:4305-4310). Each has the bool `onCooldown` condition (expirationTime > now) with `expirationTime` and
+ * `duration`. Only the spell's has charges (`charges`, and as stacks when the spell has more than one, :4332); the
+ * Equipment Slot's `stacks` is the item's. Forever's "Desaturate while on cooldown" is in forever.ts.
  */
-export function spellCooldownState(info: TriggerInfo, facts: SituationFacts): TriggerState {
+export function cooldownProgressState(info: TriggerInfo, facts: SituationFacts): TriggerState {
   const s = triggerSituation(facts, info.index);
   const onCooldown = s.present && s.remaining > 0;
   const showOn = String(getField(info.trigger, "genericShowOn") ?? "showOnCooldown");
@@ -114,9 +119,29 @@ export function spellCooldownState(info: TriggerInfo, facts: SituationFacts): Tr
       expirationTime: t.remaining,
       duration: t.duration,
       onCooldown,
-      charges: s.stacks,
+      ...(info.kind === "spellCooldown" && { charges: s.stacks }),
       stacks: s.stacks > 0 ? s.stacks : undefined,
     },
+    frozen: false,
+  };
+}
+
+/**
+ * Weapon Enchant (Prototypes.lua "Weapon Enchant"): `found` is the enchant on the weapon; `showOn` (showOnActive by
+ * default, showOnMissing, showAlways) decides whether it is active. It stores `enchanted` (found == true, a bool
+ * condition) and, only while found, `expirationTime`, `duration` and `stacks` (charges).
+ */
+export function weaponEnchantState(info: TriggerInfo, facts: SituationFacts): TriggerState {
+  const s = triggerSituation(facts, info.index);
+  const t = timer(s.present, s.remaining, s.duration);
+  return {
+    index: info.index,
+    kind: info.kind,
+    active: showOnActive(info.trigger, s.present),
+    missing: false,
+    ...t,
+    stacks: s.present ? s.stacks : 0,
+    values: { enchanted: s.present, expirationTime: t.remaining, duration: t.duration, stacks: s.present ? s.stacks : undefined },
     frozen: false,
   };
 }

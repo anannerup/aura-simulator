@@ -5,7 +5,7 @@
  * Auras and WeakAuras2.
  */
 import { describe, expect, it } from "vitest";
-import { auraRules, DEFAULT_SITUATION, previewSituation, withTrigger, type AddonGameId, type AuraDocument, type LuaObject, type Situation } from "@/core";
+import { auraRules, DEFAULT_SITUATION, previewSituation, TRIGGER_KINDS, withTrigger, type AddonGameId, type AuraDocument, type LuaObject, type Situation } from "@/core";
 
 const GAMES: AddonGameId[] = ["tbc", "forever"];
 
@@ -137,6 +137,37 @@ describe.each(GAMES)("%s: what each text draws (SubText.lua ChangeText, WeakAura
     ]);
     const text = previewSituation({ aura: { ...icon([itemCount]), regionType: "text", displayText: "%s left" }, children: [] }, situation([1, { present: true, stacks: 5 }]), game);
     expect(text.displays[0].displayText).toEqual({ text: "5 left" });
+  });
+});
+
+describe.each(GAMES)("%s: each trigger kind reports its prototype's condition variables (Prototypes.lua)", (game) => {
+  const rules = auraRules(game);
+  const desaturatedWhen = (trigger: LuaObject, variable: string, value: number, s: Situation) =>
+    rules.evaluate(icon([{ ...trigger, genericShowOn: "showAlways", showOn: "showAlways" }], { conditions: [{ check: { trigger: 1, variable, value }, changes: [{ property: "desaturate", value: true }] }] }), s)
+      .properties.desaturate;
+
+  it.each([
+    ["Cooldown Progress (Item)", { type: "item", event: "Cooldown Progress (Item)", itemName: 22829 }],
+    ["Cooldown Progress (Equipment Slot)", { type: "item", event: "Cooldown Progress (Equipment Slot)", itemSlot: 13 }],
+  ])("%s: onCooldown while on cooldown", (_name, trigger) => {
+    expect(desaturatedWhen(trigger, "onCooldown", 1, situation([1, { present: true, remaining: 30, duration: 120 }]))).toBe(true);
+    expect(desaturatedWhen(trigger, "onCooldown", 1, situation([1, { present: false }]))).toBe(false);
+    expect(desaturatedWhen(trigger, "onCooldown", 0, situation([1, { present: false }]))).toBe(true);
+  });
+
+  it("Weapon Enchant: enchanted while the enchant is on the weapon, with its time and stacks", () => {
+    const tench: LuaObject = { type: "item", event: "Weapon Enchant", weapon: "main" };
+    expect(desaturatedWhen(tench, "enchanted", 1, situation([1, { present: true }]))).toBe(true);
+    expect(desaturatedWhen(tench, "enchanted", 0, situation([1, { present: false }]))).toBe(true);
+    expect(desaturatedWhen(tench, "enchanted", 1, situation([1, { present: false }]))).toBe(false);
+    const on = rules.evaluate(icon([tench]), situation([1, { present: true, remaining: 600, duration: 1800, stacks: 3 }])).triggers[0];
+    expect(on).toMatchObject({ kind: "weaponEnchant", remaining: 600, duration: 1800, stacks: 3 });
+  });
+
+  it("the kinds are offered per game, and the item cooldowns follow genericShowOn like the spell's", () => {
+    expect(TRIGGER_KINDS[game]).toEqual(expect.arrayContaining(["itemCooldown", "weaponEnchant"]));
+    const ready = { type: "item", event: "Cooldown Progress (Item)", itemName: 22829, genericShowOn: "showOnReady" };
+    expect(rules.evaluate(icon([ready]), situation([1, { present: true, remaining: 30 }])).triggers[0]).toMatchObject({ kind: "itemCooldown", active: false });
   });
 });
 

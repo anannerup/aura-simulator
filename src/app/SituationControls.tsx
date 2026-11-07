@@ -21,6 +21,8 @@ const KIND_LABELS: Record<TriggerKind, { title: string; present: string; remaini
   secretAura: { title: "Aura (Modern)", present: "Aura present", remaining: "Time left", duration: "Duration", stacks: "Stacks" },
   aura2: { title: "Aura", present: "Aura present", remaining: "Time left", duration: "Duration", stacks: "Stacks" },
   spellCooldown: { title: "Spell cooldown", present: "On cooldown", remaining: "Cooldown left", duration: "Cooldown", stacks: "Charges" },
+  itemCooldown: { title: "Item cooldown", present: "On cooldown", remaining: "Cooldown left", duration: "Cooldown", stacks: "Stacks" },
+  weaponEnchant: { title: "Weapon enchant", present: "Enchanted", remaining: "Time left", duration: "Duration", stacks: "Charges" },
   itemCount: { title: "Item count", present: "In bags", remaining: "Time left", duration: "Duration", stacks: "Count" },
   other: { title: "Trigger", present: "Present", remaining: "Time left", duration: "Duration", stacks: "Stacks" },
 };
@@ -96,7 +98,7 @@ export function SituationControls({
             <Switch
               label={labels.present}
               checked={t.present}
-              onChange={(e) => set(kind === "spellCooldown" && e.target.checked && t.remaining <= 0 ? { present: true, remaining: t.duration } : { present: e.target.checked })}
+              onChange={(e) => set((kind === "spellCooldown" || kind === "itemCooldown") && e.target.checked && t.remaining <= 0 ? { present: true, remaining: t.duration } : { present: e.target.checked })}
             />
             <div className={styles.slider}>
               <span className={styles.sliderHead}>

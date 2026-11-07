@@ -60,12 +60,12 @@ const defaultTriggerSituation: TriggerSituation = { present: true, remaining: 45
 export const DEFAULT_SITUATION: Situation = { triggers: {}, targetExists: true, inCombat: false };
 
 /** What the situation controls offer for a trigger. `secretAura` (Aura (Modern)) exists only in Forever. */
-export type TriggerKind = "secretAura" | "aura2" | "spellCooldown" | "itemCount" | "other";
+export type TriggerKind = "secretAura" | "aura2" | "spellCooldown" | "itemCooldown" | "itemCount" | "weaponEnchant" | "other";
 
 /** The trigger kinds each game has. */
 export const TRIGGER_KINDS: Record<AddonGameId, readonly TriggerKind[]> = {
-  forever: ["secretAura", "aura2", "spellCooldown", "itemCount", "other"],
-  tbc: ["aura2", "spellCooldown", "itemCount", "other"],
+  forever: ["secretAura", "aura2", "spellCooldown", "itemCooldown", "itemCount", "weaponEnchant", "other"],
+  tbc: ["aura2", "spellCooldown", "itemCooldown", "itemCount", "weaponEnchant", "other"],
 };
 
 function triggerKind(trigger: LuaValue | undefined, game: AddonGameId): TriggerKind {
@@ -75,7 +75,12 @@ function triggerKind(trigger: LuaValue | undefined, game: AddonGameId): TriggerK
   if (type === "secretAura") return game === "forever" ? "secretAura" : "other";
   if (type === "aura2") return "aura2";
   if (type === "spell" && getField(trigger, "event") === "Cooldown Progress (Spell)") return "spellCooldown";
-  if (type === "item" && getField(trigger, "event") === "Item Count") return "itemCount";
+  if (type === "item") {
+    const event = getField(trigger, "event");
+    if (event === "Item Count") return "itemCount";
+    if (event === "Cooldown Progress (Item)" || event === "Cooldown Progress (Equipment Slot)") return "itemCooldown";
+    if (event === "Weapon Enchant") return "weaponEnchant";
+  }
   return "other";
 }
 

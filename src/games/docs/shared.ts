@@ -233,8 +233,8 @@ aura:
 
 - **Target exists** and **In combat** switches.
 - Per trigger ("Trigger 1: Aura", …): **Aura present** (for a cooldown trigger: On cooldown; Item Count: In bags;
-  other triggers: Present), **Time left** (a slider), **Duration** (seconds) and **Stacks** (a cooldown's charges,
-  an Item Count's Count).
+  Weapon Enchant: Enchanted; other triggers: Present), **Time left** (a slider), **Duration** (seconds) and
+  **Stacks** (a spell cooldown's or enchant's charges, an Item Count's Count).
 - **Only this aura**: the triggers it edits are the selected aura's own (its override, below), not the
   workspace-wide ones every other aura sees.
 

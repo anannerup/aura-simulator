@@ -531,9 +531,12 @@ function situation({ o, d }: Ctx): string {
 or debuff (present, time left, duration, stacks); for the spell cooldown trigger it is the cooldown (on cooldown, time
 left, the cooldown, charges); for Item Count, \`stacks\` is the item count (\`"present": false\`: none in the bags) and
 the trigger is active whatever the count unless its own Item Count filter (\`use_count\`, \`count\`,
-\`count_operator\`) fails. Any other trigger's \`present\` is whether what it watches is there (found, on cooldown,
-enchanted, …); its own show option decides whether that makes it active: \`genericShowOn\` \`showOnReady\`/
-\`showAlways\` (cooldowns), Weapon Enchant's \`showOn\` \`showOnMissing\`/\`showAlways\`, or Inverse (\`use_inverse\`).
+\`count_operator\`) fails. The item cooldowns (Cooldown Progress (Item), (Equipment Slot)) are like the spell's:
+\`present\` with time left is on cooldown, and they report \`onCooldown\`. Weapon Enchant's \`present\` is the enchant
+on the weapon (\`enchanted\`; time left, duration, charges as stacks). Any other trigger's \`present\` is whether what
+it watches is there. The trigger's own show option decides whether that makes it active: \`genericShowOn\`
+\`showOnReady\`/\`showAlways\` (cooldowns), Weapon Enchant's \`showOn\` \`showOnMissing\`/\`showAlways\`, or Inverse
+(\`use_inverse\`).
 The "Active" condition (\`show\`) is whether a trigger is active. Only the target can be missing (Target exists); every
 other unit exists.`,
     combat: `**In combat** is Forever's combat restriction: auras that freeze keep what they showed when combat started
