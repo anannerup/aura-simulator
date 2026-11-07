@@ -29,7 +29,7 @@ const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number
  * "area" mode covers the anchor area (aura bars default to the bar) grown by xOffset/yOffset; "point" mode is
  * `width`×`height` with its `self_point` on the parent's `anchor_point`, moved by the offsets (y up).
  */
-export function subElementBox(element: LuaTable, host: SubRegionHost): Box {
+function subElementBox(element: LuaTable, host: SubRegionHost): Box {
   const g = (k: string) => getField(element, k);
   const x = num(g("xOffset"), 0);
   const y = num(g("yOffset"), 0);

@@ -8,7 +8,7 @@ import { luaMod1 } from "./pixelGlow";
 
 export const ITEM_SOCKETS = 136264;
 export const SHINE_TEXCOORD: TexCoord = [0.3984375, 0.4453125, 0.40234375, 0.44921875];
-export const SPARKLE_SIZES = [7, 6, 5, 4] as const;
+const SPARKLE_SIZES = [7, 6, 5, 4] as const;
 
 export interface Sparkle {
   /** Centre, CSS px relative to the glow frame's top-left. */

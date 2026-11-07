@@ -10,9 +10,9 @@ import { DEFAULT_FONT, FONTS } from "./media";
 import { textureLoader, textureUrls } from "./textures";
 
 /** The CSS family a game font is registered under. */
-export const cssFamily = (name: string) => `WoW ${name}`;
+const cssFamily = (name: string) => `WoW ${name}`;
 
-export function fontName(value: LuaValue | undefined): string {
+function fontName(value: LuaValue | undefined): string {
   return typeof value === "string" && value !== "" ? value : DEFAULT_FONT;
 }
 

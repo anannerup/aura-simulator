@@ -13,7 +13,7 @@ import type { RegionProps } from "./region-types";
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /** A texture setting that names something the preview can't load (an atlas name). */
-export function unsupportedTexture(value: LuaValue | undefined): string | undefined {
+function unsupportedTexture(value: LuaValue | undefined): string | undefined {
   return typeof value === "string" && value !== "" && textureSourceOf(value) === null ? value : undefined;
 }
 

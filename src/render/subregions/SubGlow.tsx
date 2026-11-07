@@ -9,13 +9,13 @@ import styles from "./subregions.module.css";
 const TYPES = new Set<GlowType>(["buttonOverlay", "Pixel", "ACShine", "Proc"]);
 
 /** The element's glow type, else its parent's default (Glow.lua:12-32). */
-export function glowTypeOf(element: LuaTable, regionType: string): GlowType {
+function glowTypeOf(element: LuaTable, regionType: string): GlowType {
   const value = getField(element, "glowType");
   return typeof value === "string" && TYPES.has(value as GlowType) ? (value as GlowType) : regionInfo(regionType).glowType;
 }
 
 /** The glow sub-region's options as the renderer takes them; missing fields keep Glow.lua's defaults. */
-export function glowOptions(element: LuaTable, properties: Record<string, LuaValue>, position: number): Partial<GlowOptions> {
+function glowOptions(element: LuaTable, properties: Record<string, LuaValue>, position: number): Partial<GlowOptions> {
   const options: Record<string, unknown> = {};
   for (const key of Object.keys(GLOW_DEFAULTS) as (keyof GlowOptions)[]) {
     const value = properties[`sub.${position}.${key}`];

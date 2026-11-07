@@ -130,7 +130,7 @@ export function secretTrigger(aura: AuraDocument): TriggerInfo | undefined {
  * FrozenMarker.lua:15-28 CanFreeze: groups, empty regions and auras with an Aura (Modern) or Cooldown
  * Manager trigger never freeze; otherwise any aura2 trigger that freezes makes the aura freeze.
  */
-export function canFreeze(aura: AuraDocument): boolean {
+function canFreeze(aura: AuraDocument): boolean {
   if (aura.controlledChildren !== undefined || aura.regionType === "empty" || secretTrigger(aura)) return false;
   const triggers = auraTriggers(aura);
   if (triggers.some((t) => getField(t.trigger, "type") === "cdm")) return false;

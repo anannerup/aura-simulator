@@ -15,7 +15,7 @@ import type { RegionProps } from "./region-types";
 const num = (v: LuaValue | undefined, fallback: number) => (typeof v === "number" ? v : fallback);
 
 /** A duration object reaches the region from Aura and Aura (Modern) triggers (BuffTrigger2.lua:937, RegionPrototype.lua:473). */
-export function drawsNatively(state: AuraRenderState): boolean {
+function drawsNatively(state: AuraRenderState): boolean {
   const d = state.dynamic;
   return d !== undefined && (d.kind === "aura2" || d.kind === "secretAura") && d.remaining !== undefined && d.duration > 0;
 }

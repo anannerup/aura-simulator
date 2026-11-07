@@ -8,7 +8,7 @@ import { normalizeTexturePath } from "./textures/paths";
  * WeakAuras.StopMotion.texture_data (Types.lua:4159-4165): the addon ships one sheet. Other sheets (the
  * WeakAurasStopMotion addon) aren't installed on Forever.
  */
-export const STOP_MOTION_TEXTURE_DATA: Readonly<Record<string, { count: number; rows: number; columns: number }>> = {
+const STOP_MOTION_TEXTURE_DATA: Readonly<Record<string, { count: number; rows: number; columns: number }>> = {
   [normalizeTexturePath("Interface\\AddOns\\WeakAuras\\Media\\Textures\\stopmotion")]: { count: 64, rows: 8, columns: 8 },
 };
 

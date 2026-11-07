@@ -26,7 +26,7 @@ export interface RegionTypeInfo {
 }
 
 /** Private.inverse_point_types (Types.lua:1457). */
-export const INVERSE_POINTS: Record<string, string> = {
+const INVERSE_POINTS: Record<string, string> = {
   TOPLEFT: "BOTTOMRIGHT",
   TOP: "BOTTOM",
   TOPRIGHT: "BOTTOMLEFT",

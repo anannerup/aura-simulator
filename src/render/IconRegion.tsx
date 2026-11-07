@@ -76,7 +76,7 @@ export function IconRegion({ aura, state, name, width, height }: RegionProps) {
  * unless "Hide Timer Text" (cooldownTextDisabled) is on (Icon.lua:461-490), assuming the game's
  * "Show numbers for cooldowns" option is on.
  */
-export function CooldownSwipe({ remaining, duration, reverse, swipe, edge, numbers, size }: {
+function CooldownSwipe({ remaining, duration, reverse, swipe, edge, numbers, size }: {
   remaining: number;
   duration: number;
   reverse: boolean;

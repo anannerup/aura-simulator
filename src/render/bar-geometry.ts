@@ -17,7 +17,7 @@ export function orientationOf(value: LuaValue | undefined): Orientation {
   return value === "HORIZONTAL_INVERSE" || value === "VERTICAL" || value === "VERTICAL_INVERSE" ? value : "HORIZONTAL";
 }
 
-export const isVertical = (o: Orientation) => o === "VERTICAL" || o === "VERTICAL_INVERSE";
+const isVertical = (o: Orientation) => o === "VERTICAL" || o === "VERTICAL_INVERSE";
 
 /**
  * Icon and bar rects (AuraBar.lua:690-800 orientHorizontal/orientVertical...). The icon is a square of

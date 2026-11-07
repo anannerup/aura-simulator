@@ -32,7 +32,7 @@ export function anchorFraction(point: unknown): [number, number] {
  * Top-left position (CSS pixels, y down) of a region inside its parent.
  * WoW offsets are y-up, so a positive yOffset moves the region up.
  */
-export function placeRegion(
+function placeRegion(
   parent: { width: number; height: number },
   region: { width: number; height: number; anchorPoint: unknown; selfPoint: unknown; xOffset: number; yOffset: number },
 ): { left: number; top: number } {
