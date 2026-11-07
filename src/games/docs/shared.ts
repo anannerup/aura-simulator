@@ -256,7 +256,9 @@ answer is \`GET /api/${game}/workspaces/<id>/situation\`'s: \`{"workspace", "sit
 
 - It is a **whole situation**: what you leave out has its default. Default: target exists, not in combat, and every
   trigger \`{"present": true, "remaining": 45, "duration": 60, "stacks": 0}\`. A trigger's left-out fields have
-  those defaults too.
+  those defaults too. A **custom trigger** you leave out has no timer (its code, which isn't run, would set one), so
+  its icon draws no cooldown swipe; an event trigger hidden after a set time runs its Duration from the start. Give it
+  an entry to show what its code would report.
 - \`triggers\` is keyed by the trigger number (\`"1"\`, \`"2"\`, as in the aura). \`remaining\` and \`duration\` are
   seconds (\`remaining\` is kept within \`duration\`; \`duration: 0\` means no timer, e.g. a permanent buff);
   \`stacks\` is a whole number. 400 with a message for anything else.

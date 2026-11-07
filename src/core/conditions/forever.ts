@@ -78,7 +78,7 @@ function foreverTriggerState(info: TriggerInfo, facts: SituationFacts, frozenFac
  * doesn't exist isn't drawn (SingleUnitExists, SecretAuraSingle.lua:207).
  */
 function secretAuraState(info: TriggerInfo, facts: SituationFacts): TriggerState {
-  const s = triggerSituation(facts, info.index);
+  const s = triggerSituation(facts, info);
   const exists = unitExists(info.trigger, facts);
   const present = exists && s.present;
   const showOn = secretShowOn(info.trigger);
