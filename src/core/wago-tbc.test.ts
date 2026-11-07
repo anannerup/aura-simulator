@@ -142,6 +142,7 @@ describe("a nested child of a real pack in the editor", () => {
     const display = await c.options(edit.state, { selected: CHILD, tab: "region" });
     expect(find(display.tree, "width")?.value).toBe(77);
   });
+});
 
 describe("custom Lua is flagged where it is", () => {
   test("nanShield (wago G6FHkDAOv, a TSU trigger) gets a custom.lua info per place of its Lua, pointing at it", async (ctx) => {
