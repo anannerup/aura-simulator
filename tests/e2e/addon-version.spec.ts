@@ -1,5 +1,4 @@
 import { expect, test, type Page } from "@playwright/test";
-import { cachedAddonFetcher } from "../support/addon-source";
 import { ownWorkspacePage } from "../support/e2e-workspace";
 import { stateCode } from "../support/state-code";
 
@@ -75,18 +74,21 @@ test("a branch loads by name; an unknown ref shows an error and keeps the previo
   await expectAuraRendered(page);
 });
 
-test("without the server's addon routes, the core loads straight from jsDelivr", async ({ page }) => {
+test("without the server's addon routes, the core loads straight from jsDelivr", async ({ page, request }) => {
   await page.route("**/api/addon/**", (route) => route.fulfill({ status: 500, body: "down" }));
-  // jsDelivr itself is served from the test disk cache (.cache/addon), so repeat runs need no network.
+  // jsDelivr itself is answered from the server's addon cache (outside the page, so not blocked above): repeat runs
+  // need no network.
   const fromJsDelivr: string[] = [];
   await page.route("https://cdn.jsdelivr.net/gh/dldvlpr-addons-wow/Musca-Auras@*/**", async (route) => {
     const m = /\/Musca-Auras@([^/]+)\/(.+)$/.exec(new URL(route.request().url()).pathname)!;
     const [ref, file] = [decodeURIComponent(m[1]), decodeURIComponent(m[2])];
     fromJsDelivr.push(file);
-    await route.fulfill({ body: await cachedAddonFetcher(ref)(file), contentType: "text/plain; charset=utf-8" });
+    const res = await request.get(`/api/addon/${encodeURIComponent(ref)}/file?path=${encodeURIComponent(file)}`);
+    await route.fulfill({ status: res.status(), body: await res.body(), contentType: "text/plain; charset=utf-8" });
   });
   await page.goto(ownWorkspacePage("addon"));
   await expect(loaded(page)).toContainText("Musca Auras v1.15.0", { timeout: 60_000 });
   await expectAuraRendered(page);
   expect(fromJsDelivr).toContain("WeakAuras/Init.lua");
+  await page.unrouteAll({ behavior: "ignoreErrors" }); // textures may still be loading
 });
