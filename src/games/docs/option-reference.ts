@@ -75,7 +75,8 @@ const optionName = (e: OptionReferenceEntry) => plainText(e.name ?? "").trim() |
 function settingText(s: OptionSetting): string {
   if (s.section) return `section "${s.name}" is opened`;
   const label = s.label !== undefined && s.label !== String(s.value) ? ` (${s.label})` : "";
-  return `**${s.name}** (\`${s.option.join(" / ")}\`) is ${json(s.value)}${label}`;
+  const section = s.openSection ? `section "${s.openSection.name}" is opened and ` : "";
+  return `${section}**${s.name}** (\`${s.option.join(" / ")}\`) is ${json(s.value)}${label}`;
 }
 
 /**

@@ -339,8 +339,11 @@ describe.each(GAMES)("option reference of $game $ref", ({ game, load }) => {
         const state = await base;
         const before = walkOptions(await tree(state, entry.tab)).find((n) => sameKey(n.path, entry.option));
         if (!before?.hidden) continue; // shown already (its section is open here): nothing to check
+        // Its section opened first (and closed again after: the window's sections outlive the edit).
+        if (s.openSection) await core!.setOption(state, { tab: entry.tab, path: s.openSection.option });
         const edit = await core!.setOption(state, { tab: entry.tab, path: s.option }, s.value);
         const after = walkOptions(await tree(edit.state, entry.tab)).find((n) => sameKey(n.path, entry.option));
+        if (s.openSection) await core!.setOption(state, { tab: entry.tab, path: s.openSection.option });
         replayed++;
         if (!after || after.hidden) wrong.push(`${JSON.stringify(scope)} ${entry.option.join("/")}: still hidden after ${s.name} = ${JSON.stringify(s.value)}`);
       }
