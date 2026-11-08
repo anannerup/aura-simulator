@@ -6,7 +6,7 @@ Read this, then `.scratch/architecture/spec.md` and the tickets in `.scratch/arc
 
 - **Agents implement** each ticket in their own git worktree, one ticket at a time, never two on the same code.
 - **Codex reviews:** the coordinator doesn't review code. Codex reviews every step read-only with the `code-review`
-  skill (`codex exec -m gpt-6.1-sol -c model_reasoning_effort=max -s read-only`, plus `codex --search exec` when it
+  skill (`codex exec -m gpt-6.1-sol -c model_reasoning_effort=max -s read-only ... < /dev/null`; without `< /dev/null` it waits on stdin forever. Use `codex --search exec` when it
   needs the web). A step is merged only when Codex has no must-fix findings.
 - **Merging:** done in a separate worktree, with `npm run fixtures`, typecheck, lint and `npm run test:all` green. Then
   main fast-forwards and is pushed.
